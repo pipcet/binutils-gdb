@@ -306,6 +306,10 @@ CODE_FRAGMENT
 .     with this name and type in use.  BSF_OBJECT must also be set.  *}
 .#define BSF_GNU_UNIQUE		(1 << 23)
 .
+.  {* A secondary global symbol, overridable without warnings by
+.     a regular or weak global symbol of the same name.  *}
+.#define BSF_SECONDARY		(1 << 24)
+.
 .  flagword flags;
 .
 .  {* A pointer to the section to which this symbol is
@@ -489,6 +493,7 @@ bfd_print_symbol_vandf (bfd *abfd, void *arg, asymbol *symbol)
 	   ((type & BSF_LOCAL)
 	    ? (type & BSF_GLOBAL) ? '!' : 'l'
 	    : (type & BSF_GLOBAL) ? 'g'
+	    : (type & BSF_SECONDARY) ? 's'
 	    : (type & BSF_GNU_UNIQUE) ? 'u' : ' '),
 	   (type & BSF_WEAK) ? 'w' : ' ',
 	   (type & BSF_CONSTRUCTOR) ? 'C' : ' ',
@@ -692,6 +697,15 @@ bfd_decode_symclass (asymbol *symbol)
     }
   if (symbol->flags & BSF_GNU_UNIQUE)
     return 'u';
+  if (symbol->flags & BSF_SECONDARY)
+    {
+      /* If secondary, determine if it's specifically an object
+	 or non-object weak.  */
+      if (symbol->flags & BSF_OBJECT)
+	return 'Y';
+      else
+	return 'S';
+    }
   if (!(symbol->flags & (BSF_GLOBAL | BSF_LOCAL)))
     return '?';
 

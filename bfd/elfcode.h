@@ -1280,6 +1280,9 @@ elf_slurp_symbol_table (bfd *abfd, asymbol **symptrs, bfd_boolean dynamic)
 	    case STB_WEAK:
 	      sym->symbol.flags |= BSF_WEAK;
 	      break;
+	    case STB_SECONDARY:
+	      sym->symbol.flags |= BSF_SECONDARY;
+	      break;
 	    case STB_GNU_UNIQUE:
 	      sym->symbol.flags |= BSF_GNU_UNIQUE;
 	      break;

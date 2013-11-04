@@ -1060,6 +1060,9 @@ struct bfd_section *bfd_create_gnu_debuglink_section
 bfd_boolean bfd_fill_in_gnu_debuglink_section
    (bfd *abfd, struct bfd_section *sect, const char *filename);
 
+const char *bfd_extract_object_only_section
+   (bfd *abfd);
+
 /* Extracted from libbfd.c.  */
 
 /* Byte swapping macros for user section data.  */
@@ -1612,6 +1615,9 @@ extern asection _bfd_std_section[4];
 #define BFD_UND_SECTION_NAME "*UND*"
 #define BFD_COM_SECTION_NAME "*COM*"
 #define BFD_IND_SECTION_NAME "*IND*"
+
+/* GNU object-only section name.  */
+#define GNU_OBJECT_ONLY_SECTION_NAME ".gnu_object_only"
 
 /* Pointer to the common section.  */
 #define bfd_com_section_ptr (&_bfd_std_section[0])
@@ -6279,6 +6285,14 @@ enum bfd_plugin_format
     bfd_plugin_no = 2
   };
 
+enum bfd_lto_object_type
+  {
+    lto_non_object,
+    lto_non_ir_object,
+    lto_ir_object,
+    lto_mixed_object
+  };
+
 struct bfd
 {
   /* The filename the application opened the BFD with.  */
@@ -6438,6 +6452,9 @@ struct bfd
   /* If this is an input for a compiler plug-in library.  */
   ENUM_BITFIELD (bfd_plugin_format) plugin_format : 2;
 
+  /* LTO object type.  */
+  ENUM_BITFIELD (bfd_lto_object_type) lto_type : 2;
+
   /* Set to dummy BFD created when claimed by a compiler plug-in
      library.  */
   bfd *plugin_dummy_bfd;
@@ -6462,6 +6479,9 @@ struct bfd
 
   /* The last section on the section list.  */
   struct bfd_section *section_last;
+
+  /* The object-only section on the section list.  */
+  struct bfd_section *object_only_section;
 
   /* The number of sections.  */
   unsigned int section_count;
@@ -6763,6 +6783,8 @@ bfd_vma bfd_emul_get_commonpagesize (const char *);
 void bfd_emul_set_commonpagesize (const char *, bfd_vma);
 
 char *bfd_demangle (bfd *, const char *, int);
+
+asymbol *bfd_group_signature (asection *group, asymbol **isympp);
 
 /* Extracted from archive.c.  */
 symindex bfd_get_next_mapent

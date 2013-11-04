@@ -305,7 +305,9 @@ success:
       && !no_more_claiming
       && bfd_check_format (entry->the_bfd, bfd_object))
     plugin_maybe_claim (entry);
+  else
 #endif /* ENABLE_PLUGINS */
+    cmdline_check_object_only_section (entry->the_bfd, FALSE);
 
   /* It opened OK, the format checked out, and the plugins have had
      their chance to claim it, so this is success.  */

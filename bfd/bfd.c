@@ -51,6 +51,14 @@ CODE_FRAGMENT
 .    bfd_plugin_no = 2
 .  };
 .
+.enum bfd_lto_object_type
+.  {
+.    lto_non_object,
+.    lto_non_ir_object,
+.    lto_ir_object,
+.    lto_mixed_object
+.  };
+.
 .struct bfd
 .{
 .  {* The filename the application opened the BFD with.  *}
@@ -210,6 +218,9 @@ CODE_FRAGMENT
 .  {* If this is an input for a compiler plug-in library.  *}
 .  ENUM_BITFIELD (bfd_plugin_format) plugin_format : 2;
 .
+.  {* LTO object type.  *}
+.  ENUM_BITFIELD (bfd_lto_object_type) lto_type : 2;
+.
 .  {* Set to dummy BFD created when claimed by a compiler plug-in
 .     library.  *}
 .  bfd *plugin_dummy_bfd;
@@ -234,6 +245,9 @@ CODE_FRAGMENT
 .
 .  {* The last section on the section list.  *}
 .  struct bfd_section *section_last;
+.
+.  {* The object-only section on the section list.  *}
+.  struct bfd_section *object_only_section;
 .
 .  {* The number of sections.  *}
 .  unsigned int section_count;
@@ -1936,4 +1950,37 @@ bfd_demangle (bfd *abfd, const char *name, int options)
     }
 
   return res;
+}
+
+/*
+FUNCTION
+	bfd_group_signature
+
+SYNOPSIS
+	asymbol *bfd_group_signature (asection *group, asymbol **isympp);
+
+DESCRIPTION
+	Return a pointer to the symbol used as a signature for GROUP.
+*/
+
+asymbol *
+bfd_group_signature (asection *group, asymbol **isympp)
+{
+  bfd *abfd = group->owner;
+  Elf_Internal_Shdr *ghdr;
+
+  if (bfd_get_flavour (abfd) != bfd_target_elf_flavour)
+    return NULL;
+
+  ghdr = &elf_section_data (group)->this_hdr;
+  if (ghdr->sh_link < elf_numsections (abfd))
+    {
+      const struct elf_backend_data *bed = get_elf_backend_data (abfd);
+      Elf_Internal_Shdr *symhdr = elf_elfsections (abfd) [ghdr->sh_link];
+
+      if (symhdr->sh_type == SHT_SYMTAB
+	  && ghdr->sh_info < symhdr->sh_size / bed->s->sizeof_sym)
+	return isympp[ghdr->sh_info - 1];
+    }
+  return NULL;
 }

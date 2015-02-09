@@ -46,6 +46,9 @@ SUBSECTION
 #include "sysdep.h"
 #include "bfd.h"
 #include "libbfd.h"
+#if BFD_SUPPORTS_PLUGINS
+#include "plugin.h"
+#endif
 
 /* IMPORT from targets.c.  */
 extern const size_t _bfd_target_vector_entries;
@@ -314,6 +317,13 @@ bfd_check_format_matches (bfd *abfd, bfd_format format, char ***matching)
 	  || (!abfd->target_defaulted && *target == save_targ)
 	  || (*target)->match_priority > best_match)
 	continue;
+
+#if BFD_SUPPORTS_PLUGINS
+      /* If the plugin target is explicitly specified when a BFD file
+	 is opened, don't check it twice.  */
+      if (bfd_plugin_specified_p () && bfd_plugin_target_p (*target))
+	continue;
+#endif
 
       /* If we already tried a match, the bfd is modified and may
 	 have sections attached, which will confuse the next

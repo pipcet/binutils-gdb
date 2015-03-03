@@ -87,6 +87,19 @@ static struct pyexp_code pyexp_codes[] =
 
 
 static PyObject *
+exppy_evaluate_type (PyObject *self, PyObject *args)
+{
+  struct expression *expression = ((opcode_object *) self)->type;
+  struct value *val = evaluate_type(expression);
+  struct type *type = value_type(val);
+  PyObject *result;
+
+  result = type_to_type_object (type);
+
+  return result;
+}
+
+static PyObject *
 opcodepy_get_code (PyObject *self, void *closure)
 {
   struct expression *expression = ((opcode_object *) self)->type;
@@ -277,9 +290,6 @@ opcodepy_get_type (PyObject *self, PyObject *args)
     case OP_SCOPE:
       result = type_to_type_object (exp->elts[elt].type);
       break;
-    case OP_STRING:
-      result = type_to_type_object (exp->elts[elt+1].type);
-      break;
     default:
       break;
     }
@@ -308,8 +318,11 @@ opcodepy_get_value (PyObject *self, PyObject *args)
   switch (opcode)
     {
     case OP_DOUBLE:
+      result = PyFloat_FromDouble (exp->elts[elt+1].doubleconst);
+      break;
     case OP_LONG:
       result = PyLong_FromLong (exp->elts[elt+1].longconst);
+      break;
     case OP_VAR_VALUE:
       new_index = elt + 3;
       new_limit = elt + 3;
@@ -945,6 +958,9 @@ Return the integer representing the memory address of the expression."},
   { "dump", exppy_dump, METH_NOARGS,
     "dump () -> long\n\
 Dump the entirety of the expression object to stdout."},
+  { "evaluate_type", exppy_evaluate_type, METH_NOARGS,
+    "address () -> Object\n\
+Return the integer representing the memory address of the expression."},
   { "opcodes", exppy_get_opcodes, METH_NOARGS,
     "opcodes () -> list\n\
 Return a list holding all the opcodes of this expression.\n\

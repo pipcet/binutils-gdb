@@ -1765,6 +1765,7 @@ message == an error message without a stack will be printed."),
       || gdbpy_initialize_functions () < 0
       || gdbpy_initialize_parameters () < 0
       || gdbpy_initialize_types () < 0
+      || gdbpy_initialize_expressions () < 0
       || gdbpy_initialize_pspace () < 0
       || gdbpy_initialize_objfile () < 0
       || gdbpy_initialize_breakpoints () < 0
@@ -1971,6 +1972,10 @@ Return the selected frame object." },
 Return a string explaining unwind stop reason." },
 
   { "lookup_type", (PyCFunction) gdbpy_lookup_type,
+    METH_VARARGS | METH_KEYWORDS,
+    "lookup_type (name [, block]) -> type\n\
+Return a Type corresponding to the given name." },
+  { "parse_expression", (PyCFunction) gdbpy_parse_expression,
     METH_VARARGS | METH_KEYWORDS,
     "lookup_type (name [, block]) -> type\n\
 Return a Type corresponding to the given name." },

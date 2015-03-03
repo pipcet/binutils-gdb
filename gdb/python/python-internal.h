@@ -363,6 +363,7 @@ PyObject *gdbpy_newest_frame (PyObject *self, PyObject *args);
 PyObject *gdbpy_selected_frame (PyObject *self, PyObject *args);
 PyObject *gdbpy_block_for_pc (PyObject *self, PyObject *args);
 PyObject *gdbpy_lookup_type (PyObject *self, PyObject *args, PyObject *kw);
+PyObject *gdbpy_parse_expression (PyObject *self, PyObject *args, PyObject *kw);
 int gdbpy_is_field (PyObject *obj);
 PyObject *gdbpy_create_lazy_string_object (CORE_ADDR address, long length,
 					   const char *encoding,
@@ -417,7 +418,10 @@ struct symtab *symtab_object_to_symtab (PyObject *obj);
 struct symtab_and_line *sal_object_to_symtab_and_line (PyObject *obj);
 struct frame_info *frame_object_to_frame_info (PyObject *frame_obj);
 struct gdbarch *arch_object_to_gdbarch (PyObject *obj);
+struct expression *expression_object_to_expression (PyObject *obj);
+union exp_element *exp_element_object_to_exp_element (PyObject *obj);
 
+PyObject *expression_to_expression_object (struct expression *);
 void gdbpy_initialize_gdb_readline (void);
 int gdbpy_initialize_auto_load (void)
   CPYCHECKER_NEGATIVE_RESULT_SETS_EXCEPTION;
@@ -436,6 +440,8 @@ int gdbpy_initialize_symtabs (void)
 int gdbpy_initialize_blocks (void)
   CPYCHECKER_NEGATIVE_RESULT_SETS_EXCEPTION;
 int gdbpy_initialize_types (void)
+  CPYCHECKER_NEGATIVE_RESULT_SETS_EXCEPTION;
+int gdbpy_initialize_expressions (void)
   CPYCHECKER_NEGATIVE_RESULT_SETS_EXCEPTION;
 int gdbpy_initialize_functions (void)
   CPYCHECKER_NEGATIVE_RESULT_SETS_EXCEPTION;

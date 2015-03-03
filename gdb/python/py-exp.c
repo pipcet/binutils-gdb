@@ -92,8 +92,6 @@ opcodepy_get_code (PyObject *self, void *closure)
   return PyInt_FromLong (expression->elts[index].opcode);
 }
 
-/* Return the type's name, or None.  */
-
 static struct expression *
 exppy_parse_expression (const char *expression_name)
 {
@@ -597,6 +595,12 @@ gdbpy_initialize_expressions (void)
   int i;
 
   if (PyType_Ready (&expression_object_type) < 0)
+    return -1;
+
+  if (PyType_Ready (&opcode_object_type) < 0)
+    return -1;
+
+  if (PyType_Ready (&expression_iterator_object_type) < 0)
     return -1;
 
   for (i = 0; pyexp_codes[i].name; ++i)

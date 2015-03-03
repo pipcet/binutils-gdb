@@ -43,6 +43,9 @@ typedef struct pyexp_opcode_object
   PyObject_HEAD
   struct expression *type;
   int index;
+  int limit;
+
+  PyObject *dict;
 } opcode_object;
 
 extern PyTypeObject expression_object_type
@@ -90,6 +93,292 @@ opcodepy_get_code (PyObject *self, void *closure)
   int index = ((opcode_object *) self)->index;
 
   return PyInt_FromLong (expression->elts[index].opcode);
+}
+
+static PyObject *
+exppy_make_iter (PyObject *self, int elt, int limit)
+{
+  exppy_iterator_object *typy_iter_obj;
+
+  typy_iter_obj = PyObject_New (exppy_iterator_object,
+				&expression_iterator_object_type);
+  if (typy_iter_obj == NULL)
+      return NULL;
+
+  typy_iter_obj->index = elt;
+  typy_iter_obj->limit = limit;
+  Py_INCREF (self);
+  typy_iter_obj->source = (expression_object *) self;
+
+  return (PyObject *) typy_iter_obj;
+}
+
+static PyObject *
+opcodepy_get_children (PyObject *self, PyObject *args)
+{
+  struct expression *exp = ((opcode_object *) self)->type;
+  int elt = ((opcode_object *) self)->index;
+  int limit = ((opcode_object *) self)->limit;
+  int opcode = exp->elts[elt++].opcode;
+
+  int new_index = elt;
+  int new_limit = limit;
+  PyObject *result, *iter;
+
+  switch (opcode)
+    {
+    case TERNOP_COND:
+    case TERNOP_SLICE:
+    case BINOP_ADD:
+    case BINOP_SUB:
+    case BINOP_MUL:
+    case BINOP_DIV:
+    case BINOP_REM:
+    case BINOP_MOD:
+    case BINOP_LSH:
+    case BINOP_RSH:
+    case BINOP_LOGICAL_AND:
+    case BINOP_LOGICAL_OR:
+    case BINOP_BITWISE_AND:
+    case BINOP_BITWISE_IOR:
+    case BINOP_BITWISE_XOR:
+    case BINOP_EQUAL:
+    case BINOP_NOTEQUAL:
+    case BINOP_LESS:
+    case BINOP_GTR:
+    case BINOP_LEQ:
+    case BINOP_GEQ:
+    case BINOP_REPEAT:
+    case BINOP_ASSIGN:
+    case BINOP_COMMA:
+    case BINOP_SUBSCRIPT:
+    case BINOP_EXP:
+    case BINOP_MIN:
+    case BINOP_MAX:
+    case BINOP_INTDIV:
+    case BINOP_ASSIGN_MODIFY:
+    case BINOP_VAL:
+    case BINOP_CONCAT:
+    case BINOP_END:
+    case STRUCTOP_MEMBER:
+    case STRUCTOP_MPTR:
+    case UNOP_NEG:
+    case UNOP_LOGICAL_NOT:
+    case UNOP_COMPLEMENT:
+    case UNOP_IND:
+    case UNOP_ADDR:
+    case UNOP_PREINCREMENT:
+    case UNOP_POSTINCREMENT:
+    case UNOP_PREDECREMENT:
+    case UNOP_POSTDECREMENT:
+    case UNOP_SIZEOF:
+    case UNOP_PLUS:
+    case UNOP_CAP:
+    case UNOP_CHR:
+    case UNOP_ORD:
+    case UNOP_ABS:
+    case UNOP_FLOAT:
+    case UNOP_HIGH:
+    case UNOP_MAX:
+    case UNOP_MIN:
+    case UNOP_ODD:
+    case UNOP_TRUNC:
+      break;
+    case OP_DOUBLE:
+    case OP_LONG:
+    case OP_VAR_VALUE:
+      new_index = elt + 3;
+      new_limit = elt + 3;
+      break;
+
+    case OP_LAST:
+    case OP_VAR_ENTRY_VALUE:
+    case OP_INTERNALVAR:
+    case TYPE_INSTANCE:
+      new_index = elt + 2;
+      new_limit = elt + 2;
+      break;
+
+    case OP_STRING:
+    case OP_REGISTER:
+    case STRUCTOP_STRUCT:
+    case STRUCTOP_PTR:
+      new_index = elt + 3 + BYTES_TO_EXP_ELEM (exp->elts[elt].longconst + 1);
+      new_limit = new_index;
+      break;
+
+    case OP_FUNCALL:
+      new_index = elt + 2;
+      break;
+    case OP_ARRAY:
+      new_index = elt + 3;
+      break;
+    case UNOP_DYNAMIC_CAST:
+    case UNOP_REINTERPRET_CAST:
+    case UNOP_CAST_TYPE:
+    case UNOP_MEMVAL_TYPE:
+      break;
+    case UNOP_MEMVAL:
+    case UNOP_CAST:
+      new_index = elt + 2;
+      break;
+    case UNOP_MEMVAL_TLS:
+      new_index = elt + 3;
+      break;
+    case OP_TYPE:
+      new_index = elt + 2;
+      break;
+    case OP_TYPEOF:
+    case OP_DECLTYPE:
+      break;
+    case OP_TYPEID:
+      break;
+    case OP_SCOPE:
+      new_index = elt + 4 + BYTES_TO_EXP_ELEM (exp->elts[elt+1].longconst + 1);
+      new_limit = new_index;
+      break;
+    default:
+    case OP_NULL:
+    case MULTI_SUBSCRIPT:
+    case OP_F77_UNDETERMINED_ARGLIST:
+    case OP_COMPLEX:
+    case OP_BOOL:
+    case OP_M2_STRING:
+    case OP_THIS:
+    case OP_NAME:
+      break;
+    }
+
+  iter = exppy_make_iter (self, new_index, new_limit);
+  result = PySequence_List (iter);
+
+  return result;
+}
+
+static PyObject *
+opcodepy_get_type (PyObject *self, PyObject *args)
+{
+  struct expression *exp = ((opcode_object *) self)->type;
+  int elt = ((opcode_object *) self)->index;
+  int limit = ((opcode_object *) self)->limit;
+  int opcode = exp->elts[elt++].opcode;
+
+  int new_index = elt;
+  int new_limit = limit;
+  PyObject *result = NULL;
+
+  switch (opcode)
+    {
+    case OP_DOUBLE:
+    case OP_LONG:
+    case UNOP_MEMVAL:
+    case UNOP_CAST:
+    case OP_TYPE:
+    case OP_SCOPE:
+      result = type_to_type_object (exp->elts[elt].type);
+      break;
+    case OP_STRING:
+      result = type_to_type_object (exp->elts[elt+1].type);
+      break;
+    default:
+      break;
+    }
+
+  if (result == NULL)
+    {
+      result = Py_None;
+      Py_INCREF (result);
+    }
+
+  return result;
+}
+
+static PyObject *
+opcodepy_get_value (PyObject *self, PyObject *args)
+{
+  struct expression *exp = ((opcode_object *) self)->type;
+  int elt = ((opcode_object *) self)->index;
+  int limit = ((opcode_object *) self)->limit;
+  int opcode = exp->elts[elt++].opcode;
+
+  int new_index = elt;
+  int new_limit = limit;
+  PyObject *result = NULL;
+
+  switch (opcode)
+    {
+    case OP_DOUBLE:
+    case OP_LONG:
+      result = PyLong_FromLong (exp->elts[elt+1].longconst);
+    case OP_VAR_VALUE:
+      new_index = elt + 3;
+      new_limit = elt + 3;
+      break;
+
+    case OP_LAST:
+    case OP_VAR_ENTRY_VALUE:
+    case OP_INTERNALVAR:
+    case TYPE_INSTANCE:
+      break;
+
+    case OP_REGISTER:
+    case STRUCTOP_STRUCT:
+    case STRUCTOP_PTR:
+      result = PyString_FromStringAndSize (&exp->elts[elt+1].string, exp->elts[elt].longconst);
+      break;
+
+    case OP_STRING:
+      result = PyString_FromStringAndSize (&exp->elts[elt+3].string, exp->elts[elt+2].longconst);
+      break;
+    case OP_FUNCALL:
+      new_index = elt + 2;
+      break;
+    case OP_ARRAY:
+      new_index = elt + 3;
+      break;
+    case UNOP_DYNAMIC_CAST:
+    case UNOP_REINTERPRET_CAST:
+    case UNOP_CAST_TYPE:
+    case UNOP_MEMVAL_TYPE:
+      break;
+    case UNOP_MEMVAL:
+    case UNOP_CAST:
+      new_index = elt + 2;
+      break;
+    case UNOP_MEMVAL_TLS:
+      new_index = elt + 3;
+      break;
+    case OP_TYPE:
+      new_index = elt + 2;
+      break;
+    case OP_TYPEOF:
+    case OP_DECLTYPE:
+      break;
+    case OP_TYPEID:
+      break;
+    case OP_SCOPE:
+      new_index = elt + 4 + BYTES_TO_EXP_ELEM (exp->elts[elt+1].longconst + 1);
+      new_limit = new_index;
+      break;
+    default:
+    case OP_NULL:
+    case MULTI_SUBSCRIPT:
+    case OP_F77_UNDETERMINED_ARGLIST:
+    case OP_COMPLEX:
+    case OP_BOOL:
+    case OP_M2_STRING:
+    case OP_THIS:
+    case OP_NAME:
+      break;
+    }
+
+  if (result == NULL)
+    {
+      result = Py_None;
+      Py_INCREF (result);
+    }
+
+  return result;
 }
 
 static struct expression *
@@ -142,18 +431,31 @@ static PyObject *
 opcode_new (void)
 {
   opcode_object *result = PyObject_New (opcode_object, &opcode_object_type);
+  if (result)
+    {
+      result->dict = PyDict_New ();
+      if (!result->dict)
+	{
+	  Py_DECREF (result);
+	  result = NULL;
+	}
+    }
 
   return (PyObject *) result;
 }
 
 static PyObject *
-convert_opcode (struct expression *type, int field)
+convert_opcode (struct expression *type, int field, int limit)
 {
   PyObject *result = opcode_new ();
   PyObject *arg;
 
   if (!result)
     return NULL;
+
+  ((opcode_object *)result)->type = type;
+  ((opcode_object *)result)->index = field;
+  ((opcode_object *)result)->limit = limit;
 
   arg = expression_to_expression_object (type);
   if (arg == NULL)
@@ -189,11 +491,11 @@ convert_opcode (struct expression *type, int field)
 }
 
 static PyObject *
-make_opcode (struct expression *type, int i)
+make_opcode (struct expression *type, int i, int limit)
 {
   PyObject *item = NULL, *key = NULL, *value = NULL;
 
-  item =  convert_opcode (type, i);
+  item =  convert_opcode (type, i, limit);
 
   return item;
 }
@@ -418,14 +720,12 @@ exppy_iterator_iternext (PyObject *self)
 
   if (iter_obj->index < iter_obj->limit)
     {
-      result = make_opcode (type, iter_obj->index);
-      if (result != NULL) {
-	int elt = iter_obj->index;
-	elt = expression_skip_subexp (type, elt);
+      int elt = iter_obj->index;
+      elt = expression_skip_subexp (type, elt);
 
-	iter_obj->index = elt;
-	return result;
-      }
+      result = make_opcode (type, iter_obj->index, elt);
+      iter_obj->index = elt;
+      return result;
     }
   return NULL;
 }
@@ -526,24 +826,6 @@ gdbpy_parse_expression (PyObject *self, PyObject *args, PyObject *kw)
   return (PyObject *) expression_to_expression_object (type);
 }
 
-static PyObject *
-exppy_make_iter (PyObject *self)
-{
-  exppy_iterator_object *typy_iter_obj;
-
-  typy_iter_obj = PyObject_New (exppy_iterator_object,
-				&expression_iterator_object_type);
-  if (typy_iter_obj == NULL)
-      return NULL;
-
-  typy_iter_obj->index = 0;
-  Py_INCREF (self);
-  typy_iter_obj->source = (expression_object *) self;
-  typy_iter_obj->limit = typy_iter_obj->source->type->nelts;
-
-  return (PyObject *) typy_iter_obj;
-}
-
 /* Return a sequence of all fields.  Each field is a gdb.Field object.
    This method is similar to typy_values, except where the supplied
    gdb.Type is an array, in which case it returns a list of one entry
@@ -558,11 +840,17 @@ exppy_get_opcodes (PyObject *self, PyObject *args)
   PyObject *result = NULL, *iter = NULL;
   volatile struct gdb_exception except;
 
-  iter = exppy_make_iter (py_type);
+  iter = exppy_make_iter (py_type, 0, type->nelts);
   if (iter != NULL)
     {
       result = PySequence_List (iter);
       //Py_DECREF (iter);
+    }
+
+  if (result == NULL)
+    {
+      result = Py_None;
+      Py_INCREF (result);
     }
 
   return result;
@@ -658,6 +946,15 @@ Each opcode is a gdb.Opcode object." },
 
 static PyMethodDef opcode_object_methods[] =
 {
+  { "children", opcodepy_get_children, METH_NOARGS,
+    "address () -> list\n\
+Return the integer representing the memory address of the expression."},
+  { "value", opcodepy_get_value, METH_NOARGS,
+    "address () -> Object\n\
+Return the integer representing the memory address of the expression."},
+  { "type", opcodepy_get_type, METH_NOARGS,
+    "address () -> Object\n\
+Return the integer representing the memory address of the expression."},
   { NULL }
 };
 
@@ -815,7 +1112,7 @@ PyTypeObject opcode_object_type =
   0,				  /* tp_dict */
   0,				  /* tp_descr_get */
   0,				  /* tp_descr_set */
-  0,				  /* tp_dictoffset */
+  offsetof (opcode_object, dict),  /* tp_dictoffset */
   0,				  /* tp_init */
   0,				  /* tp_alloc */
   0,				  /* tp_new */

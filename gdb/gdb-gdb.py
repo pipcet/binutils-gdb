@@ -122,7 +122,7 @@ class StructTypePrettyPrinter:
         return "\n{" + ",\n ".join(fields) + "}"
 
 class StructMainTypePrettyPrinter:
-    """Pretty-print an objet of type main_type"""
+    """Pretty-print an object of type main_type"""
     def __init__(self, val):
         self.val = val
     def flags_to_string(self):

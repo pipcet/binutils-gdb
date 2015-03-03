@@ -1377,6 +1377,7 @@ int
 gdbpy_initialize_types (void)
 {
   int i;
+  PyObject *array = PyList_New(128);
 
   typy_objfile_data_key
     = register_objfile_data_with_cleanup (save_objfile_types, NULL);
@@ -1395,7 +1396,15 @@ gdbpy_initialize_types (void)
 				   (char *) pyty_codes[i].name,
 				   pyty_codes[i].code) < 0)
 	return -1;
+
+      if (pyty_codes[i].code >= 0)
+	if (PyList_SetItem (array, pyty_codes[i].code, PyString_FromString ((char *) pyty_codes[i].name)) < 0)
+	  return -1;
     }
+
+  if (gdb_pymodule_addobject (gdb_module, "typecodes",
+			      array) < 0)
+    return -1;
 
   if (gdb_pymodule_addobject (gdb_module, "Type",
 			      (PyObject *) &type_object_type) < 0)

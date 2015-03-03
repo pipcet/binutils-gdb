@@ -881,6 +881,7 @@ int
 gdbpy_initialize_expressions (void)
 {
   int i;
+  PyObject *array = PyList_New(128);
 
   if (PyType_Ready (&expression_object_type) < 0)
     return -1;
@@ -898,7 +899,14 @@ gdbpy_initialize_expressions (void)
 				   (char *) pyexp_codes[i].name,
 				   pyexp_codes[i].code) < 0)
 	return -1;
+
+      if (PyList_SetItem (array, pyexp_codes[i].code, PyString_FromString ((char *) pyexp_codes[i].name)) < 0)
+	return -1;
     }
+
+  if (gdb_pymodule_addobject (gdb_module, "opcodes",
+			      array) < 0)
+    return -1;
 
   if (gdb_pymodule_addobject (gdb_module, "Expression",
 			      (PyObject *) &expression_object_type) < 0)

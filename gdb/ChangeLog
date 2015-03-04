@@ -1,3 +1,25 @@
+2015-03-04  Mark Kettenis  <kettenis@gnu.org>
+
+	* inf-ptrace.c [PT_GET_PROCESS_STATE]
+	(inf_ptrace_insert_fork_catchpoint): New function.
+	(inf_ptrace_remove_fork_catchpoint): New function.
+	(inf_ptrace_target) [PT_GET_PROCESS_STATE]: Install them.
+
+2015-03-04  Andreas Arnez  <arnez@linux.vnet.ibm.com>
+
+	* s390-linux-tdep.c (s390_register_name): Return empty string
+	instead of NULL for registers that shouldn't be visible.
+
+2015-03-04  Andreas Arnez  <arnez@linux.vnet.ibm.com>
+
+	* s390-linux-tdep.c (s390_gdbarch_init): Use the correct syscall
+	XML file for 64-bit targets.
+
+2015-03-03  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* target.h (find_default_create_inferior): Remove declaration.
+	(find_default_attach): Likewise.
+
 2015-03-03  Pedro Alves  <palves@redhat.com>
 
 	* inf-ptrace.c (inf_ptrace_resume): Remove spurious whitespace.

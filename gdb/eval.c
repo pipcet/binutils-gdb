@@ -2730,9 +2730,10 @@ evaluate_subexp_standard (struct type *expect_type,
       (*pos) += 2;
       if (noside == EVAL_SKIP)
         goto nosideret;
-      else if (noside == EVAL_AVOID_SIDE_EFFECTS)
+      else
 	{
 	  struct type *type = exp->elts[pc + 1].type;
+	  struct value *value;
 
 	  /* If this is a typedef, then find its immediate target.  We
 	     use check_typedef to resolve stubs, but we ignore its
@@ -2741,10 +2742,12 @@ evaluate_subexp_standard (struct type *expect_type,
 	  check_typedef (type);
 	  if (TYPE_CODE (type) == TYPE_CODE_TYPEDEF)
 	    type = TYPE_TARGET_TYPE (type);
-	  return allocate_value (type);
+	  value = allocate_value (type);
+
+	  mark_value_typeonly (value);
+
+	  return value;
 	}
-      else
-        error (_("Attempt to use a type name as an expression"));
 
     case OP_TYPEOF:
     case OP_DECLTYPE:
@@ -2753,7 +2756,7 @@ evaluate_subexp_standard (struct type *expect_type,
 	  evaluate_subexp (NULL_TYPE, exp, pos, EVAL_SKIP);
 	  goto nosideret;
 	}
-      else if (noside == EVAL_AVOID_SIDE_EFFECTS)
+      else
 	{
 	  enum exp_opcode sub_op = exp->elts[*pos].opcode;
 	  struct value *result;
@@ -2780,10 +2783,10 @@ evaluate_subexp_standard (struct type *expect_type,
 		}
 	    }
 
+	  mark_value_typeonly (result);
+
 	  return result;
 	}
-      else
-        error (_("Attempt to use a type as an expression"));
 
     case OP_TYPEID:
       {

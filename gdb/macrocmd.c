@@ -523,7 +523,7 @@ expression work together to yield a pre-processed expression."),
   add_alias_cmd ("exp1", "expand-once", no_class, 1, &macrolist);
 
   add_cmd ("macro", no_class, info_macro_command,
-	   _("Show the definition of MACRO, and it's source location.\n\
+	   _("Show the definition of MACRO, and its source location.\n\
 Usage: info macro [-a|-all] [--] MACRO\n\
 Options: \n\
   -a, --all    Output all definitions of MACRO in the current compilation\

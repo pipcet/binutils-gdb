@@ -29,6 +29,10 @@
 #include "expression.h"
 #include "typeprint.h"
 
+#include "macrotab.h"
+#include "macroscope.h"
+#include "macroexp.h"
+
 typedef struct pyexp_expression_object
 {
   PyObject_HEAD
@@ -37,6 +41,9 @@ typedef struct pyexp_expression_object
 
   int nelems;
 } expression_object;
+
+extern PyTypeObject expression_object_type
+    CPYCHECKER_TYPE_OBJECT_FOR_TYPEDEF ("expression_object");
 
 typedef struct pyexp_opcode_object
 {
@@ -47,9 +54,6 @@ typedef struct pyexp_opcode_object
 
   PyObject *dict;
 } opcode_object;
-
-extern PyTypeObject expression_object_type
-    CPYCHECKER_TYPE_OBJECT_FOR_TYPEDEF ("expression_object");
 
 extern PyTypeObject opcode_object_type
     CPYCHECKER_TYPE_OBJECT_FOR_TYPEDEF ("opcode_object");
@@ -66,6 +70,15 @@ typedef struct {
 
 extern PyTypeObject expression_iterator_object_type
     CPYCHECKER_TYPE_OBJECT_FOR_TYPEDEF ("exppy_iterator_object");
+
+typedef struct {
+  PyObject_HEAD
+  const char *name;
+  const struct macro_definition *macro;
+} macro_object;
+
+extern PyTypeObject macro_object_type
+    CPYCHECKER_TYPE_OBJECT_FOR_TYPEDEF ("macropy_object");
 
 /* This is used to initialize various gdb.OP_ constants.  */
 struct pyexp_code
@@ -124,6 +137,168 @@ exppy_make_iter (PyObject *self, int elt, int limit)
   typy_iter_obj->source = (expression_object *) self;
 
   return (PyObject *) typy_iter_obj;
+}
+
+static PyObject *
+macropy_is_function_like (PyObject *self, PyObject *args)
+{
+  const struct macro_definition *macro = ((macro_object *) self)->macro;
+
+  if (macro->kind == macro_function_like)
+    Py_RETURN_TRUE;
+
+  Py_RETURN_FALSE;
+}
+
+static PyObject *
+macropy_get_argc (PyObject *self, PyObject *args)
+{
+  const struct macro_definition *macro = ((macro_object *) self)->macro;
+
+  if (macro->kind == macro_function_like)
+    return PyLong_FromLong (macro->argc);
+
+  Py_RETURN_FALSE;
+}
+
+static PyObject *
+macropy_expand (PyObject *self, PyObject *args, PyObject *kw)
+{
+  static char *keywords[] = { "args", "sal", NULL };
+  PyObject *arglist;
+  PyObject *sal_object;
+  PyObject *string;
+
+  struct symtab_and_line *sal;
+  struct macro_source_file *file = NULL;
+  int line = 0;
+  struct macro_scope *ms = NULL;
+  macro_object *mo = (macro_object *) self;
+  char *source;
+  int i;
+
+  if (! PyArg_ParseTupleAndKeywords (args, kw, "OO", keywords,
+				     &arglist, &sal_object))
+    return NULL;
+
+  if (PyList_Size(arglist) != mo->macro->argc)
+    return NULL;
+
+  string = PyString_FromString (mo->name);
+
+  PyString_Concat (&string, PyString_FromString ("("));
+  for (i=0; i<mo->macro->argc; i++) {
+    if (i != 0)
+      PyString_Concat (&string, PyString_FromString (", "));
+    PyString_Concat (&string, PyList_GetItem (arglist, i));
+  }
+  PyString_Concat (&string, PyString_FromString (")"));
+
+  PyString_AsStringAndSize (string, &source, NULL);
+
+  sal = sal_object_to_symtab_and_line (sal_object);
+  if (sal)
+    {
+      ms = sal_macro_scope (*sal);
+      if (ms)
+	{
+	  char *expansion = macro_expand (source,
+					  standard_macro_lookup,
+					  ms);
+
+	  return PyString_FromString (expansion);
+	}
+    }
+
+  Py_RETURN_FALSE;
+}
+
+static PyObject *
+macropy_get_replacement (PyObject *self, PyObject *args)
+{
+  const struct macro_definition *macro = ((macro_object *) self)->macro;
+
+  return PyString_FromString (macro->replacement);
+}
+
+static PyObject *
+macropy_get_name (PyObject *self, PyObject *args)
+{
+  return PyString_FromString (((macro_object *) self)->name);
+}
+
+static void
+set_macro (macro_object *obj, const struct macro_definition *type, const char *name)
+{
+  obj->macro = type;
+  obj->name = name;
+}
+
+PyObject *
+macro_to_macro_object (const struct macro_definition *type, const char *name);
+
+PyObject *
+macro_to_macro_object (const struct macro_definition *type, const char *name)
+{
+  macro_object *macro_obj;
+
+  macro_obj = PyObject_New (macro_object, &macro_object_type);
+  if (macro_obj) {
+    set_macro (macro_obj, type, name);
+  }
+
+  return (PyObject *) macro_obj;
+}
+
+static void
+callback (const char *name, const struct macro_definition *macro,
+	  struct macro_source_file *source, int line, void *user_data)
+{
+  PyObject *dict = user_data;
+
+  PyDict_SetItemString (dict, name, macro_to_macro_object (macro, name));
+}
+
+PyObject *
+gdbpy_macros (PyObject *self, PyObject *args, PyObject *kw)
+{
+  static char *keywords[] = { "sal", NULL };
+  PyObject *sal_object;
+  PyObject *dict = PyDict_New();
+  struct symtab_and_line *sal;
+  struct macro_source_file *file = NULL;
+  int line = 0;
+  struct macro_scope *ms = NULL;
+
+  if (! PyArg_ParseTupleAndKeywords (args, kw, "O", keywords,
+				     &sal_object))
+    return NULL;
+
+  sal = sal_object_to_symtab_and_line (sal_object);
+  if (sal)
+    {
+      ms = sal_macro_scope (*sal);
+      if (ms)
+	{
+	  macro_for_each_in_scope(ms->file, ms->line, callback, dict);
+	}
+    }
+
+  return dict;
+}
+
+PyObject *
+macropy_get_table_macros (PyObject *self, PyObject *args);
+
+PyObject *
+macropy_get_table_macros (PyObject *self, PyObject *args)
+{
+  PyObject *array = PyList_New(0);
+  struct macro_table *table = NULL;
+
+  macro_for_each(table, callback, array);
+
+  return array;
 }
 
 static PyObject *
@@ -291,6 +466,68 @@ opcodepy_get_type (PyObject *self, PyObject *args)
       result = type_to_type_object (exp->elts[elt].type);
       break;
     default:
+      break;
+    }
+
+  if (result == NULL)
+    {
+      result = Py_None;
+      Py_INCREF (result);
+    }
+
+  return result;
+}
+
+static PyObject *
+opcodepy_get_name (PyObject *self, PyObject *args)
+{
+  struct expression *exp = ((opcode_object *) self)->type;
+  int elt = ((opcode_object *) self)->index;
+  int limit = ((opcode_object *) self)->limit;
+  int opcode = exp->elts[elt++].opcode;
+
+  int new_index = elt;
+  int new_limit = limit;
+  PyObject *result = NULL;
+
+  switch (opcode)
+    {
+    case OP_INTERNALVAR:
+      result = PyString_FromString (internalvar_name (exp->elts[elt].internalvar));
+      break;
+    case OP_NAME:
+      result = PyString_FromString (&exp->elts[elt+3].string);
+      break;
+    }
+
+
+  if (result == NULL)
+    {
+      result = Py_None;
+      Py_INCREF (result);
+    }
+
+  return result;
+}
+
+static PyObject *
+opcodepy_get_bounds (PyObject *self, PyObject *args)
+{
+  struct expression *exp = ((opcode_object *) self)->type;
+  int elt = ((opcode_object *) self)->index;
+  int limit = ((opcode_object *) self)->limit;
+  int opcode = exp->elts[elt++].opcode;
+
+  int new_index = elt;
+  int new_limit = limit;
+  PyObject *result = NULL;
+
+  switch (opcode)
+    {
+    case OP_ARRAY:
+      result = PyList_New(2);
+      PyList_SetItem (result, 0, PyLong_FromLong (exp->elts[elt].longconst));
+      PyList_SetItem (result, 1, PyLong_FromLong (exp->elts[elt+1].longconst));
       break;
     }
 
@@ -905,6 +1142,9 @@ gdbpy_initialize_expressions (void)
   if (PyType_Ready (&expression_iterator_object_type) < 0)
     return -1;
 
+  if (PyType_Ready (&macro_object_type) < 0)
+    return -1;
+
   for (i = 0; pyexp_codes[i].name; ++i)
     {
       if (PyModule_AddIntConstant (gdb_module,
@@ -933,12 +1173,21 @@ gdbpy_initialize_expressions (void)
 			      (PyObject *) &expression_iterator_object_type) < 0)
     return -1;
 
+  if (gdb_pymodule_addobject (gdb_module, "Macro",
+			      (PyObject *) &macro_object_type) < 0)
+    return -1;
+
   return 0;
 }
 
 
 
 static PyGetSetDef expression_object_getset[] =
+{
+  { NULL }
+};
+
+static PyGetSetDef macro_object_getset[] =
 {
   { NULL }
 };
@@ -973,10 +1222,36 @@ static PyMethodDef opcode_object_methods[] =
   { "children", opcodepy_get_children, METH_NOARGS,
     "address () -> list\n\
 Return the integer representing the memory address of the expression."},
+  { "bounds", opcodepy_get_bounds, METH_NOARGS,
+    "address () -> Object\n\
+Return the integer representing the memory address of the expression."},
+  { "name", opcodepy_get_name, METH_NOARGS,
+    "address () -> Object\n\
+Return the integer representing the memory address of the expression."},
   { "value", opcodepy_get_value, METH_NOARGS,
     "address () -> Object\n\
 Return the integer representing the memory address of the expression."},
   { "type", opcodepy_get_type, METH_NOARGS,
+    "address () -> Object\n\
+Return the integer representing the memory address of the expression."},
+  { NULL }
+};
+
+static PyMethodDef macro_object_methods[] =
+{
+  { "argc", macropy_get_argc, METH_NOARGS,
+    "address () -> list\n\
+Return the integer representing the memory address of the expression."},
+  { "expand", (PyCFunction)macropy_expand, METH_VARARGS | METH_KEYWORDS,
+    "(list) -> string\n\
+Return the expansion of the macro when substituting the arguments." },
+  { "is_function_like", macropy_is_function_like, METH_NOARGS,
+    "address () -> Object\n\
+Return the integer representing the memory address of the expression."},
+  { "replacement", macropy_get_replacement, METH_NOARGS,
+    "address () -> Object\n\
+Return the integer representing the memory address of the expression."},
+  { "name", macropy_get_name, METH_NOARGS,
     "address () -> Object\n\
 Return the integer representing the memory address of the expression."},
   { NULL }
@@ -1137,6 +1412,48 @@ PyTypeObject opcode_object_type =
   0,				  /* tp_descr_get */
   0,				  /* tp_descr_set */
   offsetof (opcode_object, dict),  /* tp_dictoffset */
+  0,				  /* tp_init */
+  0,				  /* tp_alloc */
+  0,				  /* tp_new */
+};
+
+PyTypeObject macro_object_type =
+{
+  PyVarObject_HEAD_INIT (NULL, 0)
+  "gdb.Macro",			  /*tp_name*/
+  sizeof (macro_object),	  /*tp_basicsize*/
+  0,				  /*tp_itemsize*/
+  0,		  /*tp_dealloc*/
+  0,				  /*tp_print*/
+  0,				  /*tp_getattr*/
+  0,				  /*tp_setattr*/
+  0,				  /*tp_compare*/
+  0,				  /*tp_repr*/
+  0,				  /*tp_as_number*/
+  0,				  /*tp_as_sequence*/
+  0,				  /*tp_as_mapping*/
+  0,				  /*tp_hash */
+  0,				  /*tp_call*/
+  0,			  /*tp_str*/
+  0,				  /*tp_getattro*/
+  0,				  /*tp_setattro*/
+  0,				  /*tp_as_buffer*/
+  Py_TPFLAGS_DEFAULT,             /*tp_flags*/
+  "GDB macro object",		  /* tp_doc */
+  0,				  /* tp_traverse */
+  0,				  /* tp_clear */
+  0,
+  0,				  /* tp_weaklistoffset */
+  0,				  /* tp_iter */
+  0,				  /* tp_iternext */
+  macro_object_methods,	  /* tp_methods */
+  0,				  /* tp_members */
+  macro_object_getset,	  /* tp_getset */
+  0,				  /* tp_base */
+  0,				  /* tp_dict */
+  0,				  /* tp_descr_get */
+  0,				  /* tp_descr_set */
+  0,  /* tp_dictoffset */
   0,				  /* tp_init */
   0,				  /* tp_alloc */
   0,				  /* tp_new */

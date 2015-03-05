@@ -1979,6 +1979,11 @@ Return a Type corresponding to the given name." },
     METH_VARARGS | METH_KEYWORDS,
     "lookup_type (name [, block]) -> type\n\
 Return a Type corresponding to the given name." },
+  { "macros", (PyCFunction) gdbpy_macros,
+    METH_VARARGS | METH_KEYWORDS,
+    "macros (sal) -> list\n\
+Return an array with the macro definitions valid at the gdb.Symtab_and_line\n\
+argument." },
   { "lookup_symbol", (PyCFunction) gdbpy_lookup_symbol,
     METH_VARARGS | METH_KEYWORDS,
     "lookup_symbol (name [, block] [, domain]) -> (symbol, is_field_of_this)\n\

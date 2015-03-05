@@ -32,6 +32,7 @@
 #include "macrotab.h"
 #include "macroscope.h"
 #include "macroexp.h"
+#include "value.h" /* for internalvar_name */
 
 typedef struct pyexp_expression_object
 {
@@ -154,11 +155,15 @@ static PyObject *
 macropy_get_argc (PyObject *self, PyObject *args)
 {
   const struct macro_definition *macro = ((macro_object *) self)->macro;
+  PyObject *result;
 
   if (macro->kind == macro_function_like)
     return PyLong_FromLong (macro->argc);
 
-  Py_RETURN_FALSE;
+  result = Py_None;
+  Py_INCREF (result);
+
+  return result;
 }
 
 static PyObject *
@@ -168,6 +173,7 @@ macropy_expand (PyObject *self, PyObject *args, PyObject *kw)
   PyObject *arglist;
   PyObject *sal_object;
   PyObject *string;
+  PyObject *result;
 
   struct symtab_and_line *sal;
   struct macro_source_file *file = NULL;
@@ -210,7 +216,10 @@ macropy_expand (PyObject *self, PyObject *args, PyObject *kw)
 	}
     }
 
-  Py_RETURN_FALSE;
+  result = Py_None;
+  Py_INCREF (result);
+
+  return result;
 }
 
 static PyObject *
@@ -376,7 +385,6 @@ opcodepy_get_children (PyObject *self, PyObject *args)
     case OP_LONG:
     case OP_VAR_VALUE:
       new_index = elt + 3;
-      new_limit = elt + 3;
       break;
 
     case OP_LAST:
@@ -384,7 +392,6 @@ opcodepy_get_children (PyObject *self, PyObject *args)
     case OP_INTERNALVAR:
     case TYPE_INSTANCE:
       new_index = elt + 2;
-      new_limit = elt + 2;
       break;
 
     case OP_STRING:
@@ -392,7 +399,6 @@ opcodepy_get_children (PyObject *self, PyObject *args)
     case STRUCTOP_STRUCT:
     case STRUCTOP_PTR:
       new_index = elt + 3 + BYTES_TO_EXP_ELEM (exp->elts[elt].longconst + 1);
-      new_limit = new_index;
       break;
 
     case OP_FUNCALL:
@@ -423,7 +429,6 @@ opcodepy_get_children (PyObject *self, PyObject *args)
       break;
     case OP_SCOPE:
       new_index = elt + 4 + BYTES_TO_EXP_ELEM (exp->elts[elt+1].longconst + 1);
-      new_limit = new_index;
       break;
     default:
     case OP_NULL:
@@ -565,10 +570,15 @@ opcodepy_get_value (PyObject *self, PyObject *args)
       new_limit = elt + 3;
       break;
 
+      break;
+
     case OP_LAST:
     case OP_VAR_ENTRY_VALUE:
-    case OP_INTERNALVAR:
     case TYPE_INSTANCE:
+      break;
+
+    case OP_INTERNALVAR:
+      result = PyString_FromString (internalvar_name (exp->elts[elt].internalvar));
       break;
 
     case OP_REGISTER:

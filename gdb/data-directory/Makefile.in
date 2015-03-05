@@ -20,8 +20,9 @@ srcdir = @srcdir@
 SYSCALLS_SRCDIR = $(srcdir)/../syscalls
 PYTHON_SRCDIR = $(srcdir)/../python/lib
 GUILE_SRCDIR = $(srcdir)/../guile/lib
+PERL_SRCDIR = $(srcdir)/../perl/lib
 SYSTEM_GDBINIT_SRCDIR = $(srcdir)/../system-gdbinit
-VPATH = $(srcdir):$(SYSCALLS_SRCDIR):$(PYTHON_SRCDIR):$(GUILE_SRCDIR):$(SYSTEM_GDBINIT_SRCDIR)
+VPATH = $(srcdir):$(SYSCALLS_SRCDIR):$(PYTHON_SRCDIR):$(GUILE_SRCDIR):$(PERL_SRCDIR):$(SYSTEM_GDBINIT_SRCDIR)
 
 top_srcdir = @top_srcdir@
 top_builddir = @top_builddir@
@@ -79,6 +80,14 @@ PYTHON_FILE_LIST = \
 
 @HAVE_PYTHON_TRUE@PYTHON_FILES = $(PYTHON_FILE_LIST)
 @HAVE_PYTHON_FALSE@PYTHON_FILES =
+
+PERL_DIR = perl
+PERL_INSTALL_DIR = $(DESTDIR)$(GDB_DATADIR)/$(PERL_DIR)
+PERL_FILE_LIST = \
+	init.pl
+
+@HAVE_PERL_TRUE@PERL_FILES = $(PERL_FILE_LIST)
+@HAVE_PERL_FALSE@PERL_FILES =
 
 GUILE_DIR = guile
 GUILE_INSTALL_DIR = $(DESTDIR)$(GDB_DATADIR)/$(GUILE_DIR)
@@ -247,6 +256,50 @@ uninstall-python:
 	  done ; \
 	fi
 
+
+stamp-perl: Makefile $(PERL_FILES)
+	rm -rf ./$(PERL_DIR)
+	files='$(PERL_FILES)' ; \
+	if test "x$$files" != x ; then \
+	  for file in $$files ; do \
+	    dir=`echo "$$file" | sed 's,/[^/]*$$,,'` ; \
+	    $(INSTALL_DIR) ./$(PERL_DIR)/$$dir ; \
+	    $(INSTALL_DATA) $(PERL_SRCDIR)/$$file ./$(PERL_DIR)/$$dir ; \
+	  done ; \
+	fi
+	touch $@
+
+.PHONY: clean-perl
+clean-perl:
+	rm -rf $(PERL_DIR)
+	rm -f stamp-perl
+
+.PHONY: install-perl
+install-perl:
+	files='$(PERL_FILES)' ; \
+	if test "x$$files" != x ; then \
+	  for file in $$files ; do \
+	    dir=`echo "$$file" | sed 's,/[^/]*$$,,'` ; \
+	    $(INSTALL_DIR) $(PERL_INSTALL_DIR)/$$dir ; \
+	    $(INSTALL_DATA) ./$(PERL_DIR)/$$file $(PERL_INSTALL_DIR)/$$dir ; \
+	  done ; \
+	fi
+
+.PHONY: uninstall-perl
+uninstall-perl:
+	files='$(PERL_FILES)' ; \
+	if test "x$$files" != x ; then \
+	  for file in $$files ; do \
+	    slashdir=`echo "/$$file" | sed 's,/[^/]*$$,,'` ; \
+	    rm -f $(PERL_INSTALL_DIR)/$$file ; \
+	    while test "x$$file" != "x$$slashdir" ; do \
+	      rmdir 2>/dev/null "$(PERL_INSTALL_DIR)$$slashdir" ; \
+	      file="$$slashdir" ; \
+	      slashdir=`echo "$$file" | sed 's,/[^/]*$$,,'` ; \
+	    done \
+	  done ; \
+	fi
+
 stamp-guile: Makefile $(GUILE_SOURCE_FILES)
 	rm -rf ./$(GUILE_DIR)
 	if test "x$(GUILE_FILES)" != x ; then \
@@ -348,15 +401,15 @@ install: all
 	@$(MAKE) $(FLAGS_TO_PASS) install-only
 
 .PHONY: install-only
-install-only: install-syscalls install-python install-guile \
+install-only: install-syscalls install-python install-guile install-perl \
 	install-system-gdbinit
 
 .PHONY: uninstall
-uninstall: uninstall-syscalls uninstall-python uninstall-guile \
+uninstall: uninstall-syscalls uninstall-python uninstall-guile uninstall-perl \
 	uninstall-system-gdbinit
 
 .PHONY: clean
-clean: clean-syscalls clean-python clean-guile clean-system-gdbinit
+clean: clean-syscalls clean-python clean-guile clean-perl clean-system-gdbinit
 
 .PHONY: maintainer-clean realclean distclean
 maintainer-clean realclean distclean: clean

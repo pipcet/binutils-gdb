@@ -384,7 +384,8 @@ enum command_control_type
     compile_control,
     guile_control,
     while_stepping_control,
-    invalid_control
+    perl_control,
+    invalid_control,
   };
 
 /* * Structure for saved commands lines (for breakpoints, defined

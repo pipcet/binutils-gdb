@@ -61,7 +61,8 @@ enum extension_language
     EXT_LANG_NONE,
     EXT_LANG_GDB,
     EXT_LANG_PYTHON,
-    EXT_LANG_GUILE
+    EXT_LANG_GUILE,
+    EXT_LANG_PERL,
   };
 
 /* Extension language frame-filter status return values.  */

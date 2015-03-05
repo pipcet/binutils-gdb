@@ -743,18 +743,8 @@ dnl no -   Don't include perl support.
 dnl yes -  Include perl support, error if it's missing.
 dnl        If we find perl in $PATH, use it to fetch configure options,
 dnl        otherwise assume the compiler can find it with no help from us.
-dnl        Perl 2.7, 2.6, 2.5, and then 2.4 are tried in turn.
 dnl auto - Same as "yes", but if perl is missing from the system,
 dnl        fall back to "no".
-dnl /path/to/perl/exec-prefix -
-dnl        Use the perl located in this directory.
-dnl        If /path/to/perl/exec-prefix/bin/perl exists, use it to find
-dnl        the compilation parameters.  Otherwise use
-dnl        -I/path/to/perl/exec-prefix/include,
-dnl        -L/path/to/perl/exec-prefix/lib.
-dnl        Perl 2.7, 2.6, 2.5, and then 2.4 are tried in turn.
-dnl        NOTE: This case is historical.  It is what was done for 7.0/7.1
-dnl        but is deprecated.
 dnl /path/to/perl/executable -
 dnl        Run perl-config.py with this version of perl to fetch the
 dnl        compilation parameters.
@@ -766,8 +756,8 @@ dnl perl-executable -
 dnl        Find perl-executable in $PATH, and then handle the same as
 dnl        /path/to/perl/executable.
 dnl
-dnl If a perl program is specified, it is used to run perl-config.py and
-dnl is passed --ldflags, --includes, --exec-prefix.
+dnl If a perl program is specified, it is used to determine the perl
+dnl configuration.
 
 AC_ARG_WITH(perl,
   AS_HELP_STRING([--with-perl@<:@=PERL@:>@], [include perl support (auto/yes/no/<perl-program>)]),
@@ -781,18 +771,7 @@ if test "${with_perl}" = no; then
 else
   case "${with_perl}" in
   [[\\/]]* | ?:[[\\/]]*)
-    if test -d ${with_perl}; then
-      # Assume the perl binary is ${with_perl}/bin/perl.
-      perl_prog="${with_perl}/bin/perl"
-      perl_prefix=
-      # If perl does not exit ${with_perl}/bin, then try in
-      # ${with_perl}.  On Windows/MinGW, this is where the Perl
-      # executable is.
-      if test ! -x "${perl_prog}"; then
-        perl_prog="${with_perl}/perl"
-        perl_prefix=
-      fi
-    elif test -x "${with_perl}"; then
+    if test -x "${with_perl}"; then
       # While we can't run perl compiled for $host (unless host == build),
       # the user could write a script that provides the needed information,
       # so we support that.
@@ -842,25 +821,18 @@ else
     # We have a perl program to use, but it may be too old.
     # Don't flag an error for --with-perl=auto (the default).
     have_perl_config=yes
-    perl_includes=`${perl_prog} ${srcdir}/perl/perl-config.py --includes`
+    perl_libs=`${perl_prog} -MExtUtils::Embed -e ldopts`
     if test $? != 0; then
       have_perl_config=failed
       if test "${with_perl}" != auto; then
-        AC_ERROR(failure running perl-config --includes)
+        AC_ERROR(failure running perl -MExtUtils::Embed -e ldopts`)
       fi
     fi
-    perl_libs=`${perl_prog} ${srcdir}/perl/perl-config.py --ldflags`
+    perl_ccflags=`${perl_prog} -MExtUtils::Embed -e ccopts`
     if test $? != 0; then
       have_perl_config=failed
       if test "${with_perl}" != auto; then
-        AC_ERROR(failure running perl-config --ldflags)
-      fi
-    fi
-    perl_prefix=`${perl_prog} ${srcdir}/perl/perl-config.py --exec-prefix`
-    if test $? != 0; then
-      have_perl_config=failed
-      if test "${with_perl}" != auto; then
-        AC_ERROR(failure running perl-config --exec-prefix)
+        AC_ERROR(failure running perl -MExtUtils::Embed -e ccopts`)
       fi
     fi
   else
@@ -869,8 +841,8 @@ else
     # path from the perl_prefix either, because that include path
     # depends on the Perl version.  So, there is nothing much we can
     # do except assume that the compiler will be able to find those files.
-    perl_includes=
     perl_libs=
+    perl_ccflags=
     have_perl_config=no
   fi
 
@@ -878,62 +850,7 @@ else
   # Otherwise fallback on the old way of trying different versions of
   # perl in turn.
 
-  have_libperl=no
-  if test "${have_perl_config}" = yes; then
-    # Determine the Perl version by extracting "-lperl<version>"
-    # part of the perl_libs. <version> is usually X.Y with X and Y
-    # being decimal numbers, but can also be XY (seen on Windows).
-    #
-    # The extraction is performed using sed with a regular expression.
-    # Initially, the regexp used was using the '?' quantifier to make
-    # the dot in the version number optional.  Unfortunately, this
-    # does not work with non-GNU versions of sed because, because of
-    # what looks like a limitation (the '?' quantifier does not work
-    # with back-references).  We work around this limitation by using
-    # the '*' quantifier instead.  It means that, in theory, we might
-    # match unexpected version strings such as "-lperl2..7", but
-    # this seems unlikely in practice.  And even if that happens,
-    # an error will be triggered later on, when checking that version
-    # number.
-    perl_version=`echo " ${perl_libs} " \
-                         | sed -e 's,^.* -l\(perl[[0-9]]*[[.]]*[[0-9]]*\).*$,\1,'`
-    case "${perl_version}" in
-    perl*)
-      AC_TRY_LIBPERL(${perl_version}, have_libperl,
-                       ${perl_includes}, ${perl_libs})
-      ;;
-    *)
-      AC_MSG_ERROR([unable to determine perl version from ${perl_libs}])
-      ;;
-    esac
-  elif test "${have_perl_config}" != failed; then
-    if test "${have_libperl}" = no; then
-      AC_TRY_LIBPERL(perl2.7, have_libperl,
-                       ${perl_includes}, "${perl_libs} -lperl2.7")
-    fi
-    if test "${have_libperl}" = no; then
-      AC_TRY_LIBPERL(perl2.6, have_libperl,
-                       ${perl_includes}, "${perl_libs} -lperl2.6")
-    fi
-    if test ${have_libperl} = no; then
-      AC_TRY_LIBPERL(perl2.5, have_libperl,
-                       ${perl_includes}, "${perl_libs} -lperl2.5")
-    fi
-    if test ${have_libperl} = no; then
-      AC_TRY_LIBPERL(perl2.4, have_libperl,
-                       ${perl_includes}, "${perl_libs} -lperl2.4")
-    fi
-  fi
-  if test "${have_libperl}" = perl2.7 -o "${have_libperl}" = perl27; then
-    AC_DEFINE(HAVE_LIBPERL2_7, 1, [Define if Perl 2.7 is being used.])
-  elif test "${have_libperl}" = perl2.6 -o "${have_libperl}" = perl26; then
-    AC_DEFINE(HAVE_LIBPERL2_6, 1, [Define if Perl 2.6 is being used.])
-  elif test "${have_libperl}" = perl2.5 -o "${have_libperl}" = perl25; then
-    AC_DEFINE(HAVE_LIBPERL2_5, 1, [Define if Perl 2.5 is being used.])
-  elif test "${have_libperl}" = perl2.4 -o "${have_libperl}" = perl24; then
-    AC_DEFINE(HAVE_LIBPERL2_4, 1, [Define if Perl 2.4 is being used.])
-  fi
-
+  have_libperl=yes
   if test "${have_libperl}" = no; then
     case "${with_perl}" in
     yes)
@@ -946,12 +863,6 @@ else
       AC_MSG_ERROR([no usable perl found at ${with_perl}])
       ;;
     esac
-  else
-    if test -n "${perl_prefix}"; then
-      AC_DEFINE_UNQUOTED(WITH_PERL_PATH, "${perl_prefix}",
-                         [Define if --with-perl provides a path, either directly or via perl-config.py --exec-prefix.])
-      GDB_AC_DEFINE_RELOCATABLE(PERL_PATH, perl, ${perl_prefix})
-    fi
   fi
 fi
 
@@ -962,69 +873,15 @@ if test "${have_libperl}" != no; then
   CONFIG_SRCS="$CONFIG_SRCS \$(SUBDIR_PERL_SRCS)"
   CONFIG_INSTALL="$CONFIG_INSTALL install-perl"
   ENABLE_CFLAGS="$ENABLE_CFLAGS \$(SUBDIR_PERL_CFLAGS)"
-
-  # Flags needed to compile Perl code (taken from perl-config --cflags).
-  # We cannot call perl-config directly because it will output whatever was
-  # used when compiling the Perl interpreter itself, including flags which
-  # would make the perl-related objects be compiled differently from the
-  # rest of GDB (e.g., -O2 and -fPIC).
-  if test "${GCC}" = yes; then
-    tentative_perl_cflags="-fno-strict-aliasing -DNDEBUG -fwrapv"
-  fi
-
-  if test "x${tentative_perl_cflags}" != x; then
-    AC_MSG_CHECKING(compiler flags for perl code)
-    for flag in ${tentative_perl_cflags}; do
-      # Check that the compiler accepts it
-      saved_CFLAGS="$CFLAGS"
-      CFLAGS="$CFLAGS $flag"
-      AC_TRY_COMPILE([],[],PERL_CFLAGS="${PERL_CFLAGS} $flag",)
-      CFLAGS="$saved_CFLAGS"
-    done
-    AC_MSG_RESULT(${PERL_CFLAGS})
-  fi
-
-  # On x64 Windows, Perl's include headers, and pyconfig.h in
-  # particular, rely on MS_WIN64 macro to detect that it's a 64bit
-  # version of Windows.  Unfortunately, MS_WIN64 is only defined if
-  # _MSC_VER, a Microsoft-specific macro, is defined.  So, when
-  # building on x64 Windows with GCC, we define MS_WIN64 ourselves.
-  # The issue was reported to the Perl community, but still isn't
-  # solved as of 2012-10-02 (http://bugs.perl.org/issue4709).
-
-  case "$gdb_host" in
-    mingw64)
-           if test "${GCC}" = yes; then
-             CPPFLAGS="$CPPFLAGS -DMS_WIN64"
-           fi
-           ;;
-  esac
-
-  # Note that "perl -m threading" cannot be used to check for
-  # threading support due to a bug in Perl 2.7.3
-  # (http://bugs.perl.org/issue15567).
-  AC_MSG_CHECKING(whether perl supports threads)
-  saved_CPPFLAGS="${CPPFLAGS}"
-  CPPFLAGS="${PERL_CPPFLAGS}"
-  # Note that the test is reversed so that perl_has_threads=yes on
-  # unexpected failures.
-  AC_PREPROC_IFELSE(AC_LANG_SOURCE([[
-#include <Perl.h>
-#ifdef WITH_THREAD
-# error
-#endif
-  ]]), [perl_has_threads=no], [perl_has_threads=yes])
-  AC_MSG_RESULT(${perl_has_threads})
-  CPPFLAGS="${saved_CPPFLAGS}"
-else
-  # Even if Perl support is not compiled in, we need to have this file
-  # included so that the "perl" command, et.al., still exists.
-  CONFIG_OBS="$CONFIG_OBS perl.o"
-  CONFIG_SRCS="$CONFIG_SRCS perl/perl.c"
 fi
+
+PERL_CFLAGS="${perl_ccflags}"
+PERL_LIBS="${perl_libs}"
+PERL_PROG="${perl_prog}"
+
 AC_SUBST(PERL_CFLAGS)
-AC_SUBST(PERL_CPPFLAGS)
 AC_SUBST(PERL_LIBS)
+AC_SUBST(PERL_PROG)
 AM_CONDITIONAL(HAVE_PERL, test "${have_libperl}" != no)
 
 # --------------------- #

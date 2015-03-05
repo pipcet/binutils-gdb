@@ -718,6 +718,8 @@ exp	:	exp '?' exp ':' exp	%prec '?'
 
 exp	:	exp '=' exp
 			{ write_exp_elt_opcode (pstate, BINOP_ASSIGN); }
+        |       exp '=' type_exp
+			{ write_exp_elt_opcode (pstate, BINOP_ASSIGN); }
 	;
 
 exp	:	exp ASSIGN_MODIFY exp

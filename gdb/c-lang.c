@@ -558,6 +558,8 @@ parse_one_string (struct obstack *output, char *data, int len,
     }
 }
 
+extern int in_type_eval;
+
 /* Expression evaluator for the C language family.  Most operations
    are delegated to evaluate_subexp_standard; see that function for a
    description of the arguments.  */
@@ -722,7 +724,7 @@ evaluate_subexp_c (struct type *expect_type, struct expression *exp,
 	    /* Skip third and second args to evaluate the first one.  */
 	    arg1 = evaluate_subexp (NULL_TYPE, exp, pos, noside);
 
-	    if (value_typeonly (arg1))
+	    if (value_typeonly (arg1) || in_type_eval)
 	      {
 		struct type *type;
 		arg2 = evaluate_subexp (NULL_TYPE, exp, pos, noside);

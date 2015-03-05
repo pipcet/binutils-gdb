@@ -163,15 +163,26 @@ evaluate_expression (struct expression *exp)
   return evaluate_subexp (NULL_TYPE, exp, &pc, EVAL_NORMAL);
 }
 
+extern int in_type_eval;
+
 /* Evaluate an expression, avoiding all memory references
    and getting a value whose type alone is correct.  */
+
+int in_type_eval = 0;
 
 struct value *
 evaluate_type (struct expression *exp)
 {
   int pc = 0;
+  struct value *value;
 
-  return evaluate_subexp (NULL_TYPE, exp, &pc, EVAL_AVOID_SIDE_EFFECTS);
+  in_type_eval++;
+
+  value = evaluate_subexp (NULL_TYPE, exp, &pc, EVAL_AVOID_SIDE_EFFECTS);
+
+  in_type_eval--;
+
+  return value;
 }
 
 /* Evaluate a subexpression, avoiding all memory references and

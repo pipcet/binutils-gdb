@@ -711,6 +711,48 @@ evaluate_subexp_c (struct type *expect_type, struct expression *exp,
       }
       break;
 
+    case TERNOP_COND:
+      {
+	(*pos)++;
+
+	if(noside == EVAL_AVOID_SIDE_EFFECTS)
+	  {
+	    struct value *arg1, *arg2, *arg3;
+
+	    /* Skip third and second args to evaluate the first one.  */
+	    arg1 = evaluate_subexp (NULL_TYPE, exp, pos, noside);
+
+	    if (value_typeonly (arg1))
+	      {
+		struct type *type;
+		arg2 = evaluate_subexp (NULL_TYPE, exp, pos, noside);
+		arg3 = evaluate_subexp (NULL_TYPE, exp, pos, noside);
+
+		type = value_type (arg2);
+
+		if (TYPE_CODE (type) == TYPE_CODE_PTR &&
+		    TYPE_CODE (TYPE_TARGET_TYPE (type)) == TYPE_CODE_VOID) {
+		  return arg3;
+		}
+
+		return arg2;
+	      }
+
+	    if (value_logical_not (arg1))
+	      {
+		evaluate_subexp (NULL_TYPE, exp, pos, EVAL_SKIP);
+		return evaluate_subexp (NULL_TYPE, exp, pos, noside);
+	      }
+	    else
+	      {
+		arg2 = evaluate_subexp (NULL_TYPE, exp, pos, noside);
+		evaluate_subexp (NULL_TYPE, exp, pos, EVAL_SKIP);
+		return arg2;
+	      }
+	  }
+      }
+      break;
+
     default:
       break;
     }

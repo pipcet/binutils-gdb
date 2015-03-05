@@ -204,6 +204,10 @@ struct value
   /* If the value has been released.  */
   unsigned int released : 1;
 
+  /* This value's contents are zero, but for evaluating types, it is
+     considered undefined. */
+  unsigned int typeonly : 1;
+
   /* Register number if the value is from a register.  */
   short regnum;
 
@@ -939,6 +943,7 @@ allocate_value_lazy (struct type *type)
   val->embedded_offset = 0;
   val->pointed_to_offset = 0;
   val->modifiable = 1;
+  val->typeonly = 0;
   val->initialized = 1;  /* Default to initialized.  */
 
   /* Values start out on the all_values chain.  */
@@ -1491,6 +1496,18 @@ deprecated_value_modifiable (struct value *value)
 {
   return value->modifiable;
 }
+
+void
+mark_value_typeonly (struct value *value)
+{
+  value->typeonly = 1;
+}
+
+int
+value_typeonly (const struct value *value)
+{
+  return value->typeonly;
+}
 
 /* Return a mark in the value chain.  All values allocated after the
    mark is obtained (except for those released) are subject to being freed
@@ -1685,6 +1702,7 @@ value_copy (struct value *arg)
   val->embedded_offset = value_embedded_offset (arg);
   val->pointed_to_offset = arg->pointed_to_offset;
   val->modifiable = arg->modifiable;
+  val->typeonly = arg->typeonly;
   if (!value_lazy (val))
     {
       memcpy (value_contents_all_raw (val), value_contents_all_raw (arg),

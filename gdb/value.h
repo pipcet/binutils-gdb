@@ -140,6 +140,9 @@ extern void set_value_offset (struct value *, int offset);
 
 extern int deprecated_value_modifiable (struct value *value);
 
+extern int value_typeonly (const struct value *value);
+extern void mark_value_typeonly (struct value *value);
+
 /* If a value represents a C++ object, then the `type' field gives the
    object's compile-time type.  If the object actually belongs to some
    class derived from `type', perhaps with other base classes and

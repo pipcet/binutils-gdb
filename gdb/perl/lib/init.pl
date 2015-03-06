@@ -1,5 +1,7 @@
 use FFI::Platypus::Declare;
 
+lib undef;
+
 eval {
   attach 'perl_linespec' => [] => 'string';
 };
@@ -9,4 +11,4 @@ if($@) {
   warn "Have you compiled gdb with the -rdynamic option?";
 }
 
-warn "perl linespec is " . perl_linespec();
+my $PERL_LINESPEC = perl_linespec;

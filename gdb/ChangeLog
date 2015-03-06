@@ -1,3 +1,23 @@
+2015-03-06  Gary Benson <gbenson@redhat.com>
+
+	* common/common-utils.h (startswith): New inline function.
+	All places where this logic was used updated to use the above.
+
+2015-03-05  Pedro Alves  <palves@redhat.com>
+
+	PR gdb/18002
+	* mem-break.c (default_memory_insert_breakpoint): Set shadow_len
+	after reading the breakpoint's shadow memory.
+
+2015-03-05  Mark Kettenis  <kettenis@gnu.org>
+
+	* hppabsd-nat.c: Remove file.
+	* hppaobsd-nat.c: New file.
+	* Makefile.in (ALLDEPFILES): Remove hppabsd-nat.c.  Add
+	hppaobsd-nat.c.
+	* config/pa/obsd.mh (NATDEPFILES): Replace hppabsd-nat.o with
+	hppaobsd-nat.o.
+
 2015-03-04  Pedro Alves  <palves@redhat.com>
 
 	* target.h (struct target_ops) <to_decr_pc_after_break>: Delete.

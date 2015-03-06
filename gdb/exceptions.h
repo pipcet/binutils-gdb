@@ -22,7 +22,7 @@
 
 #include "ui-out.h"
 
-/* If E is an exception, print it's error message on the specified
+/* If E is an exception, print its error message on the specified
    stream.  For _fprintf, prefix the message with PREFIX...  */
 extern void exception_print (struct ui_file *file, struct gdb_exception e);
 extern void exception_fprintf (struct ui_file *file, struct gdb_exception e,

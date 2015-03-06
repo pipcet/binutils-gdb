@@ -50,6 +50,10 @@ perl_command (char *arg, int from_tty)
     {
       SV *sv;
       sv = eval_pv(arg, 0);
+      sv = get_sv("@", 0);
+      if(SvTRUE(sv)) {
+	fprintf(stderr, "%s\n", SvPV_nolen(sv));
+      }
     }
 }
 

@@ -40,3 +40,8 @@ core
 !core/
 
 lost+found
+/gdb/gdbserver/configure
+/gdb/gdbserver/aclocal.m4
+/gdb/configure
+/gdb/config.in
+/gdb/aclocal.m4

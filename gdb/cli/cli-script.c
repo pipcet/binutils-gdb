@@ -1111,17 +1111,17 @@ process_next_line (char *p, struct command_line **command, int parse_commands,
 
   if (validator)
     {
-      volatile struct gdb_exception ex;
 
-      TRY_CATCH (ex, RETURN_MASK_ALL)
+      TRY
 	{
 	  validator ((*command)->line, closure);
 	}
-      if (ex.reason < 0)
+      CATCH (ex, RETURN_MASK_ALL)
 	{
 	  xfree (*command);
 	  throw_exception (ex);
 	}
+      END_CATCH
     }
 
   /* Nothing special.  */
@@ -1700,25 +1700,20 @@ script_from_file (FILE *stream, const char *file)
   interpreter_async = 0;
 
   {
-    volatile struct gdb_exception e;
 
-    TRY_CATCH (e, RETURN_MASK_ERROR)
+    TRY
       {
 	read_command_file (stream);
       }
-    switch (e.reason)
+    CATCH (e, RETURN_MASK_ERROR)
       {
-      case 0:
-	break;
-      case RETURN_ERROR:
 	/* Re-throw the error, but with the file name information
 	   prepended.  */
 	throw_error (e.error,
 		     _("%s:%d: Error in sourced command file:\n%s"),
 		     source_file_name, source_line_number, e.message);
-      default:
-	internal_error (__FILE__, __LINE__, _("bad reason"));
       }
+    END_CATCH
   }
 
   do_cleanups (old_cleanups);

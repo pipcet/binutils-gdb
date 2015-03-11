@@ -2153,7 +2153,7 @@ parse_linespec (linespec_parser *parser, const char **argptr)
 {
   linespec_token token;
   struct symtabs_and_lines values;
-  volatile struct gdb_exception file_exception;
+  struct gdb_exception file_exception = exception_none;
   struct cleanup *cleanup;
 
   /* A special case to start.  It has become quite popular for
@@ -2181,7 +2181,6 @@ parse_linespec (linespec_parser *parser, const char **argptr)
 
   parser->lexer.saved_arg = *argptr;
   parser->lexer.stream = argptr;
-  file_exception.reason = 0;
 
   /* Initialize the default symtab and line offset.  */
   initialize_defaults (&PARSER_STATE (parser)->default_symtab,
@@ -2267,11 +2266,16 @@ parse_linespec (linespec_parser *parser, const char **argptr)
       user_filename = copy_token_string (token);
 
       /* Check if the input is a filename.  */
-      TRY_CATCH (file_exception, RETURN_MASK_ERROR)
+      TRY
 	{
 	  PARSER_RESULT (parser)->file_symtabs
 	    = symtabs_from_filename (user_filename);
 	}
+      CATCH (ex, RETURN_MASK_ERROR)
+	{
+	  file_exception = ex;
+	}
+      END_CATCH
 
       if (file_exception.reason >= 0)
 	{
@@ -3102,7 +3106,6 @@ find_linespec_symbols (struct linespec_state *state,
   struct cleanup *cleanup;
   char *canon;
   const char *lookup_name;
-  volatile struct gdb_exception except;
 
   cleanup = demangle_for_lookup (name, state->language->la_language,
 				 &lookup_name);
@@ -3190,7 +3193,7 @@ find_linespec_symbols (struct linespec_state *state,
       if (!VEC_empty (symbolp, classes))
 	{
 	  /* Now locate a list of suitable methods named METHOD.  */
-	  TRY_CATCH (except, RETURN_MASK_ERROR)
+	  TRY
 	    {
 	      find_method (state, file_symtabs, klass, method, classes,
 			   symbols, minsyms);
@@ -3198,8 +3201,12 @@ find_linespec_symbols (struct linespec_state *state,
 
 	  /* If successful, we're done.  If NOT_FOUND_ERROR
 	     was not thrown, rethrow the exception that we did get.  */
-	  if (except.reason < 0 && except.error != NOT_FOUND_ERROR)
-	    throw_exception (except);
+	  CATCH (except, RETURN_MASK_ERROR)
+	    {
+	      if (except.error != NOT_FOUND_ERROR)
+		throw_exception (except);
+	    }
+	  END_CATCH
 	}
     }
 

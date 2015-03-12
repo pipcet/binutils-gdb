@@ -5,6 +5,7 @@ before_install:
   - sudo apt-get install autoconf2.64
   - sudo apt-get install automake
   - sudo apt-get install automake1.11
+  - sudo apt-get install makeinfo
 
 install:
   - echo

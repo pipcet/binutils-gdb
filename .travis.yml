@@ -11,6 +11,6 @@ install:
   - echo
 
 script:
-  - autoreconf2.64 -vif && CC="gcc" CFLAGS="-rdynamic -g3 -O0" ./configure && make -k && sudo make -k install && cd ..;
+  - autoreconf2.64 -vif && CC="gcc" CFLAGS="-rdynamic -g3 -O0" ./configure && make -k && sudo make -k install
   - cd gdb; make -k distclean && autoreconf2.64 -vif && CC="gcc" CFLAGS="-rdynamic -g3 -O0" ./configure --enable-target=x86_64-pc-linux-gnu &&  make -k && sudo make -k install; cd ..
   - gdb --ex 'perl warn "this is from GDB"'

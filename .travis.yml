@@ -6,11 +6,12 @@ before_install:
   - sudo apt-get install automake
   - sudo apt-get install automake1.11
   - sudo apt-get install texinfo
+  - sudo apt-get install binutils-dev
 
 install:
   - echo
 
 script:
-  - autoreconf2.64 -vif && CC="gcc" CFLAGS="-rdynamic -g3 -O0" ./configure && make -k && sudo make -k install
+  - autoreconf2.64 -vif && CC="gcc" CFLAGS="-rdynamic -g3 -O0" ./configure && make -k
   - cd gdb; autoreconf2.64 -vif && (CC="gcc" CFLAGS="-rdynamic -g3 -O0" ./configure --enable-target=x86_64-pc-linux-gnu || cat config.log) &&  make -k && sudo make -k install; cd ..
   - gdb --ex 'perl warn "this is from GDB"'

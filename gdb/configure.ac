@@ -813,10 +813,12 @@ else
       if test "${perl_prog_path}" = missing; then
         AC_ERROR(unable to find perl program ${perl_prog})
       fi
+      AC_MSG_WARN([perl at ${perl_prog}])
       ;;
     esac
   esac
 
+  AC_MSG_WARN([perl at ${perl_prog}])
   if test "${perl_prog}" != missing; then
     # We have a perl program to use, but it may be too old.
     # Don't flag an error for --with-perl=auto (the default).
@@ -835,6 +837,7 @@ else
         AC_ERROR(failure running perl -MExtUtils::Embed -e ccopts`)
       fi
     fi
+    AC_MSG_WARN([perl CCflags ${perl_ccflags}])
   else
     # We do not have a perl executable we can use to determine where
     # to find the Perl headers and libs.  We cannot guess the include

@@ -647,11 +647,15 @@ exppy_parse_expression (const char *expression_name)
   struct expression *expression = NULL;
   volatile struct gdb_exception except;
 
-  TRY_CATCH (except, RETURN_MASK_ALL)
+  TRY
     {
       expression = parse_expression (expression_name);
     }
-  GDB_PY_HANDLE_EXCEPTION (except);
+  CATCH (except, RETURN_MASK_ALL)
+    {
+      GDB_PY_HANDLE_EXCEPTION (except);
+    }
+  END_CATCH
 
   return expression;
 }

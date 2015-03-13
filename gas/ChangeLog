@@ -1,3 +1,22 @@
+2015-03-12  Andrew Bennett  <andrew.bennett@imgtec.com>
+
+	* config/tc-mips.c (mips_cpu_info_table): Add i6400 entry.
+	* doc/c-mips.texi: Document i6400 -march option.
+
+2015-03-12  Nick Clifton  <nickc@redhat.com>
+
+	PR gas/17444
+	* config/tc-arm.h (MD_APPLY_SYM_VALUE): Pass the current segment
+	to arm_apply_sym_value.  Update prototype.
+	* config/tc-arm.c (arm_apply_sym_value): Add segment argument.
+	Do not apply the value if the symbol is in a different segment to
+	the current segment.
+
+2015-03-11  Alan Modra  <amodra@gmail.com>
+
+	* config/tc-ppc.c (md_assemble): Don't abort on 8 byte insn fixups.
+	(md_apply_fix): Report an error on data-only fixups used with insns.
+
 2015-03-10  Andreas Krebbel  <krebbel@linux.vnet.ibm.com>
 
 	* config/tc-s390.c (md_gather_operands): Check for valid

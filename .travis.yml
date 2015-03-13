@@ -6,7 +6,7 @@ before_install:
   - sudo apt-get install automake
   - sudo apt-get install automake1.11
   - sudo apt-get install texinfo
-  - sudo apt-get install perl-dev
+  - sudo apt-get install libperl-dev
   - cpanm -n ExtUtils::Embed
 
 install:

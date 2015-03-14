@@ -9,6 +9,8 @@ before_install:
 
 install:
   - cpanm -n ExtUtils::Embed
+  - cpanm -n FFI::Platypus
+  - cpanm -n FFI::TinyCC
 
 script:
   - autoreconf2.64 -vif && CC="gcc" CFLAGS="-rdynamic -g3 -O0" ./configure && make -k

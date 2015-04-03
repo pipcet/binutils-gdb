@@ -89,7 +89,7 @@
 #include "gdbcore.h"
 #include "gdb-demangle.h"
 #include "gdb-dlfcn.h"
-#include "gdb_expat.h"
+//#include "gdb_expat.h"
 #include "gdb.h"
 #include "gdb_obstack.h"
 #include "gdb_proc_service.h"

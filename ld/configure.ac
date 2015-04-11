@@ -239,10 +239,6 @@ BFD_BINARY_FOPEN
 
 AC_CHECK_DECLS([strstr, free, sbrk, getenv, environ])
 
-# Link in zlib if we can.  This is needed only for the bootstrap tests
-# right now, since those tests use libbfd, which depends on zlib.
-AM_ZLIB
-
 # When converting linker scripts into strings for use in emulation
 # files, use astring.sed if the compiler supports ANSI string
 # concatenation, or ostring.sed otherwise.  This is to support the
@@ -285,10 +281,16 @@ if test x${want64} = xfalse; then
   fi
 fi
 
+elf_list_options=FALSE
+elf_shlib_list_options=FALSE
+elf_plt_unwind_list_options=FALSE
 for targ_alias in `echo $target_alias $enable_targets | sed 's/,/ /g'`
 do
   if test "$targ_alias" = "all"; then
     all_targets=true
+    elf_list_options=TRUE
+    elf_shlib_list_options=TRUE
+    elf_plt_unwind_list_options=TRUE
   else
     # Canonicalize the secondary target names.
     result=`$ac_config_sub $targ_alias 2>/dev/null`
@@ -321,6 +323,18 @@ do
 	  eval result=\$tdir_$i
 	  test -z "$result" && result=$targ_alias
 	  echo tdir_$i=$result >> tdirs
+	  case "${i}" in
+	  *elf*)
+	    elf_list_options=TRUE
+	    . ${srcdir}/emulparams/${i}.sh
+	    if test x${GENERATE_SHLIB_SCRIPT} = xyes; then
+	      elf_shlib_list_options=TRUE
+	    fi
+	    if test x${PLT_UNWIND} = xyes; then
+	      elf_plt_unwind_list_options=TRUE
+	    fi
+	    ;;
+	  esac
 	  ;;
 	esac
     done
@@ -350,6 +364,9 @@ do
   fi
 done
 
+AC_SUBST(elf_list_options)
+AC_SUBST(elf_shlib_list_options)
+AC_SUBST(elf_plt_unwind_list_options)
 AC_SUBST(EMUL)
 
 TDIRS=tdirs

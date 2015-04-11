@@ -2,16 +2,41 @@
 	     (Organized release by release)
 
 *** Changes since GDB 7.9
+=======
+
+* GDB now honors the content of the file /proc/PID/coredump_filter
+  (PID is the process ID) on GNU/Linux systems.  This file can be used
+  to specify the types of memory mappings that will be included in a
+  corefile.  For more information, please refer to the manual page of
+  "core(5)".  GDB also has a new command: "set use-coredump-filter
+  on|off".  It allows to set whether GDB will read the content of the
+  /proc/PID/coredump_filter file when generating a corefile.
+
+* The "info os" command on GNU/Linux can now display information on
+  cpu information :
+    "info os cpus" Listing of all cpus/cores on the system
+
+* GDB has two new commands: "set serial parity odd|even|none" and
+  "show serial parity".  These allows to set or show parity for the
+  remote serial I/O.
 
 * The "info source" command now displays the producer string if it was
   present in the debug info.  This typically includes the compiler version
   and may include things like its command line arguments.
+
+* Directory names supplied to the "set sysroot" commands may be
+  prefixed with "target:" to tell GDB to access shared libraries from
+  the target system, be it local or remote.  This replaces the prefix
+  "remote:".  The default sysroot has been changed from "" to
+  "target:".  "remote:" is automatically converted to "target:" for
+  backward compatibility.
 
 * Python Scripting
 
   ** gdb.Objfile objects have a new attribute "username",
      which is the name of the objfile as specified by the user,
      without, for example, resolving symlinks.
+  ** You can now write frame unwinders in Python.
 
 * New commands
 
@@ -86,6 +111,11 @@ vFile:fstat:
 
 * GDB now supports access to vector registers on S/390 GNU/Linux
   targets.
+
+* Removed targets and native configurations
+
+HP/PA running HP-UX           hppa*-*-hpux*
+Itanium running HP-UX         ia64-*-hpux*
 
 *** Changes in GDB 7.9
 

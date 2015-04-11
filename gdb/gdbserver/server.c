@@ -591,7 +591,7 @@ handle_general_set (char *own_buf)
     {
       char *mode = own_buf + 9;
       int req = -1;
-      char *req_str;
+      const char *req_str;
 
       if (strcmp (mode, "0") == 0)
 	req = 0;
@@ -2082,8 +2082,6 @@ handle_query (char *own_buf, int packet_len, int *new_packet_len_p)
       if (target_supports_stopped_by_hw_breakpoint ())
 	strcat (own_buf, ";hwbreak+");
 
-      strcat (own_buf, ";vFile:fstat+");
-
       return;
     }
 
@@ -2998,10 +2996,32 @@ gdbserver_usage (FILE *stream)
 	   "\tgdbserver [OPTIONS] --attach COMM PID\n"
 	   "\tgdbserver [OPTIONS] --multi COMM\n"
 	   "\n"
-	   "COMM may either be a tty device (for serial debugging), or \n"
-	   "HOST:PORT to listen for a TCP connection.\n"
+	   "COMM may either be a tty device (for serial debugging),\n"
+	   "HOST:PORT to listen for a TCP connection, or '-' or 'stdio' to use \n"
+	   "stdin/stdout of gdbserver.\n"
+	   "PROG is the executable program.  ARGS are arguments passed to inferior.\n"
+	   "PID is the process ID to attach to, when --attach is specified.\n"
 	   "\n"
-	   "Options:\n"
+	   "Operating modes:\n"
+	   "\n"
+	   "  --attach              Attach to running process PID.\n"
+	   "  --multi               Start server without a specific program, and\n"
+	   "                        only quit when explicitly commanded.\n"
+	   "  --once                Exit after the first connection has closed.\n"
+	   "  --help                Print this message and then exit.\n"
+	   "  --version             Display version information and exit.\n"
+	   "\n"
+	   "Other options:\n"
+	   "\n"
+	   "  --wrapper WRAPPER --  Run WRAPPER to start new programs.\n"
+	   "  --disable-randomization\n"
+	   "                        Run PROG with address space randomization disabled.\n"
+	   "  --no-disable-randomization\n"
+	   "                        Don't disable address space randomization when\n"
+	   "                        starting PROG.\n"
+	   "\n"
+	   "Debug options:\n"
+	   "\n"
 	   "  --debug               Enable general debugging output.\n"
 	   "  --debug-format=opt1[,opt2,...]\n"
 	   "                        Specify extra content in debugging output.\n"
@@ -3010,10 +3030,14 @@ gdbserver_usage (FILE *stream)
 	   "                            none\n"
 	   "                            timestamp\n"
 	   "  --remote-debug        Enable remote protocol debugging output.\n"
-	   "  --version             Display version information and exit.\n"
-	   "  --wrapper WRAPPER --  Run WRAPPER to start new programs.\n"
-	   "  --once                Exit after the first connection has "
-								  "closed.\n");
+	   "  --disable-packet=opt1[,opt2,...]\n"
+	   "                        Disable support for RSP packets or features.\n"
+	   "                          Options:\n"
+	   "                            vCont, Tthread, qC, qfThreadInfo and \n"
+	   "                            threads (disable all threading packets).\n"
+	   "\n"
+	   "For more information, consult the GDB manual (available as on-line \n"
+	   "info or a printed manual).\n");
   if (REPORT_BUGS_TO[0] && stream == stdout)
     fprintf (stream, "Report bugs to \"%s\".\n", REPORT_BUGS_TO);
 }

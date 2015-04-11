@@ -1,3 +1,200 @@
+2015-04-10  Nick Clifton  <nickc@redhat.com>
+
+	PR binutils/18198
+	* doc/c-arm.texi (ARM Options): Add a note about the interaction of
+	the -EB option with the linker's --be8 option.
+
+2015-04-09  Hans-Peter Nilsson  <hp@axis.com>
+
+	* doc/c-rx.texi: Fix markup typos in last change.
+
+2015-04-09  Nick Clifton  <nickc@redhat.com>
+
+	* config/tc-rx.c (enum options): Add OPTION_DISALLOW_STRING_INSNS.
+	(md_longopts): Add -mno-allow-string-insns.
+	(md_parse_option): Handle -mno-allow-string-insns.
+	(md_show_usage): Mention -mno-allow-string-insns.
+	(rx_note_string_insn_use): New function.  Produces an error
+	message if a string insn is used when it is not allowed.
+	* config/rx-parse.y (SCMPU): Call rx_note_string_insn_use.
+	(SMOVU, SMOVB, SMOVF, SUNTIL, SWHILE, RMPA): Likewise.
+	* config/rx-defs.h (rx_note_string_insn_use): Prototype.
+	* doc/c-rx.texi: Document -mno-allow-string-insns.
+
+2015-04-08  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* as.c (show_usage): Update --compress-debug-sections.
+	(std_longopts): Use optional_argument on compress-debug-sections.
+	(parse_args): Handle
+	--compress-debug-sections={none|zlib|zlib-gnu|zlib-gabi}.
+	* as.h (compressed_debug_section_type): New.
+	(flag_compress_debug): Change type to compressed_debug_section_type.
+	--compress-debug-sections={none|zlib|zlib-gnu|zlib-gabi}.
+	* write.c (compress_debug): Set BFD_COMPRESS_GABI for
+	--compress-debug-sections=zlib-gabi.  Call
+	bfd_get_compression_header_size to get compression header size.
+	Don't rename section name for --compress-debug-sections=zlib-gabi.
+	* config/tc-i386.c (compressed_debug_section_type): Set to
+	COMPRESS_DEBUG_ZLIB.
+	* doc/as.texinfo: Document
+	--compress-debug-sections={none|zlib|zlib-gnu|zlib-gabi}.
+
+2015-04-07  Renlin Li  <renlin.li@arm.com>
+
+	* config/tc-aarch64.c (mapping_state): Use subseg_text_p.
+	(s_aarch64_inst): Likewise.
+	(md_assemble): Likewise.
+
+2015-04-06  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* write.c (compress_debug): Use bfd_putb64 to write uncompressed
+	section size.
+
+2015-04-05  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* write.c (compress_debug): Don't write the zlib header if
+	compressed section size is the same as before compression.
+
+2015-04-02  Nick Clifton  <nickc@redhat.com>
+
+	PR gas/18189
+	* config/tc-microblaze.c (parse_imm): Use offsetT as the type for
+	min and max parameters.  Sign extend values before testing.
+
+2015-04-02  Renlin Li  <renlin.li@arm.com>
+
+	* config/tc-aarch64.c (mapping_state): Emit MAP_DATA within text section in order.
+	(mapping_state_2): Don't emit MAP_DATA here.
+	(s_aarch64_inst): Align frag during state transition.
+	(md_assemble): Likewise.
+
+2015-04-02  Ed Maste  <emaste@freebsd.org>
+
+	* config/tc-aarch64.c (set_error_kind): Delete.
+	(set_error_message): Delete.
+
+2015-04-02  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* configure: Regenerated.
+
+2015-04-01  Evandro Menezes  <e.menezes@samsung.com>
+
+	* config/tc-aarch64.c: Add support for Samsung Exynos M1.
+	* doc/c-aarch64.texi (-mcpu=): Add "exynos-m1".
+
+2015-04-01  Evandro Menezes  <e.menezes@samsung.com>
+
+	* config/tc-arm.c: Add support for Samsung Exynos M1.
+	* doc/c-arm.texi (-mcpu=): Add "exynos-m1".
+
+2015-04-01  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* configure: Regenerated.
+
+2015-03-31  Ed Schouten  <ed@nuxi.nl>
+
+	* configure.tgt (fmt): Set to elf for *-*-cloudabi*.
+
+2015-03-31  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* configure.ac: Revert the AM_ZLIB change.
+	* Makefile.in: Regenerated.
+	* aclocal.m4: Likewise.
+	* configure: Likewise.
+
+2015-03-31  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* Makefile.am (ZLIBINC): New.
+	(AM_CFLAGS): Add $(ZLIBINC).
+	* as.c: (show_usage): Don't check HAVE_ZLIB_H.
+	(parse_args): Likewise.
+	* compress-debug.c: Don't check HAVE_ZLIB_H to include <zlib.h>.
+	(compress_init): Don't check HAVE_ZLIB_H.
+	(compress_data): Likewise.
+	(compress_finish): Likewise.
+	* configure.ac (AM_ZLIB): Removed.
+	(zlibinc): New.  AC_SUBST.
+	Add --with-system-zlib.
+	* Makefile.in: Regenerated.
+	* config.in: Likewise.
+	* configure: Likewise.
+	* doc/Makefile.in: Likewise.
+
+2015-03-27  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/tc-i386.c (cpu_flags_set): Removed.
+
+2015-03-25  Renlin Li  <renlin.li@arm.com>
+
+	* config/tc-aarch64.c (mapping_state): Remove first MAP_DATA emitting
+	code.
+	(mapping_state_2): Emit first MAP_DATA symbol here.
+
+2015-03-24  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR gas/18087
+	* write.c (compress_debug): Don't write the zlib header if
+	compression didn't make the section smaller.
+
+2015-03-24  Terry Guo  <terry.guo@arm.com>
+
+	* config/tc-arm.c (no_cpu_selected): Use new macro to compare
+	features.
+	(parse_psr): Likewise.
+	(do_t_mrs): Likewise.
+	(do_t_msr): Likewise.
+	(static const arm_feature_set arm_ext_*): Defined with new macros.
+	(static const arm_feature_set arm_cext_*): Likewise.
+	(static const arm_feature_set fpu_fpa_ext_*): Likewise.
+	(static const arm_feature_set fpu_vfp_ext_*): Likewise.
+	(deprecated_coproc_regs): Likewise.
+	(UL_BARRIER): Likewise.
+	(barrier_opt_names): Likewise.
+	(arm_cpus): Likewise.
+	(arm_extensions): Likewise.
+
+2015-03-20  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/tc-i386.c (i386_align_code): Limit multi-byte nop
+	instructions to 10 bytes.
+
+2015-03-19  Nick Clifton  <nickc@redhat.com>
+
+	* config/tc-rl78.c (enum options): Add G13 and G14.
+	(md_longopts): Add -mg13 and -mg14.
+	(md_parse_option): Handle -mg13 and -mg14.
+	(md_show_usage): List -mg13 and -mg14.
+	* doc/c-rl78.texi: Add description of -mg13 and -mg14 options.
+
+2015-03-18  Jon Turney  <jon.turney@dronecode.org.uk>
+	    Nick Clifton  <nickc@redhat.com>
+
+	PR binutils/18087
+	* doc/as.texinfo: Note that when gas compresses debug sections the
+	compression is only performed if it makes the section smaller.
+	* write.c (compress_debug): Do not compress a debug section if
+	doing so would make it larger.
+
+2015-03-17  Ganesh Gopalasubramanian  <Ganesh.Gopalasubramanian@amd.com>
+
+	* config/tc-i386.c (cpu_arch): Add PROCESSOR_ZNVER flags.
+	(i386_align_code): Add PROCESSOR_ZNVER cases.
+	* config/tc-i386.h (processor_type): Add PROCESSOR_ZNVER.
+	* doc/c-i386.texi: Add znver1 and clzero.
+
+2015-03-16  Nick Clifton  <nickc@redhat.com>
+
+	* dwarf2dbg.c (out_header): Remove spurious #if 1.
+
+2015-03-13  Jiong Wang  <jiong.wang@arm.com>
+
+	* config/tc-aarch64.c (warn_unpredictable_ldst): Don't warn on reg
+	number 31.
+
+2015-03-13  Jiong Wang  <jiong.wang@arm.com>
+
+	* config/tc-aarch64.h (SUB_SEGMENT_ALIGN): Define to be zero.
+
 2015-03-12  Andrew Bennett  <andrew.bennett@imgtec.com>
 
 	* config/tc-mips.c (mips_cpu_info_table): Add i6400 entry.

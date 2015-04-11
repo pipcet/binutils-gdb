@@ -1,3 +1,82 @@
+2015-04-06  Ilya Tocar  <ilya.tocar@intel.com>
+	    H.J. Lu  <hongjiu.lu@intel.com>
+
+	* i386-dis-evex.h (evex_table): Fill prefix_requirement field.
+	* i386-dis.c (PREFIX_MANDATORY_REPZ, PREFIX_MANDATORY_REPNZ,
+	PREFIX_MANDATORY_DATA, PREFIX_MANDATORY_ADDR, PREFIX_MANDATORY_LOCK,
+	PREFIX_UD_SHIFT, PREFIX_UD_REPZ, REFIX_UD_REPNZ, PREFIX_UD_DATA,
+	PREFIX_UD_ADDR, PREFIX_UD_LOCK, PREFIX_MANDATORY): Define.
+	(Bad_Opcode, FLOAT, DIS386, DIS386_PREFIX, THREE_BYTE_TABLE_PREFIX):
+	Fill prefix_requirement field.
+	(struct dis386): Add prefix_requirement field.
+	(dis386): Fill prefix_requirement field.
+	(dis386_twobyte): Ditto.
+	(twobyte_has_mandatory_prefix_: Remove.
+	(reg_table): Fill prefix_requirement field.
+	(prefix_table): Ditto.
+	(x86_64_table): Ditto.
+	(three_byte_table): Ditto.
+	(xop_table): Ditto.
+	(vex_table): Ditto.
+	(vex_len_table): Ditto.
+	(vex_w_table): Ditto.
+	(mod_table): Ditto.
+	(bad_opcode): Ditto.
+	(print_insn): Use prefix_requirement.
+	(FGRPd9_2, FGRPd9_4, FGRPd9_5, FGRPd9_6, FGRPd9_7, FGRPda_5, FGRPdb_4,
+	FGRPde_3, FGRPdf_4): Fill prefix_requirement field.
+	(float_reg): Ditto.
+
+2015-03-30  Mike Frysinger  <vapier@gentoo.org>
+
+	* d10v-opc.c (d10v_reg_name_cnt): Convert old style prototype.
+
+2015-03-29  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* Makefile.in: Regenerated.
+
+2015-03-25  Anton Blanchard  <anton@samba.org>
+
+	* ppc-dis.c (disassemble_init_powerpc): Only initialise
+	powerpc_opcd_indices and vle_opcd_indices once.
+
+2015-03-25  Anton Blanchard  <anton@samba.org>
+
+	* ppc-opc.c (powerpc_opcodes): Add slbfee.
+
+2015-03-24  Terry Guo  <terry.guo@arm.com>
+
+	* arm-dis.c (opcode32): Updated to use new arm feature struct.
+	(opcode16): Likewise.
+	(coprocessor_opcodes): Replace bit with feature struct.
+	(neon_opcodes): Likewise.
+	(arm_opcodes): Likewise.
+	(thumb_opcodes): Likewise.
+	(thumb32_opcodes): Likewise.
+	(print_insn_coprocessor): Likewise.
+	(print_insn_arm): Likewise.
+	(select_arm_features): Follow new feature struct.
+
+2015-03-17  Ganesh Gopalasubramanian  <Ganesh.Gopalasubramanian@amd.com>
+
+	* i386-dis.c (rm_table): Add clzero.
+	* i386-gen.c (cpu_flag_init): Add new CPU_ZNVER1_FLAGS.
+	Add CPU_CLZERO_FLAGS.
+	(cpu_flags): Add CpuCLZERO.
+	* i386-opc.h: Add CpuCLZERO.
+	* i386-opc.tbl: Add clzero.
+	* i386-init.h: Re-generated.
+	* i386-tbl.h: Re-generated.
+
+2015-03-13  Andrew Bennett  <andrew.bennett@imgtec.com>
+
+	* mips-opc.c (decode_mips_operand): Fix constraint issues
+	with u and y operands.
+
+2015-03-13  Andrew Bennett  <andrew.bennett@imgtec.com>
+
+	* mips-opc.c (mips_builtin_opcodes): Add evp and dvp instructions.
+
 2015-03-10  Andreas Krebbel  <krebbel@linux.vnet.ibm.com>
 
 	* s390-opc.c: Add new IBM z13 instructions.

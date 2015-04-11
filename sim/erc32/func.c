@@ -26,9 +26,9 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include "sis.h"
-#include "end.h"
 #include <dis-asm.h>
 #include "sim-config.h"
+#include <inttypes.h>
 
 
 #define	VAL(x)	strtoul(x,(char **)NULL,0)
@@ -80,22 +80,25 @@ batch(sregs, fname)
     char           *fname;
 {
     FILE           *fp;
-    char            lbuf[1024];
+    char           *lbuf = NULL;
+    size_t         len = 0;
+    size_t         slen;
 
     if ((fp = fopen(fname, "r")) == NULL) {
 	fprintf(stderr, "couldn't open batch file %s\n", fname);
-	return (0);
+	return 0;
     }
-    while (!feof(fp)) {
-	lbuf[0] = 0;
-	fgets(lbuf, 1023, fp);
-	if ((strlen(lbuf) > 0) && (lbuf[strlen(lbuf) - 1] == '\n'))
-	    lbuf[strlen(lbuf) - 1] = 0;
-	printf("sis> %s\n", lbuf);
-	exec_cmd(sregs, lbuf);
+    while (getline(&lbuf, &len, fp) > -1) {
+	slen = strlen(lbuf);
+	if (slen && (lbuf[slen - 1] == '\n')) {
+	    lbuf[slen - 1] = 0;
+	    printf("sis> %s\n", lbuf);
+	    exec_cmd(sregs, lbuf);
+	}
     }
+    free(lbuf);
     fclose(fp);
-    return (1);
+    return 1;
 }
 
 void
@@ -372,23 +375,22 @@ limcalc (freq)
             lim = -1;
         }
     }
-    return (lim);
+    return lim;
 }
-    
+
 int
-exec_cmd(sregs, cmd)
-    char           *cmd;
-    struct pstate  *sregs;
+exec_cmd(struct pstate *sregs, const char *cmd)
 {
     char           *cmd1, *cmd2;
     int32           stat;
     uint32          len, i, clen, j;
     static uint32   daddr = 0;
-    char           *cmdsave;
+    char           *cmdsave, *cmdsave2 = NULL;
 
     stat = OK;
     cmdsave = strdup(cmd);
-    if ((cmd1 = strtok(cmd, " \t")) != NULL) {
+    cmdsave2 = strdup (cmd);
+    if ((cmd1 = strtok (cmdsave2, " \t")) != NULL) {
 	clen = strlen(cmd1);
 	if (strncmp(cmd1, "bp", clen) == 0) {
 	    for (i = 0; i < sregs->bptnum; i++) {
@@ -554,7 +556,9 @@ exec_cmd(sregs, cmd)
 	    sim_halt();
 	} else if (strncmp(cmd1, "shell", clen) == 0) {
 	    if ((cmd1 = strtok(NULL, " \t\n\r")) != NULL) {
-		system(&cmdsave[clen]);
+		if (system(&cmdsave[clen])) {
+		    /* Silence unused return value warning.  */
+		}
 	    }
 	} else if (strncmp(cmd1, "step", clen) == 0) {
 	    stat = run_sim(sregs, 1, 1);
@@ -603,9 +607,11 @@ exec_cmd(sregs, cmd)
 	} else
 	    printf("syntax error\n");
     }
+    if (cmdsave2 != NULL)
+	free(cmdsave2);
     if (cmdsave != NULL)
 	free(cmdsave);
-    return (stat);
+    return stat;
 }
 
 
@@ -643,8 +649,8 @@ show_stat(sregs)
 	sregs->nbranch;
 #endif
 
-    printf("\n Cycles       : %9d\n\r", ebase.simtime - sregs->simstart);
-    printf(" Instructions : %9d\n", sregs->ninst);
+    printf("\n Cycles       : %9" PRIu64 "\n\r", ebase.simtime - sregs->simstart);
+    printf(" Instructions : %9" PRIu64 "\n", sregs->ninst);
 
 #ifdef STAT
     printf("   integer    : %9.2f %%\n", 100.0 * (float) iinst / (float) sregs->ninst);
@@ -730,7 +736,7 @@ disp_fpu(sregs)
 
     printf("\n fsr: %08X\n\n", sregs->fsr);
 
-#ifdef HOST_LITTLE_ENDIAN_FLOAT
+#ifdef HOST_LITTLE_ENDIAN
     for (i = 0; i < 32; i++)
       sregs->fdp[i ^ 1] = sregs->fs[i];
 #endif
@@ -744,7 +750,7 @@ disp_fpu(sregs)
 	    printf("\n");
     }
     printf("\n");
-    return (OK);
+    return OK;
 }
 
 static void
@@ -945,7 +951,7 @@ advance_time(sregs)
 uint32
 now()
 {
-    return(ebase.simtime);
+    return ebase.simtime;
 }
 
 
@@ -977,7 +983,7 @@ wait_for_irq()
 	}
     }
     sregs.pwdtime += ebase.simtime - endtime;
-    return (ebase.simtime - endtime);
+    return ebase.simtime - endtime;
 }
 
 int
@@ -987,12 +993,12 @@ check_bpt(sregs)
     int32           i;
 
     if ((sregs->bphit) || (sregs->annul))
-	return (0);
+	return 0;
     for (i = 0; i < (int32) sregs->bptnum; i++) {
 	if (sregs->pc == sregs->bpts[i])
-	    return (BPT_HIT);
+	    return BPT_HIT;
     }
-    return (0);
+    return 0;
 }
 
 void
@@ -1030,8 +1036,7 @@ sys_halt()
 #define LOAD_ADDRESS 0
 
 int
-bfd_load(fname)
-    char           *fname;
+bfd_load (const char *fname)
 {
     asection       *section;
     bfd            *pbfd;
@@ -1041,11 +1046,11 @@ bfd_load(fname)
 
     if (pbfd == NULL) {
 	printf("open of %s failed\n", fname);
-	return (-1);
+	return -1;
     }
     if (!bfd_check_format(pbfd, bfd_object)) {
 	printf("file %s  doesn't seem to be an object file\n", fname);
-	return (-1);
+	return -1;
     }
 
     arch = bfd_get_arch_info (pbfd);
@@ -1130,7 +1135,7 @@ bfd_load(fname)
     if (sis_verbose)
 	printf("\n");
 
-    return(bfd_get_start_address (pbfd));
+    return bfd_get_start_address (pbfd);
 }
 
 double get_time (void)
@@ -1141,5 +1146,5 @@ double get_time (void)
 
     gettimeofday (&tm, NULL);
     usec = ((double) tm.tv_sec) * 1E6 + ((double) tm.tv_usec);
-    return (usec / 1E6);
+    return usec / 1E6;
 }

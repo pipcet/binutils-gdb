@@ -110,8 +110,6 @@ static void extended_remote_restart (void);
 
 static void extended_remote_mourn (struct target_ops *);
 
-static void remote_mourn_1 (struct target_ops *);
-
 static void remote_send (char **buf, long *sizeof_buf_p);
 
 static int readchar (int timeout);
@@ -124,10 +122,7 @@ static int remote_can_async_p (struct target_ops *);
 
 static int remote_is_async_p (struct target_ops *);
 
-static void remote_async (struct target_ops *ops,
-			  void (*callback) (enum inferior_event_type event_type,
-					    void *context),
-			  void *context);
+static void remote_async (struct target_ops *ops, int enable);
 
 static void sync_remote_interrupt_twice (int signo);
 
@@ -355,10 +350,6 @@ struct remote_state
      and set to false when the target fails to recognize it).  */
   int use_threadinfo_query;
   int use_threadextra_query;
-
-  void (*async_client_callback) (enum inferior_event_type event_type,
-				 void *context);
-  void *async_client_context;
 
   /* This is set to the data address of the access causing the target
      to stop for a watchpoint.  */
@@ -2844,7 +2835,7 @@ remote_update_thread_list (struct target_ops *ops)
       /* CONTEXT now holds the current thread list on the remote
 	 target end.  Delete GDB-side threads no longer found on the
 	 target.  */
-      ALL_NON_EXITED_THREADS_SAFE (tp, tmp)
+      ALL_THREADS_SAFE (tp, tmp)
         {
 	  for (i = 0;
 	       VEC_iterate (thread_item_t, context.items, i, item);
@@ -3661,7 +3652,7 @@ remote_start_remote (int from_tty, struct target_ops *target, int extended_p)
 	}
 
       if (target_can_async_p ())
-	target_async (inferior_event_handler, 0);
+	target_async (1);
 
       if (thread_count () == 0)
 	{
@@ -4049,8 +4040,6 @@ static const struct protocol_feature remote_protocol_features[] = {
     PACKET_Qbtrace_conf_bts_size },
   { "swbreak", PACKET_DISABLE, remote_supported_packet, PACKET_swbreak_feature },
   { "hwbreak", PACKET_DISABLE, remote_supported_packet, PACKET_hwbreak_feature },
-  { "vFile:fstat", PACKET_DISABLE, remote_supported_packet,
-    PACKET_vFile_fstat },
 };
 
 static char *remote_support_xml;
@@ -4310,6 +4299,7 @@ remote_open_1 (const char *name, int from_tty,
 	}
     }
 
+  serial_setparity (rs->remote_desc, serial_parity);
   serial_raw (rs->remote_desc);
 
   /* If there is something sitting in the buffer we might take it as a
@@ -4479,9 +4469,9 @@ remote_disconnect (struct target_ops *target, const char *args, int from_tty)
     error (_("Argument given to \"disconnect\" when remotely debugging."));
 
   /* Make sure we unpush even the extended remote targets; mourn
-     won't do it.  So call remote_mourn_1 directly instead of
+     won't do it.  So call remote_mourn directly instead of
      target_mourn_inferior.  */
-  remote_mourn_1 (target);
+  remote_mourn (target);
 
   if (from_tty)
     puts_filtered ("Ending remote debugging.\n");
@@ -4491,8 +4481,8 @@ remote_disconnect (struct target_ops *target, const char *args, int from_tty)
    be chatty about it.  */
 
 static void
-extended_remote_attach_1 (struct target_ops *target, const char *args,
-			  int from_tty)
+extended_remote_attach (struct target_ops *target, const char *args,
+			int from_tty)
 {
   struct remote_state *rs = get_remote_state ();
   int pid;
@@ -4591,7 +4581,7 @@ extended_remote_attach_1 (struct target_ops *target, const char *args,
 
 	  push_stop_reply ((struct stop_reply *) reply);
 
-	  target_async (inferior_event_handler, 0);
+	  target_async (1);
 	}
       else
 	{
@@ -4602,12 +4592,6 @@ extended_remote_attach_1 (struct target_ops *target, const char *args,
     }
   else
     gdb_assert (wait_status == NULL);
-}
-
-static void
-extended_remote_attach (struct target_ops *ops, const char *args, int from_tty)
-{
-  extended_remote_attach_1 (ops, args, from_tty);
 }
 
 /* Implementation of the to_post_attach method.  */
@@ -4930,7 +4914,7 @@ remote_resume (struct target_ops *ops,
      into infcmd.c in order to allow inferior function calls to work
      NOT asynchronously.  */
   if (target_can_async_p ())
-    target_async (inferior_event_handler, 0);
+    target_async (1);
 
   /* We've just told the target to resume.  The remote server will
      wait for the inferior to stop, and then send a stop reply.  In
@@ -7928,14 +7912,7 @@ extended_remote_kill (struct target_ops *ops)
 }
 
 static void
-remote_mourn (struct target_ops *ops)
-{
-  remote_mourn_1 (ops);
-}
-
-/* Worker function for remote_mourn.  */
-static void
-remote_mourn_1 (struct target_ops *target)
+remote_mourn (struct target_ops *target)
 {
   unpush_target (target);
 
@@ -7944,7 +7921,7 @@ remote_mourn_1 (struct target_ops *target)
 }
 
 static void
-extended_remote_mourn_1 (struct target_ops *target)
+extended_remote_mourn (struct target_ops *target)
 {
   struct remote_state *rs = get_remote_state ();
 
@@ -8002,12 +7979,6 @@ extended_remote_mourn_1 (struct target_ops *target)
 	    }
 	}
     }
-}
-
-static void
-extended_remote_mourn (struct target_ops *ops)
-{
-  extended_remote_mourn_1 (ops);
 }
 
 static int
@@ -8113,7 +8084,7 @@ extended_remote_create_inferior (struct target_ops *ops,
   /* If running asynchronously, register the target file descriptor
      with the event loop.  */
   if (target_can_async_p ())
-    target_async (inferior_event_handler, 0);
+    target_async (1);
 
   /* Disable address space randomization if requested (and supported).  */
   if (extended_remote_supports_disable_randomization (ops))
@@ -9892,6 +9863,15 @@ remote_hostio_send_command (int command_bytes, int which_packet,
   return ret;
 }
 
+/* Return nonzero if the filesystem accessed by the target_fileio_*
+   methods is the local filesystem, zero otherwise.  */
+
+static int
+remote_filesystem_is_local (struct target_ops *self)
+{
+  return 0;
+}
+
 /* Open FILENAME on the remote target, using FLAGS and MODE.  Return a
    remote file descriptor, or -1 if an error occurs (and set
    *REMOTE_ERRNO).  */
@@ -10084,8 +10064,18 @@ remote_hostio_fstat (struct target_ops *self,
   struct fio_stat fst;
   int read_len;
 
-  if (packet_support (PACKET_vFile_fstat) != PACKET_ENABLE)
+  remote_buffer_add_string (&p, &left, "vFile:fstat:");
+
+  remote_buffer_add_int (&p, &left, fd);
+
+  ret = remote_hostio_send_command (p - rs->buf, PACKET_vFile_fstat,
+				    remote_errno, &attachment,
+				    &attachment_len);
+  if (ret < 0)
     {
+      if (*remote_errno != FILEIO_ENOSYS)
+	return ret;
+
       /* Strictly we should return -1, ENOSYS here, but when
 	 "set sysroot remote:" was implemented in August 2008
 	 BFD's need for a stat function was sidestepped with
@@ -10103,16 +10093,6 @@ remote_hostio_fstat (struct target_ops *self,
       st->st_size = INT_MAX;
       return 0;
     }
-
-  remote_buffer_add_string (&p, &left, "vFile:fstat:");
-
-  remote_buffer_add_int (&p, &left, fd);
-
-  ret = remote_hostio_send_command (p - rs->buf, PACKET_vFile_fstat,
-				    remote_errno, &attachment,
-				    &attachment_len);
-  if (ret < 0)
-    return ret;
 
   read_len = remote_unescape_input ((gdb_byte *) attachment, attachment_len,
 				    (gdb_byte *) &fst, sizeof (fst));
@@ -10198,113 +10178,6 @@ remote_hostio_close_cleanup (void *opaque)
   int remote_errno;
 
   remote_hostio_close (find_target_at (process_stratum), fd, &remote_errno);
-}
-
-
-static void *
-remote_bfd_iovec_open (struct bfd *abfd, void *open_closure)
-{
-  const char *filename = bfd_get_filename (abfd);
-  int fd, remote_errno;
-  int *stream;
-
-  gdb_assert (remote_filename_p (filename));
-
-  fd = remote_hostio_open (find_target_at (process_stratum),
-			   filename + 7, FILEIO_O_RDONLY, 0, &remote_errno);
-  if (fd == -1)
-    {
-      errno = remote_fileio_errno_to_host (remote_errno);
-      bfd_set_error (bfd_error_system_call);
-      return NULL;
-    }
-
-  stream = xmalloc (sizeof (int));
-  *stream = fd;
-  return stream;
-}
-
-static int
-remote_bfd_iovec_close (struct bfd *abfd, void *stream)
-{
-  int fd = *(int *)stream;
-  int remote_errno;
-
-  xfree (stream);
-
-  /* Ignore errors on close; these may happen if the remote
-     connection was already torn down.  */
-  remote_hostio_close (find_target_at (process_stratum), fd, &remote_errno);
-
-  /* Zero means success.  */
-  return 0;
-}
-
-static file_ptr
-remote_bfd_iovec_pread (struct bfd *abfd, void *stream, void *buf,
-			file_ptr nbytes, file_ptr offset)
-{
-  int fd = *(int *)stream;
-  int remote_errno;
-  file_ptr pos, bytes;
-
-  pos = 0;
-  while (nbytes > pos)
-    {
-      bytes = remote_hostio_pread (find_target_at (process_stratum),
-				   fd, (gdb_byte *) buf + pos, nbytes - pos,
-				   offset + pos, &remote_errno);
-      if (bytes == 0)
-        /* Success, but no bytes, means end-of-file.  */
-        break;
-      if (bytes == -1)
-	{
-	  errno = remote_fileio_errno_to_host (remote_errno);
-	  bfd_set_error (bfd_error_system_call);
-	  return -1;
-	}
-
-      pos += bytes;
-    }
-
-  return pos;
-}
-
-static int
-remote_bfd_iovec_stat (struct bfd *abfd, void *stream, struct stat *sb)
-{
-  int fd = *(int *) stream;
-  int remote_errno;
-  int result;
-
-  result = remote_hostio_fstat (find_target_at (process_stratum),
-				fd, sb, &remote_errno);
-
-  if (result == -1)
-    {
-      errno = remote_fileio_errno_to_host (remote_errno);
-      bfd_set_error (bfd_error_system_call);
-    }
-
-  return result;
-}
-
-int
-remote_filename_p (const char *filename)
-{
-  return startswith (filename, REMOTE_SYSROOT_PREFIX);
-}
-
-bfd *
-remote_bfd_open (const char *remote_file, const char *target)
-{
-  bfd *abfd = gdb_bfd_openr_iovec (remote_file, target,
-				   remote_bfd_iovec_open, NULL,
-				   remote_bfd_iovec_pread,
-				   remote_bfd_iovec_close,
-				   remote_bfd_iovec_stat);
-
-  return abfd;
 }
 
 void
@@ -11843,9 +11716,11 @@ Specify the serial device it is connected to\n\
   remote_ops.to_supports_multi_process = remote_supports_multi_process;
   remote_ops.to_supports_disable_randomization
     = remote_supports_disable_randomization;
+  remote_ops.to_filesystem_is_local = remote_filesystem_is_local;
   remote_ops.to_fileio_open = remote_hostio_open;
   remote_ops.to_fileio_pwrite = remote_hostio_pwrite;
   remote_ops.to_fileio_pread = remote_hostio_pread;
+  remote_ops.to_fileio_fstat = remote_hostio_fstat;
   remote_ops.to_fileio_close = remote_hostio_close;
   remote_ops.to_fileio_unlink = remote_hostio_unlink;
   remote_ops.to_fileio_readlink = remote_hostio_readlink;
@@ -11963,7 +11838,7 @@ remote_async_serial_handler (struct serial *scb, void *context)
 
   /* Don't propogate error information up to the client.  Instead let
      the client find out about the error by querying the target.  */
-  rs->async_client_callback (INF_REG_EVENT, rs->async_client_context);
+  inferior_event_handler (INF_REG_EVENT, NULL);
 }
 
 static void
@@ -11973,18 +11848,13 @@ remote_async_inferior_event_handler (gdb_client_data data)
 }
 
 static void
-remote_async (struct target_ops *ops,
-	      void (*callback) (enum inferior_event_type event_type,
-				void *context),
-	      void *context)
+remote_async (struct target_ops *ops, int enable)
 {
   struct remote_state *rs = get_remote_state ();
 
-  if (callback != NULL)
+  if (enable)
     {
       serial_async (rs->remote_desc, remote_async_serial_handler, rs);
-      rs->async_client_callback = callback;
-      rs->async_client_context = context;
 
       /* If there are pending events in the stop reply queue tell the
 	 event loop to process them.  */
@@ -12508,7 +12378,8 @@ Show the maximum size of the address (in bits) in a memory packet."), NULL,
   add_packet_config_cmd (&remote_protocol_packets[PACKET_hwbreak_feature],
                          "hwbreak-feature", "hwbreak-feature", 0);
 
-  /* Assert that we've registered commands for all packet configs.  */
+  /* Assert that we've registered "set remote foo-packet" commands
+     for all packet configs.  */
   {
     int i;
 

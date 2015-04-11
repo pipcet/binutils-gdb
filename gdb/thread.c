@@ -625,12 +625,25 @@ thread_alive (struct thread_info *tp)
 void
 prune_threads (void)
 {
-  struct thread_info *tp, *next;
+  struct thread_info *tp, *tmp;
 
-  for (tp = thread_list; tp; tp = next)
+  ALL_THREADS_SAFE (tp, tmp)
     {
-      next = tp->next;
       if (!thread_alive (tp))
+	delete_thread (tp->ptid);
+    }
+}
+
+/* See gdbthreads.h.  */
+
+void
+delete_exited_threads (void)
+{
+  struct thread_info *tp, *tmp;
+
+  ALL_THREADS_SAFE (tp, tmp)
+    {
+      if (tp->state == THREAD_EXITED)
 	delete_thread (tp->ptid);
     }
 }
@@ -1434,9 +1447,10 @@ thread_apply_all_command (char *cmd, int from_tty)
      execute_command.  */
   saved_cmd = xstrdup (cmd);
   make_cleanup (xfree, saved_cmd);
-  tc = thread_count ();
 
-  if (tc)
+  /* Note this includes exited threads.  */
+  tc = thread_count ();
+  if (tc != 0)
     {
       struct thread_info **tp_array;
       struct thread_info *tp;
@@ -1446,8 +1460,6 @@ thread_apply_all_command (char *cmd, int from_tty)
          command.  */
       tp_array = xmalloc (sizeof (struct thread_info *) * tc);
       make_cleanup (xfree, tp_array);
-      ta_cleanup.tp_array = tp_array;
-      ta_cleanup.count = tc;
 
       ALL_NON_EXITED_THREADS (tp)
         {
@@ -1455,9 +1467,15 @@ thread_apply_all_command (char *cmd, int from_tty)
           tp->refcount++;
           i++;
         }
+      /* Because we skipped exited threads, we may end up with fewer
+	 threads in the array than the total count of threads.  */
+      gdb_assert (i <= tc);
 
-      qsort (tp_array, i, sizeof (*tp_array), tp_array_compar);
+      if (i != 0)
+	qsort (tp_array, i, sizeof (*tp_array), tp_array_compar);
 
+      ta_cleanup.tp_array = tp_array;
+      ta_cleanup.count = i;
       make_cleanup (set_thread_refcount, &ta_cleanup);
 
       for (k = 0; k != i; k++)

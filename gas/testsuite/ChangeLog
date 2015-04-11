@@ -1,3 +1,127 @@
+2015-04-08  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gas/i386/dw2-compressed-1.d: New file.
+	* gas/i386/dw2-compressed-2.d: Likewise.
+	* gas/i386/dw2-compressed-3.d: Likewise.
+	* gas/i386/x86-64-dw2-compressed-2.d: Likewise.
+	* gas/i386/i386.exp: Run dw2-compressed-2, dw2-compressed-1,
+	dw2-compressed-3 and x86-64-dw2-compressed-2.
+
+2015-04-06  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* lib/gas-defs.exp (run_dump_test): Remove is_zlib_supported check.
+
+2015-03-20  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gas/i386/i386.exp: Don't run nops-1-bdver1, nops-1-bdver2,
+	nops-1-bdver3, nops-1-bdver4, nops-1-znver1, nops-1-btver1
+	nops-1-btver2, x86-64-nops-1-nocona, x86-64-nops-1-bdver1,
+	x86-64-nops-1-bdver2, x86-64-nops-1-bdver3, x86-64-nops-1-bdver4,
+	x86-64-nops-1-znver1, x86-64-nops-1-btver1 nor
+	x86-64-nops-1-btver2.
+	* gas/i386/nops-1-core2.d: Updated.
+	* gas/i386/nops-1-k8.d: Likewise.
+	* gas/i386/nops-4a-i686.d: Likewise.
+	* gas/i386/nops-5-i686.d: Likewise.
+	* gas/i386/nops-5.d: Likewise.
+	* gas/i386/nops-6.d: Likewise.
+	* gas/i386/x86-64-nops-1-core2.d: Likewise.
+	* gas/i386/x86-64-nops-1-g64.d: Likewise.
+	* gas/i386/x86-64-nops-1-k8.d: Likewise.
+	* gas/i386/x86-64-nops-1.d: Likewise.
+	* gas/i386/x86-64-nops-2.d: Likewise.
+	* gas/i386/x86-64-nops-3.d: Likewise.
+	* gas/i386/x86-64-nops-4-core2.d: Likewise.
+	* gas/i386/x86-64-nops-4-k8.d: Likewise.
+	* gas/i386/x86-64-nops-4.d: Likewise.
+	* gas/i386/x86-64-nops-5-k8.d: Likewise.
+	* gas/i386/x86-64-nops-5.d: Likewise.
+	* gas/i386/ilp32/x86-64-nops-1-core2.d: Likewise.
+	* gas/i386/ilp32/x86-64-nops-1-k8.d: Likewise.
+	* gas/i386/ilp32/x86-64-nops-1.d: Likewise.
+	* gas/i386/ilp32/x86-64-nops-2.d: Likewise.
+	* gas/i386/ilp32/x86-64-nops-3.d: Likewise.
+	* gas/i386/ilp32/x86-64-nops-4-core2.d: Likewise.
+	* gas/i386/ilp32/x86-64-nops-4-k8.d: Likewise.
+	* gas/i386/ilp32/x86-64-nops-4.d: Likewise.
+	* gas/i386/ilp32/x86-64-nops-5-k8.d: Likewise.
+	* gas/i386/ilp32/x86-64-nops-5.d: Likewise.
+	* gas/i386/nops-1-bdver1.d: Removed.
+	* gas/i386/nops-1-bdver2.d: Likewise.
+	* gas/i386/nops-1-bdver3.d: Likewise.
+	* gas/i386/nops-1-bdver4.d: Likewise.
+	* gas/i386/nops-1-btver1.d: Likewise.
+	* gas/i386/nops-1-btver2.d: Likewise.
+	* gas/i386/nops-1-znver1.d: Likewise.
+	* gas/i386/x86-64-nops-1-bdver1.d: Likewise.
+	* gas/i386/x86-64-nops-1-bdver2.d: Likewise.
+	* gas/i386/x86-64-nops-1-bdver3.d: Likewise.
+	* gas/i386/x86-64-nops-1-bdver4.d: Likewise.
+	* gas/i386/x86-64-nops-1-btver1.d: Likewise.
+	* gas/i386/x86-64-nops-1-btver2.d: Likewise.
+	* gas/i386/x86-64-nops-1-nocona.d: Likewise.
+	* gas/i386/x86-64-nops-1-znver1.d: Likewise.
+	* gas/i386/ilp32/x86-64-nops-1-nocona.d: Likewise.
+
+2015-03-19  Nick Clifton  <nickc@redhat.com>
+
+	PR gas/18087
+	* gas/i386/dw2-compress-1.d: Allow the test to pass regardless of
+	whether the .debug_info section was compressed on not.
+
+2015-03-18  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR gas/18087
+	* gas/i386/dw2-compress-1.d: Revert the last change.
+	* gas/i386/dw2-compress-3.d: New.
+	* gas/i386/dw2-compress-3.s: Likewise.
+	* gas/i386/i386.exp: Run dw2-compress-3 for ELF targets.
+
+2015-03-18  Jon Turney  <jon.turney@dronecode.org.uk>
+	    Nick Clifton  <nickc@redhat.com>
+
+	PR binutils/18087
+	* gas/i386/dw2-compress-1.d: Do not expect the .debug_abbrev or
+	.debug_info sections to be compressed.
+
+2015-03-17  Ganesh Gopalasubramanian  <Ganesh.Gopalasubramanian@amd.com>
+
+	* gas/i386/i386.exp: Add new znver1 test cases.
+	* gas/i386/arch-13-znver1.d: New.
+	* gas/i386/arch-13.d: New.
+	* gas/i386/arch-13.s: New.
+	* gas/i386/clzero.d: New.
+	* gas/i386/clzero.s: New.
+	* gas/i386/nops-1-znver1.d: New.
+	* gas/i386/x86-64-arch-3-znver1.d: New.
+	* gas/i386/x86-64-arch-3.d: New.
+	* gas/i386/x86-64-arch-3.s: New.
+	* gas/i386/x86-64-clzero.d: New.
+	* gas/i386/x86-64-nops-1-znver1.d: New.
+
+2015-03-13  Andrew Bennett  <andrew.bennett@imgtec.com>
+
+	* gas/mips/mips.exp: Added branch constraints testcase.
+	* gas/mips/r6-branch-constraints.s: New test.
+	* gas/mips/r6-branch-constraints.l: New test.
+
+2015-03-13  Andrew Bennett  <andrew.bennett@imgtec.com>
+
+	* gas/mips/r6.s: Add evp and dvp instructions.
+	* gas/mips/r6.d: Likewise.
+	* gas/mips/r6-n32.d: Likewise.
+	* gas/mips/r6-n64.d: Likewise.
+
+2015-03-13  Jiong Wang  <jiong.wang@arm.com>
+
+	* gas/aarch64/diagnostic.s: New testcases.
+	* gas/aarch64/diagnostic.l: New error match.
+
+2015-03-13  Jiong Wang  <jiong.wang@arm.com>
+
+	* gas/aarch64/tail_padding.s: New testcase.
+	* gas/aarch64/tail_padding.d: New expectation file.
+
 2015-03-10  Andreas Krebbel  <krebbel@linux.vnet.ibm.com>
 
 	* gas/s390/zarch-z13.d: Add more z13 instructions.

@@ -7,6 +7,11 @@
 # Ignore warning about AM_PROG_CC_C_O due to large_CFLAGS
 AUTOMAKE_OPTIONS = foreign -Wno-portability
 
+# This is where we get zlib from.  zlib is in ../../zlib unless we were
+# configured with --with-system-zlib, in which case ../../zlib either
+# doesn't exist or not configured.
+ZLIB = -L../../zlib -lz
+
 # The two_file_test tests -fmerge-constants, so we simply always turn
 # it on.  For compilers that do not support the command-line option,
 # we assume they just always emit SHF_MERGE sections unconditionally.
@@ -102,7 +107,7 @@ libgoldtest_a_SOURCES = test.cc testmain.cc testfile.cc
 DEPENDENCIES = \
 	libgoldtest.a ../libgold.a ../../libiberty/libiberty.a $(LIBINTL_DEP)
 LDADD = libgoldtest.a ../libgold.a ../../libiberty/libiberty.a $(LIBINTL) \
-	$(THREADSLIB) $(LIBDL)
+	$(THREADSLIB) $(LIBDL) $(ZLIB)
 
 
 # The unittests themselves
@@ -870,6 +875,11 @@ tls_pie_test: tls_test_main_pie.o tls_test_pie.o tls_test_file2_pie.o \
 		tls_test_c_pie.o gcctestdir/ld
 	$(CXXLINK) -Bgcctestdir/ -pie tls_test_main_pie.o tls_test_pie.o tls_test_file2_pie.o tls_test_c_pie.o -lpthread
 
+check_SCRIPTS += tls_pie_test.sh
+check_DATA += tls_pie_test.stdout
+tls_pie_test.stdout: tls_pie_test
+	$(TEST_READELF) -rW $< > $@ 2>/dev/null
+
 tls_pie_pic_test: tls_test_main_pie.o tls_test_pic.o tls_test_file2_pic.o \
 		tls_test_c_pic.o gcctestdir/ld
 	$(CXXLINK) -Bgcctestdir/ -pie tls_test_main_pie.o tls_test_pic.o tls_test_file2_pic.o tls_test_c_pic.o -lpthread
@@ -956,6 +966,153 @@ tls_shared_nonpic_test_LDADD = tls_test_shared_nonpic.so -lpthread
 endif FN_PTRS_IN_SO_WITHOUT_PIC
 
 endif TLS
+
+if DEFAULT_TARGET_X86_64
+
+check_SCRIPTS += x86_64_mov_to_lea.sh
+check_DATA += x86_64_mov_to_lea1.stdout x86_64_mov_to_lea2.stdout \
+	x86_64_mov_to_lea3.stdout x86_64_mov_to_lea4.stdout \
+	x86_64_mov_to_lea5.stdout x86_64_mov_to_lea6.stdout \
+	x86_64_mov_to_lea7.stdout x86_64_mov_to_lea8.stdout \
+	x86_64_mov_to_lea9.stdout x86_64_mov_to_lea10.stdout \
+	x86_64_mov_to_lea11.stdout x86_64_mov_to_lea12.stdout \
+	x86_64_mov_to_lea13.stdout x86_64_mov_to_lea14.stdout
+MOSTLYCLEANFILES += x86_64_mov_to_lea1 x86_64_mov_to_lea2 \
+	x86_64_mov_to_lea3 x86_64_mov_to_lea4 x86_64_mov_to_lea5 \
+	x86_64_mov_to_lea6 x86_64_mov_to_lea7 x86_64_mov_to_lea8 \
+	x86_64_mov_to_lea9 x86_64_mov_to_lea10 x86_64_mov_to_lea11 \
+	x86_64_mov_to_lea12 x86_64_mov_to_lea13 x86_64_mov_to_lea14
+
+x86_64_mov_to_lea1.o: x86_64_mov_to_lea1.s
+	$(TEST_AS) --64 -o $@ $<
+x86_64_mov_to_lea2.o: x86_64_mov_to_lea1.s
+	$(TEST_AS) --x32 -o $@ $<
+x86_64_mov_to_lea3.o: x86_64_mov_to_lea2.s
+	$(TEST_AS) --x32 -o $@ $<
+x86_64_mov_to_lea4.o: x86_64_mov_to_lea2.s
+	$(TEST_AS) --64 -o $@ $<
+x86_64_mov_to_lea5.o: x86_64_mov_to_lea3.s
+	$(TEST_AS) --x32 -o $@ $<
+x86_64_mov_to_lea6.o: x86_64_mov_to_lea3.s
+	$(TEST_AS) --64 -o $@ $<
+x86_64_mov_to_lea7.o: x86_64_mov_to_lea4.s
+	$(TEST_AS) --x32 -o $@ $<
+x86_64_mov_to_lea8.o: x86_64_mov_to_lea4.s
+	$(TEST_AS) --64 -o $@ $<
+x86_64_mov_to_lea1: x86_64_mov_to_lea1.o
+	../ld-new -Bsymbolic -shared  -melf_x86_64  -o $@ $<
+x86_64_mov_to_lea2: x86_64_mov_to_lea1.o
+	../ld-new -pie -melf_x86_64  -o $@ $<
+x86_64_mov_to_lea3: x86_64_mov_to_lea1.o
+	../ld-new -melf_x86_64  -o $@ $<
+x86_64_mov_to_lea4: x86_64_mov_to_lea2.o
+	../ld-new -Bsymbolic -shared  -melf32_x86_64  -o $@ $<
+x86_64_mov_to_lea5: x86_64_mov_to_lea2.o
+	../ld-new -pie -melf32_x86_64  -o $@ $<
+x86_64_mov_to_lea6: x86_64_mov_to_lea2.o
+	../ld-new -melf32_x86_64  -o $@ $<
+x86_64_mov_to_lea7: x86_64_mov_to_lea3.o
+	../ld-new -melf32_x86_64 -pie -o $@ $<
+x86_64_mov_to_lea8: x86_64_mov_to_lea4.o
+	../ld-new -melf_x86_64 -pie -o $@ $<
+x86_64_mov_to_lea9: x86_64_mov_to_lea5.o
+	../ld-new -melf32_x86_64  -o $@ $<
+x86_64_mov_to_lea10: x86_64_mov_to_lea6.o
+	../ld-new -melf_x86_64  -o $@ $<
+x86_64_mov_to_lea11: x86_64_mov_to_lea1.o
+	../ld-new -melf32_x86_64 -shared  -o $@ $<
+x86_64_mov_to_lea12: x86_64_mov_to_lea2.o
+	../ld-new -melf_x86_64 -shared  -o $@ $<
+x86_64_mov_to_lea13: x86_64_mov_to_lea7.o
+	../ld-new -melf32_x86_64 -shared  -o $@ $<
+x86_64_mov_to_lea14: x86_64_mov_to_lea8.o
+	../ld-new -melf_x86_64 -shared  -o $@ $<
+x86_64_mov_to_lea1.stdout: x86_64_mov_to_lea1
+	$(TEST_OBJDUMP) -dw $< > $@
+x86_64_mov_to_lea2.stdout: x86_64_mov_to_lea2
+	$(TEST_OBJDUMP) -dw $< > $@
+x86_64_mov_to_lea3.stdout: x86_64_mov_to_lea3
+	$(TEST_OBJDUMP) -dw $< > $@
+x86_64_mov_to_lea4.stdout: x86_64_mov_to_lea4
+	$(TEST_OBJDUMP) -dw $< > $@
+x86_64_mov_to_lea5.stdout: x86_64_mov_to_lea5
+	$(TEST_OBJDUMP) -dw $< > $@
+x86_64_mov_to_lea6.stdout: x86_64_mov_to_lea6
+	$(TEST_OBJDUMP) -dw $< > $@
+x86_64_mov_to_lea7.stdout: x86_64_mov_to_lea7
+	$(TEST_OBJDUMP) -dw $< > $@
+x86_64_mov_to_lea8.stdout: x86_64_mov_to_lea8
+	$(TEST_OBJDUMP) -dw $< > $@
+x86_64_mov_to_lea9.stdout: x86_64_mov_to_lea9
+	$(TEST_OBJDUMP) -dw $< > $@
+x86_64_mov_to_lea10.stdout: x86_64_mov_to_lea10
+	$(TEST_OBJDUMP) -dw $< > $@
+x86_64_mov_to_lea11.stdout: x86_64_mov_to_lea11
+	$(TEST_OBJDUMP) -dw $< > $@
+x86_64_mov_to_lea12.stdout: x86_64_mov_to_lea12
+	$(TEST_OBJDUMP) -dw $< > $@
+x86_64_mov_to_lea13.stdout: x86_64_mov_to_lea13
+	$(TEST_OBJDUMP) -dw $< > $@
+x86_64_mov_to_lea14.stdout: x86_64_mov_to_lea14
+	$(TEST_OBJDUMP) -dw $< > $@
+
+endif DEFAULT_TARGET_X86_64
+
+if DEFAULT_TARGET_I386
+
+check_SCRIPTS += i386_mov_to_lea.sh
+check_DATA += i386_mov_to_lea1.stdout  i386_mov_to_lea2.stdout \
+	i386_mov_to_lea3.stdout  i386_mov_to_lea4.stdout \
+	i386_mov_to_lea5.stdout i386_mov_to_lea6.stdout \
+	i386_mov_to_lea7.stdout i386_mov_to_lea8.stdout
+MOSTLYCLEANFILES += i386_mov_to_lea1 i386_mov_to_lea2 i386_mov_to_lea3 \
+	i386_mov_to_lea4 i386_mov_to_lea5 i386_mov_to_lea6 \
+	i386_mov_to_lea7 i386_mov_to_lea8
+
+i386_mov_to_lea1.o: i386_mov_to_lea1.s
+	$(TEST_AS) --32 -o $@ $<
+i386_mov_to_lea2.o: i386_mov_to_lea2.s
+	$(TEST_AS) --32 -o $@ $<
+i386_mov_to_lea3.o: i386_mov_to_lea3.s
+	$(TEST_AS) --32 -o $@ $<
+i386_mov_to_lea4.o: i386_mov_to_lea4.s
+	$(TEST_AS) --32 -o $@ $<
+i386_mov_to_lea5.o: i386_mov_to_lea5.s
+	$(TEST_AS) --32 -o $@ $<
+i386_mov_to_lea1: i386_mov_to_lea1.o
+	../ld-new -Bsymbolic -shared -melf_i386  -o $@ $<
+i386_mov_to_lea2: i386_mov_to_lea1.o
+	../ld-new  -pie -melf_i386  -o $@ $<
+i386_mov_to_lea3: i386_mov_to_lea1.o
+	../ld-new -melf_i386  -o $@ $<
+i386_mov_to_lea4: i386_mov_to_lea1.o
+	../ld-new -melf_i386 -shared  -o $@ $<
+i386_mov_to_lea5: i386_mov_to_lea2.o
+	../ld-new -melf_i386 -shared  -o $@ $<
+i386_mov_to_lea6: i386_mov_to_lea3.o
+	../ld-new -melf_i386 -shared  -o $@ $<
+i386_mov_to_lea7: i386_mov_to_lea4.o
+	../ld-new -melf_i386 -shared  -o $@ $<
+i386_mov_to_lea8: i386_mov_to_lea5.o
+	../ld-new -melf_i386 -shared  -o $@ $<
+i386_mov_to_lea1.stdout: i386_mov_to_lea1
+	$(TEST_OBJDUMP) -dw $< > $@
+i386_mov_to_lea2.stdout: i386_mov_to_lea2
+	$(TEST_OBJDUMP) -dw $< > $@
+i386_mov_to_lea3.stdout: i386_mov_to_lea3
+	$(TEST_OBJDUMP) -dw $< > $@
+i386_mov_to_lea4.stdout: i386_mov_to_lea4
+	$(TEST_OBJDUMP) -dw $< > $@
+i386_mov_to_lea5.stdout: i386_mov_to_lea5
+	$(TEST_OBJDUMP) -dw $< > $@
+i386_mov_to_lea6.stdout: i386_mov_to_lea6
+	$(TEST_OBJDUMP) -dw $< > $@
+i386_mov_to_lea7.stdout: i386_mov_to_lea7
+	$(TEST_OBJDUMP) -dw $< > $@
+i386_mov_to_lea8.stdout: i386_mov_to_lea8
+	$(TEST_OBJDUMP) -dw $< > $@
+
+endif DEFAULT_TARGET_I386
 
 check_PROGRAMS += many_sections_test
 many_sections_test_SOURCES = many_sections_test.cc
@@ -1052,8 +1209,6 @@ missing_key_func.err: missing_key_func.o gcctestdir/ld
 	  exit 1; \
 	fi
 
-if HAVE_ZLIB
-
 # Check that --detect-odr-violations works with compressed debug sections.
 check_DATA += debug_msg_cdebug.err
 MOSTLYCLEANFILES += debug_msg_cdebug.err
@@ -1071,8 +1226,6 @@ debug_msg_cdebug.err: debug_msg_cdebug.o odr_violation1_cdebug.o odr_violation2_
 	  rm -f $@; \
 	  exit 1; \
 	fi
-
-endif HAVE_ZLIB
 
 # See if we can also detect problems when we're linking .so's, not .o's.
 check_DATA += debug_msg_so.err
@@ -1137,8 +1290,6 @@ flagstest_o_specialfile: flagstest_debug.o gcctestdir/ld
 	chmod a+x $@
 	test -s $@
 
-if HAVE_ZLIB
-
 # Test --compress-debug-sections.  FIXME: check we actually compress.
 check_PROGRAMS += flagstest_compress_debug_sections
 flagstest_compress_debug_sections: flagstest_debug.o gcctestdir/ld
@@ -1154,8 +1305,6 @@ flagstest_o_specialfile_and_compress_debug_sections: flagstest_debug.o \
 	$(CXXLINK) -Bgcctestdir/ -o /dev/stdout $< -Wl,--compress-debug-sections=zlib 2>&1 | cat > $@
 	chmod a+x $@
 	test -s $@
-
-endif HAVE_ZLIB
 
 # Test -TText and -Tdata.
 check_PROGRAMS += flagstest_o_ttext_1
@@ -2181,6 +2330,19 @@ memory_test: memory_test.o gcctestdir/ld $(srcdir)/memory_test.t
 memory_test.stdout: memory_test
 	$(TEST_READELF) -lWS  $< > $@
 
+# Test INCLUDE directives in linker scripts.
+# The binary isn't runnable, so we just check that we can build it without errors.
+check_DATA += memory_test_2
+MOSTLYCLEANFILES += memory_test_inc_1.t memory_test_inc_2.t memory_test_inc_3.t
+memory_test_inc_1.t: $(srcdir)/memory_test_inc_1.t.src
+	cp $< $@
+memory_test_inc_2.t: $(srcdir)/memory_test_inc_2.t.src
+	cp $< $@
+memory_test_inc_3.t: $(srcdir)/memory_test_inc_3.t.src
+	cp $< $@
+memory_test_2: memory_test.o gcctestdir/ld $(srcdir)/memory_test.t memory_test_inc_1.t memory_test_inc_2.t memory_test_inc_3.t
+	$(LINK) -Bgcctestdir/ -nostartfiles -nostdlib -z max-page-size=0x1000 -z common-page-size=0x1000 -Wl,-T,$(srcdir)/memory_test.t -o $@ memory_test.o
+
 if HAVE_PUBNAMES
 
 # Test that --gdb-index functions correctly without gcc-generated pubnames.
@@ -2194,8 +2356,6 @@ gdb_index_test_1: gdb_index_test.o gcctestdir/ld
 gdb_index_test_1.stdout: gdb_index_test_1
 	$(TEST_READELF) --debug-dump=gdb_index $< > $@
 
-if HAVE_ZLIB
-
 # Test that --gdb-index functions correctly with compressed debug sections.
 check_SCRIPTS += gdb_index_test_2.sh
 check_DATA += gdb_index_test_2.stdout
@@ -2206,8 +2366,6 @@ gdb_index_test_2: gdb_index_test_cdebug.o gcctestdir/ld
 	$(CXXLINK) -Bgcctestdir/ -Wl,--gdb-index $<
 gdb_index_test_2.stdout: gdb_index_test_2
 	$(TEST_READELF) --debug-dump=gdb_index $< > $@
-
-endif HAVE_ZLIB
 
 # Another simple C test (DW_AT_high_pc encoding) for --gdb-index.
 check_SCRIPTS += gdb_index_test_3.sh

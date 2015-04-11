@@ -24,17 +24,44 @@
 
 #include <stdlib.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* -Wmissing-prototypes */
 extern int tgetent (char *buffer, char *termtype);
 extern int tgetnum (char *name);
 extern int tgetflag (char *name);
 extern char* tgetstr (char *name, char **area);
-extern int tputs (char *string, int nlines, int (*outfun) ());
+extern int tputs (char *string, int nlines, int (*outfun) (int));
 extern char *tgoto (const char *cap, int col, int row);
+
+#ifdef __cplusplus
+}
+#endif
+
+/* These globals below are global termcap variables that readline
+   references.
+
+   Actually, depending on preprocessor conditions that we don't want
+   to mirror here (as they may change depending on readline versions),
+   readline may define these globals as well, relying on the linker
+   merging them if needed (-fcommon).  That doesn't work with
+   -fno-common or C++, so instead we define the symbols as weak.
+   Don't do this on Windows though, as MinGW gcc 3.4.2 doesn't support
+   weak (later versions, e.g., 4.8, do support it).  Given this stub
+   file originally was Windows only, and we only needed this when we
+   made it work on other hosts, it should be OK.  */
+#ifndef __MINGW32__
+char PC __attribute__((weak));
+char *BC __attribute__((weak));
+char *UP __attribute__((weak));
+#endif
 
 /* Each of the files below is a minimal implementation of the standard
    termcap function with the same name, suitable for use in a Windows
-   console window.  */
+   console window, or when a real termcap/curses library isn't
+   available.  */
 
 int
 tgetent (char *buffer, char *termtype)
@@ -61,7 +88,7 @@ tgetstr (char *name, char **area)
 }
 
 int
-tputs (char *string, int nlines, int (*outfun) ())
+tputs (char *string, int nlines, int (*outfun) (int))
 {
   while (*string)
     outfun (*string++);

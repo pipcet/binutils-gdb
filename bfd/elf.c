@@ -1042,26 +1042,35 @@ _bfd_elf_make_section_from_shdr (bfd *abfd,
     {
       enum { nothing, compress, decompress } action = nothing;
       char *new_name;
+      int compression_header_size;
+      bfd_boolean compressed
+	= bfd_is_section_compressed_with_header (abfd, newsect,
+						 &compression_header_size);
 
-      if (bfd_is_section_compressed (abfd, newsect))
+      if (compressed)
 	{
 	  /* Compressed section.  Check if we should decompress.  */
 	  if ((abfd->flags & BFD_DECOMPRESS))
 	    action = decompress;
 	}
-      else
+
+      /* Compress the uncompressed section or convert from/to .zdebug*
+	 section.  Check if we should compress.  */
+      if (action == nothing)
 	{
-	  /* Normal section.  Check if we should compress.  */
-	  if ((abfd->flags & BFD_COMPRESS) && newsect->size != 0)
+	  if (newsect->size != 0
+	      && (abfd->flags & BFD_COMPRESS)
+	      && compression_header_size >= 0
+	      && (!compressed
+		  || ((compression_header_size > 0)
+		      != ((abfd->flags & BFD_COMPRESS_GABI) != 0))))
 	    action = compress;
+	  else
+	    return TRUE;
 	}
 
-      new_name = NULL;
-      switch (action)
+      if (action == compress)
 	{
-	case nothing:
-	  break;
-	case compress:
 	  if (!bfd_init_section_compress_status (abfd, newsect))
 	    {
 	      (*_bfd_error_handler)
@@ -1069,6 +1078,40 @@ _bfd_elf_make_section_from_shdr (bfd *abfd,
 		 abfd, name);
 	      return FALSE;
 	    }
+	}
+      else
+	{
+	  if (!bfd_init_section_decompress_status (abfd, newsect))
+	    {
+	      (*_bfd_error_handler)
+		(_("%B: unable to initialize decompress status for section %s"),
+		 abfd, name);
+	      return FALSE;
+	    }
+	}
+
+      new_name = NULL;
+      if (action == decompress
+	   || (action == compress
+	       && (abfd->flags & BFD_COMPRESS_GABI) != 0))
+	{
+	  if (name[1] == 'z')
+	    {
+	      unsigned int len = strlen (name);
+
+	      new_name = bfd_alloc (abfd, len);
+	      if (new_name == NULL)
+		return FALSE;
+	      new_name[0] = '.';
+	      memcpy (new_name + 1, name + 2, len - 1);
+	    }
+	}
+      else if (action == compress
+	       && newsect->compress_status == COMPRESS_SECTION_DONE)
+	{
+	  /* PR binutils/18087: Compression does not always make a section
+	     smaller.  So only rename the section when compression has
+	     actually taken place.  */
 	  if (name[1] != 'z')
 	    {
 	      unsigned int len = strlen (name);
@@ -1080,26 +1123,6 @@ _bfd_elf_make_section_from_shdr (bfd *abfd,
 	      new_name[1] = 'z';
 	      memcpy (new_name + 2, name + 1, len);
 	    }
-	  break;
-	case decompress:
-	  if (!bfd_init_section_decompress_status (abfd, newsect))
-	    {
-	      (*_bfd_error_handler)
-		(_("%B: unable to initialize decompress status for section %s"),
-		 abfd, name);
-	      return FALSE;
-	    }
-	  if (name[1] == 'z')
-	    {
-	      unsigned int len = strlen (name);
-
-	      new_name = bfd_alloc (abfd, len);
-	      if (new_name == NULL)
-		return FALSE;
-	      new_name[0] = '.';
-	      memcpy (new_name + 1, name + 2, len - 1);
-	    }
-	  break;
 	}
       if (new_name != NULL)
 	bfd_rename_section (abfd, newsect, new_name);
@@ -3068,6 +3091,48 @@ bfd_elf_set_group_contents (bfd *abfd, asection *sec, void *failedptrarg)
   H_PUT_32 (abfd, sec->flags & SEC_LINK_ONCE ? GRP_COMDAT : 0, loc);
 }
 
+/* Return the section which RELOC_SEC applies to.  */
+
+asection *
+_bfd_elf_get_reloc_section (asection *reloc_sec)
+{
+  const char *name;
+  unsigned int type;
+  bfd *abfd;
+
+  if (reloc_sec == NULL)
+    return NULL;
+
+  type = elf_section_data (reloc_sec)->this_hdr.sh_type;
+  if (type != SHT_REL && type != SHT_RELA)
+    return NULL;
+
+  /* We look up the section the relocs apply to by name.  */
+  name = reloc_sec->name;
+  if (type == SHT_REL)
+    name += 4;
+  else
+    name += 5;
+
+  /* If a target needs .got.plt section, relocations in rela.plt/rel.plt
+     section apply to .got.plt section.  */
+  abfd = reloc_sec->owner;
+  if (get_elf_backend_data (abfd)->want_got_plt
+      && strcmp (name, ".plt") == 0)
+    {
+      /* .got.plt is a linker created input section.  It may be mapped
+	 to some other output section.  Try two likely sections.  */
+      name = ".got.plt";
+      reloc_sec = bfd_get_section_by_name (abfd, name);
+      if (reloc_sec != NULL)
+	return reloc_sec;
+      name = ".got";
+    }
+
+  reloc_sec = bfd_get_section_by_name (abfd, name);
+  return reloc_sec;
+}
+
 /* Assign all ELF section numbers.  The dummy first section is handled here
    too.  The link/info pointers for the standard section types are filled
    in here too, while we're at it.  */
@@ -3203,7 +3268,6 @@ assign_section_numbers (bfd *abfd, struct bfd_link_info *link_info)
   for (sec = abfd->sections; sec; sec = sec->next)
     {
       asection *s;
-      const char *name;
 
       d = elf_section_data (sec);
 
@@ -3307,13 +3371,7 @@ assign_section_numbers (bfd *abfd, struct bfd_link_info *link_info)
 	  if (s != NULL)
 	    d->this_hdr.sh_link = elf_section_data (s)->this_idx;
 
-	  /* We look up the section the relocs apply to by name.  */
-	  name = sec->name;
-	  if (d->this_hdr.sh_type == SHT_REL)
-	    name += 4;
-	  else
-	    name += 5;
-	  s = bfd_get_section_by_name (abfd, name);
+	  s = get_elf_backend_data (abfd)->get_reloc_section (sec);
 	  if (s != NULL)
 	    {
 	      d->this_hdr.sh_info = elf_section_data (s)->this_idx;
@@ -6647,6 +6705,11 @@ _bfd_elf_init_private_section_data (bfd *ibfd,
 	  elf_next_in_group (osec) = elf_next_in_group (isec);
 	  elf_section_data (osec)->group = elf_section_data (isec)->group;
 	}
+
+      /* If not decompress, preserve SHF_COMPRESSED.  */
+      if ((ibfd->flags & BFD_DECOMPRESS) == 0)
+	elf_section_flags (osec) |= (elf_section_flags (isec)
+				     & SHF_COMPRESSED);
     }
 
   ihdr = &elf_section_data (isec)->this_hdr;
@@ -7703,6 +7766,10 @@ _bfd_elf_is_local_label_name (bfd *abfd ATTRIBUTE_UNUSED,
      underscore to be emitted on some ELF targets).  For ease of use,
      we treat such symbols as local.  */
   if (name[0] == '_' && name[1] == '.' && name[2] == 'L' && name[3] == '_')
+    return TRUE;
+
+  /* Treat assembler generated local labels as local.  */
+  if (name[0] == 'L' && name[strlen (name) - 1] < 32)
     return TRUE;
 
   return FALSE;

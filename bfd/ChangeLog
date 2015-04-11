@@ -1,3 +1,561 @@
+2015-04-11  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* elf32-i386.c (elf_i386_relocate_section): Replace SYMBOLIC_BIND
+	with SYMBOL_REFERENCES_LOCAL when checking R_386_GOTOFF against
+	protected data symbol when building shared library.
+	* elf64-x86-64.c (elf_x86_64_relocate_section): Check
+	R_X86_64_GOTOFF64 against undefined symbol and replace
+	SYMBOLIC_BIND with SYMBOL_REFERENCES_LOCAL when checking
+	R_X86_64_GOTOFF64 against protected data symbol when building
+	shared library.
+
+2015-04-10  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR ld/pr17709
+	* elf32-i386.c (elf_i386_relocate_section): Also check R_386_GOTOFF
+	against protected data symbol when building shared library.
+	* elf64-x86-64.c (elf_x86_64_relocate_section): Also check
+	R_X86_64_GOTOFF64 against protected data symbol when building
+	shared library.
+
+2015-04-10  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR ld/pr15228
+	PR ld/pr17709
+	* elf-bfd.h (elf_backend_data): Add extern_protected_data.
+	* elf32-i386.c (elf_backend_extern_protected_data): New.
+	Defined to 1.
+	* elf64-x86-64.c (elf_backend_extern_protected_data): Likewise.
+	* elflink.c (_bfd_elf_adjust_dynamic_copy): Don't error on
+	copy relocs against protected symbols if extern_protected_data
+	is true.
+	(_bfd_elf_symbol_refs_local_p): Don't return true on protected
+	non-function symbols if extern_protected_data is true.
+	* elfxx-target.h (elf_backend_extern_protected_data): New.
+	Default to 0.
+	(elfNN_bed): Initialize extern_protected_data with
+	elf_backend_extern_protected_data.
+
+2015-04-10  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* compress.c (bfd_compress_section_contents): Replace bfd_malloc
+	and free with bfd_alloc and bfd_release on compressed buffer.
+	Release buffer if compressed section isn't smaller.
+
+2015-04-10  Alan Modra  <amodra@gmail.com>
+
+	PR ld/18222
+	* elflink.c (_bfd_elf_adjust_dynamic_copy): Don't report an error
+	on adding a protected visibility variable to .dynbss.
+
+2015-04-10  Alan Modra  <amodra@gmail.com>
+
+	Revert 2015-03-05  H.J. Lu  <hongjiu.lu@intel.com>
+	PR ld/pr15228
+	PR ld/pr17709
+	* elf-bfd.h (elf_backend_data): Delete extern_protected_data.
+	* elf32-i386.c (elf_backend_extern_protected_data): Delete.
+	* elf64-x86-64.c (elf_backend_extern_protected_data): Likewise.
+	* elflink.c (_bfd_elf_adjust_dynamic_copy): Remove
+	extern_protected_data test.
+	(_bfd_elf_symbol_refs_local_p): Likewise.
+	* elfxx-target.h (elf_backend_extern_protected_data): Delete.
+	(elfNN_bed): Delete elf_backend_extern_protected_data init.
+
+2015-04-09  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* compress.c (bfd_compress_section_contents): Update comments.
+	(bfd_init_section_decompress_status): Likewise.
+	(bfd_init_section_compress_status): Likewise.
+
+2015-04-09  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* elfxx-target.h (TARGET_BIG_SYM): Add BFD_COMPRESS_GABI to
+	object_flags.
+	(TARGET_LITTLE_SYM): Likewise.
+
+2015-04-09  Max Filippov  <jcmvbkbc@gmail.com>
+
+	* elf32-xtensa.c (splay-tree.h): include header.
+	(text_action_struct): drop next pointer.
+	(text_action_list_struct): drop head pointer, add count and
+	tree fields.
+	(find_fill_action): instead of linear search in text_action_list
+	search in the tree.
+	(text_action_compare, action_first, action_next): new functions.
+	(text_action_add, text_action_add_literal): instead of linear
+	search and insertion insert new node into the tree.
+	(removed_by_actions): pass additional parameter: action_list,
+	use it to traverse the tree.
+	(offset_with_removed_text): pass additional action_list parameter
+	to removed_by_actions.
+	(map_action_fn_context): new typedef.
+	(map_action_fn_context_struct): new structure.
+	(map_action_fn): new function.
+	(map_removal_by_action): use splay_tree_foreach to build map.
+	(find_insn_action): replace linear search in text_action_list
+	with series of splay_tree_lookups.
+	(print_action, print_action_list_fn): new functions.
+	(print_action_list): use splay_tree_foreach.
+	(init_xtensa_relax_info): drop action_list.head initialization.
+	Initialize the tree.
+	(compute_text_actions): use non-zero action_list_count instead of
+	non-NULL action list.
+	(xlate_map_context): new typedef.
+	(xlate_map_context_struct): new structure.
+	(xlate_map_fn): new function.
+	(build_xlate_map): use splay_tree_foreach to build map.
+	(action_remove_bytes_fn): new function.
+	(relax_section): use zero action_list_count instead of NULL
+	action list. Use splay_tree_foreach to count final section size.
+	Drop unused variable 'removed'.
+
+2015-04-09  Max Filippov  <jcmvbkbc@gmail.com>
+
+	* elf32-xtensa.c (removed_literal_map_entry): new typedef.
+	(removed_literal_map_entry_struct): new structure.
+	(removed_literal_list_struct): add new fields: n_map and map.
+	(map_removed_literal, removed_literal_compare): new functions.
+	(find_removed_literal): build index array for literals ordered
+	by VMA, use binary search to find removed literal.
+
+2015-04-09  Max Filippov  <jcmvbkbc@gmail.com>
+
+	* elf32-xtensa.c (removal_by_action_entry_struct,
+	removal_by_action_map_struct): new structures.
+	(removal_by_action_entry, removal_by_action_map): new typedefs.
+	(text_action_list_struct): add new field: map.
+	(map_removal_by_action, removed_by_actions_map,
+	offset_with_removed_text_map): new functions.
+	(relax_section): replace offset_with_removed_text with
+	offset_with_removed_text_map.
+	(translate_reloc, relax_property_section, relax_section_symbols):
+	replace removed_by_actions with removed_by_actions_map.
+
+2015-04-09  Max Filippov  <jcmvbkbc@gmail.com>
+
+	* elf32-xtensa.c (reloc_range_list, reloc_range_list_entry,
+	reloc_range): new typedef.
+	(reloc_range_list_struct, reloc_range_list_entry_struct,
+	reloc_range_struct): new structures.
+	(reloc_range_compare, build_reloc_ranges,
+	reloc_range_list_append, reloc_range_list_remove,
+	reloc_range_list_update_range, free_reloc_range_list): new
+	functions.
+	(compute_text_actions): precompute relocation opcodes before the
+	loop. Add relevant_relocs variable, initialize it before the
+	loop, pass it to the check_section_ebb_pcrels_fit.
+	(check_section_ebb_pcrels_fit): add new parameter:
+	relevant_relocs. Update address range in the relevant_relocs if
+	it's non-NULL and iterate only over relevant relocations.
+
+2015-04-09  Nick Clifton  <nickc@redhat.com>
+
+	* elf32-rx.c (describe_flags): Report the settings of the string
+	insn using bits.
+	(rx_elf_merge_private_bfd_data): Handle merging of the string insn
+	using bits.
+
+2015-04-08  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* compress.c (bfd_compress_section_contents): Work around a GCC
+	uninitialized warning bug fixed in GCC 4.7.
+
+2015-04-08  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* archive.c (_bfd_get_elt_at_filepos): Also copy BFD_COMPRESS_GABI
+	bit.
+	* bfd.c (bfd::flags): Increase size to 18 bits.
+	(BFD_COMPRESS_GABI): New.
+	(BFD_FLAGS_SAVED): Add BFD_COMPRESS_GABI.
+	(BFD_FLAGS_FOR_BFD_USE_MASK): Likewise.
+	(bfd_update_compression_header): New fuction.
+	(bfd_check_compression_header): Likewise.
+	(bfd_get_compression_header_size): Likewise.
+	(bfd_is_section_compressed_with_header): Likewise.
+	* compress.c (MAX_COMPRESSION_HEADER_SIZE): New.
+	(bfd_compress_section_contents): Return the uncompressed size if
+	the full section contents is compressed successfully.  Support
+	converting from/to .zdebug* sections.
+	(bfd_get_full_section_contents): Call
+	bfd_get_compression_header_size to get compression header size.
+	(bfd_is_section_compressed): Renamed to ...
+	(bfd_is_section_compressed_with_header): This.  Add a pointer
+	argument to return compression header size.
+	(bfd_is_section_compressed): Use it.
+	(bfd_init_section_decompress_status): Call
+	bfd_get_compression_header_size to get compression header size.
+	Return FALSE if uncompressed section size is 0.
+	* elf.c (_bfd_elf_make_section_from_shdr): Support converting
+	from/to .zdebug* sections.
+	* bfd-in2.h: Regenerated.
+
+2015-04-07  Alan Modra  <amodra@gmail.com>
+
+	* elf.c (_bfd_elf_get_reloc_section): Allow for .got.plt being
+	mapped to output .got section.
+
+2015-04-07  Alan Modra  <amodra@gmail.com>
+
+	* elf32-ppc.c (struct ppc_elf_link_hash_entry): Add has_addr16_ha
+	and has_addr16_lo.  Make has_sda_refs a bitfield.
+	(ppc_elf_check_relocs): Set new flags.
+	(ppc_elf_link_hash_table_create): Update default_params.
+	(ppc_elf_adjust_dynamic_symbol): Clear protected_def in cases
+	where we won't be making .dynbss entries or editing code.  Set
+	params->pic_fixup when we'll edit code for protected var access.
+	(allocate_dynrelocs): Allocate got entry for edited code and
+	discard dyn_relocs.
+	(struct ppc_elf_relax_info): Add picfixup_size.
+	(ppc_elf_relax_section): Rename struct one_fixup to struct
+	one_branch_fixup.  Rename fixups to branch_fixups.  Size space for
+	pic fixups.
+	(ppc_elf_relocate_section): Edit non-PIC accessing protected
+	visibility variables to PIC.  Don't emit dyn_relocs for code
+	we've edited.
+	* elf32-ppc.h (struct ppc_elf_params): Add pic_fixup.
+
+2015-04-07  Nick Clifton  <nickc@redhat.com>
+
+	* elf.c (_bfd_elf_is_local_label_name): Treat assembler generated
+	local labels as local.
+
+2015-04-06  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* compress.c (get_uncompressed_size): Removed.
+	(bfd_compress_section_contents): Use bfd_putb64 to write
+	uncompressed section size.
+	(bfd_init_section_decompress_status): Replace
+	get_uncompressed_size with bfd_getb64.
+
+2015-04-04  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* elf.c (_bfd_elf_init_private_section_data): Also preserve the
+	SHF_COMPRESSED bit if not decompress.
+
+2015-04-04  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* compress.c (get_uncompressed_size): New.  Extracted from ...
+	(bfd_init_section_decompress_status): This.  Use it.
+
+2015-04-02  Andrew Turner  <andrew@freebsd.org>
+
+	* config.bfd: Add aarch64-*-freebsd* target triple.
+
+2015-04-02  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* configure: Regenerated.
+
+2015-04-01  Tejas Belagod  <tejas.belagod@arm.com>
+	    Marcus Shawcroft  <marcus.shawcroft@arm.com>
+	    Jiong Wang  <jiong.wang@arm.com>
+
+	* bfd-in.h (bfd_elf64_aarch64_set_options)
+	(bfd_elf32_aarch64_set_options): Add parameter.
+	* bfd-in2.h: Regenerated.
+	* elfnn-aarch64.c (aarch64_erratum_843419_stub)
+	(_bfd_aarch64_adrp_p, _bfd_aarch64_erratum_843419_sequence_p)
+	(_bfd_aarch64_erratum_843419_stub_name)
+	(_bfd_aarch64_erratum_843419_fixup)
+	(_bfd_aarch64_erratum_843419_scan)
+	(_bfd_aarch64_erratum_843419_branch_to_stub)
+	(_bfd_aarch64_erratum_843419_p): Define.
+	(enum elf_aarch64_stub_type): Define
+	aarch64_stub_erratum_843419_veneer.
+	(struct elf_aarch64_stub_hash_entry): Define adrp_offset.
+	(struct elf_aarch64_link_hash_table): Define fix_erratum_843419
+	and fix_erratum_843419_adr.
+	(stub_hash_newfunc): Initialize adrp_offset;
+	(_bfd_aarch64_add_stub_entry_after): Define.
+	(aarch64_map_one_stub, aarch64_build_one_stub)
+	(aarch64_size_one_stub): Handle
+	aarch64_stub_erratum_843419_veneer.
+	(_bfd_aarch64_resize_stubs): Round stub section size.
+	(elfNN_aarch64_size_stubs): Add scan for 843419.
+	(bfd_elfNN_aarch64_set_options): Add parameter. Initialize
+	fix_erratum_843419 and fix_erratum_843419_adr.
+	(struct erratum_835769_branch_to_stub_data): Add info.
+	(elfNN_aarch64_write_section): Initialise info.  Handle 843419.
+	(elfNN_aarch64_size_dynamic_sections): Handle 843419.
+	* elfxx-aarch64.c (_bfd_aarch64_decode_adrp_imm)
+	(_bfd_aarch64_sign_extend): Define.
+	(reencode_adr_imm): Remove static. Rename to:
+	(_bfd_aarch64_reencode_adr_imm): Define.
+	(_bfd_aarch64_elf_put_addend): Call _bfd_aarch64_reencode_adr_imm.
+	* elfxx-aarch64.h (AARCH64_ADR_OP, AARCH64_ADRP_OP)
+	(AARCH64_ADRP_OP_MASK, _bfd_aarch64_sign_extend)
+	(_bfd_aarch64_decode_adrp_imm, _bfd_aarch64_reencode_adr_imm):
+	Define.
+
+2015-04-01  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* configure: Regenerated.
+
+2015-03-31  Ed Schouten  <ed@nuxi.nl>
+
+	* config.bfd (targ_defvec): Set to x86_64_elf64_cloudabi_vec
+	for x86_64-*-cloudabi*.
+	* configure.ac: Handle x86_64_elf64_cloudabi_vec.
+	* configure: Regenerated.
+	* elf64-x86-64.c (TARGET_LITTLE_SYM): Support x86_64-*-cloudabi*.
+	(TARGET_LITTLE_NAME): Likewise.
+	(ELF_OSABI): Likewise.
+	(elf64_bed): Likewise.
+	* targets.c (x86_64_elf64_cloudabi_vec): New.
+	(_bfd_target_vector): Add x86_64_elf64_cloudabi_vec.
+
+2015-03-31  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* configure.ac: Revert the AM_ZLIB change.
+	* Makefile.in: Regenerated.
+	* aclocal.m4: Likewise.
+	* configure: Likewise.
+	* doc/Makefile.in: Likewise.
+
+2015-03-30  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR ld/18169
+	* elf-bfd.h (elf_backend_data): Add get_reloc_section.
+	(_bfd_elf_get_reloc_section): New.
+	* elf.c (_bfd_elf_get_reloc_section): Likewise.
+	(assign_section_numbers): Call get_reloc_section to look up the
+	section the relocs apply.
+	* elfxx-target.h (elf_backend_get_reloc_section): Likewise.
+	(elfNN_bed): Initialize get_reloc_section with
+	elf_backend_get_reloc_section.
+
+2015-03-29  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* Makefile.am (ZLIB): New.
+	(ZLIBINC): Likewise.
+	(AM_CFLAGS): Add $(ZLIBINC).
+	(libbfd_la_LIBADD): Add $(ZLIB).
+	* compress.c: Don't check HAVE_ZLIB_H to include <zlib.h>.
+	(decompress_contents): Don't check HAVE_ZLIB_H.
+	(bfd_compress_section_contents): Likewise.
+	(bfd_get_full_section_contents): Likewise.
+	(bfd_init_section_decompress_status): Likewise.
+	(bfd_init_section_compress_status): Likewise.
+	* configure.ac (AM_ZLIB): Removed.
+	(zlibdir): New.  AC_SUBST.
+	(zlibinc): Likewise.
+	Add --with-system-zlib.
+	* Makefile.in: Regenerated.
+	* acinclude.m4: Likewise.
+	* config.in: Likewise.
+	* configure: Likewise.
+	* doc/Makefile.in: Likewise.
+
+2015-03-27  Alan Modra  <amodra@gmail.com>
+
+	PR ld/15228
+	PR ld/18167
+	* elflink.c (elf_merge_st_other): Add "sec" parameter.  Don't set
+	protected_def when symbol section is read-only.  Adjust all calls.
+	* elf-bfd.h (struct elf_link_hash_entry): Update protected_def comment.
+
+2015-03-26  Tejas Belagod  <tejas.belagod@arm.com>
+
+	* elfnn-aarch64.c (aarch64_build_one_stub): Replace the call to generic
+	_bfd_final_link_relocate with aarch64_relocate.
+
+2015-03-26  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR ld/18160
+	* elflink.c (elf_gc_sweep): Skip if relocation is incompatible.
+	(bfd_elf_gc_sections): Likewise.
+
+2015-03-25  Marcus Shawcroft  <marcus.shawcroft@arm.com>
+
+	* elfnn-aarch64.c (_bfd_aarch64_resize_stubs): Adjust stub section
+	size for initial branch.
+	(elfNN_aarch64_build_stubs): Write initial branch.
+	_bfd_aarch64_decode_(elfNN_aarch64_output_arch_local_syms): Write
+	mapping symbol on initial branch.
+
+2015-03-25  Marcus Shawcroft  <marcus.shawcroft@arm.com>
+
+	* elfnn-aarch64.c (_bfd_aarch64_erratum_835769_scan):
+	Update erratum count.
+
+2015-03-25  Senthil Kumar Selvaraj  <senthil_kumar.selvaraj@atmel.com>
+
+	* elflink.c (_bfd_elf_gc_mark_extra_sections): Don't break on
+	first matching debug section.
+
+2015-03-24  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR gas/18087
+	* compress.c (bfd_compress_section_contents): Don't write the
+	zlib header and set contents as well as compress_status if
+	compression didn't make the section smaller.
+	(bfd_init_section_compress_status): Don't check compression
+	size here.
+
+2015-03-24  Nick Clifton  <nickc@redhat.com>
+
+	PR binutils/17512
+	* coffgen.c (coff_get_normalized_symtab): Fix test for out of
+	range auxillary sections.
+
+2015-03-24  Marcus Shawcroft  <marcus.shawcroft@arm.com>
+
+	* elfnn-aarch64.c (_bfd_aarch64_create_or_find_stub_sec): Factor
+	code into:
+	(_bfd_aarch64_get_stub_for_link_section): Define.
+
+2015-03-24  Marcus Shawcroft  <marcus.shawcroft@arm.com>
+
+	* elfnn-aarch64.c (_bfd_aarch64_create_or_find_stub_sec): Adjust
+	update of section_group[].stub_sec.
+
+2015-03-24  Marcus Shawcroft  <marcus.shawcroft@arm.com>
+
+	* elfnn-aarch64.c (struct aarch64_erratum_835769_fix) Remove.
+	(erratum_835769_scan) Drop fix_table_size_p and fixes_p arguments.
+	Delete fixes, fix_table_size and associated code.  Call
+	_bfd_aarch64_add_stub_entry_in_group. Rename to...
+	(bfd_aarch64_erratum_835769_scan): Define.
+	(elfNN_aarch64_size_stubs): Delete erratum_835769_fixes,
+	erratum_835769_fix_table_size, i and associated code.  Relocate
+	call to _bfd_aarch64_erratum_835769_scan.  Delete adhoc stub size
+	correction.  Delete construction of stub entry from
+	erratum_835769_fixes array.
+
+2015-03-24  Marcus Shawcroft  <marcus.shawcroft@arm.com>
+
+	* elfnn-aarch64.c (elfNN_aarch64_size_stubs): Use
+	_bfd_aarch64_add_stub_entry_in_group.
+
+2015-03-24  Alan Modra  <amodra@gmail.com>
+
+	* elf64-ppc.c (ppc64_elf_relocate_section): Report overflow to
+	stubs, even those for undefined weak symbols.  Otherwise, don't
+	report relocation overflow on branches to undefined strong
+	symbols.  Fix memory leak.
+	* elf32-ppc.c (ppc_elf_relocate_section): Don't report relocation
+	overflow on branches to undefined strong symbols.
+
+2015-03-23  Keith Seitz  <keiths@redhat.com>
+
+	* elfnn-aarch64.c (_bfd_aarch64_create_or_find_stub_sec): Add
+	missing ';'.
+
+2015-03-23  Marcus Shawcroft  <marcus.shawcroft@arm.com>
+
+	* elfnn-aarch64.c (erratum_835769_scan): Factor stub name
+	construction into...
+	(_bfd_aarch64_erratum_835769_stub_name): Define.
+
+2015-03-23  Marcus Shawcroft  <marcus.shawcroft@arm.com>
+
+	* elfnn-aarch64.c (elfNN_aarch64_size_stubs): Factor out
+	stub resize code into...
+	(bfd_aarch64_resize_stubs): Define.
+
+2015-03-23  Marcus Shawcroft  <marcus.shawcroft@arm.com>
+
+	* elfnn-aarch64.c (_bfd_aarch64_create_or_find_stub_sec): Factor stub
+	creation code into...
+	(bfd_aarch64_create_stub_section): Define.
+
+2015-03-23  Marcus Shawcroft  <marcus.shawcroft@arm.com>
+
+	* elfnn-aarch64.c (_bfd_aarch64_create_or_find_stub_sec): Rename
+	from elf_aarch64_create_or_find_stub_sec.
+	(_bfd_aarch64_add_stub_entry_in_group): Rename from
+	elfNN_aarch64_add_stub.  Call
+	_bfd_aarch64_create_or_find_stub_sec.
+	(elfNN_aarch64_size_stubs, elfNN_aarch64_size_stubs): Call
+	_bfd_aarch64_add_stub_entry_in_group.
+
+2015-03-23  Marcus Shawcroft  <marcus.shawcroft@arm.com>
+
+	* elfnn-aarch64.c (erratum_835769_scan) Add comment.  Reverse
+	sense of boolean return.
+	(elfNN_aarch64_size_stubs): Adjust for above.
+
+2015-03-23  Marcus Shawcroft  <marcus.shawcroft@arm.com>
+
+	* elfnn-aarch64.c (elf_aarch64_create_or_find_stub_sec):
+	Remove unused parameter.
+	(elfNN_aarch64_size_stubs): Adjust for above.
+
+2015-03-23  Marcus Shawcroft  <marcus.shawcroft@arm.com>
+
+	* elfnn-aarch64.c (elfNN_aarch64_size_stubs): Remove bfd_indx.
+
+2015-03-23  Marcus Shawcroft  <marcus.shawcroft@arm.com>
+
+	* elfnn-aarch64.c (aarch64_erratum_835769_fixes)
+	(num_aarch64_erratum_835769_fixes): Remove.
+	(elfNN_aarch64_size_stubs): Remove assignments to above.
+
+2015-03-23  Marcus Shawcroft  <marcus.shawcroft@arm.com>
+
+	* elfnn-aarch64.c (aarch64_mem_op_p): Update comment. Rename rtn
+	to rt2.
+	(aarch64_erratum_seqeunce): Rename rtn to rt2.
+
+2015-03-23  Marcus Shawcroft  <marcus.shawcroft@arm.com>
+
+	* elfnn-aarch64.c (elfNN_aarch64_write_section): Adjust layout.
+
+2015-03-19  Nick Clifton  <nickc@redhat.com>
+
+	* elf32-rl78.c (rl78_cpu_name): New function.  Prints the name of
+	the RL78 core based upon the flags.
+	(rl78_elf_merge_private_bfd_data): Handle merging of G13 and G14
+	flags.
+	(rl78_elf_print_private_bfd_data): Use rl78_cpu_name.
+	(elf32_rl78_machine): Always return bfd_mach_rl78.
+
+2015-03-19  Nick Clifton  <nickc@redhat.com>
+
+	PR 18078
+	* compress.c (bfd_compress_section_contents): Do not define this
+	function if it is not used.
+
+2015-03-18  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* compress.c (bfd_compress_section_contents): Make it static.
+	* bfd/bfd-in2.h: Regenerated.
+
+2015-03-18  Eric Youngdale  <eyoungdale@ptc.com>
+
+	PR ld/16598
+	* peicode.h (pe_ILF_build_a_bfd): Add support for creating relocs
+	suitable for the AMD64.
+
+2015-03-18  Jon Turney  <jon.turney@dronecode.org.uk>
+	    Nick Clifton  <nickc@redhat.com>
+
+	PR binutils/18087
+	* coffgen.c (make_a_section_from_file): Only prepend a z to a
+	debug section's name if the section was actually compressed.
+	* elf.c (_bfd_elf_make_section_from_shdr): Likewise.
+	* compress.c (bfd_init_section_compress_status): Do not compress
+	the section if doing so would make it bigger.  In such cases leave
+	the section alone and return COMPRESS_SECTION_NONE.
+
+2015-03-17  Alan Modra  <amodra@gmail.com>
+
+	* elf64-ppc.c (ppc64_elf_get_synthetic_symtab): Return count of 0
+	on nothing to do, before malloc of returned symbol array.
+
+2015-03-16  Nick Clifton  <nickc@redhat.com>
+
+	* elf32-rx.c (elf32_rx_relax_delete_bytes): If the relocs are not
+	stored in the elf_section_data structure then load them as
+	necessary.
+
+2015-03-14  Andreas Krebbel  <krebbel@linux.vnet.ibm.com>
+
+	* elf-s390-common.c (elf_s390_elf_sort_relocs_p): Don't sort
+	relocs against code sections.
+	* elf32-s390.c: Define elf_backend_sort_relocs_p.
+	* elf64-s390.c: Likewise.
+
 2015-03-11  Alan Modra  <amodra@gmail.com>
 
 	* elf32-ppc.c (ppc_elf_get_synthetic_symtab): Examine stubs in

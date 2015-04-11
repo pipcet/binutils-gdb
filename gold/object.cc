@@ -285,13 +285,8 @@ Relobj::add_merge_mapping(Output_section_data *output_data,
                           unsigned int shndx, section_offset_type offset,
                           section_size_type length,
                           section_offset_type output_offset) {
-  if (this->object_merge_map_ == NULL)
-    {
-      this->object_merge_map_ =  new Object_merge_map();
-    }
-
-  this->object_merge_map_->add_mapping(output_data, shndx, offset, length,
-				       output_offset);
+  Object_merge_map* object_merge_map = this->get_or_create_merge_map();
+  object_merge_map->add_mapping(output_data, shndx, offset, length, output_offset);
 }
 
 bool
@@ -303,14 +298,12 @@ Relobj::merge_output_offset(unsigned int shndx, section_offset_type offset,
   return object_merge_map->get_output_offset(shndx, offset, poutput);
 }
 
-bool
-Relobj::is_merge_section_for(const Output_section_data* output_data,
-                             unsigned int shndx) const {
+const Output_section_data*
+Relobj::find_merge_section(unsigned int shndx) const {
   Object_merge_map* object_merge_map = this->object_merge_map_;
   if (object_merge_map == NULL)
-    return false;
-  return object_merge_map->is_merge_section_for(output_data, shndx);
-
+    return NULL;
+  return object_merge_map->find_merge_section(shndx);
 }
 
 // To copy the symbols data read from the file to a local data structure.
@@ -413,6 +406,14 @@ Relobj::finalize_incremental_relocs(Layout* layout, bool clear_counts)
   layout->incremental_inputs()->set_reloc_count(rindex);
 }
 
+Object_merge_map*
+Relobj::get_or_create_merge_map()
+{
+  if (!this->object_merge_map_)
+    this->object_merge_map_ = new Object_merge_map();
+  return this->object_merge_map_;
+}
+
 // Class Sized_relobj.
 
 // Iterate over local symbols, calling a visitor class V for each GOT offset
@@ -477,8 +478,7 @@ Sized_relobj_file<size, big_endian>::Sized_relobj_file(
     discarded_eh_frame_shndx_(-1U),
     is_deferred_layout_(false),
     deferred_layout_(),
-    deferred_layout_relocs_(),
-    compressed_sections_()
+    deferred_layout_relocs_()
 {
   this->e_type_ = ehdr.get_e_type();
 }
@@ -720,7 +720,8 @@ build_compressed_section_map(
     unsigned int shnum,
     const char* names,
     section_size_type names_size,
-    Sized_relobj_file<size, big_endian>* obj)
+    Object* obj,
+    bool decompress_if_needed)
 {
   Compressed_section_map* uncompressed_map = new Compressed_section_map();
   const unsigned int shdr_size = elfcpp::Elf_sizes<size>::shdr_size;
@@ -752,7 +753,7 @@ build_compressed_section_map(
 	      if (uncompressed_size != -1ULL)
 		{
 		  unsigned char* uncompressed_data = NULL;
-		  if (need_decompressed_section(name))
+		  if (decompress_if_needed && need_decompressed_section(name))
 		    {
 		      uncompressed_data = new unsigned char[uncompressed_size];
 		      if (decompress_input_section(contents, len,
@@ -786,9 +787,14 @@ Sized_relobj_file<size, big_endian>::do_find_special_sections(
     this->has_eh_frame_ = true;
 
   if (memmem(names, sd->section_names_size, ".zdebug_", 8) != NULL)
-    this->compressed_sections_
-      = build_compressed_section_map(pshdrs, this->shnum(), names,
-				     sd->section_names_size, this);
+    {
+      Compressed_section_map* compressed_sections =
+	  build_compressed_section_map<size, big_endian>(
+	      pshdrs, this->shnum(), names, sd->section_names_size, this, true);
+      if (compressed_sections != NULL)
+        this->set_compressed_sections(compressed_sections);
+    }
+
   return (this->has_eh_frame_
 	  || (!parameters->options().relocatable()
 	      && parameters->options().gdb_index()
@@ -2849,9 +2855,8 @@ Sized_relobj_file<size, big_endian>::do_get_global_symbol_counts(
 // to the size.  Set *IS_NEW to true if the contents need to be freed
 // by the caller.
 
-template<int size, bool big_endian>
 const unsigned char*
-Sized_relobj_file<size, big_endian>::do_decompressed_section_contents(
+Object::decompressed_section_contents(
     unsigned int shndx,
     section_size_type* plen,
     bool* is_new)
@@ -2905,9 +2910,8 @@ Sized_relobj_file<size, big_endian>::do_decompressed_section_contents(
 // Discard any buffers of uncompressed sections.  This is done
 // at the end of the Add_symbols task.
 
-template<int size, bool big_endian>
 void
-Sized_relobj_file<size, big_endian>::do_discard_decompressed_sections()
+Object::discard_decompressed_sections()
 {
   if (this->compressed_sections_ == NULL)
     return;

@@ -1561,6 +1561,18 @@ elf32_rx_relax_delete_bytes (bfd *abfd, asection *sec, bfd_vma addr, int count,
   irel = elf_section_data (sec)->relocs;
   irelend = irel + sec->reloc_count;
 
+  if (irel == NULL && sec->reloc_count > 0)
+    {
+      /* If the relocs have not been kept in the section data
+	 structure (because -no-keep-memory was used) then
+	 reread them now.  */
+      irel = (_bfd_elf_link_read_relocs
+	      (abfd, sec, NULL, (Elf_Internal_Rela *) NULL, FALSE));
+      if (irel == NULL)
+	/* FIXME: Return FALSE instead ?  */
+	irelend = irel;
+    }
+
   /* Actually delete the bytes.  */
   memmove (contents + addr, contents + addr + count,
 	   (size_t) (toaddr - addr - count));
@@ -1574,7 +1586,7 @@ elf32_rx_relax_delete_bytes (bfd *abfd, asection *sec, bfd_vma addr, int count,
     memset (contents + toaddr - count, 0x03, count);
 
   /* Adjust all the relocs.  */
-  for (irel = elf_section_data (sec)->relocs; irel < irelend; irel++)
+  for (; irel < irelend; irel++)
     {
       /* Get the new reloc address.  */
       if (irel->r_offset > addr
@@ -3074,6 +3086,9 @@ describe_flags (flagword flags)
   else
     strcat (buf, ", GCC ABI");
 
+  if (flags & E_FLAG_RX_SINSNS_SET)
+    strcat (buf, flags & E_FLAG_RX_SINSNS_YES ? ", uses String instructions" : ", bans String instructions");
+
   return buf;
 }
 
@@ -3100,8 +3115,22 @@ rx_elf_merge_private_bfd_data (bfd * ibfd, bfd * obfd)
     {
       flagword known_flags;
 
+      if (old_flags & E_FLAG_RX_SINSNS_SET)
+	{
+	  if ((new_flags & E_FLAG_RX_SINSNS_SET) == 0)
+	    {
+	      new_flags &= ~ E_FLAG_RX_SINSNS_MASK;
+	      new_flags |= (old_flags & E_FLAG_RX_SINSNS_MASK);
+	    }
+	}
+      else if (new_flags & E_FLAG_RX_SINSNS_SET)
+	{
+	  old_flags &= ~ E_FLAG_RX_SINSNS_MASK;
+	  old_flags |= (new_flags & E_FLAG_RX_SINSNS_MASK);
+	}
+
       known_flags = E_FLAG_RX_ABI | E_FLAG_RX_64BIT_DOUBLES
-	| E_FLAG_RX_DSP | E_FLAG_RX_PID;
+	| E_FLAG_RX_DSP | E_FLAG_RX_PID | E_FLAG_RX_SINSNS_MASK;
 
       if ((old_flags ^ new_flags) & known_flags)
 	{

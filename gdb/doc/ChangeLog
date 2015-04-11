@@ -1,3 +1,56 @@
+2015-04-10  Jan Kratochvil  <jan.kratochvil@redhat.com>
+	    Eli Zaretskii  <eliz@gnu.org>
+
+	* gdb.texinfo (Compiling and Injecting Code): Describe set debug 
+	compile, show debug compile.  New subsection Compilation options for 
+	the compile command.  New subsection Compiler search for the compile
+	command.
+
+2015-04-09  Andy Wingo  <wingo@igalia.com>
+
+	* guile.texi (Frames In Guile): Describe frame-read-register.
+
+2015-04-02  Gary Benson <gbenson@redhat.com>
+
+	* gdb.texinfo (set sysroot): Document "target:".
+
+2015-04-01  Sasha Smundak  <asmundak@google.com>
+
+	* doc/python.texi (Writing a Frame Unwinder in Python): Add
+	section.
+
+2015-03-31  Sergio Durigan Junior  <sergiodj@redhat.com>
+
+	PR corefiles/16092
+	* gdb.texinfo (gcore): Mention new command 'set
+	use-coredump-filter'.
+	(set use-coredump-filter): Document new command.
+
+2015-03-31  Antoine Tremblay  <antoine.tremblay@ericsson.com>
+
+	* gdb.texinfo (Operating System Auxiliary Information): Add info os cpus
+	documentation, reorder the info os entries in alphabetical order.
+
+2015-03-26  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* gdb.texinfo (GDB/MI Data Manipulation): Fix copy-paste typo in
+	-data-write-memory-bytes.
+
+2015-03-24  Pedro Alves  <palves@redhat.com>
+
+	* gdb.texinfo (test_step) <set scheduler-locking step>: No longer
+	mention that threads may sometimes run unlocked.
+
+2015-03-23  Yurij Grechishhev  <yurij.grechishhev@gmail.com>
+
+	* gdb.texinfo (Remote configuration): Document "set/show
+	serial parity" command.
+
+2015-03-18  Gary Benson <gbenson@redhat.com>
+
+	* gdb.texinfo (General Query Packets): Remove documentation
+	for now-removed vFile:fstat qSupported features.
+
 2015-03-11  Gary Benson <gbenson@redhat.com>
 
 	* gdb.texinfo (Remote Configuration): Document the

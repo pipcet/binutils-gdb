@@ -43,9 +43,7 @@
 #include "sysdep.h"
 #include <assert.h>
 #include <time.h>
-#ifdef HAVE_ZLIB_H
 #include <zlib.h>
-#endif
 #ifdef HAVE_WCHAR_H
 #include <wchar.h>
 #endif
@@ -3256,8 +3254,13 @@ get_machine_flags (unsigned e_flags, unsigned e_machine)
 	  break;
 
 	case EM_RL78:
-	  if (e_flags & E_FLAG_RL78_G10)
-	    strcat (buf, ", G10");
+	  switch (e_flags & E_FLAG_RL78_CPU_MASK)
+	    {
+	    case E_FLAG_RL78_ANY_CPU: break;
+	    case E_FLAG_RL78_G10: strcat (buf, ", G10"); break;
+	    case E_FLAG_RL78_G13: strcat (buf, ", G13"); break;
+	    case E_FLAG_RL78_G14: strcat (buf, ", G14"); break;
+	    }
 	  if (e_flags & E_FLAG_RL78_64BIT_DOUBLES)
 	    strcat (buf, ", 64-bit doubles");
 	  break;
@@ -3271,6 +3274,9 @@ get_machine_flags (unsigned e_flags, unsigned e_machine)
 	    strcat (buf, ", pid");
 	  if (e_flags & E_FLAG_RX_ABI)
 	    strcat (buf, ", RX ABI");
+	  if (e_flags & E_FLAG_RX_SINSNS_SET)
+	    strcat (buf, e_flags & E_FLAG_RX_SINSNS_YES
+		    ? ", uses String instructions" : ", bans String instructions");
 	  break;
 
 	case EM_S390:
@@ -5152,7 +5158,8 @@ get_elf_section_flags (bfd_vma sh_flags)
       /* Generic.  */
       /* 18 */ { STRING_COMMA_LEN ("EXCLUDE") },
       /* SPARC specific.  */
-      /* 19 */ { STRING_COMMA_LEN ("ORDERED") }
+      /* 19 */ { STRING_COMMA_LEN ("ORDERED") },
+      /* 20 */ { STRING_COMMA_LEN ("COMPRESSED") }
     };
 
   if (do_section_details)
@@ -5184,6 +5191,7 @@ get_elf_section_flags (bfd_vma sh_flags)
 	    case SHF_GROUP:		sindex = 8; break;
 	    case SHF_TLS:		sindex = 9; break;
 	    case SHF_EXCLUDE:		sindex = 18; break;
+	    case SHF_COMPRESSED:	sindex = 20; break;
 
 	    default:
 	      sindex = -1;
@@ -5265,6 +5273,7 @@ get_elf_section_flags (bfd_vma sh_flags)
 	    case SHF_GROUP:		*p = 'G'; break;
 	    case SHF_TLS:		*p = 'T'; break;
 	    case SHF_EXCLUDE:		*p = 'E'; break;
+	    case SHF_COMPRESSED:	*p = 'C'; break;
 
 	    default:
 	      if ((elf_header.e_machine == EM_X86_64
@@ -5350,6 +5359,27 @@ get_elf_section_flags (bfd_vma sh_flags)
 
   *p = '\0';
   return buff;
+}
+
+static unsigned int
+get_compression_header (Elf_Internal_Chdr *chdr, unsigned char *buf)
+{
+  if (is_32bit_elf)
+    {
+      Elf32_External_Chdr *echdr = (Elf32_External_Chdr *) buf;
+      chdr->ch_type = BYTE_GET (echdr->ch_type);
+      chdr->ch_size = BYTE_GET (echdr->ch_size);
+      chdr->ch_addralign = BYTE_GET (echdr->ch_addralign);
+      return sizeof (*echdr);
+    }
+  else
+    {
+      Elf64_External_Chdr *echdr = (Elf64_External_Chdr *) buf;
+      chdr->ch_type = BYTE_GET (echdr->ch_type);
+      chdr->ch_size = BYTE_GET (echdr->ch_size);
+      chdr->ch_addralign = BYTE_GET (echdr->ch_addralign);
+      return sizeof (*echdr);
+    }
 }
 
 static int
@@ -5796,7 +5826,29 @@ process_section_headers (FILE * file)
 	}
 
       if (do_section_details)
-	printf ("       %s\n", get_elf_section_flags (section->sh_flags));
+	{
+	  printf ("       %s\n", get_elf_section_flags (section->sh_flags));
+	  if ((section->sh_flags & SHF_COMPRESSED) != 0)
+	    {
+	      /* Minimum section size is 12 bytes for 32-bit compression
+		 header + 12 bytes for compressed data header.  */
+	      unsigned char buf[24];
+	      assert (sizeof (buf) >= sizeof (Elf64_External_Chdr));
+	      if (get_data (&buf, (FILE *) file, section->sh_offset, 1,
+			    sizeof (buf), _("compression header")))
+		{
+		  Elf_Internal_Chdr chdr;
+		  get_compression_header (&chdr, buf);
+		  if (chdr.ch_type == ELFCOMPRESS_ZLIB)
+		    printf ("       ZLIB, ");
+		  else
+		    printf (_("       [<unknown>: 0x%x], "),
+			    chdr.ch_type);
+		  print_vma (chdr.ch_size, LONG_HEX);
+		  printf (", %lu\n", (unsigned long) chdr.ch_addralign);
+		}
+	    }
+	}
     }
 
   if (!do_section_details)
@@ -11951,12 +12003,9 @@ dump_section_as_bytes (Elf_Internal_Shdr * section,
 /* Uncompresses a section that was compressed using zlib, in place.  */
 
 static int
-uncompress_section_contents (unsigned char **buffer ATTRIBUTE_UNUSED,
-			     dwarf_size_type *size ATTRIBUTE_UNUSED)
+uncompress_section_contents (unsigned char **buffer,
+			     dwarf_size_type *size)
 {
-#ifndef HAVE_ZLIB_H
-  return FALSE;
-#else
   dwarf_size_type compressed_size = *size;
   unsigned char * compressed_buffer = *buffer;
   dwarf_size_type uncompressed_size;
@@ -12007,7 +12056,6 @@ uncompress_section_contents (unsigned char **buffer ATTRIBUTE_UNUSED,
       || strm.avail_out != 0)
     goto fail;
 
-  free (compressed_buffer);
   *buffer = uncompressed_buffer;
   *size = uncompressed_size;
   return 1;
@@ -12017,7 +12065,6 @@ uncompress_section_contents (unsigned char **buffer ATTRIBUTE_UNUSED,
   /* Indicate decompression failure.  */
   *buffer = NULL;
   return 0;
-#endif  /* HAVE_ZLIB_H */
 }
 
 static int
@@ -12041,9 +12088,30 @@ load_specific_debug_section (enum dwarf_section_display_enum debug,
     section->size = 0;
   else
     {
-      section->size = sec->sh_size;
-      if (uncompress_section_contents (&section->start, &section->size))
-	sec->sh_size = section->size;
+      unsigned char *start = section->start;
+      dwarf_size_type size = sec->sh_size;
+
+      if ((sec->sh_flags & SHF_COMPRESSED) != 0)
+	{
+	  Elf_Internal_Chdr chdr;
+	  unsigned int compression_header_size
+	    = get_compression_header (&chdr, start);
+	  if (chdr.ch_type != ELFCOMPRESS_ZLIB
+	      || chdr.ch_addralign != sec->sh_addralign)
+	    return 0;
+	  start += compression_header_size;
+	  size -= compression_header_size;
+	}
+
+      if (uncompress_section_contents (&start, &size))
+	{
+	  /* Free the compressed buffer, update the section buffer
+	     and the section size if uncompress is successful.  */
+	  free (section->start);
+	  section->start = start;
+	  sec->sh_size = size;
+	}
+      section->size = size;
     }
 
   if (section->start == NULL)

@@ -1,5 +1,7 @@
 use FFI::Platypus::Declare;
 
+lib undef;
+
 eval {
   attach 'perl_linespec' => [] => 'string';
 };

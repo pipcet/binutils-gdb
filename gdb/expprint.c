@@ -626,6 +626,597 @@ print_subexp_standard (struct expression *exp, int *pos,
     fputs_filtered (")", stream);
 }
 
+struct print_subexp_callback_struct;
+
+typedef void (*print_subexp_callback_t) (struct expression *, int *, struct ui_file *, enum precedence, struct print_subexp_callback_struct *);
+
+struct print_subexp_callback_struct {
+  print_subexp_callback_t callback;
+};
+
+void
+print_subexp_callback (struct expression *exp, int *pos,
+		       struct ui_file *stream, enum precedence prec,
+		       print_subexp_callback_t callback);
+
+void
+print_subexp_callback (struct expression *exp, int *pos,
+		       struct ui_file *stream, enum precedence prec,
+		       print_subexp_callback_t callback)
+{
+  unsigned tem;
+  const struct op_print *op_print_tab;
+  int pc;
+  unsigned nargs;
+  char *op_str;
+  int assign_modify = 0;
+  enum exp_opcode opcode;
+  enum precedence myprec = PREC_NULL;
+  /* Set to 1 for a right-associative operator.  */
+  int assoc = 0;
+  struct value *val;
+  char *tempstr = NULL;
+  struct print_subexp_callback_struct callback_struct = { callback };
+  void print_subexp_standard(struct expression *exp, int *pos, struct ui_file *stream, enum precedence prec)
+  {
+    callback(exp, pos, stream, prec, &callback_struct);
+  }
+
+  op_print_tab = exp->language_defn->la_op_print_tab;
+  pc = (*pos)++;
+  opcode = exp->elts[pc].opcode;
+  switch (opcode)
+    {
+      /* Common ops */
+
+    case OP_TYPE:
+      (*pos) += 2;
+      type_print (exp->elts[pc + 1].type, "", stream, 0);
+      return;
+
+    case OP_SCOPE:
+      myprec = PREC_PREFIX;
+      assoc = 0;
+      fputs_filtered (type_name_no_tag (exp->elts[pc + 1].type), stream);
+      fputs_filtered ("::", stream);
+      nargs = longest_to_int (exp->elts[pc + 2].longconst);
+      (*pos) += 4 + BYTES_TO_EXP_ELEM (nargs + 1);
+      fputs_filtered (&exp->elts[pc + 3].string, stream);
+      return;
+
+    case OP_LONG:
+      {
+	struct value_print_options opts;
+
+	get_no_prettyformat_print_options (&opts);
+	(*pos) += 3;
+	value_print (value_from_longest (exp->elts[pc + 1].type,
+					 exp->elts[pc + 2].longconst),
+		     stream, &opts);
+      }
+      return;
+
+    case OP_DOUBLE:
+      {
+	struct value_print_options opts;
+
+	get_no_prettyformat_print_options (&opts);
+	(*pos) += 3;
+	value_print (value_from_double (exp->elts[pc + 1].type,
+					exp->elts[pc + 2].doubleconst),
+		     stream, &opts);
+      }
+      return;
+
+    case OP_VAR_VALUE:
+      {
+	const struct block *b;
+
+	(*pos) += 3;
+	b = exp->elts[pc + 1].block;
+	if (b != NULL
+	    && BLOCK_FUNCTION (b) != NULL
+	    && SYMBOL_PRINT_NAME (BLOCK_FUNCTION (b)) != NULL)
+	  {
+	    fputs_filtered (SYMBOL_PRINT_NAME (BLOCK_FUNCTION (b)), stream);
+	    fputs_filtered ("::", stream);
+	  }
+	fputs_filtered (SYMBOL_PRINT_NAME (exp->elts[pc + 2].symbol), stream);
+      }
+      return;
+
+    case OP_VAR_ENTRY_VALUE:
+      {
+	(*pos) += 2;
+	fprintf_filtered (stream, "%s@entry",
+			  SYMBOL_PRINT_NAME (exp->elts[pc + 1].symbol));
+      }
+      return;
+
+    case OP_LAST:
+      (*pos) += 2;
+      fprintf_filtered (stream, "$%d",
+			longest_to_int (exp->elts[pc + 1].longconst));
+      return;
+
+    case OP_REGISTER:
+      {
+	const char *name = &exp->elts[pc + 2].string;
+
+	(*pos) += 3 + BYTES_TO_EXP_ELEM (exp->elts[pc + 1].longconst + 1);
+	fprintf_filtered (stream, "$%s", name);
+	return;
+      }
+
+    case OP_BOOL:
+      (*pos) += 2;
+      fprintf_filtered (stream, "%s",
+			longest_to_int (exp->elts[pc + 1].longconst)
+			? "TRUE" : "FALSE");
+      return;
+
+    case OP_INTERNALVAR:
+      (*pos) += 2;
+      fprintf_filtered (stream, "$%s",
+			internalvar_name (exp->elts[pc + 1].internalvar));
+      return;
+
+    case OP_FUNCALL:
+      (*pos) += 2;
+      nargs = longest_to_int (exp->elts[pc + 1].longconst);
+      print_subexp (exp, pos, stream, PREC_SUFFIX);
+      fputs_filtered (" (", stream);
+      for (tem = 0; tem < nargs; tem++)
+	{
+	  if (tem != 0)
+	    fputs_filtered (", ", stream);
+	  print_subexp (exp, pos, stream, PREC_ABOVE_COMMA);
+	}
+      fputs_filtered (")", stream);
+      return;
+
+    case OP_NAME:
+      nargs = longest_to_int (exp->elts[pc + 1].longconst);
+      (*pos) += 3 + BYTES_TO_EXP_ELEM (nargs + 1);
+      fputs_filtered (&exp->elts[pc + 2].string, stream);
+      return;
+
+    case OP_STRING:
+      {
+	struct value_print_options opts;
+
+	nargs = longest_to_int (exp->elts[pc + 1].longconst);
+	(*pos) += 3 + BYTES_TO_EXP_ELEM (nargs + 1);
+	/* LA_PRINT_STRING will print using the current repeat count threshold.
+	   If necessary, we can temporarily set it to zero, or pass it as an
+	   additional parameter to LA_PRINT_STRING.  -fnf */
+	get_user_print_options (&opts);
+	LA_PRINT_STRING (stream, builtin_type (exp->gdbarch)->builtin_char,
+			 (gdb_byte *) &exp->elts[pc + 2].string, nargs,
+			 NULL, 0, &opts);
+      }
+      return;
+
+    case OP_OBJC_NSSTRING:	/* Objective-C Foundation Class
+				   NSString constant.  */
+      {
+	struct value_print_options opts;
+
+	nargs = longest_to_int (exp->elts[pc + 1].longconst);
+	(*pos) += 3 + BYTES_TO_EXP_ELEM (nargs + 1);
+	fputs_filtered ("@\"", stream);
+	get_user_print_options (&opts);
+	LA_PRINT_STRING (stream, builtin_type (exp->gdbarch)->builtin_char,
+			 (gdb_byte *) &exp->elts[pc + 2].string, nargs,
+			 NULL, 0, &opts);
+	fputs_filtered ("\"", stream);
+      }
+      return;
+
+    case OP_OBJC_MSGCALL:
+      {			/* Objective C message (method) call.  */
+	char *selector;
+
+	(*pos) += 3;
+	nargs = longest_to_int (exp->elts[pc + 2].longconst);
+	fprintf_unfiltered (stream, "[");
+	print_subexp (exp, pos, stream, PREC_SUFFIX);
+	if (0 == target_read_string (exp->elts[pc + 1].longconst,
+				     &selector, 1024, NULL))
+	  {
+	    error (_("bad selector"));
+	    return;
+	  }
+	if (nargs)
+	  {
+	    char *s, *nextS;
+
+	    s = alloca (strlen (selector) + 1);
+	    strcpy (s, selector);
+	    for (tem = 0; tem < nargs; tem++)
+	      {
+		nextS = strchr (s, ':');
+		gdb_assert (nextS);	/* Make sure we found ':'.  */
+		*nextS = '\0';
+		fprintf_unfiltered (stream, " %s: ", s);
+		s = nextS + 1;
+		print_subexp (exp, pos, stream, PREC_ABOVE_COMMA);
+	      }
+	  }
+	else
+	  {
+	    fprintf_unfiltered (stream, " %s", selector);
+	  }
+	fprintf_unfiltered (stream, "]");
+	/* "selector" was malloc'd by target_read_string.  Free it.  */
+	xfree (selector);
+	return;
+      }
+
+    case OP_ARRAY:
+      (*pos) += 3;
+      nargs = longest_to_int (exp->elts[pc + 2].longconst);
+      nargs -= longest_to_int (exp->elts[pc + 1].longconst);
+      nargs++;
+      tem = 0;
+      if (exp->elts[pc + 4].opcode == OP_LONG
+	  && exp->elts[pc + 5].type
+	     == builtin_type (exp->gdbarch)->builtin_char
+	  && exp->language_defn->la_language == language_c)
+	{
+	  /* Attempt to print C character arrays using string syntax.
+	     Walk through the args, picking up one character from each
+	     of the OP_LONG expression elements.  If any array element
+	     does not match our expection of what we should find for
+	     a simple string, revert back to array printing.  Note that
+	     the last expression element is an explicit null terminator
+	     byte, which doesn't get printed.  */
+	  tempstr = alloca (nargs);
+	  pc += 4;
+	  while (tem < nargs)
+	    {
+	      if (exp->elts[pc].opcode != OP_LONG
+		  || exp->elts[pc + 1].type
+		     != builtin_type (exp->gdbarch)->builtin_char)
+		{
+		  /* Not a simple array of char, use regular array
+		     printing.  */
+		  tem = 0;
+		  break;
+		}
+	      else
+		{
+		  tempstr[tem++] =
+		    longest_to_int (exp->elts[pc + 2].longconst);
+		  pc += 4;
+		}
+	    }
+	}
+      if (tem > 0)
+	{
+	  struct value_print_options opts;
+
+	  get_user_print_options (&opts);
+	  LA_PRINT_STRING (stream, builtin_type (exp->gdbarch)->builtin_char,
+			   (gdb_byte *) tempstr, nargs - 1, NULL, 0, &opts);
+	  (*pos) = pc;
+	}
+      else
+	{
+	  fputs_filtered (" {", stream);
+	  for (tem = 0; tem < nargs; tem++)
+	    {
+	      if (tem != 0)
+		{
+		  fputs_filtered (", ", stream);
+		}
+	      print_subexp (exp, pos, stream, PREC_ABOVE_COMMA);
+	    }
+	  fputs_filtered ("}", stream);
+	}
+      return;
+
+    case TERNOP_COND:
+      if ((int) prec > (int) PREC_COMMA)
+	fputs_filtered ("(", stream);
+      /* Print the subexpressions, forcing parentheses
+         around any binary operations within them.
+         This is more parentheses than are strictly necessary,
+         but it looks clearer.  */
+      print_subexp (exp, pos, stream, PREC_HYPER);
+      fputs_filtered (" ? ", stream);
+      print_subexp (exp, pos, stream, PREC_HYPER);
+      fputs_filtered (" : ", stream);
+      print_subexp (exp, pos, stream, PREC_HYPER);
+      if ((int) prec > (int) PREC_COMMA)
+	fputs_filtered (")", stream);
+      return;
+
+    case TERNOP_SLICE:
+      print_subexp (exp, pos, stream, PREC_SUFFIX);
+      fputs_filtered ("(", stream);
+      print_subexp (exp, pos, stream, PREC_ABOVE_COMMA);
+      fputs_filtered (opcode == TERNOP_SLICE ? " : " : " UP ", stream);
+      print_subexp (exp, pos, stream, PREC_ABOVE_COMMA);
+      fputs_filtered (")", stream);
+      return;
+
+    case STRUCTOP_STRUCT:
+      tem = longest_to_int (exp->elts[pc + 1].longconst);
+      (*pos) += 3 + BYTES_TO_EXP_ELEM (tem + 1);
+      print_subexp (exp, pos, stream, PREC_SUFFIX);
+      fputs_filtered (".", stream);
+      fputs_filtered (&exp->elts[pc + 2].string, stream);
+      return;
+
+      /* Will not occur for Modula-2.  */
+    case STRUCTOP_PTR:
+      tem = longest_to_int (exp->elts[pc + 1].longconst);
+      (*pos) += 3 + BYTES_TO_EXP_ELEM (tem + 1);
+      print_subexp (exp, pos, stream, PREC_SUFFIX);
+      fputs_filtered ("->", stream);
+      fputs_filtered (&exp->elts[pc + 2].string, stream);
+      return;
+
+    case STRUCTOP_MEMBER:
+      print_subexp (exp, pos, stream, PREC_SUFFIX);
+      fputs_filtered (".*", stream);
+      print_subexp (exp, pos, stream, PREC_SUFFIX);
+      return;
+
+    case STRUCTOP_MPTR:
+      print_subexp (exp, pos, stream, PREC_SUFFIX);
+      fputs_filtered ("->*", stream);
+      print_subexp (exp, pos, stream, PREC_SUFFIX);
+      return;
+
+    case BINOP_SUBSCRIPT:
+      print_subexp (exp, pos, stream, PREC_SUFFIX);
+      fputs_filtered ("[", stream);
+      print_subexp (exp, pos, stream, PREC_ABOVE_COMMA);
+      fputs_filtered ("]", stream);
+      return;
+
+    case UNOP_POSTINCREMENT:
+      print_subexp (exp, pos, stream, PREC_SUFFIX);
+      fputs_filtered ("++", stream);
+      return;
+
+    case UNOP_POSTDECREMENT:
+      print_subexp (exp, pos, stream, PREC_SUFFIX);
+      fputs_filtered ("--", stream);
+      return;
+
+    case UNOP_CAST:
+      (*pos) += 2;
+      if ((int) prec > (int) PREC_PREFIX)
+	fputs_filtered ("(", stream);
+      fputs_filtered ("(", stream);
+      type_print (exp->elts[pc + 1].type, "", stream, 0);
+      fputs_filtered (") ", stream);
+      print_subexp (exp, pos, stream, PREC_PREFIX);
+      if ((int) prec > (int) PREC_PREFIX)
+	fputs_filtered (")", stream);
+      return;
+
+    case UNOP_CAST_TYPE:
+      if ((int) prec > (int) PREC_PREFIX)
+	fputs_filtered ("(", stream);
+      fputs_filtered ("(", stream);
+      print_subexp (exp, pos, stream, PREC_PREFIX);
+      fputs_filtered (") ", stream);
+      print_subexp (exp, pos, stream, PREC_PREFIX);
+      if ((int) prec > (int) PREC_PREFIX)
+	fputs_filtered (")", stream);
+      return;
+
+    case UNOP_DYNAMIC_CAST:
+    case UNOP_REINTERPRET_CAST:
+      fputs_filtered (opcode == UNOP_DYNAMIC_CAST ? "dynamic_cast"
+		      : "reinterpret_cast", stream);
+      fputs_filtered ("<", stream);
+      print_subexp (exp, pos, stream, PREC_PREFIX);
+      fputs_filtered ("> (", stream);
+      print_subexp (exp, pos, stream, PREC_PREFIX);
+      fputs_filtered (")", stream);
+      return;
+
+    case UNOP_MEMVAL:
+      (*pos) += 2;
+      if ((int) prec > (int) PREC_PREFIX)
+	fputs_filtered ("(", stream);
+      if (TYPE_CODE (exp->elts[pc + 1].type) == TYPE_CODE_FUNC
+	  && exp->elts[pc + 3].opcode == OP_LONG)
+	{
+	  struct value_print_options opts;
+
+	  /* We have a minimal symbol fn, probably.  It's encoded
+	     as a UNOP_MEMVAL (function-type) of an OP_LONG (int, address).
+	     Swallow the OP_LONG (including both its opcodes); ignore
+	     its type; print the value in the type of the MEMVAL.  */
+	  (*pos) += 4;
+	  val = value_at_lazy (exp->elts[pc + 1].type,
+			       (CORE_ADDR) exp->elts[pc + 5].longconst);
+	  get_no_prettyformat_print_options (&opts);
+	  value_print (val, stream, &opts);
+	}
+      else
+	{
+	  fputs_filtered ("{", stream);
+	  type_print (exp->elts[pc + 1].type, "", stream, 0);
+	  fputs_filtered ("} ", stream);
+	  print_subexp (exp, pos, stream, PREC_PREFIX);
+	}
+      if ((int) prec > (int) PREC_PREFIX)
+	fputs_filtered (")", stream);
+      return;
+
+    case UNOP_MEMVAL_TYPE:
+      if ((int) prec > (int) PREC_PREFIX)
+	fputs_filtered ("(", stream);
+      fputs_filtered ("{", stream);
+      print_subexp (exp, pos, stream, PREC_PREFIX);
+      fputs_filtered ("} ", stream);
+      print_subexp (exp, pos, stream, PREC_PREFIX);
+      if ((int) prec > (int) PREC_PREFIX)
+	fputs_filtered (")", stream);
+      return;
+
+    case UNOP_MEMVAL_TLS:
+      (*pos) += 3;
+      if ((int) prec > (int) PREC_PREFIX)
+	fputs_filtered ("(", stream);
+      fputs_filtered ("{", stream);
+      type_print (exp->elts[pc + 2].type, "", stream, 0);
+      fputs_filtered ("} ", stream);
+      print_subexp (exp, pos, stream, PREC_PREFIX);
+      if ((int) prec > (int) PREC_PREFIX)
+	fputs_filtered (")", stream);
+      return;
+
+    case BINOP_ASSIGN_MODIFY:
+      opcode = exp->elts[pc + 1].opcode;
+      (*pos) += 2;
+      myprec = PREC_ASSIGN;
+      assoc = 1;
+      assign_modify = 1;
+      op_str = "???";
+      for (tem = 0; op_print_tab[tem].opcode != OP_NULL; tem++)
+	if (op_print_tab[tem].opcode == opcode)
+	  {
+	    op_str = op_print_tab[tem].string;
+	    break;
+	  }
+      if (op_print_tab[tem].opcode != opcode)
+	/* Not found; don't try to keep going because we don't know how
+	   to interpret further elements.  */
+	error (_("Invalid expression"));
+      break;
+
+      /* C++ ops */
+
+    case OP_THIS:
+      ++(*pos);
+      if (exp->language_defn->la_name_of_this)
+	fputs_filtered (exp->language_defn->la_name_of_this, stream);
+      else
+	fprintf_filtered (stream, _("<language %s has no 'this'>"),
+			  exp->language_defn->la_name);
+      return;
+
+      /* Modula-2 ops */
+
+    case MULTI_SUBSCRIPT:
+      (*pos) += 2;
+      nargs = longest_to_int (exp->elts[pc + 1].longconst);
+      print_subexp (exp, pos, stream, PREC_SUFFIX);
+      fprintf_unfiltered (stream, " [");
+      for (tem = 0; tem < nargs; tem++)
+	{
+	  if (tem != 0)
+	    fprintf_unfiltered (stream, ", ");
+	  print_subexp (exp, pos, stream, PREC_ABOVE_COMMA);
+	}
+      fprintf_unfiltered (stream, "]");
+      return;
+
+    case BINOP_VAL:
+      (*pos) += 2;
+      fprintf_unfiltered (stream, "VAL(");
+      type_print (exp->elts[pc + 1].type, "", stream, 0);
+      fprintf_unfiltered (stream, ",");
+      print_subexp (exp, pos, stream, PREC_PREFIX);
+      fprintf_unfiltered (stream, ")");
+      return;
+
+    case TYPE_INSTANCE:
+      {
+	LONGEST count = exp->elts[pc + 1].longconst;
+
+	/* The COUNT.  */
+	(*pos)++;
+	fputs_unfiltered ("TypesInstance(", stream);
+	while (count-- > 0)
+	  {
+	    type_print (exp->elts[(*pos)++].type, "", stream, 0);
+	    if (count > 0)
+	      fputs_unfiltered (",", stream);
+	  }
+	fputs_unfiltered (",", stream);
+	/* Ending COUNT and ending TYPE_INSTANCE.  */
+	(*pos) += 2;
+	print_subexp (exp, pos, stream, PREC_PREFIX);
+	fputs_unfiltered (")", stream);
+	return;
+      }
+
+      /* Default ops */
+
+    default:
+      op_str = "???";
+      for (tem = 0; op_print_tab[tem].opcode != OP_NULL; tem++)
+	if (op_print_tab[tem].opcode == opcode)
+	  {
+	    op_str = op_print_tab[tem].string;
+	    myprec = op_print_tab[tem].precedence;
+	    assoc = op_print_tab[tem].right_assoc;
+	    break;
+	  }
+      if (op_print_tab[tem].opcode != opcode)
+	/* Not found; don't try to keep going because we don't know how
+	   to interpret further elements.  For example, this happens
+	   if opcode is OP_TYPE.  */
+	error (_("Invalid expression"));
+    }
+
+  /* Note that PREC_BUILTIN will always emit parentheses.  */
+  if ((int) myprec < (int) prec)
+    fputs_filtered ("(", stream);
+  if ((int) opcode > (int) BINOP_END)
+    {
+      if (assoc)
+	{
+	  /* Unary postfix operator.  */
+	  print_subexp (exp, pos, stream, PREC_SUFFIX);
+	  fputs_filtered (op_str, stream);
+	}
+      else
+	{
+	  /* Unary prefix operator.  */
+	  fputs_filtered (op_str, stream);
+	  if (myprec == PREC_BUILTIN_FUNCTION)
+	    fputs_filtered ("(", stream);
+	  print_subexp (exp, pos, stream, PREC_PREFIX);
+	  if (myprec == PREC_BUILTIN_FUNCTION)
+	    fputs_filtered (")", stream);
+	}
+    }
+  else
+    {
+      /* Binary operator.  */
+      /* Print left operand.
+         If operator is right-associative,
+         increment precedence for this operand.  */
+      print_subexp (exp, pos, stream,
+		    (enum precedence) ((int) myprec + assoc));
+      /* Print the operator itself.  */
+      if (assign_modify)
+	fprintf_filtered (stream, " %s= ", op_str);
+      else if (op_str[0] == ',')
+	fprintf_filtered (stream, "%s ", op_str);
+      else
+	fprintf_filtered (stream, " %s ", op_str);
+      /* Print right operand.
+         If operator is left-associative,
+         increment precedence for this operand.  */
+      print_subexp (exp, pos, stream,
+		    (enum precedence) ((int) myprec + !assoc));
+    }
+
+  if ((int) myprec < (int) prec)
+    fputs_filtered (")", stream);
+}
+
 /* Return the operator corresponding to opcode OP as
    a string.   NULL indicates that the opcode was not found in the
    current language table.  */

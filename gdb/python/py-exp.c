@@ -1078,6 +1078,7 @@ gdbpy_parse_expression (PyObject *self, PyObject *args, PyObject *kw)
   static char *keywords[] = { "expr", NULL };
   const char *expression_name = NULL;
   struct expression *type = NULL;
+  PyObject *result;
 
   if (! PyArg_ParseTupleAndKeywords (args, kw, "s|O", keywords,
 				     &expression_name))
@@ -1087,7 +1088,9 @@ gdbpy_parse_expression (PyObject *self, PyObject *args, PyObject *kw)
   if (! type)
     return NULL;
 
-  return (PyObject *) expression_to_expression_object (type);
+  result = (PyObject *) expression_to_expression_object (type);
+  Py_INCREF (result); // make immortal
+  return result;
 }
 
 /* Return a sequence of all fields.  Each field is a gdb.Field object.
@@ -1126,6 +1129,14 @@ exppy_get_address (PyObject *self, PyObject *args)
   struct expression *expression = ((expression_object *) self)->type;
 
   return PyInt_FromLong ((long)expression);
+}
+
+static PyObject *
+macropy_get_address (PyObject *self, PyObject *args)
+{
+  const struct macro_definition *macro = ((macro_object *) self)->macro;
+
+  return PyInt_FromLong ((long)macro);
 }
 
 static PyObject *
@@ -1255,6 +1266,9 @@ static PyMethodDef macro_object_methods[] =
 {
   { "argc", macropy_get_argc, METH_NOARGS,
     "address () -> list\n\
+Return the integer representing the memory address of the expression."},
+  { "address", macropy_get_address, METH_NOARGS,
+    "address () -> long\n\
 Return the integer representing the memory address of the expression."},
   { "expand", (PyCFunction)macropy_expand, METH_VARARGS | METH_KEYWORDS,
     "(list) -> string\n\

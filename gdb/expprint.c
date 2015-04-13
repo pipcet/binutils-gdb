@@ -628,7 +628,7 @@ print_subexp_standard (struct expression *exp, int *pos,
 
 struct print_subexp_callback_struct;
 
-typedef void (*print_subexp_callback_t) (struct expression *, int *, struct ui_file *, enum precedence, struct print_subexp_callback_struct *);
+typedef int (*print_subexp_callback_t) (struct expression *, int *, struct ui_file *, enum precedence, struct print_subexp_callback_struct *);
 
 struct print_subexp_callback_struct {
   print_subexp_callback_t callback;
@@ -657,9 +657,9 @@ print_subexp_callback (struct expression *exp, int *pos,
   struct value *val;
   char *tempstr = NULL;
   struct print_subexp_callback_struct callback_struct = { callback };
-  void print_subexp_standard(struct expression *exp, int *pos, struct ui_file *stream, enum precedence prec)
+  void print_subexp(struct expression *exp, int *pos, struct ui_file *stream, enum precedence prec)
   {
-    callback(exp, pos, stream, prec, &callback_struct);
+    *pos += callback(exp, pos, stream, prec, &callback_struct);
   }
 
   op_print_tab = exp->language_defn->la_op_print_tab;

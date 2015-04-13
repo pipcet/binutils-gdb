@@ -2710,7 +2710,7 @@ perl-xsinit.o: perl/quarantine/perl-xsinit.c
 	$(POSTCOMPILE)
 
 perl/quarantine/perl-xsinit.c:
-	-test -d perl/quarantine || mkdir perl/quarantine
+	-test -d perl/quarantine || mkdir -p perl/quarantine
 	$(PERL_PROG) -MExtUtils::Embed -e xsinit -- -o perl/quarantine/perl-xsinit.c
 #
 # Dependency tracking.  Most of this is conditional on GNU Make being

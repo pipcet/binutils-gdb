@@ -135,7 +135,6 @@
 #include "minsyms.h"
 #include "monitor.h"
 #include "nbsd-nat.h"
-#include "nm.h"
 #include "objc-lang.h"
 #include "objfiles.h"
 #include "obsd-nat.h"

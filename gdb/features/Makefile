@@ -45,6 +45,7 @@
 
 WHICH = aarch64 \
 	arm-with-iwmmxt arm-with-vfpv2 arm-with-vfpv3 arm-with-neon \
+	asmjs \
 	i386/i386 i386/i386-linux \
 	i386/i386-mmx i386/i386-mmx-linux \
 	i386/amd64 i386/amd64-linux \
@@ -78,6 +79,7 @@ WHICH = aarch64 \
 # Record which registers should be sent to GDB by default after stop.
 aarch64-expedite = x29,sp,pc
 arm-expedite = r11,sp,pc
+asmjs-expedite = sp,pc
 i386/i386-expedite = ebp,esp,eip
 i386/i386-linux-expedite = ebp,esp,eip
 i386/amd64-expedite = rbp,rsp,rip
@@ -155,6 +157,7 @@ XMLTOC = \
 	arm-with-neon.xml \
 	arm-with-vfpv2.xml \
 	arm-with-vfpv3.xml \
+	asmjs.xml \
 	i386/amd64-avx-linux.xml \
 	i386/amd64-avx.xml \
 	i386/amd64-avx512-linux.xml \

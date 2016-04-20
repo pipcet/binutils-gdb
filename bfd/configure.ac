@@ -417,6 +417,7 @@ do
     arm_pei_wince_be_vec)	 tb="$tb pei-arm-wince.lo pei-arm.lo peigen.lo $coff" ;;
     arm_pei_wince_le_vec)	 tb="$tb pei-arm-wince.lo pei-arm.lo peigen.lo $coff" ;;
     arm_mach_o_vec)		 tb="$tb mach-o-arm.lo" ;;
+    asmjs_elf32_vec)             tb="$tb elf32-asmjs.lo elf32.lo $elf" ;;
     avr_elf32_vec)		 tb="$tb elf32-avr.lo elf32.lo $elf" ;;
     bfin_elf32_vec)		 tb="$tb elf32-bfin.lo elf32.lo $elf" ;;
     bfin_elf32_fdpic_vec)	 tb="$tb elf32-bfin.lo elf32.lo $elf" ;;

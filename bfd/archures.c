@@ -329,6 +329,8 @@ DESCRIPTION
 .#define bfd_mach_arm_ep9312	11
 .#define bfd_mach_arm_iWMMXt	12
 .#define bfd_mach_arm_iWMMXt2	13
+.  bfd_arch_asmjs,
+.#define bfd_mach_asmjs         1
 .  bfd_arch_nds32,     {* Andes NDS32 *}
 .#define bfd_mach_n1            1
 .#define bfd_mach_n1h           2
@@ -558,6 +560,7 @@ extern const bfd_arch_info_type bfd_aarch64_arch;
 extern const bfd_arch_info_type bfd_alpha_arch;
 extern const bfd_arch_info_type bfd_arc_arch;
 extern const bfd_arch_info_type bfd_arm_arch;
+extern const bfd_arch_info_type bfd_asmjs_arch;
 extern const bfd_arch_info_type bfd_avr_arch;
 extern const bfd_arch_info_type bfd_bfin_arch;
 extern const bfd_arch_info_type bfd_cr16_arch;
@@ -650,6 +653,7 @@ static const bfd_arch_info_type * const bfd_archures_list[] =
     &bfd_alpha_arch,
     &bfd_arc_arch,
     &bfd_arm_arch,
+    &bfd_asmjs_arch,
     &bfd_avr_arch,
     &bfd_bfin_arch,
     &bfd_cr16_arch,

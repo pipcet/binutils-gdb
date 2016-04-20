@@ -190,6 +190,7 @@ ALL_EMULATION_SOURCES = \
 	earmnto.c \
 	earmpe.c \
 	earmsymbian.c \
+	easmjs.c \
 	eavr1.c \
 	eavr2.c \
 	eavr25.c \
@@ -829,6 +830,11 @@ earmpe.c: $(srcdir)/emulparams/armpe.sh \
 earmsymbian.c: $(srcdir)/emulparams/armsymbian.sh \
   $(srcdir)/emulparams/armelf.sh $(ELF_DEPS) \
   $(srcdir)/emultempl/armelf.em $(srcdir)/scripttempl/armbpabi.sc \
+  ${GEN_DEPENDS}
+
+easmjs.c: $(srcdir)/emulparams/asmjs.sh \
+  $(srcdir)/emulparams/asmjs.sh $(ELF_DEPS) \
+  $(srcdir)/emultempl/asmjs.em $(srcdir)/scripttempl/asmjs.sc \
   ${GEN_DEPENDS}
 
 eavr1.c: $(srcdir)/emulparams/avr1.sh $(srcdir)/emultempl/avrelf.em \

@@ -93,6 +93,7 @@ ALL_MACHINES = \
 	cpu-alpha.lo \
 	cpu-arc.lo \
 	cpu-arm.lo \
+	cpu-asmjs.lo \
 	cpu-avr.lo \
 	cpu-bfin.lo \
 	cpu-cr16.lo \
@@ -180,6 +181,7 @@ ALL_MACHINES_CFILES = \
 	cpu-alpha.c \
 	cpu-arc.c \
 	cpu-arm.c \
+	cpu-asmjs.c \
 	cpu-avr.c \
 	cpu-bfin.c \
 	cpu-cr16.c \
@@ -321,6 +323,7 @@ BFD32_BACKENDS = \
 	elf32-am33lin.lo \
 	elf32-arc.lo \
 	elf32-arm.lo \
+	elf32-asmjs.lo \
 	elf32-avr.lo \
 	elf32-bfin.lo \
 	elf32-cr16.lo \
@@ -513,6 +516,7 @@ BFD32_BACKENDS_CFILES = \
 	elf32-am33lin.c \
 	elf32-arc.c \
 	elf32-arm.c \
+	elf32-asmjs.c \
 	elf32-avr.c \
 	elf32-bfin.c \
 	elf32-cr16.c \

@@ -2144,6 +2144,8 @@ enum bfd_architecture
 #define bfd_mach_arm_ep9312    11
 #define bfd_mach_arm_iWMMXt    12
 #define bfd_mach_arm_iWMMXt2   13
+  bfd_arch_asmjs,
+#define bfd_mach_asmjs         1
   bfd_arch_nds32,     /* Andes NDS32 */
 #define bfd_mach_n1            1
 #define bfd_mach_n1h           2

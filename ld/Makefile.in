@@ -549,6 +549,7 @@ ALL_EMULATION_SOURCES = \
 	earmnto.c \
 	earmpe.c \
 	earmsymbian.c \
+	easmjs.c \
 	eavr1.c \
 	eavr2.c \
 	eavr25.c \
@@ -1178,6 +1179,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/earmnto.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/earmpe.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/earmsymbian.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/easmjs.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eavr1.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eavr2.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eavr25.Po@am__quote@
@@ -2392,6 +2394,11 @@ earmpe.c: $(srcdir)/emulparams/armpe.sh \
 earmsymbian.c: $(srcdir)/emulparams/armsymbian.sh \
   $(srcdir)/emulparams/armelf.sh $(ELF_DEPS) \
   $(srcdir)/emultempl/armelf.em $(srcdir)/scripttempl/armbpabi.sc \
+  ${GEN_DEPENDS}
+
+easmjs.c: $(srcdir)/emulparams/asmjs.sh \
+  $(srcdir)/emulparams/asmjs.sh $(ELF_DEPS) \
+  $(srcdir)/emultempl/asmjs.em $(srcdir)/scripttempl/asmjs.sc \
   ${GEN_DEPENDS}
 
 eavr1.c: $(srcdir)/emulparams/avr1.sh $(srcdir)/emultempl/avrelf.em \

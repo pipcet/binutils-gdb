@@ -26,6 +26,7 @@
 #define ARCH_alpha
 #define ARCH_arc
 #define ARCH_arm
+#define ARCH_asmjs
 #define ARCH_avr
 #define ARCH_bfin
 #define ARCH_cr16
@@ -136,6 +137,11 @@ disassembler (bfd *abfd)
 	disassemble = print_insn_big_arm;
       else
 	disassemble = print_insn_little_arm;
+      break;
+#endif
+#ifdef ARCH_asmjs
+    case bfd_arch_asmjs:
+      disassemble = print_insn_little_asmjs;
       break;
 #endif
 #ifdef ARCH_avr

@@ -103,6 +103,7 @@ TARGET_LIBOPCODES_CFILES = \
 	arc-ext.c \
 	arc-opc.c \
 	arm-dis.c \
+	asmjs-dis.c \
 	avr-dis.c \
 	bfin-dis.c \
 	cgen-asm.c \

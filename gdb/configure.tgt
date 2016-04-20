@@ -115,7 +115,10 @@ arm*-*-*)
 	gdb_target_obs="arm.o arm-get-next-pcs.o arm-tdep.o"
 	gdb_sim=../sim/arm/libsim.a
 	;;
-
+asmjs-*-*)
+        # Target: ASMJS virtual machine
+        gdb_target_obs="asmjs-tdep.o"
+        ;;
 avr-*-*)
 	# Target: AVR
 	gdb_target_obs="avr-tdep.o"

@@ -612,6 +612,7 @@ extern const bfd_target arm_pei_epoc_be_vec;
 extern const bfd_target arm_pei_epoc_le_vec;
 extern const bfd_target arm_pei_wince_be_vec;
 extern const bfd_target arm_pei_wince_le_vec;
+extern const bfd_target asmjs_elf32_vec;
 extern const bfd_target avr_elf32_vec;
 extern const bfd_target bfin_elf32_vec;
 extern const bfd_target bfin_elf32_fdpic_vec;

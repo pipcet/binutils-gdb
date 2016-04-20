@@ -411,6 +411,8 @@
 /* Old constant that might be in use by some software. */
 #define EM_OPENRISC		EM_OR1K
 
+#define EM_ASMJS		0x534a
+
 /* See the above comment before you add a new EM_* value here.  */
 
 /* Values for e_version.  */

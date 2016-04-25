@@ -1572,7 +1572,7 @@ _bfd_clear_contents (reloc_howto_type *howto,
   switch (size)
     {
     default:
-      abort ();
+      break;
     case 0:
       return;
     case 1:

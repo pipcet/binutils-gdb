@@ -1608,7 +1608,7 @@ _bfd_clear_contents (reloc_howto_type *howto,
     {
     default:
     case 0:
-      abort ();
+      break;
     case 1:
       bfd_put_8 (input_bfd, x, location);
       break;

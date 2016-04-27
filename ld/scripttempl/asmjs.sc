@@ -12,6 +12,8 @@ SECTIONS
      . = ALIGN(., 16);
      *(.rodata*)
      . = ALIGN(., 16);
+     *(.jcr*)
+     . = ALIGN(., 16);
      *(.dynbss)
      . = ALIGN(., 16);
      *(.bss* .gnu.linkonce.b.*)

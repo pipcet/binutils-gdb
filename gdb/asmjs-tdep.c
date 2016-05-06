@@ -64,15 +64,15 @@ struct stack_item
 {
   int len;
   struct stack_item *prev;
-  void *data;
+  gdb_byte *data;
 };
 
 static struct stack_item *
-push_stack_item (struct stack_item *prev, const void *contents, int len)
+push_stack_item (struct stack_item *prev, const gdb_byte *contents, int len)
 {
   struct stack_item *si;
-  si = xmalloc (sizeof (struct stack_item));
-  si->data = xmalloc (len);
+  si = XNEW (struct stack_item);
+  si->data = (gdb_byte *) xmalloc (len);
   si->len = len;
   si->prev = prev;
   memcpy (si->data, contents, len);
@@ -581,7 +581,7 @@ asmjs_gdbarch_init (struct gdbarch_info info, struct gdbarch_list *arches)
 
     }
 
-  tdep = xcalloc (1, sizeof (struct gdbarch_tdep));
+  tdep = XNEW (struct gdbarch_tdep);
   gdbarch = gdbarch_alloc (&info, tdep);
 
   /* On ASMJS targets char defaults to unsigned.  */

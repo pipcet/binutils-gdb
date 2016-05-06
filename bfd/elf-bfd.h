@@ -520,8 +520,8 @@ struct elf_link_hash_table
   union gotplt_union init_got_offset;
   union gotplt_union init_plt_offset;
 
-  /* The number of symbols found in the link which must be put into
-     the .dynsym section.  */
+  /* The number of symbols found in the link which is intended for the
+     mandatory DT_SYMTAB tag (.dynsym section) in .dynamic section.  */
   bfd_size_type dynsymcount;
 
   /* The string table of dynamic symbols, which becomes the .dynstr
@@ -1300,13 +1300,15 @@ struct elf_backend_data
   /* Return the section which RELOC_SEC applies to.  */
   asection *(*get_reloc_section) (asection *reloc_sec);
 
-  /* Called when setting the sh_link and sh_info fields of a section with a
-     type >= SHT_LOOS.  Returns TRUE if these fields were initialised in
-     OHEADER, FALSE otherwise.  IHEADER is the best guess matching section
-     from the input bfd IBFD.  */
-  bfd_boolean (*elf_backend_set_special_section_info_and_link)
-    (const bfd *ibfd, bfd *obfd, const Elf_Internal_Shdr *iheader,
-     Elf_Internal_Shdr *oheader);
+  /* Called to set the sh_flags, sh_link and sh_info fields of OSECTION which
+     has a type >= SHT_LOOS.  Returns TRUE if the fields were initialised,
+     FALSE otherwise.  Can be called multiple times for a given section,
+     until it returns TRUE.  Most of the times it is called ISECTION will be
+     set to an input section that might be associated with the output section.
+     The last time that it is called, ISECTION will be set to NULL.  */
+  bfd_boolean (*elf_backend_copy_special_section_fields)
+    (const bfd *ibfd, bfd *obfd, const Elf_Internal_Shdr *isection,
+     Elf_Internal_Shdr *osection);
 		
   /* Used to handle bad SHF_LINK_ORDER input.  */
   bfd_error_handler_type link_order_error_handler;
@@ -2335,6 +2337,9 @@ extern bfd_boolean bfd_elf_gc_common_finalize_got_offsets
 
 extern bfd_boolean bfd_elf_gc_common_final_link
   (bfd *, struct bfd_link_info *);
+
+extern asection *_bfd_elf_is_start_stop
+  (const struct bfd_link_info *, struct elf_link_hash_entry *);
 
 extern bfd_boolean bfd_elf_reloc_symbol_deleted_p
   (bfd_vma, void *);

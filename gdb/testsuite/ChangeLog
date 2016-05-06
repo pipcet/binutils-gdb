@@ -1,3 +1,174 @@
+2016-05-04  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* gdb.base/solib-display.exp: Check for [use_gdb_stub] instead
+	of [is_remote target],
+
+2016-05-04  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* lib/gdb.exp (use_gdb_stub): New procedure.
+
+2016-05-03  Yunlian Jiang <yunlian@google.com>
+	    Doug Evans  <dje@google.com>
+
+	PR symtab/19914
+	* gdb.dwarf2/dwp-sepdebug.c: New file.
+	* gdb.dwarf2/dwp-sepdebug.exp: New file.
+
+2016-05-02  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* gdb.base/detach.exp: Remove is_remote check.
+
+2016-05-02  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* gdb.base/annota-input-while-running.exp: Don't check for
+	[is_remote target].  Enable annotations after running to main.
+	Remove unused "set test..." line.
+
+2016-04-28  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* gdb.trace/trace-enable-disable.exp: New file.
+	* gdb.trace/trace-enable-disable.c: New file.
+
+2016-04-28  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* gdb.arch/ftrace-insn-reloc.exp: Save gdb_load_shlib result,
+	use it in info sharedlibrary test.
+	* gdb.trace/ftrace-lock.exp: Likewise.
+	* gdb.trace/ftrace.exp: Likewise.
+	* gdb.trace/range-stepping.exp: Likewise.
+	* gdb.trace/trace-break.exp: Likewise.
+	* gdb.trace/trace-condition.exp: Likewise.
+	* gdb.trace/trace-mt.exp: Likewise.
+
+2016-04-27  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* lib/gdb.exp (gdb_load_shlibs): Rename to...
+	(gdb_load_shlib): ... this.
+	* gdb.arch/ftrace-insn-reloc.exp: Adjust gdb_load_shlibs ->
+	gdb_load_shlib.
+	* gdb.base/catch-load.exp (one_catch_load_test): Likewise.
+	* gdb.base/ctxobj.exp: Likewise.
+	* gdb.base/dprintf-pending.exp: Likewise.
+	* gdb.base/dso2dso.exp: Likewise.
+	* gdb.base/fixsection.exp: Likewise.
+	* gdb.base/gcore-relro.exp: Likewise.
+	* gdb.base/gdb1555.exp: Likewise.
+	* gdb.base/global-var-nested-by-dso.exp: Likewise.
+	* gdb.base/gnu-ifunc.exp: Likewise.
+	* gdb.base/hbreak-in-shr-unsupported.exp: Likewise.
+	* gdb.base/jit-so.exp (one_jit_test): Likewise.
+	* gdb.base/pending.exp: Likewise.
+	* gdb.base/print-file-var.exp: Likewise.
+	* gdb.base/print-symbol-loading.exp: Likewise.
+	* gdb.base/shlib-call.exp: Likewise.
+	* gdb.base/shreloc.exp: Likewise.
+	* gdb.base/so-impl-ld.exp: Likewise.
+	* gdb.base/solib-disc.exp: Likewise.
+	* gdb.base/solib-nodir.exp: Likewise.
+	* gdb.base/solib-overlap.exp: Likewise.
+	* gdb.base/solib-symbol.exp: Likewise.
+	* gdb.base/solib-weak.exp (do_test): Likewise.
+	* gdb.base/sym-file.exp: Likewise.
+	* gdb.base/symtab-search-order.exp: Likewise.
+	* gdb.base/type-opaque.exp: Likewise.
+	* gdb.base/unload.exp: Likewise.
+	* gdb.base/watchpoint-solib.exp: Likewise.
+	* gdb.compile/compile.exp: Likewise.
+	* gdb.cp/gdb2384.exp: Likewise.
+	* gdb.cp/infcall-dlopen.exp: Likewise.
+	* gdb.cp/re-set-overloaded.exp: Likewise.
+	* gdb.fortran/library-module.exp: Likewise.
+	* gdb.opt/solib-intra-step.exp: Likewise.
+	* gdb.python/py-finish-breakpoint.exp: Likewise.
+	* gdb.python/py-shared.exp: Likewise.
+	* gdb.reverse/solib-precsave.exp: Likewise.
+	* gdb.reverse/solib-reverse.exp: Likewise.
+	* gdb.server/solib-list.exp: Likewise.
+	* gdb.threads/dlopen-libpthread.exp: Likewise.
+	* gdb.threads/tls-shared.exp: Likewise.
+	* gdb.threads/tls-so_extern.exp: Likewise.
+	* gdb.trace/change-loc.exp: Likewise.
+	* gdb.trace/ftrace-lock.exp: Likewise.
+	* gdb.trace/ftrace.exp: Likewise.
+	* gdb.trace/mi-tracepoint-changed.exp (test_reconnect): Likewise.
+	* gdb.trace/pending.exp: Likewise.
+	* gdb.trace/range-stepping.exp: Likewise.
+	* gdb.trace/strace.exp (strace_remove_socket): Likewise.
+	(strace_info_marker): Likewise.
+	(strace_probe_marker): Likewise.
+	(strace_trace_on_same_addr): Likewise.
+	(strace_trace_on_diff_addr): Likewise.
+	* gdb.trace/trace-break.exp: Likewise.
+	* gdb.trace/trace-condition.exp: Likewise.
+	* gdb.trace/trace-mt.exp: Likewise.
+
+2016-04-27  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* lib/gdb.exp (gdb_load_shlibs):  Accept a single argument.  Return
+	result of gdb_remote_download.
+	* gdb.base/ctxobj.exp: Split gdb_load_shlibs call.
+	* gdb.base/dso2dso.exp: Likewise.
+	* gdb.base/global-var-nested-by-dso.exp: Likewise.
+	* gdb.base/print-file-var.exp: Likewise.
+	* gdb.base/shlib-call.exp: Likewise.
+	* gdb.base/shreloc.exp: Likewise.
+	* gdb.base/solib-overlap.exp: Likewise.
+	* gdb.base/solib-weak.exp (do_test): Likewise.
+	* gdb.base/unload.exp: Likewise.
+
+2016-04-27  Yao Qi  <yao.qi@linaro.org>
+
+	* gdb.base/branch-to-self.exp: Skip it if gdb,nosignals
+	exists.
+
+2016-04-26  Bernhard Heckel  <bernhard.heckel@intel.com>
+
+	* vla-type.exp: Print structure from toplevel.
+
+2016-04-26  Bernhard Heckel  <bernhard.heckel@intel.com>
+
+	* gdb.fortran/vla-type.f90: Add test for static and dynamic arrays
+	of dynamic types.
+	* gdb.fortran/vla-type.exp: Add test for static and dynamic arrays
+	of dynamic types.
+
+2016-04-26  Bernhard Heckel  <bernhard.heckel@intel.com>
+
+	* gdb.fortran/vla-type.f90: New file.
+	* gdb.fortran/vla-type.exp: New file.
+
+2016-04-25  Yao Qi  <yao.qi@linaro.org>
+
+	* gdb.base/branch-to-self.c: New file.
+	* gdb.base/branch-to-self.exp: New file.
+
+2016-04-22  Yao Qi  <yao.qi@linaro.org>
+
+	* gdb.trace/unavailable.exp (gdb_collect_globals_test_1): Match
+	more after $hex.
+
+2016-04-22  Yao Qi  <yao.qi@linaro.org>
+
+	* gdb.base/annota1.exp: Set breakpoint on line $main_line.
+	* gdb.base/annota3.exp: Likewise.
+
+2016-04-22  Yao Qi  <yao.qi@linaro.org>
+
+	* gdb.reverse/step-precsave.exp: Do one step and test program
+	stops in "callee" and do multiple steps until program goes out
+	of "callee".
+	* gdb.reverse/step-reverse.exp: Likewise.
+
+2016-04-22  Yao Qi  <yao.qi@linaro.org>
+
+	* gdb.trace/signal.exp: Also pass if
+	$tracepoint_hits($i) > $iterations.
+
+2016-04-22  Yao Qi  <yao.qi@linaro.org>
+
+	* gdb.trace/signal.c: New file.
+	* gdb.trace/signal.exp: New file.
+
 2016-04-19  Doug Evans  <xdje42@gmail.com>
 
 	* gdb.base/bad-file.exp: New file.

@@ -3267,14 +3267,8 @@ linux_wait_1 (ptid_t ptid,
 
       if (bp_explains_trap)
 	{
-	  /* If we stepped or ran into an internal breakpoint, we've
-	     already handled it.  So next time we resume (from this
-	     PC), we should step over it.  */
 	  if (debug_threads)
 	    debug_printf ("Hit a gdbserver breakpoint.\n");
-
-	  if (breakpoint_here (event_child->stop_pc))
-	    event_child->need_step_over = 1;
 	}
     }
   else
@@ -4119,13 +4113,15 @@ single_step (struct lwp_info* lwp)
 }
 
 /* The signal can be delivered to the inferior if we are not trying to
-   reinsert a breakpoint and not trying to finish a fast tracepoint
-   collect.  */
+   finish a fast tracepoint collect.  Since signal can be delivered in
+   the step-over, the program may go to signal handler and trap again
+   after return from the signal handler.  We can live with the spurious
+   double traps.  */
 
 static int
 lwp_signal_can_be_delivered (struct lwp_info *lwp)
 {
-  return (lwp->bp_reinsert == 0 && !lwp->collecting_fast_tracepoint);
+  return !lwp->collecting_fast_tracepoint;
 }
 
 /* Resume execution of LWP.  If STEP is nonzero, single-step it.  If
@@ -4538,12 +4534,6 @@ need_step_over_p (struct inferior_list_entry *entry, void *dummy)
       return 0;
     }
 
-  if (!lwp->need_step_over)
-    {
-      if (debug_threads)
-	debug_printf ("Need step over [LWP %ld]? No\n", lwpid_of (thread));
-    }
-
   if (lwp->status_pending_p)
     {
       if (debug_threads)
@@ -4569,8 +4559,20 @@ need_step_over_p (struct inferior_list_entry *entry, void *dummy)
 		      "Old stop_pc was 0x%s, PC is now 0x%s\n",
 		      lwpid_of (thread),
 		      paddress (lwp->stop_pc), paddress (pc));
+      return 0;
+    }
 
-      lwp->need_step_over = 0;
+  /* On software single step target, resume the inferior with signal
+     rather than stepping over.  */
+  if (can_software_single_step ()
+      && lwp->pending_signals != NULL
+      && lwp_signal_can_be_delivered (lwp))
+    {
+      if (debug_threads)
+	debug_printf ("Need step over [LWP %ld]? Ignoring, has pending"
+		      " signals.\n",
+		      lwpid_of (thread));
+
       return 0;
     }
 
@@ -4606,8 +4608,6 @@ need_step_over_p (struct inferior_list_entry *entry, void *dummy)
 	     that find_inferior stops looking.  */
 	  current_thread = saved_thread;
 
-	  /* If the step over is cancelled, this is set again.  */
-	  lwp->need_step_over = 0;
 	  return 1;
 	}
     }

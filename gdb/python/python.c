@@ -1706,29 +1706,27 @@ message == an error message without a stack will be printed."),
      /foo/lib/pythonX.Y/...
      This must be done before calling Py_Initialize.  */
   progname = concat (ldirname (python_libdir), SLASH_STRING, "bin",
-		     SLASH_STRING, "python", NULL);
+		     SLASH_STRING, "python", (char *) NULL);
 #ifdef IS_PY3K
-  oldloc = setlocale (LC_ALL, NULL);
+  oldloc = xstrdup (setlocale (LC_ALL, NULL));
   setlocale (LC_ALL, "");
   progsize = strlen (progname);
-  if (progsize == (size_t) -1)
-    {
-      fprintf (stderr, "Could not convert python path to string\n");
-      return;
-    }
   progname_copy = (wchar_t *) PyMem_Malloc ((progsize + 1) * sizeof (wchar_t));
   if (!progname_copy)
     {
+      xfree (oldloc);
       fprintf (stderr, "out of memory\n");
       return;
     }
   count = mbstowcs (progname_copy, progname, progsize + 1);
   if (count == (size_t) -1)
     {
+      xfree (oldloc);
       fprintf (stderr, "Could not convert python path to string\n");
       return;
     }
   setlocale (LC_ALL, oldloc);
+  xfree (oldloc);
 
   /* Note that Py_SetProgramName expects the string it is passed to
      remain alive for the duration of the program's execution, so
@@ -1881,7 +1879,7 @@ gdbpy_finish_initialization (const struct extension_language_defn *extlang)
 
   /* Add the initial data-directory to sys.path.  */
 
-  gdb_pythondir = concat (gdb_datadir, SLASH_STRING, "python", NULL);
+  gdb_pythondir = concat (gdb_datadir, SLASH_STRING, "python", (char *) NULL);
   make_cleanup (xfree, gdb_pythondir);
 
   sys_path = PySys_GetObject ("path");

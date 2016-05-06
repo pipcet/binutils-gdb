@@ -2204,7 +2204,7 @@ init_os (lang_output_section_statement_type *s, flagword flags)
 							 s->name, flags);
   if (s->bfd_section == NULL)
     {
-      einfo (_("%P%F: output format %s cannot represent section called %s\n"),
+      einfo (_("%P%F: output format %s cannot represent section called %s: %E\n"),
 	     link_info.output_bfd->xvec->name, s->name);
     }
   s->bfd_section->output_section = s->bfd_section;
@@ -6778,6 +6778,28 @@ lang_add_gc_name (const char * name)
   link_info.gc_sym_list = sym;
 }
 
+/* Check relocations.  */
+
+static void
+lang_check_relocs (void)
+{
+  if (link_info.check_relocs_after_open_input)
+    {
+      bfd *abfd;
+
+      for (abfd = link_info.input_bfds;
+	   abfd != (bfd *) NULL; abfd = abfd->link.next)
+	if (!bfd_link_check_relocs (abfd, &link_info))
+	  {
+	    /* No object output, fail return.  */
+	    config.make_executable = FALSE;
+	    /* Note: we do not abort the loop, but rather
+	       continue the scan in case there are other
+	       bad relocations to report.  */
+	  }
+    }
+}
+
 void
 lang_process (void)
 {
@@ -6916,6 +6938,9 @@ lang_process (void)
 
   /* Remove unreferenced sections if asked to.  */
   lang_gc_sections ();
+
+  /* Check relocations.  */
+  lang_check_relocs ();
 
   /* Update wild statements.  */
   update_wild_statements (statement_list.head);

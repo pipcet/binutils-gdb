@@ -10482,7 +10482,7 @@ try_open_dwop_file (const char *file_name, int is_dwp, int search_cwd)
     {
       if (*debug_file_directory != '\0')
 	search_path = concat (".", dirname_separator_string,
-			      debug_file_directory, NULL);
+			      debug_file_directory, (char *) NULL);
       else
 	search_path = xstrdup (".");
     }
@@ -10538,7 +10538,8 @@ open_dwo_file (const char *file_name, const char *comp_dir)
 
   if (comp_dir != NULL)
     {
-      char *path_to_try = concat (comp_dir, SLASH_STRING, file_name, NULL);
+      char *path_to_try = concat (comp_dir, SLASH_STRING,
+				  file_name, (char *) NULL);
 
       /* NOTE: If comp_dir is a relative path, this will also try the
 	 search path, which seems useful.  */
@@ -10837,12 +10838,26 @@ open_and_init_dwp_file (void)
   struct dwp_file *dwp_file;
   char *dwp_name;
   bfd *dbfd;
-  struct cleanup *cleanups;
+  struct cleanup *cleanups = make_cleanup (null_cleanup, 0);
 
   /* Try to find first .dwp for the binary file before any symbolic links
      resolving.  */
-  dwp_name = xstrprintf ("%s.dwp", objfile->original_name);
-  cleanups = make_cleanup (xfree, dwp_name);
+
+  /* If the objfile is a debug file, find the name of the real binary
+     file and get the name of dwp file from there.  */
+  if (objfile->separate_debug_objfile_backlink != NULL)
+    {
+      struct objfile *backlink = objfile->separate_debug_objfile_backlink;
+      const char *backlink_basename = lbasename (backlink->original_name);
+      char *debug_dirname = ldirname (objfile->original_name);
+
+      make_cleanup (xfree, debug_dirname);
+      dwp_name = xstrprintf ("%s%s%s.dwp", debug_dirname,
+			     SLASH_STRING, backlink_basename);
+    }
+  else
+    dwp_name = xstrprintf ("%s.dwp", objfile->original_name);
+  make_cleanup (xfree, dwp_name);
 
   dbfd = open_dwp_file (dwp_name);
   if (dbfd == NULL
@@ -20871,7 +20886,7 @@ file_file_name (int file, struct line_header *lh)
 	  || lh->include_dirs == NULL)
         return xstrdup (fe->name);
       return concat (lh->include_dirs[fe->dir_index - 1], SLASH_STRING,
-		     fe->name, NULL);
+		     fe->name, (char *) NULL);
     }
   else
     {
@@ -20906,7 +20921,8 @@ file_full_name (int file, struct line_header *lh, const char *comp_dir)
 
       if (IS_ABSOLUTE_PATH (relative) || comp_dir == NULL)
 	return relative;
-      return reconcat (relative, comp_dir, SLASH_STRING, relative, NULL);
+      return reconcat (relative, comp_dir, SLASH_STRING,
+		       relative, (char *) NULL);
     }
   else
     return file_file_name (file, lh);

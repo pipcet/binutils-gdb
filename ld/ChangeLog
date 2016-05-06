@@ -1,3 +1,122 @@
+2016-05-05  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* emulparams/elf_iamcu.sh (CHECK_RELOCS_AFTER_OPEN_INPUT): New.
+	* emulparams/elf_k1om.sh (CHECK_RELOCS_AFTER_OPEN_INPUT):
+	Likewise.
+	* emulparams/elf_l1om.sh (CHECK_RELOCS_AFTER_OPEN_INPUT):
+	Likewise.
+
+2016-05-05  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* testsuite/ld-x86-64/pr18591.d: Pass --no-relax to ld.
+
+2016-05-04  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* ldlang.c (init_os): Pass %E to einfo when bfd_section == NULL.
+
+2016-05-04  Maciej W. Rozycki  <macro@imgtec.com>
+
+	* testsuite/ld-unique/unique.d: New test.
+	* testsuite/ld-unique/unique.exp: Run the new test.  Adjust
+	messages for compiled tests.
+
+2016-05-04  Senthil Kumar Selvaraj  <senthil_kumar.selvaraj@atmel.com>
+
+	* testsuite/ld-elf/pr18735.d: Allow other symbols.
+	* testsuite/ld-elf/sec64k.exp: Skip 64ksec for avr.
+	* testsuite/ld-gc/pr14265.d: Allow other symbols.
+	* testsuite/ld-plugin/plugin.exp: Add PR ld/17973 to
+	plugin_tests only if check_shared_lib_support is true.
+	* testsuite/ld-selective/selective.exp: Add --section-start
+	flag for avr.
+
+2016-05-03  Maciej W. Rozycki  <macro@imgtec.com>
+
+	PR 10549
+	* testsuite/ld-unique/unique.exp: Also run for `mips*-*-*'.
+
+2016-05-03  Jiong Wang  <jiong.wang@arm.com>
+
+	* emultempl/aarch64elf.em (--no-apply-dynamic-relocs): New option.
+	* NEWS: Mention --no-apply-dynamic-relocs.
+	* ld.texinfo (ld and the ARM family): Document
+	--no-apply-dynamic-relocs.
+	* testsuite/ld-aarch64/rela-abs-relative.s: New test source.
+	* testsuite/ld-aarch64/rela-abs-relative.d: New expected result.
+	* testsuite/ld-aarch64/rela-abs-relative-be.d: Likewise for big-endian.
+	* estsuite/ld-aarch64/rela-abs-relative-opt.d: Likewise, but enable new
+	option.
+
+2016-05-03  Senthil Kumar Selvaraj  <senthil_kumar.selvaraj@atmel.com>
+
+	* testsuite/ld-elfcomm/elfcomm.exp: Check for shared lib support
+	before running STT_COMMON tests.
+
+2016-04-29  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/default.exp (NOPIE_CFLAGS): Download source only on
+	remote host.
+	(NOPIE_LDFLAGS): Likewise.
+	* testsuite/lib/ld-lib.exp (check_lto_available): Likewise.
+	(check_lto_fat_available): Likewise.
+	(check_lto_shared_available): Likewise.
+	(check_ifunc_available): Likewise.
+	(check_ifunc_attribute_available): Likewise.
+
+2016-04-27  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* testsuite/ld-elf/compressed1b.d: Only run for Linux/GNU targets.
+
+2016-04-27  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR ld/20006
+	* testsuite/ld-elfvsb/elfvsb.exp (COMPRESS_LDFLAG): New.
+	(visibility_run): Pass COMPRESS_LDFLAG to visibility_test on
+	ELF targets.
+
+2016-04-27  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* testsuite/ld-elf/compressed1b.d: Pass
+	--compress-debug-sections=none to ld.
+	* testsuite/ld-elf/compressed1c.d: Likewise.
+
+2016-04-27  Alan Modra  <amodra@gmail.com>
+
+	PR target/19985
+	* configure.tgt: Don't use var+=.
+
+2016-04-25  Nick Clifton  <nickc@redhat.com>
+
+	PR target/19985
+	* configure.tgt: Include big endian PPC64 emulations with little
+	endian PPC64 targets.
+
+2016-04-25  Senthil Kumar Selvaraj  <senthil_kumar.selvaraj@atmel.com>
+
+	* scripttempl/avrtiny.sc (.text): Do not set LMA to zero.
+
+2016-04-21  Nick Clifton  <nickc@redhat.com>
+
+	* ldlang.c (lang_check_relocs): Use bfd_link_check_relocs in
+	prefernce to _bfd_elf_link_check_relocs.  Drop test for ELF
+	targets.  Do not stop the checks when problems are encountered.
+
+2016-04-21  Alan Modra  <amodra@gmail.com>
+
+	* testsuite/ld-scripts/cross3.t: Add commonly used data
+	and text section names to output section statements.
+	* testsuite/ld-scripts/cross4.t: Likewise.
+	* testsuite/ld-scripts/cross5.t: Likewise.
+	* testsuite/ld-scripts/cross6.t: Likewise.
+	* testsuite/ld-scripts/cross7.t: Likewise.
+
+2016-04-20  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* ldlang.c (lang_check_relocs): New function.
+	(lang_process): Call lang_check_relocs after lang_gc_sections.
+	* emultempl/elf32.em (gld${EMULATION_NAME}_before_parse): Don't
+	call _bfd_elf_link_check_relocs here.
+
 2016-04-20  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR ld/19972

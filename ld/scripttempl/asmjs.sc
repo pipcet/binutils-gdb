@@ -2,7 +2,7 @@ cat <<EOF
 ENTRY(_start)
 SECTIONS
 {
-  . = 5402624;
+  . = 16384;
   .data :
   {
      . = ALIGN(., 16);

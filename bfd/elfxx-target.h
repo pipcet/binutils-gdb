@@ -256,6 +256,10 @@
 #ifndef bfd_elfNN_bfd_final_link
 #define bfd_elfNN_bfd_final_link	bfd_elf_final_link
 #endif
+#ifndef bfd_elfNN_bfd_copy_link_hash_symbol_type
+#define bfd_elfNN_bfd_copy_link_hash_symbol_type \
+  _bfd_elf_copy_link_hash_symbol_type
+#endif
 #else /* ! defined (elf_backend_relocate_section) */
 /* If no backend relocate_section routine, use the generic linker.
    Note - this will prevent the port from being able to use some of
@@ -272,16 +276,16 @@
 #ifndef bfd_elfNN_bfd_final_link
 #define bfd_elfNN_bfd_final_link	_bfd_generic_final_link
 #endif
+#ifndef bfd_elfNN_bfd_copy_link_hash_symbol_type
+#define bfd_elfNN_bfd_copy_link_hash_symbol_type \
+  _bfd_generic_copy_link_hash_symbol_type
+#endif
 #endif /* ! defined (elf_backend_relocate_section) */
 
 #ifndef bfd_elfNN_bfd_link_just_syms
 #define bfd_elfNN_bfd_link_just_syms	_bfd_elf_link_just_syms
 #endif
 
-#ifndef bfd_elfNN_bfd_copy_link_hash_symbol_type
-#define bfd_elfNN_bfd_copy_link_hash_symbol_type \
-  _bfd_elf_copy_link_hash_symbol_type
-#endif
 
 #ifndef bfd_elfNN_bfd_link_split_section
 #define bfd_elfNN_bfd_link_split_section _bfd_generic_link_split_section

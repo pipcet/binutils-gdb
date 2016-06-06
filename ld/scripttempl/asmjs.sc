@@ -3,6 +3,13 @@ ENTRY(_start)
 SECTIONS
 {
   . = 16384;
+  .predata :
+  {
+     LONG(0);
+     LONG(0);
+     LONG(0);
+     LONG(0);
+  }
   .data :
   {
      . = ALIGN(., 16);

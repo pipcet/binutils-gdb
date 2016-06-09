@@ -1,3 +1,82 @@
+2016-06-02  Nick Clifton  <nickc@redhat.com>
+
+	PR 20089
+	* objcopy.c (group_signature): Fail if the input symbol table has
+	not been loaded, or if the sh_info field of the group header is 0.
+
+	* dwarf.c (display_debug_frames): Do not display any
+	interpretation if the block consists solely of DW__CFA_NOPs.
+
+2016-05-31  Alan Modra  <amodra@gmail.com>
+
+	* objcopy.c: Formatting, whitespace throughout.
+	(copy_main): Init newsym->othersym.
+	(parse_symflags): Make len a size_t.  Adjust uses.
+
+2016-05-25  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR binutils/14625
+	* NEWS: Mention --enable-64-bit-archive.
+
+2016-05-18  Nick Clifton  <nickc@redhat.com>
+
+	PR 20096
+	* objcopy.c (copy_relocations_in_section): Also check for the
+	symbol pointed to by sym_ptr_ptr being NULL.
+
+2016-05-18  Maciej W. Rozycki  <macro@imgtec.com>
+
+	* testsuite/binutils-all/mips/mixed-mips16-micromips.d: New test.
+	* testsuite/binutils-all/mips/mixed-mips16-micromips.s: New test
+	source.
+	* testsuite/binutils-all/mips/mips.exp: Run the new test.
+
+2016-05-18  Nick Clifton  <nickc@redhat.com>
+
+	* po/sv.po: Updated Swedish translation.
+
+2016-05-18  Maciej W. Rozycki  <macro@imgtec.com>
+
+	* readelf.c (dynamic_section_mips_val) <DT_MIPS_RLD_VERSION>
+	<DT_MIPS_LOCAL_GOTNO, DT_MIPS_CONFLICTNO, DT_MIPS_LIBLISTNO>
+	<DT_MIPS_SYMTABNO, DT_MIPS_UNREFEXTNO, DT_MIPS_HIPAGENO>
+	<DT_MIPS_DELTA_CLASS_NO, DT_MIPS_DELTA_INSTANCE_NO>
+	<DT_MIPS_DELTA_RELOC_NO, DT_MIPS_DELTA_SYM_NO>
+	<DT_MIPS_DELTA_CLASSSYM_NO, DT_MIPS_COMPACT_SIZE>: Use the
+	`d_val' rather than `d_ptr' member of the dynamic entry.
+
+2016-05-17  Maciej W. Rozycki  <macro@imgtec.com>
+
+	* testsuite/lib/binutils-common.exp (supports_gnu_unique): New
+	procedure.
+	* testsuite/binutils-all/objcopy.exp: Use `supports_gnu_unique'
+	with the `strip-10' test.
+
+2016-05-16  Maciej W. Rozycki  <macro@imgtec.com>
+
+	* testsuite/binutils-all/objcopy.exp: Don't skip the `strip-10'
+	test for the V850.
+
+2016-05-11  Andrew Bennett  <andrew.bennett@imgtec.com>
+
+	* readelf.c (print_mips_ases): Add DSPR3.
+
+2016-05-10  Thomas Preud'homme  <thomas.preudhomme@arm.com>
+
+	* readelf.c (display_arm_attribute): Add output for Tag_DSP_extension.
+	(arm_attr_public_tags): Define DSP_extension attribute.
+
+2016-05-10  Andrew Burgess  <andrew.burgess@embecosm.com>
+
+	* doc/binutils.texi (nm): Update description of --size-sort.
+
+2016-05-09  Nick Clifton  <nickc@redhat.com>
+
+	PR binutils/20063
+	* readelf.c (get_32bit_section_headers): Warn if an out of range
+	sh_link or sh_info field is encountered.
+	(get_64bit_section_headers): Likewise.
+
 2016-05-04  Senthil Kumar Selvaraj  <senthil_kumar.selvaraj@atmel.com>
 
 	* testsuite/lib/binutils-common.exp (is_elf_format): Add avr-*-*.

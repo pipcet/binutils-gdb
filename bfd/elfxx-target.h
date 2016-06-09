@@ -250,6 +250,10 @@
 #ifndef bfd_elfNN_bfd_link_hash_table_create
 #define bfd_elfNN_bfd_link_hash_table_create _bfd_elf_link_hash_table_create
 #endif
+#ifndef bfd_elfNN_bfd_copy_link_hash_symbol_type
+#define bfd_elfNN_bfd_copy_link_hash_symbol_type \
+  _bfd_elf_copy_link_hash_symbol_type
+#endif
 #ifndef bfd_elfNN_bfd_link_add_symbols
 #define bfd_elfNN_bfd_link_add_symbols	bfd_elf_link_add_symbols
 #endif
@@ -269,6 +273,10 @@
 #ifndef bfd_elfNN_bfd_link_hash_table_create
 #define bfd_elfNN_bfd_link_hash_table_create \
   _bfd_generic_link_hash_table_create
+#endif
+#ifndef bfd_elfNN_bfd_copy_link_hash_symbol_type
+#define bfd_elfNN_bfd_copy_link_hash_symbol_type \
+  _bfd_generic_copy_link_hash_symbol_type
 #endif
 #ifndef bfd_elfNN_bfd_link_add_symbols
 #define bfd_elfNN_bfd_link_add_symbols	_bfd_generic_link_add_symbols
@@ -927,6 +935,8 @@ const bfd_target TARGET_BIG_SYM =
   BFD_JUMP_TABLE_CORE (bfd_elfNN),
 #ifdef bfd_elfNN_archive_functions
   BFD_JUMP_TABLE_ARCHIVE (bfd_elfNN_archive),
+#elif defined USE_64_BIT_ARCHIVE
+  BFD_JUMP_TABLE_ARCHIVE (_bfd_archive_64_bit),
 #else
   BFD_JUMP_TABLE_ARCHIVE (_bfd_archive_coff),
 #endif
@@ -1026,6 +1036,8 @@ const bfd_target TARGET_LITTLE_SYM =
   BFD_JUMP_TABLE_CORE (bfd_elfNN),
 #ifdef bfd_elfNN_archive_functions
   BFD_JUMP_TABLE_ARCHIVE (bfd_elfNN_archive),
+#elif defined USE_64_BIT_ARCHIVE
+  BFD_JUMP_TABLE_ARCHIVE (_bfd_archive_64_bit),
 #else
   BFD_JUMP_TABLE_ARCHIVE (_bfd_archive_coff),
 #endif

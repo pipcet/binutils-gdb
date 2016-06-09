@@ -674,7 +674,24 @@ get_symbols (const void *handle, int nsyms, struct ld_plugin_symbol *syms,
 					     syms[n].name, FALSE, FALSE, TRUE);
       if (!blhe)
 	{
-	  res = LDPR_UNKNOWN;
+	  /* The plugin is called to claim symbols in an archive element
+	     from plugin_object_p.  But those symbols aren't needed to
+	     create output.  They are defined and referenced only within
+	     IR.  */
+	  switch (syms[n].def)
+	    {
+	    default:
+	      abort ();
+	    case LDPK_UNDEF:
+	    case LDPK_WEAKUNDEF:
+	      res = LDPR_UNDEF;
+	      break;
+	    case LDPK_DEF:
+	    case LDPK_WEAKDEF:
+	    case LDPK_COMMON:
+	      res = LDPR_PREVAILING_DEF_IRONLY;
+	      break;
+	    }
 	  goto report_symbol;
 	}
 
@@ -1016,8 +1033,6 @@ plugin_call_claim_file (const struct ld_plugin_input_file *file, int *claimed)
 {
   plugin_t *curplug = plugins_list;
   *claimed = FALSE;
-  if (no_more_claiming)
-    return 0;
   while (curplug && !*claimed)
     {
       if (curplug->claim_file_handler)

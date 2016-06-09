@@ -528,8 +528,8 @@ tc_gen_reloc (asection *section ATTRIBUTE_UNUSED, fixS * fixP)
 	   && (S_GET_SEGMENT (fixP->fx_subsy) == absolute_section)))
      return NULL;
 
-  reloc = xmalloc (sizeof (arelent));
-  reloc->sym_ptr_ptr  = xmalloc (sizeof (asymbol *));
+  reloc = XNEW (arelent);
+  reloc->sym_ptr_ptr  = XNEW (asymbol *);
   *reloc->sym_ptr_ptr = symbol_get_bfdsym (fixP->fx_addsy);
   reloc->address = fixP->fx_frag->fr_address + fixP->fx_where;
   reloc->addend = fixP->fx_offset;
@@ -1993,7 +1993,7 @@ static op_err
 check_range (long *num, int bits, int unsigned flags, int update)
 {
   long min, max;
-  int retval = OP_LEGAL;
+  op_err retval = OP_LEGAL;
   long value = *num;
 
   if (bits == 0 && value > 0) return OP_OUT_OF_RANGE;

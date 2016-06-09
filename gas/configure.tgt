@@ -132,10 +132,11 @@ case ${generic_target} in
   alpha-*-openbsd*)			fmt=elf em=obsd ;;
 
   arc-*-elf*)				fmt=elf ;;
-  arc*-*-linux-uclibc*)			fmt=elf bfd_gas=yes ;;
+  arc*-*-linux*)			fmt=elf bfd_gas=yes ;;
 
   arm-*-aout)				fmt=aout ;;
   arm-*-coff)				fmt=coff ;;
+  arm-*-phoenix*)			fmt=elf ;;
   arm-*-rtems*)				fmt=elf ;;
   arm-*-elf)				fmt=elf ;;
   arm-*-eabi*)				fmt=elf em=armeabi ;;

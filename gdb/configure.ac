@@ -535,7 +535,8 @@ AC_SEARCH_LIBS(socketpair, socket)
 AM_ZLIB
 
 # On FreeBSD we may need libutil for kinfo_getvmmap (used by fbsd-nat.c).
-AC_SEARCH_LIBS(kinfo_getvmmap, util,
+# On GNU/kFreeBSD systems, FreeBSD libutil is renamed to libutil-freebsd.
+AC_SEARCH_LIBS(kinfo_getvmmap, util util-freebsd,
   [AC_DEFINE(HAVE_KINFO_GETVMMAP, 1,
             [Define to 1 if your system has the kinfo_getvmmap function. ])])
 
@@ -2347,6 +2348,11 @@ dnl  Detect the character set used by this host.
 dnl  At the moment, we just assume it's UTF-8.
 AC_DEFINE(GDB_DEFAULT_HOST_CHARSET, "UTF-8",
           [Define to be a string naming the default host character set.])
+
+if $development; then
+  AC_DEFINE(GDB_SELF_TEST, 1,
+            [Define if self-testing features should be enabled])
+fi
 
 GDB_AC_TRANSFORM([gdb], [GDB_TRANSFORM_NAME])
 GDB_AC_TRANSFORM([gcore], [GCORE_TRANSFORM_NAME])

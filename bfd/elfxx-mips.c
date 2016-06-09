@@ -2216,6 +2216,15 @@ jal_reloc_p (int r_type)
 }
 
 static inline bfd_boolean
+b_reloc_p (int r_type)
+{
+  return (r_type == R_MIPS_PC26_S2
+	  || r_type == R_MIPS_PC21_S2
+	  || r_type == R_MIPS_PC16
+	  || r_type == R_MIPS_GNU_REL16_S2);
+}
+
+static inline bfd_boolean
 aligned_pcrel_reloc_p (int r_type)
 {
   return (r_type == R_MIPS_PC18_S3
@@ -5247,6 +5256,9 @@ mips_elf_calculate_relocation (bfd *abfd, bfd *input_bfd,
   /* TRUE if the symbol referred to by this relocation is a local
      symbol.  */
   bfd_boolean local_p, was_local_p;
+  /* TRUE if the symbol referred to by this relocation is a section
+     symbol.  */
+  bfd_boolean section_p = FALSE;
   /* TRUE if the symbol referred to by this relocation is "_gp_disp".  */
   bfd_boolean gp_disp_p = FALSE;
   /* TRUE if the symbol referred to by this relocation is
@@ -5302,12 +5314,12 @@ mips_elf_calculate_relocation (bfd *abfd, bfd *input_bfd,
       sym = local_syms + r_symndx;
       sec = local_sections[r_symndx];
 
+      section_p = ELF_ST_TYPE (sym->st_info) == STT_SECTION;
+
       symbol = sec->output_section->vma + sec->output_offset;
-      if (ELF_ST_TYPE (sym->st_info) != STT_SECTION
-	  || (sec->flags & SEC_MERGE))
+      if (!section_p || (sec->flags & SEC_MERGE))
 	symbol += sym->st_value;
-      if ((sec->flags & SEC_MERGE)
-	  && ELF_ST_TYPE (sym->st_info) == STT_SECTION)
+      if ((sec->flags & SEC_MERGE) && section_p)
 	{
 	  addend = _bfd_elf_rel_local_sym (abfd, sym, &sec, addend);
 	  addend -= symbol;
@@ -5322,7 +5334,7 @@ mips_elf_calculate_relocation (bfd *abfd, bfd *input_bfd,
       *namep = bfd_elf_string_from_elf_section (input_bfd,
 						symtab_hdr->sh_link,
 						sym->st_name);
-      if (*namep == '\0')
+      if (*namep == NULL || **namep == '\0')
 	*namep = bfd_section_name (input_bfd, sec);
 
       target_is_16_bit_code_p = ELF_ST_IS_MIPS16 (sym->st_other);
@@ -5410,17 +5422,14 @@ mips_elf_calculate_relocation (bfd *abfd, bfd *input_bfd,
 	     http://techpubs.sgi.com/library/manuals/4000/007-4658-001/pdf/007-4658-001.pdf  */
 	  symbol = 0;
 	}
-      else if ((*info->callbacks->undefined_symbol)
-	       (info, h->root.root.root.string, input_bfd,
-		input_section, relocation->r_offset,
-		(info->unresolved_syms_in_objects == RM_GENERATE_ERROR)
-		 || ELF_ST_VISIBILITY (h->root.other)))
-	{
-	  return bfd_reloc_undefined;
-	}
       else
 	{
-	  return bfd_reloc_notsupported;
+	  (*info->callbacks->undefined_symbol)
+	    (info, h->root.root.root.string, input_bfd,
+	     input_section, relocation->r_offset,
+	     (info->unresolved_syms_in_objects == RM_GENERATE_ERROR)
+	     || ELF_ST_VISIBILITY (h->root.other));
+	  return bfd_reloc_undefined;
 	}
 
       target_is_16_bit_code_p = ELF_ST_IS_MIPS16 (h->root.other);
@@ -5773,22 +5782,22 @@ mips_elf_calculate_relocation (bfd *abfd, bfd *input_bfd,
       {
 	unsigned int shift;
 
-	/* Make sure the target of JALX is word-aligned.  Bit 0 must be
-	   the correct ISA mode selector and bit 1 must be 0.  */
-	if (*cross_mode_jump_p && (symbol & 3) != (r_type == R_MIPS_26))
-	  return bfd_reloc_outofrange;
-
 	/* Shift is 2, unusually, for microMIPS JALX.  */
 	shift = (!*cross_mode_jump_p && r_type == R_MICROMIPS_26_S1) ? 1 : 2;
 
-	if (was_local_p)
-	  value = addend | ((p + 4) & (0xfc000000 << shift));
-	else if (howto->partial_inplace)
+	if (howto->partial_inplace && !section_p)
 	  value = _bfd_mips_elf_sign_extend (addend, 26 + shift);
 	else
 	  value = addend;
-	value = (value + symbol) >> shift;
-	if (!was_local_p && h->root.root.type != bfd_link_hash_undefweak)
+	value += symbol;
+
+	/* Make sure the target of JALX is word-aligned.  Bit 0 must be
+	   the correct ISA mode selector and bit 1 must be 0.  */
+	if (*cross_mode_jump_p && (value & 3) != (r_type == R_MIPS_26))
+	  return bfd_reloc_outofrange;
+
+	value >>= shift;
+	if (was_local_p || h->root.root.type != bfd_link_hash_undefweak)
 	  overflowed_p = (value >> 26) != ((p + 4) >> (26 + shift));
 	value &= howto->dst_mask;
       }
@@ -7526,11 +7535,6 @@ _bfd_mips_elf_add_symbol_hook (bfd *abfd, struct bfd_link_info *info,
       mips_elf_hash_table (info)->rld_symbol = h;
     }
 
-  if (ELF_ST_BIND (sym->st_info) == STB_GNU_UNIQUE
-      && (abfd->flags & DYNAMIC) == 0
-      && bfd_get_flavour (info->output_bfd) == bfd_target_elf_flavour)
-    elf_tdata (info->output_bfd)->has_gnu_symbols |= elf_gnu_symbol_unique;
-
   /* If this is a mips16 text symbol, add 1 to the value to make it
      odd.  This will cause something like .word SYM to come up with
      the right value when it is loaded into the PC.  */
@@ -7785,16 +7789,24 @@ mips_elf_read_rel_addend (bfd *abfd, const Elf_Internal_Rela *rel,
   bfd_byte *location;
   unsigned int r_type;
   bfd_vma addend;
+  bfd_vma bytes;
 
   r_type = ELF_R_TYPE (abfd, rel->r_info);
   location = contents + rel->r_offset;
 
   /* Get the addend, which is stored in the input file.  */
   _bfd_mips_elf_reloc_unshuffle (abfd, r_type, FALSE, location);
-  addend = mips_elf_obtain_contents (howto, rel, abfd, contents);
+  bytes = mips_elf_obtain_contents (howto, rel, abfd, contents);
   _bfd_mips_elf_reloc_shuffle (abfd, r_type, FALSE, location);
 
-  return addend & howto->src_mask;
+  addend = bytes & howto->src_mask;
+
+  /* Shift is 2, unusually, for microMIPS JALX.  Adjust the addend
+     accordingly.  */
+  if (r_type == R_MICROMIPS_26_S1 && (bytes >> 26) == 0x3c)
+    addend <<= 1;
+
+  return addend;
 }
 
 /* REL is a relocation in ABFD that needs a partnering LO16 relocation
@@ -10245,10 +10257,9 @@ _bfd_mips_elf_relocate_section (bfd *output_bfd, struct bfd_link_info *info,
 		  htab->small_data_overflow_reported = TRUE;
 		  (*info->callbacks->einfo) ("%P: %s\n", msg);
 		}
-	      if (! ((*info->callbacks->reloc_overflow)
-		     (info, NULL, name, howto->name, (bfd_vma) 0,
-		      input_bfd, input_section, rel->r_offset)))
-		return FALSE;
+	      (*info->callbacks->reloc_overflow)
+		(info, NULL, name, howto->name, (bfd_vma) 0,
+		 input_bfd, input_section, rel->r_offset);
 	    }
 	  break;
 
@@ -10256,19 +10267,18 @@ _bfd_mips_elf_relocate_section (bfd *output_bfd, struct bfd_link_info *info,
 	  break;
 
 	case bfd_reloc_outofrange:
+	  msg = NULL;
 	  if (jal_reloc_p (howto->type))
+	    msg = _("JALX to a non-word-aligned address");
+	  else if (b_reloc_p (howto->type))
+	    msg = _("Branch to a non-instruction-aligned address");
+	  else if (aligned_pcrel_reloc_p (howto->type))
+	    msg = _("PC-relative load from unaligned address");
+	  if (msg)
 	    {
-	      msg = _("JALX to a non-word-aligned address");
-	      info->callbacks->warning
-		(info, msg, name, input_bfd, input_section, rel->r_offset);
-	      return FALSE;
-	    }
-	  if (aligned_pcrel_reloc_p (howto->type))
-	    {
-	      msg = _("PC-relative load from unaligned address");
-	      info->callbacks->warning
-		(info, msg, name, input_bfd, input_section, rel->r_offset);
-	      return FALSE;
+	      info->callbacks->einfo
+		("%X%H: %s\n", input_bfd, input_section, rel->r_offset, msg);
+	      break;
 	    }
 	  /* Fall through.  */
 
@@ -11466,7 +11476,7 @@ _bfd_mips_elf_finish_dynamic_sections (bfd *output_bfd,
 	    case DT_MIPS_SYMTABNO:
 	      name = ".dynsym";
 	      elemsize = MIPS_ELF_SYM_SIZE (output_bfd);
-	      s = bfd_get_section_by_name (output_bfd, name);
+	      s = bfd_get_linker_section (dynobj, name);
 
 	      if (s != NULL)
 		dyn.d_un.d_val = s->size / elemsize;
@@ -12927,25 +12937,22 @@ _bfd_elf_mips_get_relocated_section_contents
 	      switch (r)
 		{
 		case bfd_reloc_undefined:
-		  if (!((*link_info->callbacks->undefined_symbol)
-			(link_info, bfd_asymbol_name (*(*parent)->sym_ptr_ptr),
-			 input_bfd, input_section, (*parent)->address, TRUE)))
-		    goto error_return;
+		  (*link_info->callbacks->undefined_symbol)
+		    (link_info, bfd_asymbol_name (*(*parent)->sym_ptr_ptr),
+		     input_bfd, input_section, (*parent)->address, TRUE);
 		  break;
 		case bfd_reloc_dangerous:
 		  BFD_ASSERT (error_message != NULL);
-		  if (!((*link_info->callbacks->reloc_dangerous)
-			(link_info, error_message, input_bfd, input_section,
-			 (*parent)->address)))
-		    goto error_return;
+		  (*link_info->callbacks->reloc_dangerous)
+		    (link_info, error_message,
+		     input_bfd, input_section, (*parent)->address);
 		  break;
 		case bfd_reloc_overflow:
-		  if (!((*link_info->callbacks->reloc_overflow)
-			(link_info, NULL,
-			 bfd_asymbol_name (*(*parent)->sym_ptr_ptr),
-			 (*parent)->howto->name, (*parent)->addend,
-			 input_bfd, input_section, (*parent)->address)))
-		    goto error_return;
+		  (*link_info->callbacks->reloc_overflow)
+		    (link_info, NULL,
+		     bfd_asymbol_name (*(*parent)->sym_ptr_ptr),
+		     (*parent)->howto->name, (*parent)->addend,
+		     input_bfd, input_section, (*parent)->address);
 		  break;
 		case bfd_reloc_outofrange:
 		default:
@@ -15565,6 +15572,8 @@ print_mips_ases (FILE *file, unsigned int mask)
     fputs ("\n\tDSP ASE", file);
   if (mask & AFL_ASE_DSPR2)
     fputs ("\n\tDSP R2 ASE", file);
+  if (mask & AFL_ASE_DSPR3)
+    fputs ("\n\tDSP R3 ASE", file);
   if (mask & AFL_ASE_EVA)
     fputs ("\n\tEnhanced VA Scheme", file);
   if (mask & AFL_ASE_MCU)

@@ -339,8 +339,8 @@ static reloc_howto_type elfNN_aarch64_howto_table[] =
 
   /* Basic data relocations.  */
 
-#if ARCH_SIZE == 64
-  HOWTO (R_AARCH64_NULL,	/* type */
+  /* Deprecated, but retained for backwards compatibility.  */
+  HOWTO64 (R_AARCH64_NULL,	/* type */
 	 0,			/* rightshift */
 	 3,			/* size (0 = byte, 1 = short, 2 = long) */
 	 0,			/* bitsize */
@@ -353,7 +353,6 @@ static reloc_howto_type elfNN_aarch64_howto_table[] =
 	 0,			/* src_mask */
 	 0,			/* dst_mask */
 	 FALSE),		/* pcrel_offset */
-#else
   HOWTO (R_AARCH64_NONE,	/* type */
 	 0,			/* rightshift */
 	 3,			/* size (0 = byte, 1 = short, 2 = long) */
@@ -367,7 +366,6 @@ static reloc_howto_type elfNN_aarch64_howto_table[] =
 	 0,			/* src_mask */
 	 0,			/* dst_mask */
 	 FALSE),		/* pcrel_offset */
-#endif
 
   /* .xword: (S+A) */
   HOWTO64 (AARCH64_R (ABS64),	/* type */
@@ -4895,7 +4893,9 @@ elfNN_aarch64_write_section (bfd *output_bfd  ATTRIBUTE_UNUSED,
   return FALSE;
 }
 
-/* Perform a relocation as part of a final link.  */
+/* Perform a relocation as part of a final link.  The input relocation type
+   should be TLS relaxed.  */
+
 static bfd_reloc_status_type
 elfNN_aarch64_final_link_relocate (reloc_howto_type *howto,
 				   bfd *input_bfd,
@@ -4916,7 +4916,6 @@ elfNN_aarch64_final_link_relocate (reloc_howto_type *howto,
   unsigned int r_type = howto->type;
   bfd_reloc_code_real_type bfd_r_type
     = elfNN_aarch64_bfd_reloc_from_howto (howto);
-  bfd_reloc_code_real_type new_bfd_r_type;
   unsigned long r_symndx;
   bfd_byte *hit_data = contents + rel->r_offset;
   bfd_vma place, off;
@@ -4932,17 +4931,6 @@ elfNN_aarch64_final_link_relocate (reloc_howto_type *howto,
   BFD_ASSERT (is_aarch64_elf (input_bfd));
 
   r_symndx = ELFNN_R_SYM (rel->r_info);
-
-  /* It is possible to have linker relaxations on some TLS access
-     models.  Update our information here.  */
-  new_bfd_r_type = aarch64_tls_transition (input_bfd, info, r_type, h, r_symndx);
-  if (new_bfd_r_type != bfd_r_type)
-    {
-      bfd_r_type = new_bfd_r_type;
-      howto = elfNN_aarch64_howto_from_bfd_reloc (bfd_r_type);
-      BFD_ASSERT (howto != NULL);
-      r_type = howto->type;
-    }
 
   place = input_section->output_section->vma
     + input_section->output_offset + rel->r_offset;
@@ -6075,13 +6063,10 @@ elfNN_aarch64_relocate_section (bfd *output_bfd,
 	  if (r_type != R_AARCH64_NONE && r_type != R_AARCH64_NULL
 	      && bfd_is_und_section (sec)
 	      && ELF_ST_BIND (sym->st_info) != STB_WEAK)
-	    {
-	      if (!info->callbacks->undefined_symbol
-		  (info, bfd_elf_string_from_elf_section
-		   (input_bfd, symtab_hdr->sh_link, sym->st_name),
-		   input_bfd, input_section, rel->r_offset, TRUE))
-		return FALSE;
-	    }
+	    (*info->callbacks->undefined_symbol)
+	      (info, bfd_elf_string_from_elf_section
+	       (input_bfd, symtab_hdr->sh_link, sym->st_name),
+	       input_bfd, input_section, rel->r_offset, TRUE);
 
 	  relocation = _bfd_elf_rela_local_sym (output_bfd, sym, &sec, rel);
 
@@ -6423,10 +6408,9 @@ elfNN_aarch64_relocate_section (bfd *output_bfd,
 	  switch (r)
 	    {
 	    case bfd_reloc_overflow:
-	      if (!(*info->callbacks->reloc_overflow)
-		  (info, (h ? &h->root : NULL), name, howto->name, (bfd_vma) 0,
-		   input_bfd, input_section, rel->r_offset))
-		return FALSE;
+	      (*info->callbacks->reloc_overflow)
+		(info, (h ? &h->root : NULL), name, howto->name, (bfd_vma) 0,
+		 input_bfd, input_section, rel->r_offset);
 	      if (real_r_type == BFD_RELOC_AARCH64_LD64_GOTPAGE_LO15
 		  || real_r_type == BFD_RELOC_AARCH64_LD32_GOTPAGE_LO14)
 		{
@@ -6468,10 +6452,8 @@ alignment than was declared where it was defined."),
 	      break;
 
 	    case bfd_reloc_undefined:
-	      if (!((*info->callbacks->undefined_symbol)
-		    (info, name, input_bfd, input_section,
-		     rel->r_offset, TRUE)))
-		return FALSE;
+	      (*info->callbacks->undefined_symbol)
+		(info, name, input_bfd, input_section, rel->r_offset, TRUE);
 	      break;
 
 	    case bfd_reloc_outofrange:
@@ -6492,10 +6474,8 @@ alignment than was declared where it was defined."),
 
 	    common_error:
 	      BFD_ASSERT (error_message != NULL);
-	      if (!((*info->callbacks->reloc_dangerous)
-		    (info, error_message, input_bfd, input_section,
-		     rel->r_offset)))
-		return FALSE;
+	      (*info->callbacks->reloc_dangerous)
+		(info, error_message, input_bfd, input_section, rel->r_offset);
 	      break;
 	    }
 	}
@@ -9063,7 +9043,8 @@ elfNN_aarch64_finish_dynamic_sections (bfd *output_bfd,
 	      break;
 
 	    case DT_JMPREL:
-	      dyn.d_un.d_ptr = htab->root.srelplt->output_section->vma;
+	      s = htab->root.srelplt;
+	      dyn.d_un.d_ptr = s->output_section->vma + s->output_offset;
 	      break;
 
 	    case DT_PLTRELSZ:

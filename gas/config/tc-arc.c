@@ -98,8 +98,8 @@ enum arc_rlx_types
 #define is_spfp_p(op)           (((sc) == SPX))
 #define is_dpfp_p(op)           (((sc) == DPX))
 #define is_fpuda_p(op)          (((sc) == DPA))
-#define is_br_jmp_insn_p(op)    (((op)->class == BRANCH || (op)->class == JUMP))
-#define is_kernel_insn_p(op)    (((op)->class == KERNEL))
+#define is_br_jmp_insn_p(op)    (((op)->insn_class == BRANCH || (op)->insn_class == JUMP))
+#define is_kernel_insn_p(op)    (((op)->insn_class == KERNEL))
 
 /* Generic assembler global variables which must be defined by all
    targets.  */
@@ -323,7 +323,7 @@ typedef struct
 {
   const char *name;
   int  len;
-  int  class;
+  int  attr_class;
 } attributes_t;
 
 static const attributes_t suffixclass[] =
@@ -428,7 +428,7 @@ static const struct cpu_type
   { "nps400", ARC_OPCODE_ARC700 | ARC_OPCODE_NPS400, bfd_mach_arc_nps400,
     E_ARC_MACH_NPS400,  0x00},
   { "arcem",  ARC_OPCODE_ARCv2EM, bfd_mach_arc_arcv2,
-    EF_ARC_CPU_ARCV2EM, ARC_CD},
+    EF_ARC_CPU_ARCV2EM, 0x00},
   { "archs",  ARC_OPCODE_ARCv2HS, bfd_mach_arc_arcv2,
     EF_ARC_CPU_ARCV2HS, ARC_CD},
   { 0, 0, 0, 0, 0 }
@@ -674,8 +674,8 @@ arc_opcode_hash_entry_iterator_next (const struct arc_opcode_hash_entry *entry,
       const char *old_name = iter->opcode->name;
 
       iter->opcode++;
-      if (iter->opcode->name
-	  && (strcmp (old_name, iter->opcode->name) != 0))
+      if (iter->opcode->name == NULL
+	  || strcmp (old_name, iter->opcode->name) != 0)
 	{
 	  iter->index++;
 	  if (iter->index == entry->count)
@@ -700,7 +700,7 @@ arc_insert_opcode (const struct arc_opcode *opcode)
   entry = hash_find (arc_opcode_hash, name);
   if (entry == NULL)
     {
-      entry = xmalloc (sizeof (*entry));
+      entry = XNEW (struct arc_opcode_hash_entry);
       entry->count = 0;
       entry->opcode = NULL;
 
@@ -710,9 +710,8 @@ arc_insert_opcode (const struct arc_opcode *opcode)
 		  name, retval);
     }
 
-  entry->opcode = xrealloc (entry->opcode,
-			    sizeof (const struct arc_opcode *)
-			    * (entry->count + 1));
+  entry->opcode = XRESIZEVEC (const struct arc_opcode *, entry->opcode,
+			      entry->count + 1);
 
   if (entry->opcode == NULL)
     as_fatal (_("Virtual memory exhausted"));
@@ -1040,7 +1039,7 @@ tokenize_arguments (char *str,
 	case ']':
 	  ++input_line_pointer;
 	  --brk_lvl;
-	  if (!saw_arg)
+	  if (!saw_arg || num_args == ntok)
 	    goto err;
 	  tok->X_op = O_bracket;
 	  ++tok;
@@ -1050,7 +1049,7 @@ tokenize_arguments (char *str,
 	case '{':
 	case '[':
 	  input_line_pointer++;
-	  if (brk_lvl)
+	  if (brk_lvl || num_args == ntok)
 	    goto err;
 	  ++brk_lvl;
 	  tok->X_op = O_bracket;
@@ -1061,7 +1060,7 @@ tokenize_arguments (char *str,
 	case '@':
 	  /* We have labels, function names and relocations, all
 	     starting with @ symbol.  Sort them out.  */
-	  if (saw_arg && !saw_comma)
+	  if ((saw_arg && !saw_comma) || num_args == ntok)
 	    goto err;
 
 	  /* Parse @label.  */
@@ -1166,7 +1165,7 @@ tokenize_arguments (char *str,
 	  /* Fall through.  */
 	default:
 
-	  if (saw_arg && !saw_comma)
+	  if ((saw_arg && !saw_comma) || num_args == ntok)
 	    goto err;
 
 	  tok->X_op = O_absent;
@@ -1182,7 +1181,9 @@ tokenize_arguments (char *str,
 	normalsymbol:
 	  debug_exp (tok);
 
-	  if (tok->X_op == O_illegal || tok->X_op == O_absent)
+	  if (tok->X_op == O_illegal
+              || tok->X_op == O_absent
+              || num_args == ntok)
 	    goto err;
 
 	  saw_comma = FALSE;
@@ -1547,6 +1548,90 @@ check_cpu_feature (insn_subclass_t sc)
   return TRUE;
 }
 
+/* Parse the flags described by FIRST_PFLAG and NFLGS against the flag
+   operands in OPCODE.  Stores the matching OPCODES into the FIRST_PFLAG
+   array and returns TRUE if the flag operands all match, otherwise,
+   returns FALSE, in which case the FIRST_PFLAG array may have been
+   modified.  */
+
+static bfd_boolean
+parse_opcode_flags (const struct arc_opcode *opcode,
+                    int nflgs,
+                    struct arc_flags *first_pflag)
+{
+  int lnflg, i;
+  const unsigned char *flgidx;
+
+  lnflg = nflgs;
+  for (i = 0; i < nflgs; i++)
+    first_pflag[i].flgp = NULL;
+
+  /* Check the flags.  Iterate over the valid flag classes.  */
+  for (flgidx = opcode->flags; *flgidx; ++flgidx)
+    {
+      /* Get a valid flag class.  */
+      const struct arc_flag_class *cl_flags = &arc_flag_classes[*flgidx];
+      const unsigned *flgopridx;
+      int cl_matches = 0;
+      struct arc_flags *pflag = NULL;
+
+      /* Check for extension conditional codes.  */
+      if (ext_condcode.arc_ext_condcode
+          && cl_flags->flag_class & F_CLASS_EXTEND)
+        {
+          struct arc_flag_operand *pf = ext_condcode.arc_ext_condcode;
+          while (pf->name)
+            {
+              pflag = first_pflag;
+              for (i = 0; i < nflgs; i++, pflag++)
+                {
+                  if (!strcmp (pf->name, pflag->name))
+                    {
+                      if (pflag->flgp != NULL)
+                        return FALSE;
+                      /* Found it.  */
+                      cl_matches++;
+                      pflag->flgp = pf;
+                      lnflg--;
+                      break;
+                    }
+                }
+              pf++;
+            }
+        }
+
+      for (flgopridx = cl_flags->flags; *flgopridx; ++flgopridx)
+        {
+          const struct arc_flag_operand *flg_operand;
+
+          pflag = first_pflag;
+          flg_operand = &arc_flag_operands[*flgopridx];
+          for (i = 0; i < nflgs; i++, pflag++)
+            {
+              /* Match against the parsed flags.  */
+              if (!strcmp (flg_operand->name, pflag->name))
+                {
+                  if (pflag->flgp != NULL)
+                    return FALSE;
+                  cl_matches++;
+                  pflag->flgp = flg_operand;
+                  lnflg--;
+                  break; /* goto next flag class and parsed flag.  */
+                }
+            }
+        }
+
+      if ((cl_flags->flag_class & F_CLASS_REQUIRED) && cl_matches == 0)
+        return FALSE;
+      if ((cl_flags->flag_class & F_CLASS_OPTIONAL) && cl_matches > 1)
+        return FALSE;
+    }
+
+  /* Did I check all the parsed flags?  */
+  return lnflg ? FALSE : TRUE;
+}
+
+
 /* Search forward through all variants of an opcode looking for a
    syntax match.  */
 
@@ -1576,8 +1661,7 @@ find_opcode_match (const struct arc_opcode_hash_entry *entry,
        opcode = arc_opcode_hash_entry_iterator_next (entry, &iter))
     {
       const unsigned char *opidx;
-      const unsigned char *flgidx;
-      int tokidx = 0, lnflg, i;
+      int tokidx = 0;
       const expressionS *t = &emptyE;
 
       pr_debug ("%s:%d: find_opcode_match: trying opcode 0x%08X ",
@@ -1691,7 +1775,7 @@ find_opcode_match (const struct arc_opcode_hash_entry *entry,
 		    const char *p;
 		    const struct arc_aux_reg *auxr;
 
-		    if (opcode->class != AUXREG)
+		    if (opcode->insn_class != AUXREG)
 		      goto de_fault;
 		    p = S_GET_NAME (tok[tokidx].X_add_symbol);
 
@@ -1753,7 +1837,7 @@ find_opcode_match (const struct arc_opcode_hash_entry *entry,
 			  if (errmsg)
 			    goto match_failed;
 			}
-		      else
+		      else if (!(operand->flags & ARC_OPERAND_IGNORE))
 			goto match_failed;
 		    }
 		  break;
@@ -1830,72 +1914,7 @@ find_opcode_match (const struct arc_opcode_hash_entry *entry,
       pr_debug ("opr ");
 
       /* Setup ready for flag parsing.  */
-      lnflg = nflgs;
-      for (i = 0; i < nflgs; i++)
-	first_pflag[i].flgp = NULL;
-
-      /* Check the flags.  Iterate over the valid flag classes.  */
-      for (flgidx = opcode->flags; *flgidx; ++flgidx)
-	{
-	  /* Get a valid flag class.  */
-	  const struct arc_flag_class *cl_flags = &arc_flag_classes[*flgidx];
-	  const unsigned *flgopridx;
-	  int cl_matches = 0;
-	  struct arc_flags *pflag = NULL;
-
-	  /* Check for extension conditional codes.  */
-	  if (ext_condcode.arc_ext_condcode
-	      && cl_flags->class & F_CLASS_EXTEND)
-	    {
-	      struct arc_flag_operand *pf = ext_condcode.arc_ext_condcode;
-	      while (pf->name)
-		{
-		  pflag = first_pflag;
-		  for (i = 0; i < nflgs; i++, pflag++)
-		    {
-		      if (!strcmp (pf->name, pflag->name))
-			{
-			  if (pflag->flgp != NULL)
-			    goto match_failed;
-			  /* Found it.  */
-			  cl_matches++;
-			  pflag->flgp = pf;
-			  lnflg--;
-			  break;
-			}
-		    }
-		  pf++;
-		}
-	    }
-
-	  for (flgopridx = cl_flags->flags; *flgopridx; ++flgopridx)
-	    {
-	      const struct arc_flag_operand *flg_operand;
-
-	      pflag = first_pflag;
-	      flg_operand = &arc_flag_operands[*flgopridx];
-	      for (i = 0; i < nflgs; i++, pflag++)
-		{
-		  /* Match against the parsed flags.  */
-		  if (!strcmp (flg_operand->name, pflag->name))
-		    {
-		      if (pflag->flgp != NULL)
-			goto match_failed;
-		      cl_matches++;
-		      pflag->flgp = (struct arc_flag_operand *) flg_operand;
-		      lnflg--;
-		      break; /* goto next flag class and parsed flag.  */
-		    }
-		}
-	    }
-
-	  if ((cl_flags->class & F_CLASS_REQUIRED) && cl_matches == 0)
-	    goto match_failed;
-	  if ((cl_flags->class & F_CLASS_OPTIONAL) && cl_matches > 1)
-	    goto match_failed;
-	}
-      /* Did I check all the parsed flags?  */
-      if (lnflg)
+      if (!parse_opcode_flags (opcode, nflgs, first_pflag))
 	goto match_failed;
 
       pr_debug ("flg");
@@ -2178,6 +2197,108 @@ find_special_case_flag (const char *opname,
   return NULL;
 }
 
+/* The long instructions are not stored in a hash (there's not many of
+   them) and so there's no arc_opcode_hash_entry structure to return.  This
+   helper function for find_special_case_long_opcode takes an arc_opcode
+   result and places it into a fake arc_opcode_hash_entry that points to
+   the single arc_opcode OPCODE, which is then returned.  */
+
+static const struct arc_opcode_hash_entry *
+build_fake_opcode_hash_entry (const struct arc_opcode *opcode)
+{
+  static struct arc_opcode_hash_entry entry;
+  static struct arc_opcode tmp[2];
+  static const struct arc_opcode *ptr[2];
+
+  memcpy (&tmp[0], opcode, sizeof (struct arc_opcode));
+  memset (&tmp[1], 0, sizeof (struct arc_opcode));
+  entry.count = 1;
+  entry.opcode = ptr;
+  ptr[0] = tmp;
+  ptr[1] = NULL;
+  return &entry;
+}
+
+
+/* Used by the assembler to match the list of tokens against a long (48 or
+   64 bits) instruction.  If a matching long instruction is found, then
+   some of the tokens are consumed in this function and converted into a
+   single LIMM value, which is then added to the end of the token list,
+   where it will be consumed by a LIMM operand that exists in the base
+   opcode of the long instruction.  */
+
+static const struct arc_opcode_hash_entry *
+find_special_case_long_opcode (const char *opname,
+                               int *ntok ATTRIBUTE_UNUSED,
+                               expressionS *tok ATTRIBUTE_UNUSED,
+                               int *nflgs,
+                               struct arc_flags *pflags)
+{
+  unsigned i;
+
+  if (*ntok == MAX_INSN_ARGS)
+    return NULL;
+
+  for (i = 0; i < arc_num_long_opcodes; ++i)
+    {
+      struct arc_opcode fake_opcode;
+      const struct arc_opcode *opcode;
+      struct arc_insn insn;
+      expressionS *limm_token;
+
+      opcode = &arc_long_opcodes[i].base_opcode;
+
+      if (!(opcode->cpu & arc_target))
+        continue;
+
+      if (!check_cpu_feature (opcode->subclass))
+        continue;
+
+      if (strcmp (opname, opcode->name) != 0)
+        continue;
+
+      /* Check that the flags are a match.  */
+      if (!parse_opcode_flags (opcode, *nflgs, pflags))
+        continue;
+
+      /* Parse the LIMM operands into the LIMM template.  */
+      memset (&fake_opcode, 0, sizeof (fake_opcode));
+      fake_opcode.name = "fake limm";
+      fake_opcode.opcode = arc_long_opcodes[i].limm_template;
+      fake_opcode.mask = arc_long_opcodes[i].limm_mask;
+      fake_opcode.cpu = opcode->cpu;
+      fake_opcode.insn_class = opcode->insn_class;
+      fake_opcode.subclass = opcode->subclass;
+      memcpy (&fake_opcode.operands[0],
+              &arc_long_opcodes[i].operands,
+              MAX_INSN_ARGS);
+      /* Leave fake_opcode.flags as zero.  */
+
+      pr_debug ("Calling assemble_insn to build fake limm value\n");
+      assemble_insn (&fake_opcode, tok, *ntok,
+                     NULL, 0, &insn);
+      pr_debug ("   got limm value: 0x%x\n", insn.insn);
+
+      /* Now create a new token at the end of the token array (We know this
+         is safe as the token array is always created with enough space for
+         MAX_INSN_ARGS, and we check at the start at the start of this
+         function that we're not there yet).  This new token will
+         correspond to a LIMM operand that will be contained in the
+         base_opcode of the arc_long_opcode.  */
+      limm_token = &tok[(*ntok)];
+      (*ntok)++;
+
+      /* Modify the LIMM token to hold the constant.  */
+      limm_token->X_op = O_constant;
+      limm_token->X_add_number = insn.insn;
+
+      /* Return the base opcode.  */
+      return build_fake_opcode_hash_entry (opcode);
+    }
+
+    return NULL;
+}
+
 /* Used to find special case opcode.  */
 
 static const struct arc_opcode_hash_entry *
@@ -2193,6 +2314,9 @@ find_special_case (const char *opname,
 
   if (entry == NULL)
     entry = find_special_case_flag (opname, nflgs, pflags);
+
+  if (entry == NULL)
+    entry = find_special_case_long_opcode (opname, ntok, tok, nflgs, pflags);
 
   return entry;
 }
@@ -2262,9 +2386,7 @@ md_assemble (char *str)
 
   /* Split off the opcode.  */
   opnamelen = strspn (str, "abcdefghijklmnopqrstuvwxyz_0123468");
-  opname = xmalloc (opnamelen + 1);
-  memcpy (opname, str, opnamelen);
-  opname[opnamelen] = '\0';
+  opname = xmemdup0 (str, opnamelen);
 
   /* Signalize we are assmbling the instructions.  */
   assembling_insn = TRUE;
@@ -2381,6 +2503,32 @@ md_begin (void)
   declare_register ("ilink1", 29);
   declare_register ("ilink2", 30);
   declare_register ("blink", 31);
+
+  /* XY memory registers.  */
+  declare_register ("x0_u0", 32);
+  declare_register ("x0_u1", 33);
+  declare_register ("x1_u0", 34);
+  declare_register ("x1_u1", 35);
+  declare_register ("x2_u0", 36);
+  declare_register ("x2_u1", 37);
+  declare_register ("x3_u0", 38);
+  declare_register ("x3_u1", 39);
+  declare_register ("y0_u0", 40);
+  declare_register ("y0_u1", 41);
+  declare_register ("y1_u0", 42);
+  declare_register ("y1_u1", 43);
+  declare_register ("y2_u0", 44);
+  declare_register ("y2_u1", 45);
+  declare_register ("y3_u0", 46);
+  declare_register ("y3_u1", 47);
+  declare_register ("x0_nu", 48);
+  declare_register ("x1_nu", 49);
+  declare_register ("x2_nu", 50);
+  declare_register ("x3_nu", 51);
+  declare_register ("y0_nu", 52);
+  declare_register ("y1_nu", 53);
+  declare_register ("y2_nu", 54);
+  declare_register ("y3_nu", 55);
 
   declare_register ("mlo", 57);
   declare_register ("mmid", 58);
@@ -2506,7 +2654,8 @@ md_pcrel_from_section (fixS *fixP,
 	}
     }
 
-  pr_debug ("pcrel from %x + %lx = %x, symbol: %s (%x)\n",
+  pr_debug ("pcrel from %"BFD_VMA_FMT"x + %lx = %"BFD_VMA_FMT"x, "
+	    "symbol: %s (%"BFD_VMA_FMT"x)\n",
 	    fixP->fx_frag->fr_address, fixP->fx_where, base,
 	    fixP->fx_addsy ? S_GET_NAME (fixP->fx_addsy) : "(null)",
 	    fixP->fx_addsy ? S_GET_VALUE (fixP->fx_addsy) : 0);
@@ -2939,8 +3088,8 @@ tc_gen_reloc (asection *section ATTRIBUTE_UNUSED,
   arelent *reloc;
   bfd_reloc_code_real_type code;
 
-  reloc = (arelent *) xmalloc (sizeof (* reloc));
-  reloc->sym_ptr_ptr = (asymbol **) xmalloc (sizeof (asymbol *));
+  reloc = XNEW (arelent);
+  reloc->sym_ptr_ptr = XNEW (asymbol *);
   *reloc->sym_ptr_ptr = symbol_get_bfdsym (fixP->fx_addsy);
   reloc->address = fixP->fx_frag->fr_address + fixP->fx_where;
 
@@ -3022,7 +3171,8 @@ md_convert_frag (bfd *abfd ATTRIBUTE_UNUSED,
   dest = fragP->fr_literal + fix;
   table_entry = TC_GENERIC_RELAX_TABLE + fragP->fr_subtype;
 
-  pr_debug ("%s:%d: md_convert_frag, subtype: %d, fix: %d, var: %d\n",
+  pr_debug ("%s:%d: md_convert_frag, subtype: %d, fix: %d, "
+	    "var: %"BFD_VMA_FMT"d\n",
 	    fragP->fr_file, fragP->fr_line,
 	    fragP->fr_subtype, fix, fragP->fr_var);
 
@@ -3613,7 +3763,7 @@ assemble_insn (const struct arc_opcode *opcode,
 	  switch (t->X_md)
 	    {
 	    case O_plt:
-	      if (opcode->class == JUMP)
+	      if (opcode->insn_class == JUMP)
 		as_bad_where (frag_now->fr_file, frag_now->fr_line,
 			      _("Unable to use @plt relocatio for insn %s"),
 			      opcode->name);
@@ -3630,7 +3780,7 @@ assemble_insn (const struct arc_opcode *opcode,
 	      break;
 	    case O_pcl:
 	      reloc = ARC_RELOC_TABLE (t->X_md)->reloc;
-	      if (ARC_SHORT (opcode->mask) || opcode->class == JUMP)
+	      if (ARC_SHORT (opcode->mask) || opcode->insn_class == JUMP)
 		as_bad_where (frag_now->fr_file, frag_now->fr_line,
 			      _("Unable to use @pcl relocation for insn %s"),
 			      opcode->name);
@@ -4062,7 +4212,7 @@ tokenize_extinsn (extInstruction_t *einsn)
 	  if (!strncmp (suffixclass[i].name, input_line_pointer,
 			suffixclass[i].len))
 	    {
-	      suffix_class |= suffixclass[i].class;
+	      suffix_class |= suffixclass[i].attr_class;
 	      input_line_pointer += suffixclass[i].len;
 	      break;
 	    }
@@ -4102,7 +4252,7 @@ tokenize_extinsn (extInstruction_t *einsn)
 			input_line_pointer,
 			syntaxclassmod[i].len))
 	    {
-	      syntax_class_modifiers |= syntaxclassmod[i].class;
+	      syntax_class_modifiers |= syntaxclassmod[i].attr_class;
 	      input_line_pointer += syntaxclassmod[i].len;
 	      break;
 	    }
@@ -4116,7 +4266,7 @@ tokenize_extinsn (extInstruction_t *einsn)
 			    input_line_pointer,
 			    syntaxclass[i].len))
 		{
-		  syntax_class |= syntaxclass[i].class;
+		  syntax_class |= syntaxclass[i].attr_class;
 		  input_line_pointer += syntaxclass[i].len;
 		  break;
 		}
@@ -4473,7 +4623,7 @@ arc_extcorereg (int opertype)
       break;
     case EXT_AUX_REGISTER:
       /* Auxiliary register.  */
-      auxr = xmalloc (sizeof (struct arc_aux_reg));
+      auxr = XNEW (struct arc_aux_reg);
       auxr->name = ereg.name;
       auxr->cpu = arc_target;
       auxr->subclass = NONE;
@@ -4490,8 +4640,8 @@ arc_extcorereg (int opertype)
 		ereg.number);
       ext_condcode.size ++;
       ext_condcode.arc_ext_condcode =
-	xrealloc (ext_condcode.arc_ext_condcode,
-		  (ext_condcode.size + 1) * sizeof (struct arc_flag_operand));
+	XRESIZEVEC (struct arc_flag_operand, ext_condcode.arc_ext_condcode,
+		    ext_condcode.size + 1);
       if (ext_condcode.arc_ext_condcode == NULL)
 	as_fatal (_("Virtual memory exhausted"));
 

@@ -1187,7 +1187,7 @@ insert_reg_alias (char *str, int number, aarch64_reg_type type)
     }
 
   name = xstrdup (str);
-  new = xmalloc (sizeof (reg_entry));
+  new = XNEW (reg_entry);
 
   new->name = name;
   new->number = number;
@@ -1241,9 +1241,7 @@ create_register_alias (char *newname, char *p)
   nlen = strlen (newname);
 #endif
 
-  nbuf = xmalloc (nlen + 1);
-  memcpy (nbuf, newname, nlen);
-  nbuf[nlen] = '\0';
+  nbuf = xmemdup0 (newname, nlen);
 
   /* Create aliases under the new name as stated; an all-lowercase
      version of the new name; and an all-uppercase version of the new
@@ -1577,7 +1575,7 @@ find_or_make_literal_pool (int size)
   if (pool == NULL)
     {
       /* Create a new pool.  */
-      pool = xmalloc (sizeof (*pool));
+      pool = XNEW (literal_pool);
       if (!pool)
 	return NULL;
 
@@ -1654,7 +1652,8 @@ add_to_lit_pool (expressionS *exp, int size)
 	{
 	  /* PR 16688: Bignums are held in a single global array.  We must
 	     copy and preserve that value now, before it is overwritten.  */
-	  pool->literals[entry].bignum = xmalloc (CHARS_PER_LITTLENUM * exp->X_add_number);
+	  pool->literals[entry].bignum = XNEWVEC (LITTLENUM_TYPE,
+						  exp->X_add_number);
 	  memcpy (pool->literals[entry].bignum, generic_bignum,
 		  CHARS_PER_LITTLENUM * exp->X_add_number);
 	}
@@ -4232,8 +4231,7 @@ print_operands (char *buf, const aarch64_opcode *opcode,
 
   for (i = 0; i < AARCH64_MAX_OPND_NUM; ++i)
     {
-      const size_t size = 128;
-      char str[size];
+      char str[128];
 
       /* We regard the opcode operand info more, however we also look into
 	 the inst->operands to support the disassembling of the optional
@@ -4245,7 +4243,7 @@ print_operands (char *buf, const aarch64_opcode *opcode,
 	break;
 
       /* Generate the operand string in STR.  */
-      aarch64_print_operand (str, size, 0, opcode, opnds, i, NULL, NULL);
+      aarch64_print_operand (str, sizeof (str), 0, opcode, opnds, i, NULL, NULL);
 
       /* Delimiter.  */
       if (str[0] != '\0')
@@ -4351,8 +4349,7 @@ output_operand_error_record (const operand_error_record *record, char *str)
 	  size_t len = strlen (get_mnemonic_name (str));
 	  int i, qlf_idx;
 	  bfd_boolean result;
-	  const size_t size = 2048;
-	  char buf[size];
+	  char buf[2048];
 	  aarch64_inst *inst_base = &inst.base;
 	  const aarch64_opnd_qualifier_seq_t *qualifiers_list;
 
@@ -4382,7 +4379,7 @@ output_operand_error_record (const operand_error_record *record, char *str)
 
 	  /* Print the hint.  */
 	  output_info (_("   did you mean this?"));
-	  snprintf (buf, size, "\t%s", get_mnemonic_name (str));
+	  snprintf (buf, sizeof (buf), "\t%s", get_mnemonic_name (str));
 	  print_operands (buf, opcode, inst_base->operands);
 	  output_info (_("   %s"), buf);
 
@@ -4403,7 +4400,7 @@ output_operand_error_record (const operand_error_record *record, char *str)
 	      if (i != qlf_idx)
 		{
 		  /* Mnemonics name.  */
-		  snprintf (buf, size, "\t%s", get_mnemonic_name (str));
+		  snprintf (buf, sizeof (buf), "\t%s", get_mnemonic_name (str));
 
 		  /* Assign the qualifiers.  */
 		  assign_qualifier_sequence (inst_base, *qualifiers_list);
@@ -7507,7 +7504,7 @@ fill_instruction_hash_table (void)
       templates *templ, *new_templ;
       templ = hash_find (aarch64_ops_hsh, opcode->name);
 
-      new_templ = (templates *) xmalloc (sizeof (templates));
+      new_templ = XNEW (templates);
       new_templ->opcode = opcode;
       new_templ->next = NULL;
 
@@ -7757,6 +7754,8 @@ static const struct aarch64_cpu_option_table aarch64_cpus[] = {
 				  AARCH64_FEATURE_CRC), "Cortex-A57"},
   {"cortex-a72", AARCH64_FEATURE (AARCH64_ARCH_V8,
 				  AARCH64_FEATURE_CRC), "Cortex-A72"},
+  {"cortex-a73", AARCH64_FEATURE (AARCH64_ARCH_V8,
+				  AARCH64_FEATURE_CRC), "Cortex-A73"},
   {"exynos-m1", AARCH64_FEATURE (AARCH64_ARCH_V8,
 				 AARCH64_FEATURE_CRC | AARCH64_FEATURE_CRYPTO),
 				"Samsung Exynos M1"},

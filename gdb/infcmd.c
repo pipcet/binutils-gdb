@@ -1840,8 +1840,6 @@ finish_command_fsm_return_value (struct thread_fsm *self)
 static enum async_reply_reason
 finish_command_fsm_async_reply_reason (struct thread_fsm *self)
 {
-  struct finish_command_fsm *f = (struct finish_command_fsm *) self;
-
   if (execution_direction == EXEC_REVERSE)
     return EXEC_ASYNC_END_STEPPING_RANGE;
   else
@@ -1927,6 +1925,30 @@ finish_forward (struct finish_command_fsm *sm, struct frame_info *frame)
   tp->control.proceed_to_finish = 1;
 
   proceed ((CORE_ADDR) -1, GDB_SIGNAL_DEFAULT);
+}
+
+/* Skip frames for "finish".  */
+
+static struct frame_info *
+skip_finish_frames (struct frame_info *frame)
+{
+  struct frame_info *start;
+
+  do
+    {
+      start = frame;
+
+      frame = skip_tailcall_frames (frame);
+      if (frame == NULL)
+	break;
+
+      frame = skip_unwritable_frames (frame);
+      if (frame == NULL)
+	break;
+    }
+  while (start != frame);
+
+  return frame;
 }
 
 /* "finish": Set a temporary breakpoint at the place the selected
@@ -2027,9 +2049,7 @@ finish_command (char *arg, int from_tty)
     finish_backward (sm);
   else
     {
-      /* Ignore TAILCALL_FRAME type frames, they were executed already before
-	 entering THISFRAME.  */
-      frame = skip_tailcall_frames (frame);
+      frame = skip_finish_frames (frame);
 
       if (frame == NULL)
 	error (_("Cannot find the caller frame."));
@@ -2276,7 +2296,6 @@ default_print_one_register_info (struct ui_file *file,
   if (TYPE_CODE (regtype) == TYPE_CODE_FLT
       || TYPE_CODE (regtype) == TYPE_CODE_DECFLOAT)
     {
-      int j;
       struct value_print_options opts;
       const gdb_byte *valaddr = value_contents_for_printing (val);
       enum bfd_endian byte_order = gdbarch_byte_order (get_type_arch (regtype));

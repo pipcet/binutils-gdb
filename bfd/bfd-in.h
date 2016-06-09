@@ -903,6 +903,9 @@ extern bfd_boolean bfd_elf32_arm_get_bfd_for_interworking
 extern bfd_boolean bfd_elf32_arm_add_glue_sections_to_bfd
   (bfd *, struct bfd_link_info *);
 
+extern void bfd_elf32_arm_keep_private_stub_output_sections
+  (struct bfd_link_info *);
+
 /* ELF ARM mapping symbol support.  */
 #define BFD_ARM_SPECIAL_SYM_TYPE_MAP	(1 << 0)
 #define BFD_ARM_SPECIAL_SYM_TYPE_TAG	(1 << 1)
@@ -934,7 +937,8 @@ extern void elf32_arm_next_input_section
   (struct bfd_link_info *, struct bfd_section *);
 extern bfd_boolean elf32_arm_size_stubs
   (bfd *, bfd *, struct bfd_link_info *, bfd_signed_vma,
-   struct bfd_section * (*) (const char *, struct bfd_section *, unsigned int),
+   struct bfd_section * (*) (const char *, struct bfd_section *,
+			     struct bfd_section *, unsigned int),
    void (*) (void));
 extern bfd_boolean elf32_arm_build_stubs
   (struct bfd_link_info *);
@@ -946,13 +950,6 @@ extern bfd_boolean elf32_arm_fix_exidx_coverage
 /* C6x unwind section editing support.  */
 extern bfd_boolean elf32_tic6x_fix_exidx_coverage
 (struct bfd_section **, unsigned int, struct bfd_link_info *, bfd_boolean);
-
-/* PowerPC @tls opcode transform/validate.  */
-extern unsigned int _bfd_elf_ppc_at_tls_transform
-  (unsigned int, unsigned int);
-/* PowerPC @tprel opcode transform/validate.  */
-extern unsigned int _bfd_elf_ppc_at_tprel_transform
-  (unsigned int, unsigned int);
 
 extern void bfd_elf64_aarch64_init_maps
   (bfd *);

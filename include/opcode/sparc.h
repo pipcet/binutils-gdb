@@ -21,6 +21,10 @@
 
 #include "ansidecl.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* The SPARC opcode table (and other related data) is defined in
    the opcodes library in sparc-opc.c.  If you change anything here, make
    sure you fix up that file, and vice versa.  */
@@ -239,6 +243,8 @@ typedef struct sparc_opcode
 	9	%fcc3. (v9)
 	!	Privileged Register in rd (v9)
 	?	Privileged Register in rs1 (v9)
+	%	Hyperprivileged Register in rd (v9b)
+	$	Hyperprivileged Register in rs1 (v9b)
 	*	Prefetch function constant. (v9)
 	x	OPF field (v9 impdep).
 	0	32/64 bit immediate for set or setx (v9) insns
@@ -295,3 +301,6 @@ extern const char *sparc_decode_sparclet_cpreg (int);
    comment-column: 0
    End: */
 
+#ifdef __cplusplus
+}
+#endif

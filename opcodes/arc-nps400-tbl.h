@@ -34,11 +34,29 @@
 /* encode1<.f> */
 { "encode1", 0x48048000, 0xf80f8000, ARC_OPCODE_NPS400, BITOP, NONE, { NPS_R_DST_3B, NPS_R_SRC2_3B, NPS_BITOP_SRC_POS, NPS_BITOP_SIZE }, { C_NPS_F }},
 
+/* mrgb - 48 bit instruction, see arc_long_opcodes in arc-opc.c.  */
+/* mrgb.cl - 48 bit instruction, see arc_long_opcodes in arc-opc.c.  */
+/* mov2b - 48 bit instruction, see arc_long_opcodes in arc-opc.c.  */
+/* mov2b.cl - 48 bit instruction, see arc_long_opcodes in arc-opc.c.  */
+/* ext4 - 48 bit instruction, see arc_long_opcodes in arc-opc.c.  */
+/* ext4.cl - 48 bit instruction, see arc_long_opcodes in arc-opc.c.  */
+/* ins4 - 48 bit instruction, see arc_long_opcodes in arc-opc.c.  */
+/* ins4.cl - 48 bit instruction, see arc_long_opcodes in arc-opc.c.  */
+/* mov3b - 64 bit instruction, see arc_long_opcodes in arc-opc.c.  */
+/* mov4b - 64 bit instruction, see arc_long_opcodes in arc-opc.c.  */
+/* mov3bcl - 64 bit instruction, see arc_long_opcodes in arc-opc.c.  */
+/* mov4bcl - 64 bit instruction, see arc_long_opcodes in arc-opc.c.  */
+/* mov3b.cl - 64 bit instruction, see arc_long_opcodes in arc-opc.c.  */
+/* mov4b.cl - 64 bit instruction, see arc_long_opcodes in arc-opc.c.  */
+
 /* rflt a,b,c   00111bbb00101110FBBBCCCCCCAAAAAA */
 { "rflt", 0x382e0000, 0xf8ff8000, ARC_OPCODE_NPS400, BITOP, NONE, { RA, RB, RC }, { 0 }},
 
 /* rflt a,limm,c   0011111000101110F111CCCCCCAAAAAA */
 { "rflt", 0x3e2e7000, 0xfffff000, ARC_OPCODE_NPS400, BITOP, NONE, { RA, LIMM, RC }, { 0 }},
+
+/* rflt a,b,u6   00111bbb01101110FBBBuuuuuuAAAAAA */
+{ "rflt", 0x386e0000, 0xf8ff8000, ARC_OPCODE_NPS400, BITOP, NONE, { RA, RB, NPS_RFLT_UIMM6 }, { 0 }},
 
 /* rflt 0,b,c   00111bbb00101110FBBBCCCCCC111110 */
 { "rflt", 0x382e003e, 0xf8ff803f, ARC_OPCODE_NPS400, BITOP, NONE, { ZA, RB, RC }, { 0 }},
@@ -46,14 +64,20 @@
 /* rflt 0,limm,c   0011111000101110F111CCCCCC111110 */
 { "rflt", 0x3e2e703e, 0xfffff03f, ARC_OPCODE_NPS400, BITOP, NONE, { ZA, LIMM, RC }, { 0 }},
 
-/* rflt a,b,u6   00111bbb01101110FBBBuuuuuuAAAAAA */
-{ "rflt", 0x386e0000, 0xf8ff8000, ARC_OPCODE_NPS400, BITOP, NONE, { RA, RB, NPS_RFLT_UIMM6 }, { 0 }},
+/* rflt 0,b,u6   00111bbb01101110FBBBuuuuuu111110 */
+{ "rflt", 0x386e003e, 0xf8ff803f, ARC_OPCODE_NPS400, BITOP, NONE, { ZA, RB, NPS_RFLT_UIMM6 }, { 0 }},
+
+/* rflt 0,b,limm   00111bbb00101110FBBB111110111110 */
+{ "rflt", 0x382e0fbe, 0xf8ff8fff, ARC_OPCODE_NPS400, BITOP, NONE, { ZA, RB, LIMM }, { 0 }},
+
+/* rflt a,b,limm   00111bbb00101110FBBB111110AAAAAA */
+{ "rflt", 0x382e0f80, 0xf8ff8fc0, ARC_OPCODE_NPS400, BITOP, NONE, { RA, RB, LIMM }, { 0 }},
+
+/* rflt a,limm,limm    0011111000101110F111111110AAAAAA */
+{ "rflt", 0x3e2e7f80, 0xffffffc0, ARC_OPCODE_NPS400, BITOP, NONE, { RA, LIMM, LIMMdup }, { 0 }},
 
 /* rflt a,limm,u6   0011111001101110F111uuuuuuAAAAAA */
 { "rflt", 0x3e6e7000, 0xfffff000, ARC_OPCODE_NPS400, BITOP, NONE, { RA, LIMM, NPS_RFLT_UIMM6 }, { 0 }},
-
-/* rflt 0,b,u6   00111bbb01101110FBBBuuuuuu111110 */
-{ "rflt", 0x386e003e, 0xf8ff803f, ARC_OPCODE_NPS400, BITOP, NONE, { ZA, RB, NPS_RFLT_UIMM6 }, { 0 }},
 
 /* rflt 0,limm,u6   0011111001101110F111uuuuuu111110 */
 { "rflt", 0x3e6e703e, 0xfffff03f, ARC_OPCODE_NPS400, BITOP, NONE, { ZA, LIMM, NPS_RFLT_UIMM6 }, { 0 }},

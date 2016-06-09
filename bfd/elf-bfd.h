@@ -703,9 +703,9 @@ struct elf_size_info {
 enum elf_reloc_type_class {
   reloc_class_normal,
   reloc_class_relative,
-  reloc_class_plt,
   reloc_class_copy,
-  reloc_class_ifunc
+  reloc_class_ifunc,
+  reloc_class_plt
 };
 
 struct elf_reloc_cookie
@@ -2058,9 +2058,11 @@ extern void _bfd_elf_strtab_delref
 extern unsigned int _bfd_elf_strtab_refcount
   (struct elf_strtab_hash *, bfd_size_type);
 extern void _bfd_elf_strtab_clear_all_refs
-  (struct elf_strtab_hash *tab);
-extern void _bfd_elf_strtab_restore_size
-  (struct elf_strtab_hash *, bfd_size_type);
+  (struct elf_strtab_hash *);
+extern void *_bfd_elf_strtab_save
+  (struct elf_strtab_hash *);
+extern void _bfd_elf_strtab_restore
+  (struct elf_strtab_hash *, void *);
 extern bfd_size_type _bfd_elf_strtab_size
   (struct elf_strtab_hash *);
 extern bfd_size_type _bfd_elf_strtab_offset
@@ -2366,6 +2368,15 @@ extern bfd_boolean bfd_elf_lookup_section_flags
 extern Elf_Internal_Phdr * _bfd_elf_find_segment_containing_section
   (bfd * abfd, asection * section);
 
+/* PowerPC @tls opcode transform/validate.  */
+extern unsigned int _bfd_elf_ppc_at_tls_transform
+  (unsigned int, unsigned int);
+/* PowerPC @tprel opcode transform/validate.  */
+extern unsigned int _bfd_elf_ppc_at_tprel_transform
+  (unsigned int, unsigned int);
+/* PowerPC elf_object_p tweak.  */
+extern bfd_boolean _bfd_elf_ppc_set_arch (bfd *);
+
 /* Exported interface for writing elf corefile notes. */
 extern char *elfcore_write_note
   (bfd *, char *, int *, const char *, int, const void *, int);
@@ -2594,12 +2605,11 @@ extern asection _bfd_elf_large_com_section;
 	  bfd_boolean err;						\
 	  err = (info->unresolved_syms_in_objects == RM_GENERATE_ERROR	\
 		 || ELF_ST_VISIBILITY (h->other) != STV_DEFAULT);	\
-	  if (!info->callbacks->undefined_symbol (info,			\
-						  h->root.root.string,	\
-						  input_bfd,		\
-						  input_section,	\
-						  rel->r_offset, err))	\
-	    return FALSE;						\
+	  (*info->callbacks->undefined_symbol) (info,			\
+						h->root.root.string,	\
+						input_bfd,		\
+						input_section,		\
+						rel->r_offset, err);	\
 	  warned = TRUE;						\
 	}								\
       (void) unresolved_reloc;						\

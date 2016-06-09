@@ -27,6 +27,11 @@
    Bounds: [lower = 0x7fffffffc390, upper = 0x7fffffffc3a3]
    0x0000000000400d7c in upper () at i386-mpx-sigsegv.c:68
 
+* Rust language support.
+  GDB now supports debugging programs written in the Rust programming
+  language.  See https://www.rust-lang.org/ for more information about
+  Rust.
+
 * New commands
 
 skip -file file
@@ -39,6 +44,9 @@ skip -rfunction regular-expression
 
 maint info line-table REGEXP
   Display the contents of GDB's internal line table data struture.
+
+maint selftest
+  Run any GDB unit tests that were compiled in.
 
 * Support for tracepoints and fast tracepoints on s390-linux and s390x-linux
   was added in GDBserver, including JIT compiling fast tracepoint's
@@ -58,6 +66,11 @@ maint info line-table REGEXP
   powerpc64-linux, and powerpc64le-linux was added in GDBserver,
   including JIT compiling fast tracepoint's conditional expression
   bytecode into native code.
+
+* MI async record =record-started now includes the method and format used for
+  recording.  For example:
+
+    =record-started,thread-group="i1",method="btrace",format="bts"
 
 *** Changes in GDB 7.11
 
@@ -238,25 +251,19 @@ QThreadEvents
   stop for that same thread.
 
 N stop reply
-
   Indicates that there are no resumed threads left in the target (all
   threads are stopped).  The remote stub reports support for this stop
   reply to GDB's qSupported query.
 
-QCatchSyscalls:1 [;SYSNO]...
-QCatchSyscalls:0
-  Enable ("QCatchSyscalls:1") or disable ("QCatchSyscalls:0")
-  catching syscalls from the inferior process.
+QCatchSyscalls
+  Enables/disables catching syscalls from the inferior process.
+  The remote stub reports support for this packet to GDB's qSupported query.
 
 syscall_entry stop reason
   Indicates that a syscall was just called.
 
 syscall_return stop reason
   Indicates that a syscall just returned.
-
-QCatchSyscalls:1 in qSupported
-  The qSupported packet may now include QCatchSyscalls:1 in the reply
-  to indicate support for catching syscalls.
 
 * Extended-remote exec events
 

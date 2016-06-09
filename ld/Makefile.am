@@ -179,6 +179,7 @@ ALL_EMULATION_SOURCES = \
 	earmelf_linux_eabi.c \
 	earmelf_nacl.c \
 	earmelf_nbsd.c \
+	earmelf_phoenix.c \
 	earmelf_vxworks.c \
 	earmelfb.c \
 	earmelfb_fbsd.c \
@@ -708,8 +709,9 @@ ealpha.c: $(srcdir)/emulparams/alpha.sh \
   $(srcdir)/emultempl/generic.em $(srcdir)/scripttempl/alpha.sc ${GEN_DEPENDS}
 
 ealphavms.c: $(srcdir)/emulparams/alphavms.sh \
-  $(srcdir)/emultempl/vms.em $(srcdir)/scripttempl/alphavms.sc \
-  ${GEN_DEPENDS}
+  $(srcdir)/emultempl/generic.em $(srcdir)/emultempl/vms.em \
+  $(srcdir)/emultempl/needrelax.em \
+  $(srcdir)/scripttempl/alphavms.sc ${GEN_DEPENDS}
 
 earcv2elf.c: $(srcdir)/emulparams/arcv2elf.sh \
   $(ELF_DEPS) $(srcdir)/scripttempl/elfarcv2.sc ${GEN_DEPENDS}
@@ -774,6 +776,10 @@ earmelf_nacl.c: $(srcdir)/emulparams/armelf_nacl.sh \
 
 earmelf_nbsd.c: $(srcdir)/emulparams/armelf_nbsd.sh \
   $(srcdir)/emulparams/armelf.sh \
+  $(ELF_DEPS) $(srcdir)/emultempl/armelf.em \
+  $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
+
+earmelf_phoenix.c: $(srcdir)/emulparams/armelf_phoenix.sh \
   $(ELF_DEPS) $(srcdir)/emultempl/armelf.em \
   $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
 
@@ -1897,7 +1903,8 @@ eelf64_ia64_fbsd.c: $(srcdir)/emulparams/elf64_ia64_fbsd.sh \
   $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
 
 eelf64_ia64_vms.c: $(srcdir)/emulparams/elf64_ia64_vms.sh \
-  $(srcdir)/emultempl/vms.em $(srcdir)/emultempl/elf-generic.em \
+  $(srcdir)/emultempl/generic.em $(srcdir)/emultempl/vms.em \
+  $(srcdir)/emultempl/needrelax.em \
   $(srcdir)/scripttempl/ia64vms.sc ${GEN_DEPENDS}
 
 eelf64_s390.c: $(srcdir)/emulparams/elf64_s390.sh \
@@ -2142,7 +2149,8 @@ bootstrap: ld3$(EXEEXT)
 # Build a dummy plugin using libtool.
 #
 if ENABLE_PLUGINS
-noinst_LTLIBRARIES = libldtestplug.la libldtestplug2.la libldtestplug3.la
+noinst_LTLIBRARIES = libldtestplug.la libldtestplug2.la \
+		     libldtestplug3.la libldtestplug4.la
 libldtestplug_la_SOURCES = testplug.c
 libldtestplug_la_CFLAGS= -g -O2
 libldtestplug_la_LDFLAGS = -no-undefined -rpath /nowhere
@@ -2152,6 +2160,9 @@ libldtestplug2_la_LDFLAGS = -no-undefined -rpath /nowhere
 libldtestplug3_la_SOURCES = testplug3.c
 libldtestplug3_la_CFLAGS= -g -O2
 libldtestplug3_la_LDFLAGS = -no-undefined -rpath /nowhere
+libldtestplug4_la_SOURCES = testplug4.c
+libldtestplug4_la_CFLAGS= -g -O2
+libldtestplug4_la_LDFLAGS = -no-undefined -rpath /nowhere
 endif
 
 # DOCUMENTATION TARGETS

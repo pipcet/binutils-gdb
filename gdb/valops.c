@@ -1465,22 +1465,28 @@ value_addr (struct value *arg1)
 
   if (TYPE_CODE (type) == TYPE_CODE_REF)
     {
-      /* Copy the value, but change the type from (T&) to (T*).  We
-	 keep the same location information, which is efficient, and
-	 allows &(&X) to get the location containing the reference.
-	 Do the same to its enclosing type for consistency.  */
-      struct type *type_ptr
-        = lookup_pointer_type (TYPE_TARGET_TYPE (type));
-      struct type *enclosing_type
-        = check_typedef (value_enclosing_type (arg1));
-      struct type *enclosing_type_ptr
-        = lookup_pointer_type (TYPE_TARGET_TYPE (enclosing_type));
+      if (value_bits_synthetic_pointer (arg1, value_embedded_offset (arg1),
+	  TARGET_CHAR_BIT * TYPE_LENGTH (type)))
+	arg1 = coerce_ref (arg1);
+      else
+	{
+	  /* Copy the value, but change the type from (T&) to (T*).  We
+	     keep the same location information, which is efficient, and
+	     allows &(&X) to get the location containing the reference.
+	     Do the same to its enclosing type for consistency.  */
+	  struct type *type_ptr
+	    = lookup_pointer_type (TYPE_TARGET_TYPE (type));
+	  struct type *enclosing_type
+	    = check_typedef (value_enclosing_type (arg1));
+	  struct type *enclosing_type_ptr
+	    = lookup_pointer_type (TYPE_TARGET_TYPE (enclosing_type));
 
-      arg2 = value_copy (arg1);
-      deprecated_set_value_type (arg2, type_ptr);
-      set_value_enclosing_type (arg2, enclosing_type_ptr);
+	  arg2 = value_copy (arg1);
+	  deprecated_set_value_type (arg2, type_ptr);
+	  set_value_enclosing_type (arg2, enclosing_type_ptr);
 
-      return arg2;
+	  return arg2;
+	}
     }
   if (TYPE_CODE (type) == TYPE_CODE_FUNC)
     return value_coerce_function (arg1);
@@ -2217,9 +2223,7 @@ value_struct_elt_bitpos (struct value **argp, int bitpos, struct type *ftype,
 			 const char *err)
 {
   struct type *t;
-  struct value *v;
   int i;
-  int nbases;
 
   *argp = coerce_array (*argp);
 
@@ -2472,7 +2476,6 @@ find_overload_match (struct value **args, int nargs,
   int method_oload_champ = -1;
   int src_method_oload_champ = -1;
   int ext_method_oload_champ = -1;
-  int src_and_ext_equal = 0;
 
   /* The measure for the current best match.  */
   struct badness_vector *method_badness = NULL;
@@ -2571,7 +2574,6 @@ find_overload_match (struct value **args, int nargs,
 	  switch (compare_badness (ext_method_badness, src_method_badness))
 	    {
 	      case 0: /* Src method and xmethod are equally good.  */
-		src_and_ext_equal = 1;
 		/* If src method and xmethod are equally good, then
 		   xmethod should be the winner.  Hence, fall through to the
 		   case where a xmethod is better than the source
@@ -2996,7 +2998,6 @@ find_oload_champ (struct value **args, int nargs,
 {
   int ix;
   int fn_count;
-  int xm_worker_vec_n = VEC_length (xmethod_worker_ptr, xm_worker_vec);
   /* A measure of how good an overloaded instance is.  */
   struct badness_vector *bv;
   /* Index of best overloaded function.  */

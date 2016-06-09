@@ -349,7 +349,7 @@ static int mips_32bitmode = 0;
 
 /* Likewise 64-bit registers.  */
 #define ABI_NEEDS_64BIT_REGS(ABI)	\
-  ((ABI) == N32_ABI 			\
+  ((ABI) == N32_ABI			\
    || (ABI) == N64_ABI			\
    || (ABI) == O64_ABI)
 
@@ -1017,7 +1017,7 @@ static int mips_relax_branch;
 
 /* Branch without likely bit.  If label is out of range, we turn:
 
- 	beq reg1, reg2, label
+	beq reg1, reg2, label
 	delay slot
 
    into
@@ -1410,6 +1410,8 @@ enum options
     OPTION_NO_SMARTMIPS,
     OPTION_DSPR2,
     OPTION_NO_DSPR2,
+    OPTION_DSPR3,
+    OPTION_NO_DSPR3,
     OPTION_EVA,
     OPTION_NO_EVA,
     OPTION_XPA,
@@ -1522,6 +1524,8 @@ struct option md_longopts[] =
   {"mno-smartmips", no_argument, NULL, OPTION_NO_SMARTMIPS},
   {"mdspr2", no_argument, NULL, OPTION_DSPR2},
   {"mno-dspr2", no_argument, NULL, OPTION_NO_DSPR2},
+  {"mdspr3", no_argument, NULL, OPTION_DSPR3},
+  {"mno-dspr3", no_argument, NULL, OPTION_NO_DSPR3},
   {"meva", no_argument, NULL, OPTION_EVA},
   {"mno-eva", no_argument, NULL, OPTION_NO_EVA},
   {"mmicromips", no_argument, NULL, OPTION_MICROMIPS},
@@ -1663,6 +1667,11 @@ static const struct mips_ase mips_ases[] = {
     2, 2, 2, 2,
     -1 },
 
+  { "dspr3", ASE_DSP | ASE_DSPR2 | ASE_DSPR3, 0,
+    OPTION_DSPR3, OPTION_NO_DSPR3,
+    6, 6, -1, -1,
+    -1 },
+
   { "eva", ASE_EVA, 0,
     OPTION_EVA, OPTION_NO_EVA,
      2,  2,  2,  2,
@@ -1716,7 +1725,7 @@ static const struct mips_ase mips_ases[] = {
 
 /* Groups of ASE_* flags that represent different revisions of an ASE.  */
 static const unsigned int mips_ase_groups[] = {
-  ASE_DSP | ASE_DSPR2
+  ASE_DSP | ASE_DSPR2 | ASE_DSPR3
 };
 
 /* Pseudo-op table.
@@ -6264,8 +6273,8 @@ nops_for_vr4130 (int ignore, const struct mips_cl_insn *hist,
   return 0;
 }
 
-#define BASE_REG_EQ(INSN1, INSN2) 	\
-  ((((INSN1) >> OP_SH_RS) & OP_MASK_RS) \
+#define BASE_REG_EQ(INSN1, INSN2)	\
+  ((((INSN1) >> OP_SH_RS) & OP_MASK_RS)	\
       == (((INSN2) >> OP_SH_RS) & OP_MASK_RS))
 
 /* Return the minimum alignment for this store instruction.  */
@@ -7035,7 +7044,9 @@ append_insn (struct mips_cl_insn *ip, expressionS *address_expr,
 	  {
 	    int shift;
 
-	    shift = mips_opts.micromips ? 1 : 2;
+	    /* Shift is 2, unusually, for microMIPS JALX.  */
+	    shift = (mips_opts.micromips
+		     && strcmp (ip->insn_mo->name, "jalx") != 0) ? 1 : 2;
 	    if ((address_expr->X_add_number & ((1 << shift) - 1)) != 0)
 	      as_bad (_("jump to misaligned address (0x%lx)"),
 		      (unsigned long) address_expr->X_add_number);
@@ -11035,7 +11046,7 @@ macro (struct mips_cl_insn *ip, char *str)
 		  if (mips_opts.noreorder)
 		    macro_build (NULL, "nop", "");
 		  expr1.X_add_number = mips_cprestore_offset;
-  		  macro_build_ldst_constoffset (&expr1, ADDRESS_LOAD_INSN,
+		  macro_build_ldst_constoffset (&expr1, ADDRESS_LOAD_INSN,
 						mips_gp_register,
 						mips_frame_reg,
 						HAVE_64BIT_ADDRESSES);
@@ -11179,7 +11190,7 @@ macro (struct mips_cl_insn *ip, char *str)
 		  if (mips_opts.noreorder)
 		    macro_build (NULL, "nop", "");
 		  expr1.X_add_number = mips_cprestore_offset;
-  		  macro_build_ldst_constoffset (&expr1, ADDRESS_LOAD_INSN,
+		  macro_build_ldst_constoffset (&expr1, ADDRESS_LOAD_INSN,
 						mips_gp_register,
 						mips_frame_reg,
 						HAVE_64BIT_ADDRESSES);
@@ -12136,8 +12147,8 @@ macro (struct mips_cl_insn *ip, char *str)
 		  && offset_expr.X_add_number == 0);
       s = segment_name (S_GET_SEGMENT (offset_expr.X_add_symbol));
       if (strcmp (s, ".lit8") == 0)
- 	{
- 	  op[2] = mips_gp_register;
+	{
+	  op[2] = mips_gp_register;
 	  offset_reloc[0] = BFD_RELOC_MIPS_LITERAL;
 	  offset_reloc[1] = BFD_RELOC_UNUSED;
 	  offset_reloc[2] = BFD_RELOC_UNUSED;
@@ -12159,7 +12170,7 @@ macro (struct mips_cl_insn *ip, char *str)
 	  offset_reloc[0] = BFD_RELOC_LO16;
 	  offset_reloc[1] = BFD_RELOC_UNUSED;
 	  offset_reloc[2] = BFD_RELOC_UNUSED;
- 	}
+	}
       align = 8;
       /* Fall through */
 
@@ -14893,14 +14904,12 @@ md_apply_fix (fixS *fixP, valueT *valP, segT seg ATTRIBUTE_UNUSED)
     case BFD_RELOC_MIPS16_TLS_GOTTPREL:
     case BFD_RELOC_MIPS16_TLS_TPREL_HI16:
     case BFD_RELOC_MIPS16_TLS_TPREL_LO16:
-      if (!fixP->fx_addsy)
-	{
-	  as_bad_where (fixP->fx_file, fixP->fx_line,
-			_("TLS relocation against a constant"));
-	  break;
-	}
-      S_SET_THREAD_LOCAL (fixP->fx_addsy);
-      /* fall through */
+      if (fixP->fx_addsy)
+	S_SET_THREAD_LOCAL (fixP->fx_addsy);
+      else
+	as_bad_where (fixP->fx_file, fixP->fx_line,
+		      _("TLS relocation against a constant"));
+      break;
 
     case BFD_RELOC_MIPS_JMP:
     case BFD_RELOC_MIPS_SHIFT5:
@@ -16440,7 +16449,7 @@ s_nan (int ignore ATTRIBUTE_UNUSED)
    directive, such as in:
 
    foo:
-   	.stabs ...
+	.stabs ...
 	.set mips16
 
    so the current mode wins.  */
@@ -17156,9 +17165,9 @@ mips_fix_adjustable (fixS *fixp)
      There is a further restriction:
 
        5. We cannot reduce jump relocations (R_MIPS_26, R_MIPS16_26 or
-	  R_MICROMIPS_26_S1) against MIPS16 or microMIPS symbols on
-	  targets with in-place addends; the relocation field cannot
-	  encode the low bit.
+	  R_MICROMIPS_26_S1) against MIPS16 or microMIPS symbols because
+	  we need to keep the MIPS16 or microMIPS symbol for the purpose
+	  of converting JAL to JALX instructions in the linker.
 
      For simplicity, we deal with (3)-(4) by not reducing _any_ relocation
      against a MIPS16 symbol.  We deal with (5) by by not reducing any
@@ -17173,10 +17182,9 @@ mips_fix_adjustable (fixS *fixp)
      that we have for MIPS16 symbols.  */
   if (fixp->fx_subsy == NULL
       && (ELF_ST_IS_MIPS16 (S_GET_OTHER (fixp->fx_addsy))
-	  || *symbol_get_tc (fixp->fx_addsy)
-	  || (HAVE_IN_PLACE_ADDENDS
-	      && ELF_ST_IS_MICROMIPS (S_GET_OTHER (fixp->fx_addsy))
-	      && jmp_reloc_p (fixp->fx_r_type))))
+	  || (ELF_ST_IS_MICROMIPS (S_GET_OTHER (fixp->fx_addsy))
+	      && jmp_reloc_p (fixp->fx_r_type))
+	  || *symbol_get_tc (fixp->fx_addsy)))
     return 0;
 
   return 1;
@@ -17215,6 +17223,15 @@ tc_gen_reloc (asection *section ATTRIBUTE_UNUSED, fixS *fixp)
       /* At this point, fx_addnumber is "symbol offset - pcrel address".
 	 Relocations want only the symbol offset.  */
       reloc->addend = fixp->fx_addnumber + reloc->address;
+    }
+  else if (HAVE_IN_PLACE_ADDENDS
+	   && fixp->fx_r_type == BFD_RELOC_MICROMIPS_JMP
+	   && (read_compressed_insn (fixp->fx_frag->fr_literal
+				     + fixp->fx_where, 4) >> 26) == 0x3c)
+    {
+      /* Shift is 2, unusually, for microMIPS JALX.  Adjust the in-place
+         addend accordingly.  */
+      reloc->addend = fixp->fx_addnumber >> 1;
     }
   else
     reloc->addend = fixp->fx_addnumber;
@@ -17954,6 +17971,8 @@ mips_convert_ase_flags (int ase)
     ext_ases |= AFL_ASE_DSP;
   if (ase & ASE_DSPR2)
     ext_ases |= AFL_ASE_DSPR2;
+  if (ase & ASE_DSPR3)
+    ext_ases |= AFL_ASE_DSPR3;
   if (ase & ASE_EVA)
     ext_ases |= AFL_ASE_EVA;
   if (ase & ASE_MCU)
@@ -18703,7 +18722,7 @@ static const struct mips_cpu_info mips_cpu_info_table[] =
   { "m5100",          0, ASE_MCU,		ISA_MIPS32R5, CPU_MIPS32R5 },
   { "m5101",          0, ASE_MCU,		ISA_MIPS32R5, CPU_MIPS32R5 },
   /* P5600 with EVA and Virtualization ASEs, other ASEs are optional.  */
-  { "p5600",          0, ASE_VIRT | ASE_EVA | ASE_XPA, 	ISA_MIPS32R5, CPU_MIPS32R5 },
+  { "p5600",          0, ASE_VIRT | ASE_EVA | ASE_XPA,	ISA_MIPS32R5, CPU_MIPS32R5 },
 
   /* MIPS 64 */
   { "5kc",            0, 0,			ISA_MIPS64,   CPU_MIPS64 },
@@ -18734,8 +18753,9 @@ static const struct mips_cpu_info mips_cpu_info_table[] =
      MIPS64R2 rather than MIPS64.  */
   { "xlp",	      0, 0,			ISA_MIPS64R2, CPU_XLR },
 
-  /* i6400.  */
+  /* MIPS 64 Release 6 */
   { "i6400",	      0, ASE_MSA,		ISA_MIPS64R6, CPU_MIPS64R6},
+  { "p6600",	      0, ASE_VIRT | ASE_MSA,	ISA_MIPS64R6, CPU_MIPS64R6},
 
   /* End marker */
   { NULL, 0, 0, 0, 0 }
@@ -18962,6 +18982,9 @@ MIPS options:\n\
   fprintf (stream, _("\
 -mdspr2			generate DSP R2 instructions\n\
 -mno-dspr2		do not generate DSP R2 instructions\n"));
+  fprintf (stream, _("\
+-mdspr3			generate DSP R3 instructions\n\
+-mno-dspr3		do not generate DSP R3 instructions\n"));
   fprintf (stream, _("\
 -mmt			generate MT instructions\n\
 -mno-mt			do not generate MT instructions\n"));

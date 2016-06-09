@@ -155,8 +155,8 @@ if [expr ([istarget "i*86-*-*"] ||  [istarget "x86_64-*-*"]) && [gas_32_check]] 
     run_dump_test "arch-10-btver2"
     run_list_test "arch-10-1" "-march=generic32 -I${srcdir}/$subdir -al"
     run_list_test "arch-10-2" "-march=i686 -I${srcdir}/$subdir -al"
-    run_list_test "arch-10-3" "-march=i686+sse4.2 -I${srcdir}/$subdir -al"
-    run_list_test "arch-10-4" "-march=i686+sse4+vmx+smx -I${srcdir}/$subdir -al"
+    run_list_test "arch-10-3" "-march=i686+mmx+sse4.2 -I${srcdir}/$subdir -al"
+    run_list_test "arch-10-4" "-march=i686+mmx+sse4+vmx+smx -I${srcdir}/$subdir -al"
     run_dump_test "arch-11"
     run_dump_test "arch-12"
     run_dump_test "arch-13"
@@ -165,6 +165,21 @@ if [expr ([istarget "i*86-*-*"] ||  [istarget "x86_64-*-*"]) && [gas_32_check]] 
     run_dump_test "387"
     run_list_test "no87" "-al"
     run_list_test "no87-2" "-march=i686+no87 -al"
+    run_list_test "no87-3" "-al"
+    run_list_test "nommx-1" "-al"
+    run_list_test "nommx-2" "-march=core+nommx -al"
+    run_list_test "nommx-3" "-march=+nommx -al"
+    run_list_test "nosse-1" "-al"
+    run_list_test "nosse-2" "-march=core+nosse -al"
+    run_list_test "nosse-3" "-march=+nosse -al"
+    run_list_test "nosse-4" "-al"
+    run_dump_test "nosse-5"
+    run_list_test "noavx-1" "-al"
+    run_list_test "noavx-2" "-march=+noavx -al"
+    run_list_test "noavx-3" "-al"
+    run_dump_test "noavx-4"
+    run_list_test "noavx512-1" "-al"
+    run_list_test "noavx512-2" "-al"
     run_dump_test "xsave"
     run_dump_test "xsave-intel"
     run_dump_test "aes"
@@ -346,6 +361,10 @@ if [expr ([istarget "i*86-*-*"] ||  [istarget "x86_64-*-*"]) && [gas_32_check]] 
     run_dump_test "mwaitx-bdver4"
     run_list_test "mwaitx-reg"
     run_dump_test "ospke"
+    run_dump_test "rdpid"
+    run_dump_test "rdpid-intel"
+    run_list_test "avx512vl-1" "-al"
+    run_list_test "avx512vl-2" "-al"
 
     # These tests require support for 8 and 16 bit relocs,
     # so we only run them for ELF and COFF targets.
@@ -409,6 +428,8 @@ if [expr ([istarget "i*86-*-*"] ||  [istarget "x86_64-*-*"]) && [gas_32_check]] 
 
 	run_dump_test "got"
 	run_dump_test "got-no-relax"
+
+	run_dump_test "addend"
 
 	if {![istarget "*-*-nacl*"]} then {
 	    run_dump_test "iamcu-1"
@@ -737,8 +758,13 @@ if [expr ([istarget "i*86-*-*"] || [istarget "x86_64-*-*"]) && [gas_64_check]] t
     run_dump_test "x86-64-mwaitx-bdver4"
     run_list_test "x86-64-mwaitx-reg"
     run_dump_test "x86-64-ospke"
+    run_dump_test "x86-64-rdpid"
+    run_dump_test "x86-64-rdpid-intel"
     run_dump_test "x86-64-fence-as-lock-add-yes"
     run_dump_test "x86-64-fence-as-lock-add-no"
+    run_dump_test "x86-64-pr20141"
+    run_list_test "x86-64-avx512vl-1" "-al"
+    run_list_test "x86-64-avx512vl-2" "-al"
 
     if { ![istarget "*-*-aix*"]
       && ![istarget "*-*-beos*"]
@@ -790,9 +816,12 @@ if [expr ([istarget "i*86-*-*"] || [istarget "x86_64-*-*"]) && [gas_64_check]] t
 	run_dump_test "x86-64-jump"
 	run_dump_test "x86-64-branch-2"
 	run_list_test "x86-64-branch-3" "-al -mintel64"
+	run_list_test "x86-64-branch-4" "-al -mintel64"
 
 	run_dump_test "x86-64-gotpcrel"
 	run_dump_test "x86-64-gotpcrel-no-relax"
+
+	run_dump_test "x86-64-addend"
     }
 
     set ASFLAGS "$old_ASFLAGS"

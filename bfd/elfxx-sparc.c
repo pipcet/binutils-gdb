@@ -4199,11 +4199,9 @@ do_relocation:
 		    if (*name == '\0')
 		      name = bfd_section_name (input_bfd, sec);
 		  }
-		if (! ((*info->callbacks->reloc_overflow)
-		       (info, (h ? &h->root : NULL), name, howto->name,
-			(bfd_vma) 0, input_bfd, input_section,
-			rel->r_offset)))
-		  return FALSE;
+		(*info->callbacks->reloc_overflow)
+		  (info, (h ? &h->root : NULL), name, howto->name,
+		   (bfd_vma) 0, input_bfd, input_section, rel->r_offset);
 	      }
 	      break;
 	    }
@@ -4630,13 +4628,13 @@ sparc_finish_dyn (bfd *output_bfd, struct bfd_link_info *info,
 	    {
 	      asection *s;
 
-	      s = bfd_get_section_by_name (output_bfd, name);
+	      s = bfd_get_linker_section (dynobj, name);
 	      if (s == NULL)
 		dyn.d_un.d_val = 0;
 	      else
 		{
 		  if (! size)
-		    dyn.d_un.d_ptr = s->vma;
+		    dyn.d_un.d_ptr = s->output_section->vma + s->output_offset;
 		  else
 		    dyn.d_un.d_val = s->size;
 		}

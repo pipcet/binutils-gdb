@@ -2632,10 +2632,12 @@ enum elf32_arm_stub_type
 {
   arm_stub_none,
   DEF_STUBS
-  /* Note the first a8_veneer type.  */
-  arm_stub_a8_veneer_lwm = arm_stub_a8_veneer_b_cond
+  max_stub_type
 };
 #undef DEF_STUB
+
+/* Note the first a8_veneer type.  */
+const unsigned arm_stub_a8_veneer_lwm = arm_stub_a8_veneer_b_cond;
 
 typedef struct
 {
@@ -2666,8 +2668,12 @@ struct elf32_arm_stub_hash_entry
   bfd_vma target_value;
   asection *target_section;
 
-  /* Offset to apply to relocation referencing target_value.  */
-  bfd_vma target_addend;
+  /* Same as above but for the source of the branch to the stub.  Used for
+     Cortex-A8 erratum workaround to patch it to branch to the stub.  As
+     such, source section does not need to be recorded since Cortex-A8 erratum
+     workaround stubs are only generated when both source and target are in the
+     same section.  */
+  bfd_vma source_value;
 
   /* The instruction which caused this stub to be generated (only valid for
      Cortex-A8 erratum workaround stubs at present).  */
@@ -2836,7 +2842,7 @@ struct a8_erratum_fix
   bfd *input_bfd;
   asection *section;
   bfd_vma offset;
-  bfd_vma addend;
+  bfd_vma target_offset;
   unsigned long orig_insn;
   char *stub_name;
   enum elf32_arm_stub_type stub_type;
@@ -3158,7 +3164,8 @@ struct elf32_arm_link_hash_table
   bfd *stub_bfd;
 
   /* Linker call-backs.  */
-  asection * (*add_stub_section) (const char *, asection *, unsigned int);
+  asection * (*add_stub_section) (const char *, asection *, asection *,
+				  unsigned int);
   void (*layout_sections_again) (void);
 
   /* Array to keep track of which stub sections have been created, and
@@ -3413,9 +3420,9 @@ stub_hash_newfunc (struct bfd_hash_entry *entry,
       eh = (struct elf32_arm_stub_hash_entry *) entry;
       eh->stub_sec = NULL;
       eh->stub_offset = 0;
+      eh->source_value = 0;
       eh->target_value = 0;
       eh->target_section = NULL;
-      eh->target_addend = 0;
       eh->orig_insn = 0;
       eh->stub_type = arm_stub_none;
       eh->stub_size = 0;
@@ -4129,66 +4136,155 @@ elf32_arm_get_stub_entry (const asection *input_section,
   return stub_entry;
 }
 
-/* Find or create a stub section.  Returns a pointer to the stub section, and
-   the section to which the stub section will be attached (in *LINK_SEC_P).
+/* Whether veneers of type STUB_TYPE require to be in a dedicated output
+   section.  */
+
+static bfd_boolean
+arm_dedicated_stub_output_section_required (enum elf32_arm_stub_type stub_type)
+{
+  if (stub_type >= max_stub_type)
+    abort ();  /* Should be unreachable.  */
+
+  return FALSE;
+}
+
+/* Required alignment (as a power of 2) for the dedicated section holding
+   veneers of type STUB_TYPE, or 0 if veneers of this type are interspersed
+   with input sections.  */
+
+static int
+arm_dedicated_stub_output_section_required_alignment
+  (enum elf32_arm_stub_type stub_type)
+{
+  if (stub_type >= max_stub_type)
+    abort ();  /* Should be unreachable.  */
+
+  BFD_ASSERT (!arm_dedicated_stub_output_section_required (stub_type));
+  return 0;
+}
+
+/* Name of the dedicated output section to put veneers of type STUB_TYPE, or
+   NULL if veneers of this type are interspersed with input sections.  */
+
+static const char *
+arm_dedicated_stub_output_section_name (enum elf32_arm_stub_type stub_type)
+{
+  if (stub_type >= max_stub_type)
+    abort ();  /* Should be unreachable.  */
+
+  BFD_ASSERT (!arm_dedicated_stub_output_section_required (stub_type));
+  return NULL;
+}
+
+/* If veneers of type STUB_TYPE should go in a dedicated output section,
+   returns the address of the hash table field in HTAB holding a pointer to the
+   corresponding input section.  Otherwise, returns NULL.  */
+
+static asection **
+arm_dedicated_stub_input_section_ptr
+  (struct elf32_arm_link_hash_table *htab ATTRIBUTE_UNUSED,
+   enum elf32_arm_stub_type stub_type)
+{
+  if (stub_type >= max_stub_type)
+    abort ();  /* Should be unreachable.  */
+
+  BFD_ASSERT (!arm_dedicated_stub_output_section_required (stub_type));
+  return NULL;
+}
+
+/* Find or create a stub section to contain a stub of type STUB_TYPE.  SECTION
+   is the section that branch into veneer and can be NULL if stub should go in
+   a dedicated output section.  Returns a pointer to the stub section, and the
+   section to which the stub section will be attached (in *LINK_SEC_P).
    LINK_SEC_P may be NULL.  */
 
 static asection *
 elf32_arm_create_or_find_stub_sec (asection **link_sec_p, asection *section,
-				   struct elf32_arm_link_hash_table *htab)
+				   struct elf32_arm_link_hash_table *htab,
+				   enum elf32_arm_stub_type stub_type)
 {
-  asection *link_sec;
-  asection *stub_sec;
+  asection *link_sec, *out_sec, **stub_sec_p;
+  const char *stub_sec_prefix;
+  bfd_boolean dedicated_output_section =
+    arm_dedicated_stub_output_section_required (stub_type);
+  int align;
 
-  link_sec = htab->stub_group[section->id].link_sec;
-  BFD_ASSERT (link_sec != NULL);
-  stub_sec = htab->stub_group[section->id].stub_sec;
-
-  if (stub_sec == NULL)
+  if (dedicated_output_section)
     {
-      stub_sec = htab->stub_group[link_sec->id].stub_sec;
-      if (stub_sec == NULL)
+      bfd *output_bfd = htab->obfd;
+      const char *out_sec_name =
+	arm_dedicated_stub_output_section_name (stub_type);
+      link_sec = NULL;
+      stub_sec_p = arm_dedicated_stub_input_section_ptr (htab, stub_type);
+      stub_sec_prefix = out_sec_name;
+      align = arm_dedicated_stub_output_section_required_alignment (stub_type);
+      out_sec = bfd_get_section_by_name (output_bfd, out_sec_name);
+      if (out_sec == NULL)
 	{
-	  size_t namelen;
-	  bfd_size_type len;
-	  char *s_name;
-
-	  namelen = strlen (link_sec->name);
-	  len = namelen + sizeof (STUB_SUFFIX);
-	  s_name = (char *) bfd_alloc (htab->stub_bfd, len);
-	  if (s_name == NULL)
-	    return NULL;
-
-	  memcpy (s_name, link_sec->name, namelen);
-	  memcpy (s_name + namelen, STUB_SUFFIX, sizeof (STUB_SUFFIX));
-	  stub_sec = (*htab->add_stub_section) (s_name, link_sec,
-						htab->nacl_p ? 4 : 3);
-	  if (stub_sec == NULL)
-	    return NULL;
-	  htab->stub_group[link_sec->id].stub_sec = stub_sec;
+	  (*_bfd_error_handler) (_("No address assigned to the veneers output "
+				   "section %s"), out_sec_name);
+	  return NULL;
 	}
-      htab->stub_group[section->id].stub_sec = stub_sec;
     }
+  else
+    {
+      link_sec = htab->stub_group[section->id].link_sec;
+      BFD_ASSERT (link_sec != NULL);
+      stub_sec_p = &htab->stub_group[section->id].stub_sec;
+      if (*stub_sec_p == NULL)
+	stub_sec_p = &htab->stub_group[link_sec->id].stub_sec;
+      stub_sec_prefix = link_sec->name;
+      out_sec = link_sec->output_section;
+      align = htab->nacl_p ? 4 : 3;
+    }
+
+  if (*stub_sec_p == NULL)
+    {
+      size_t namelen;
+      bfd_size_type len;
+      char *s_name;
+
+      namelen = strlen (stub_sec_prefix);
+      len = namelen + sizeof (STUB_SUFFIX);
+      s_name = (char *) bfd_alloc (htab->stub_bfd, len);
+      if (s_name == NULL)
+	return NULL;
+
+      memcpy (s_name, stub_sec_prefix, namelen);
+      memcpy (s_name + namelen, STUB_SUFFIX, sizeof (STUB_SUFFIX));
+      *stub_sec_p = (*htab->add_stub_section) (s_name, out_sec, link_sec,
+					       align);
+      if (*stub_sec_p == NULL)
+	return NULL;
+
+      out_sec->flags |= SEC_ALLOC | SEC_LOAD | SEC_READONLY | SEC_CODE
+			| SEC_HAS_CONTENTS | SEC_RELOC | SEC_IN_MEMORY
+			| SEC_KEEP;
+    }
+
+  if (!dedicated_output_section)
+    htab->stub_group[section->id].stub_sec = *stub_sec_p;
 
   if (link_sec_p)
     *link_sec_p = link_sec;
 
-  return stub_sec;
+  return *stub_sec_p;
 }
 
 /* Add a new stub entry to the stub hash.  Not all fields of the new
    stub entry are initialised.  */
 
 static struct elf32_arm_stub_hash_entry *
-elf32_arm_add_stub (const char *stub_name,
-		    asection *section,
-		    struct elf32_arm_link_hash_table *htab)
+elf32_arm_add_stub (const char *stub_name, asection *section,
+		    struct elf32_arm_link_hash_table *htab,
+		    enum elf32_arm_stub_type stub_type)
 {
   asection *link_sec;
   asection *stub_sec;
   struct elf32_arm_stub_hash_entry *stub_entry;
 
-  stub_sec = elf32_arm_create_or_find_stub_sec (&link_sec, section, htab);
+  stub_sec = elf32_arm_create_or_find_stub_sec (&link_sec, section, htab,
+						stub_type);
   if (stub_sec == NULL)
     return NULL;
 
@@ -4197,6 +4293,8 @@ elf32_arm_add_stub (const char *stub_name,
 				     TRUE, FALSE);
   if (stub_entry == NULL)
     {
+      if (section == NULL)
+	section = stub_sec;
       (*_bfd_error_handler) (_("%s: cannot create stub entry %s"),
 			     section->owner,
 			     stub_name);
@@ -4325,6 +4423,30 @@ arm_stub_required_alignment (enum elf32_arm_stub_type stub_type)
     }
 }
 
+/* Returns whether stubs of type STUB_TYPE take over the symbol they are
+   veneering (TRUE) or have their own symbol (FALSE).  */
+
+static bfd_boolean
+arm_stub_sym_claimed (enum elf32_arm_stub_type stub_type)
+{
+  if (stub_type >= max_stub_type)
+    abort ();  /* Should be unreachable.  */
+
+  return FALSE;
+}
+
+/* Returns the padding needed for the dedicated section used stubs of type
+   STUB_TYPE.  */
+
+static int
+arm_dedicated_stub_section_padding (enum elf32_arm_stub_type stub_type)
+{
+  if (stub_type >= max_stub_type)
+    abort ();  /* Should be unreachable.  */
+
+  return 0;
+}
+
 static bfd_boolean
 arm_build_one_stub (struct bfd_hash_entry *gen_entry,
 		    void * in_arg)
@@ -4450,65 +4572,36 @@ arm_build_one_stub (struct bfd_hash_entry *gen_entry,
   BFD_ASSERT (nrelocs != 0 && nrelocs <= MAXRELOCS);
 
   for (i = 0; i < nrelocs; i++)
-    if (template_sequence[stub_reloc_idx[i]].r_type == R_ARM_THM_JUMP24
-	|| template_sequence[stub_reloc_idx[i]].r_type == R_ARM_THM_JUMP19
-	|| template_sequence[stub_reloc_idx[i]].r_type == R_ARM_THM_CALL
-	|| template_sequence[stub_reloc_idx[i]].r_type == R_ARM_THM_XPC22)
-      {
-	Elf_Internal_Rela rel;
-	bfd_boolean unresolved_reloc;
-	char *error_message;
-	enum arm_st_branch_type branch_type
-	  = (template_sequence[stub_reloc_idx[i]].r_type != R_ARM_THM_XPC22
-	     ? ST_BRANCH_TO_THUMB : ST_BRANCH_TO_ARM);
-	bfd_vma points_to = sym_value + stub_entry->target_addend;
+    {
+      Elf_Internal_Rela rel;
+      bfd_boolean unresolved_reloc;
+      char *error_message;
+      bfd_vma points_to =
+	sym_value + template_sequence[stub_reloc_idx[i]].reloc_addend;
 
-	rel.r_offset = stub_entry->stub_offset + stub_reloc_offset[i];
-	rel.r_info = ELF32_R_INFO (0,
-				   template_sequence[stub_reloc_idx[i]].r_type);
-	rel.r_addend = template_sequence[stub_reloc_idx[i]].reloc_addend;
+      rel.r_offset = stub_entry->stub_offset + stub_reloc_offset[i];
+      rel.r_info = ELF32_R_INFO (0,
+				 template_sequence[stub_reloc_idx[i]].r_type);
+      rel.r_addend = 0;
 
-	if (stub_entry->stub_type == arm_stub_a8_veneer_b_cond && i == 0)
-	  /* The first relocation in the elf32_arm_stub_a8_veneer_b_cond[]
-	     template should refer back to the instruction after the original
-	     branch.  */
-	  points_to = sym_value;
+      if (stub_entry->stub_type == arm_stub_a8_veneer_b_cond && i == 0)
+	/* The first relocation in the elf32_arm_stub_a8_veneer_b_cond[]
+	   template should refer back to the instruction after the original
+	   branch.  We use target_section as Cortex-A8 erratum workaround stubs
+	   are only generated when both source and target are in the same
+	   section.  */
+	points_to = stub_entry->target_section->output_section->vma
+		    + stub_entry->target_section->output_offset
+		    + stub_entry->source_value;
 
-	/* There may be unintended consequences if this is not true.  */
-	BFD_ASSERT (stub_entry->h == NULL);
-
-	/* Note: _bfd_final_link_relocate doesn't handle these relocations
-	   properly.  We should probably use this function unconditionally,
-	   rather than only for certain relocations listed in the enclosing
-	   conditional, for the sake of consistency.  */
-	elf32_arm_final_link_relocate (elf32_arm_howto_from_type
-	    (template_sequence[stub_reloc_idx[i]].r_type),
-	  stub_bfd, info->output_bfd, stub_sec, stub_sec->contents, &rel,
-	  points_to, info, stub_entry->target_section, "", STT_FUNC,
-	  branch_type, (struct elf_link_hash_entry *) stub_entry->h,
-	  &unresolved_reloc, &error_message);
-      }
-    else
-      {
-	Elf_Internal_Rela rel;
-	bfd_boolean unresolved_reloc;
-	char *error_message;
-	bfd_vma points_to = sym_value + stub_entry->target_addend
-	  + template_sequence[stub_reloc_idx[i]].reloc_addend;
-
-	rel.r_offset = stub_entry->stub_offset + stub_reloc_offset[i];
-	rel.r_info = ELF32_R_INFO (0,
-				   template_sequence[stub_reloc_idx[i]].r_type);
-	rel.r_addend = 0;
-
-	elf32_arm_final_link_relocate (elf32_arm_howto_from_type
-	    (template_sequence[stub_reloc_idx[i]].r_type),
-	  stub_bfd, info->output_bfd, stub_sec, stub_sec->contents, &rel,
-	  points_to, info, stub_entry->target_section, "", STT_FUNC,
-	  stub_entry->branch_type,
-	  (struct elf_link_hash_entry *) stub_entry->h, &unresolved_reloc,
-	  &error_message);
-      }
+      elf32_arm_final_link_relocate (elf32_arm_howto_from_type
+	  (template_sequence[stub_reloc_idx[i]].r_type),
+	   stub_bfd, info->output_bfd, stub_sec, stub_sec->contents, &rel,
+	   points_to, info, stub_entry->target_section, "", STT_FUNC,
+	   stub_entry->branch_type,
+	   (struct elf_link_hash_entry *) stub_entry->h, &unresolved_reloc,
+	   &error_message);
+    }
 
   return TRUE;
 #undef MAXRELOCS
@@ -5101,7 +5194,8 @@ cortex_a8_erratum_scan (bfd *input_bfd,
 			  a8_fixes[num_a8_fixes].input_bfd = input_bfd;
 			  a8_fixes[num_a8_fixes].section = section;
 			  a8_fixes[num_a8_fixes].offset = i;
-			  a8_fixes[num_a8_fixes].addend = offset;
+			  a8_fixes[num_a8_fixes].target_offset =
+			    target - base_vma;
 			  a8_fixes[num_a8_fixes].orig_insn = insn;
 			  a8_fixes[num_a8_fixes].stub_name = stub_name;
 			  a8_fixes[num_a8_fixes].stub_type = stub_type;
@@ -5130,6 +5224,117 @@ cortex_a8_erratum_scan (bfd *input_bfd,
   return FALSE;
 }
 
+/* Create or update a stub entry depending on whether the stub can already be
+   found in HTAB.  The stub is identified by:
+   - its type STUB_TYPE
+   - its source branch (note that several can share the same stub) whose
+     section and relocation (if any) are given by SECTION and IRELA
+     respectively
+   - its target symbol whose input section, hash, name, value and branch type
+     are given in SYM_SEC, HASH, SYM_NAME, SYM_VALUE and BRANCH_TYPE
+     respectively
+
+   If found, the value of the stub's target symbol is updated from SYM_VALUE
+   and *NEW_STUB is set to FALSE.  Otherwise, *NEW_STUB is set to
+   TRUE and the stub entry is initialized.
+
+   Returns whether the stub could be successfully created or updated, or FALSE
+   if an error occured.  */
+
+static bfd_boolean
+elf32_arm_create_stub (struct elf32_arm_link_hash_table *htab,
+		       enum elf32_arm_stub_type stub_type, asection *section,
+		       Elf_Internal_Rela *irela, asection *sym_sec,
+		       struct elf32_arm_link_hash_entry *hash, char *sym_name,
+		       bfd_vma sym_value, enum arm_st_branch_type branch_type,
+		       bfd_boolean *new_stub)
+{
+  const asection *id_sec;
+  char *stub_name;
+  struct elf32_arm_stub_hash_entry *stub_entry;
+  unsigned int r_type;
+  bfd_boolean sym_claimed = arm_stub_sym_claimed (stub_type);
+
+  BFD_ASSERT (stub_type != arm_stub_none);
+  *new_stub = FALSE;
+
+  if (sym_claimed)
+    stub_name = sym_name;
+  else
+    {
+      BFD_ASSERT (irela);
+      BFD_ASSERT (section);
+
+      /* Support for grouping stub sections.  */
+      id_sec = htab->stub_group[section->id].link_sec;
+
+      /* Get the name of this stub.  */
+      stub_name = elf32_arm_stub_name (id_sec, sym_sec, hash, irela,
+				       stub_type);
+      if (!stub_name)
+	return FALSE;
+    }
+
+  stub_entry = arm_stub_hash_lookup (&htab->stub_hash_table, stub_name, FALSE,
+				     FALSE);
+  /* The proper stub has already been created, just update its value.  */
+  if (stub_entry != NULL)
+    {
+      if (!sym_claimed)
+	free (stub_name);
+      stub_entry->target_value = sym_value;
+      return TRUE;
+    }
+
+  stub_entry = elf32_arm_add_stub (stub_name, section, htab, stub_type);
+  if (stub_entry == NULL)
+    {
+      if (!sym_claimed)
+	free (stub_name);
+      return FALSE;
+    }
+
+  stub_entry->target_value = sym_value;
+  stub_entry->target_section = sym_sec;
+  stub_entry->stub_type = stub_type;
+  stub_entry->h = hash;
+  stub_entry->branch_type = branch_type;
+
+  if (sym_claimed)
+    stub_entry->output_name = sym_name;
+  else
+    {
+      if (sym_name == NULL)
+	sym_name = "unnamed";
+      stub_entry->output_name = (char *)
+	bfd_alloc (htab->stub_bfd, sizeof (THUMB2ARM_GLUE_ENTRY_NAME)
+				   + strlen (sym_name));
+      if (stub_entry->output_name == NULL)
+	{
+	  free (stub_name);
+	  return FALSE;
+	}
+
+      /* For historical reasons, use the existing names for ARM-to-Thumb and
+	 Thumb-to-ARM stubs.  */
+      r_type = ELF32_R_TYPE (irela->r_info);
+      if ((r_type == (unsigned int) R_ARM_THM_CALL
+	   || r_type == (unsigned int) R_ARM_THM_JUMP24
+	   || r_type == (unsigned int) R_ARM_THM_JUMP19)
+	  && branch_type == ST_BRANCH_TO_ARM)
+	sprintf (stub_entry->output_name, THUMB2ARM_GLUE_ENTRY_NAME, sym_name);
+      else if ((r_type == (unsigned int) R_ARM_CALL
+		|| r_type == (unsigned int) R_ARM_JUMP24)
+	       && branch_type == ST_BRANCH_TO_THUMB)
+	sprintf (stub_entry->output_name, ARM2THUMB_GLUE_ENTRY_NAME, sym_name);
+      else
+	sprintf (stub_entry->output_name, STUB_ENTRY_NAME, sym_name);
+    }
+
+  *new_stub = TRUE;
+  return TRUE;
+}
+
 /* Determine and set the size of the stub section for a final link.
 
    The basic idea here is to examine all the relocations looking for
@@ -5142,6 +5347,7 @@ elf32_arm_size_stubs (bfd *output_bfd,
 		      struct bfd_link_info *info,
 		      bfd_signed_vma group_size,
 		      asection * (*add_stub_section) (const char *, asection *,
+						      asection *,
 						      unsigned int),
 		      void (*layout_sections_again) (void))
 {
@@ -5217,6 +5423,7 @@ elf32_arm_size_stubs (bfd *output_bfd,
       bfd *input_bfd;
       unsigned int bfd_indx;
       asection *stub_sec;
+      enum elf32_arm_stub_type stub_type;
       bfd_boolean stub_changed = FALSE;
       unsigned prev_num_a8_fixes = num_a8_fixes;
 
@@ -5272,15 +5479,11 @@ elf32_arm_size_stubs (bfd *output_bfd,
 	      for (; irela < irelaend; irela++)
 		{
 		  unsigned int r_type, r_indx;
-		  enum elf32_arm_stub_type stub_type;
-		  struct elf32_arm_stub_hash_entry *stub_entry;
 		  asection *sym_sec;
 		  bfd_vma sym_value;
 		  bfd_vma destination;
 		  struct elf32_arm_link_hash_entry *hash;
 		  const char *sym_name;
-		  char *stub_name;
-		  const asection *id_sec;
 		  unsigned char st_type;
 		  enum arm_st_branch_type branch_type;
 		  bfd_boolean created_stub = FALSE;
@@ -5388,7 +5591,8 @@ elf32_arm_size_stubs (bfd *output_bfd,
 				     + sym_sec->output_offset
 				     + sym_sec->output_section->vma);
 		      st_type = ELF_ST_TYPE (sym->st_info);
-		      branch_type = ARM_SYM_BRANCH_TYPE (sym);
+		      branch_type =
+			ARM_GET_SYM_BRANCH_TYPE (sym->st_target_internal);
 		      sym_name
 			= bfd_elf_string_from_elf_section (input_bfd,
 							   symtab_hdr->sh_link,
@@ -5463,12 +5667,15 @@ elf32_arm_size_stubs (bfd *output_bfd,
 			  goto error_ret_free_internal;
 			}
 		      st_type = hash->root.type;
-		      branch_type = hash->root.target_internal;
+		      branch_type =
+			ARM_GET_SYM_BRANCH_TYPE (hash->root.target_internal);
 		      sym_name = hash->root.root.root.string;
 		    }
 
 		  do
 		    {
+		      bfd_boolean new_stub;
+
 		      /* Determine what (if any) linker stub is needed.  */
 		      stub_type = arm_type_of_stub (info, section, irela,
 						    st_type, &branch_type,
@@ -5477,74 +5684,20 @@ elf32_arm_size_stubs (bfd *output_bfd,
 		      if (stub_type == arm_stub_none)
 			break;
 
-		      /* Support for grouping stub sections.  */
-		      id_sec = htab->stub_group[section->id].link_sec;
-
-		      /* Get the name of this stub.  */
-		      stub_name = elf32_arm_stub_name (id_sec, sym_sec, hash,
-						       irela, stub_type);
-		      if (!stub_name)
-			goto error_ret_free_internal;
-
 		      /* We've either created a stub for this reloc already,
 			 or we are about to.  */
-		      created_stub = TRUE;
+		      created_stub =
+			elf32_arm_create_stub (htab, stub_type, section, irela,
+					       sym_sec, hash,
+					       (char *) sym_name, sym_value,
+					       branch_type, &new_stub);
 
-		      stub_entry = arm_stub_hash_lookup
-				     (&htab->stub_hash_table, stub_name,
-				      FALSE, FALSE);
-		      if (stub_entry != NULL)
-			{
-			  /* The proper stub has already been created.  */
-			  free (stub_name);
-			  stub_entry->target_value = sym_value;
-			  break;
-			}
-
-		      stub_entry = elf32_arm_add_stub (stub_name, section,
-						       htab);
-		      if (stub_entry == NULL)
-			{
-			  free (stub_name);
-			  goto error_ret_free_internal;
-			}
-
-		      stub_entry->target_value = sym_value;
-		      stub_entry->target_section = sym_sec;
-		      stub_entry->stub_type = stub_type;
-		      stub_entry->h = hash;
-		      stub_entry->branch_type = branch_type;
-
-		      if (sym_name == NULL)
-			sym_name = "unnamed";
-		      stub_entry->output_name = (char *)
-			  bfd_alloc (htab->stub_bfd,
-				     sizeof (THUMB2ARM_GLUE_ENTRY_NAME)
-				     + strlen (sym_name));
-		      if (stub_entry->output_name == NULL)
-			{
-			  free (stub_name);
-			  goto error_ret_free_internal;
-			}
-
-		      /* For historical reasons, use the existing names for
-			 ARM-to-Thumb and Thumb-to-ARM stubs.  */
-		      if ((r_type == (unsigned int) R_ARM_THM_CALL
-			   || r_type == (unsigned int) R_ARM_THM_JUMP24
-                           || r_type == (unsigned int) R_ARM_THM_JUMP19)
-			  && branch_type == ST_BRANCH_TO_ARM)
-			sprintf (stub_entry->output_name,
-				 THUMB2ARM_GLUE_ENTRY_NAME, sym_name);
-		      else if ((r_type == (unsigned int) R_ARM_CALL
-			       || r_type == (unsigned int) R_ARM_JUMP24)
-			       && branch_type == ST_BRANCH_TO_THUMB)
-			sprintf (stub_entry->output_name,
-				 ARM2THUMB_GLUE_ENTRY_NAME, sym_name);
+		      if (!created_stub)
+			goto error_ret_free_internal;
+		      else if (!new_stub)
+			break;
 		      else
-			sprintf (stub_entry->output_name, STUB_ENTRY_NAME,
-				 sym_name);
-
-		      stub_changed = TRUE;
+			stub_changed = TRUE;
 		    }
 		  while (0);
 
@@ -5609,6 +5762,15 @@ elf32_arm_size_stubs (bfd *output_bfd,
 		  != 0)
 		goto error_ret_free_local;
 	    }
+
+	  if (local_syms != NULL
+	      && symtab_hdr->contents != (unsigned char *) local_syms)
+	    {
+	      if (!info->keep_memory)
+		free (local_syms);
+	      else
+		symtab_hdr->contents = (unsigned char *) local_syms;
+	    }
 	}
 
       if (prev_num_a8_fixes != num_a8_fixes)
@@ -5630,17 +5792,37 @@ elf32_arm_size_stubs (bfd *output_bfd,
 	  stub_sec->size = 0;
 	}
 
+      /* Compute stub section size, considering padding.  */
       bfd_hash_traverse (&htab->stub_hash_table, arm_size_one_stub, htab);
+      for (stub_type = arm_stub_none + 1; stub_type < max_stub_type;
+	   stub_type++)
+	{
+	  int size, padding;
+	  asection **stub_sec_p;
+
+	  padding = arm_dedicated_stub_section_padding (stub_type);
+	  stub_sec_p = arm_dedicated_stub_input_section_ptr (htab, stub_type);
+	  /* Skip if no stub input section or no stub section padding
+	     required.  */
+	  if ((stub_sec_p != NULL && *stub_sec_p == NULL) || padding == 0)
+	    continue;
+	  /* Stub section padding required but no dedicated section.  */
+	  BFD_ASSERT (stub_sec_p);
+
+	  size = (*stub_sec_p)->size;
+	  size = (size + padding - 1) & ~(padding - 1);
+	  (*stub_sec_p)->size = size;
+	}
 
       /* Add Cortex-A8 erratum veneers to stub section sizes too.  */
       if (htab->fix_cortex_a8)
 	for (i = 0; i < num_a8_fixes; i++)
 	  {
 	    stub_sec = elf32_arm_create_or_find_stub_sec (NULL,
-			 a8_fixes[i].section, htab);
+			 a8_fixes[i].section, htab, a8_fixes[i].stub_type);
 
 	    if (stub_sec == NULL)
-	      goto error_ret_free_local;
+	      return FALSE;
 
 	    stub_sec->size
 	      += find_stub_size_and_template (a8_fixes[i].stub_type, NULL,
@@ -5680,9 +5862,9 @@ elf32_arm_size_stubs (bfd *output_bfd,
 	  stub_entry->stub_offset = 0;
 	  stub_entry->id_sec = link_sec;
 	  stub_entry->stub_type = a8_fixes[i].stub_type;
+	  stub_entry->source_value = a8_fixes[i].offset;
 	  stub_entry->target_section = a8_fixes[i].section;
-	  stub_entry->target_value = a8_fixes[i].offset;
-	  stub_entry->target_addend = a8_fixes[i].addend;
+	  stub_entry->target_value = a8_fixes[i].target_offset;
 	  stub_entry->orig_insn = a8_fixes[i].orig_insn;
 	  stub_entry->branch_type = a8_fixes[i].branch_type;
 
@@ -5735,7 +5917,8 @@ elf32_arm_build_stubs (struct bfd_link_info *info)
       if (!strstr (stub_sec->name, STUB_SUFFIX))
 	continue;
 
-      /* Allocate memory to hold the linker stubs.  */
+      /* Allocate memory to hold the linker stubs.  Zeroing the stub sections
+	 must at least be done for stub section requiring padding.  */
       size = stub_sec->size;
       stub_sec->contents = (unsigned char *) bfd_zalloc (htab->stub_bfd, size);
       if (stub_sec->contents == NULL && size != 0)
@@ -6428,6 +6611,37 @@ bfd_elf32_arm_add_glue_sections_to_bfd (bfd *abfd,
     && arm_make_glue_section (abfd, STM32L4XX_ERRATUM_VENEER_SECTION_NAME);
 }
 
+/* Mark output sections of veneers needing a dedicated one with SEC_KEEP.  This
+   ensures they are not marked for deletion by
+   strip_excluded_output_sections () when veneers are going to be created
+   later.  Not doing so would trigger assert on empty section size in
+   lang_size_sections_1 ().  */
+
+void
+bfd_elf32_arm_keep_private_stub_output_sections (struct bfd_link_info *info)
+{
+  enum elf32_arm_stub_type stub_type;
+
+  /* If we are only performing a partial
+     link do not bother adding the glue.  */
+  if (bfd_link_relocatable (info))
+    return;
+
+  for (stub_type = arm_stub_none + 1; stub_type < max_stub_type; stub_type++)
+    {
+      asection *out_sec;
+      const char *out_sec_name;
+
+      if (!arm_dedicated_stub_output_section_required (stub_type))
+	continue;
+
+     out_sec_name = arm_dedicated_stub_output_section_name (stub_type);
+     out_sec = bfd_get_section_by_name (info->output_bfd, out_sec_name);
+     if (out_sec != NULL)
+	out_sec->flags |= SEC_KEEP;
+    }
+}
+
 /* Select a BFD to be used to hold the sections used by the glue code.
    This function is called from the linker scripts in ld/emultempl/
    {armelf/pe}.em.  */
@@ -6604,7 +6818,8 @@ bfd_elf32_arm_process_before_allocation (bfd *abfd,
 	      /* This one is a call from arm code.  We need to look up
 		 the target of the call.  If it is a thumb target, we
 		 insert glue.  */
-	      if (h->target_internal == ST_BRANCH_TO_THUMB)
+	      if (ARM_GET_SYM_BRANCH_TYPE (h->target_internal)
+		  == ST_BRANCH_TO_THUMB)
 		record_arm_to_thumb_glue (link_info, h);
 	      break;
 
@@ -7442,18 +7657,21 @@ is_thumb2_vldm (const insn32 insn)
 {
   /* A6.5 Extension register load or store instruction
      A7.7.229
-     We look only for the 32-bit registers case since the DP (64-bit
-     registers) are not supported for STM32L4XX
+     We look for SP 32-bit and DP 64-bit registers.
+     Encoding T1 VLDM{mode}<c> <Rn>{!}, <list>
+     <list> is consecutive 64-bit registers
+     1110 - 110P - UDW1 - rrrr - vvvv - 1011 - iiii - iiii
      Encoding T2 VLDM{mode}<c> <Rn>{!}, <list>
      <list> is consecutive 32-bit registers
      1110 - 110P - UDW1 - rrrr - vvvv - 1010 - iiii - iiii
      if P==0 && U==1 && W==1 && Rn=1101 VPOP
      if PUW=010 || PUW=011 || PUW=101 VLDM.  */
   return
-    ((insn & 0xfe100f00) == 0xec100a00)
+    (((insn & 0xfe100f00) == 0xec100b00) ||
+     ((insn & 0xfe100f00) == 0xec100a00))
     && /* (IA without !).  */
     (((((insn << 7) >> 28) & 0xd) == 0x4)
-     /* (IA with !), includes VPOP (when reg number is SP).  */     
+     /* (IA with !), includes VPOP (when reg number is SP).  */
      || ((((insn << 7) >> 28) & 0xd) == 0x5)
      /* (DB with !).  */
      || ((((insn << 7) >> 28) & 0xd) == 0x9));
@@ -7470,19 +7688,19 @@ static bfd_boolean
 stm32l4xx_need_create_replacing_stub (const insn32 insn,
 				      bfd_arm_stm32l4xx_fix stm32l4xx_fix)
 {
-  int nb_regs = 0;
+  int nb_words = 0;
 
   /* The field encoding the register list is the same for both LDMIA
      and LDMDB encodings.  */
   if (is_thumb2_ldmia (insn) || is_thumb2_ldmdb (insn))
-    nb_regs = popcount (insn & 0x0000ffff);
+    nb_words = popcount (insn & 0x0000ffff);
   else if (is_thumb2_vldm (insn))
-   nb_regs = (insn & 0xff);
+   nb_words = (insn & 0xff);
 
   /* DEFAULT mode accounts for the real bug condition situation,
      ALL mode inserts stubs for each LDM/VLDM instruction (testing).  */
   return
-    (stm32l4xx_fix == BFD_ARM_STM32L4XX_FIX_DEFAULT) ? nb_regs > 8 :
+    (stm32l4xx_fix == BFD_ARM_STM32L4XX_FIX_DEFAULT) ? nb_words > 8 :
     (stm32l4xx_fix == BFD_ARM_STM32L4XX_FIX_ALL) ? TRUE : FALSE;
 }
 
@@ -11291,14 +11509,11 @@ elf32_arm_relocate_section (bfd *                  output_bfd,
 	      && r_symndx != STN_UNDEF
 	      && bfd_is_und_section (sec)
 	      && ELF_ST_BIND (sym->st_info) != STB_WEAK)
-	    {
-	      if (!info->callbacks->undefined_symbol
-		  (info, bfd_elf_string_from_elf_section
-		   (input_bfd, symtab_hdr->sh_link, sym->st_name),
-		   input_bfd, input_section,
-		   rel->r_offset, TRUE))
-		return FALSE;
-	    }
+	    (*info->callbacks->undefined_symbol)
+	      (info, bfd_elf_string_from_elf_section
+	       (input_bfd, symtab_hdr->sh_link, sym->st_name),
+	       input_bfd, input_section,
+	       rel->r_offset, TRUE);
 
 	  if (globals->use_rel)
 	    {
@@ -11462,28 +11677,34 @@ elf32_arm_relocate_section (bfd *                  output_bfd,
 	 and we won't let anybody mess with it. Also, we have to do
 	 addend adjustments in case of a R_ARM_TLS_GOTDESC relocation
 	 both in relaxed and non-relaxed cases.  */
-     if ((elf32_arm_tls_transition (info, r_type, h) != (unsigned)r_type)
-	 || (IS_ARM_TLS_GNU_RELOC (r_type)
-	     && !((h ? elf32_arm_hash_entry (h)->tls_type :
-		   elf32_arm_local_got_tls_type (input_bfd)[r_symndx])
-		  & GOT_TLS_GDESC)))
-       {
-	 r = elf32_arm_tls_relax (globals, input_bfd, input_section,
-				  contents, rel, h == NULL);
-	 /* This may have been marked unresolved because it came from
-	    a shared library.  But we've just dealt with that.  */
-	 unresolved_reloc = 0;
-       }
-     else
-       r = bfd_reloc_continue;
+      if ((elf32_arm_tls_transition (info, r_type, h) != (unsigned)r_type)
+	  || (IS_ARM_TLS_GNU_RELOC (r_type)
+	      && !((h ? elf32_arm_hash_entry (h)->tls_type :
+		    elf32_arm_local_got_tls_type (input_bfd)[r_symndx])
+		   & GOT_TLS_GDESC)))
+	{
+	  r = elf32_arm_tls_relax (globals, input_bfd, input_section,
+				   contents, rel, h == NULL);
+	  /* This may have been marked unresolved because it came from
+	     a shared library.  But we've just dealt with that.  */
+	  unresolved_reloc = 0;
+	}
+      else
+	r = bfd_reloc_continue;
 
-     if (r == bfd_reloc_continue)
-       r = elf32_arm_final_link_relocate (howto, input_bfd, output_bfd,
-					  input_section, contents, rel,
-					  relocation, info, sec, name, sym_type,
-					  (h ? h->target_internal
-					   : ARM_SYM_BRANCH_TYPE (sym)), h,
-					  &unresolved_reloc, &error_message);
+      if (r == bfd_reloc_continue)
+	{
+	  unsigned char branch_type =
+	    h ? ARM_GET_SYM_BRANCH_TYPE (h->target_internal)
+	      : ARM_GET_SYM_BRANCH_TYPE (sym->st_target_internal);
+
+	  r = elf32_arm_final_link_relocate (howto, input_bfd, output_bfd,
+					     input_section, contents, rel,
+					     relocation, info, sec, name,
+					     sym_type, branch_type, h,
+					     &unresolved_reloc,
+					     &error_message);
+	}
 
       /* Dynamic relocs are not propagated for SEC_DEBUGGING sections
 	 because such sections are not SEC_ALLOC and thus ld.so will
@@ -11512,20 +11733,15 @@ elf32_arm_relocate_section (bfd *                  output_bfd,
 	      /* If the overflowing reloc was to an undefined symbol,
 		 we have already printed one error message and there
 		 is no point complaining again.  */
-	      if ((! h ||
-		   h->root.type != bfd_link_hash_undefined)
-		  && (!((*info->callbacks->reloc_overflow)
-			(info, (h ? &h->root : NULL), name, howto->name,
-			 (bfd_vma) 0, input_bfd, input_section,
-			 rel->r_offset))))
-		  return FALSE;
+	      if (!h || h->root.type != bfd_link_hash_undefined)
+		(*info->callbacks->reloc_overflow)
+		  (info, (h ? &h->root : NULL), name, howto->name,
+		   (bfd_vma) 0, input_bfd, input_section, rel->r_offset);
 	      break;
 
 	    case bfd_reloc_undefined:
-	      if (!((*info->callbacks->undefined_symbol)
-		    (info, name, input_bfd, input_section,
-		     rel->r_offset, TRUE)))
-		return FALSE;
+	      (*info->callbacks->undefined_symbol)
+		(info, name, input_bfd, input_section, rel->r_offset, TRUE);
 	      break;
 
 	    case bfd_reloc_outofrange:
@@ -11546,10 +11762,8 @@ elf32_arm_relocate_section (bfd *                  output_bfd,
 
 	    common_error:
 	      BFD_ASSERT (error_message != NULL);
-	      if (!((*info->callbacks->reloc_dangerous)
-		    (info, error_message, input_bfd, input_section,
-		     rel->r_offset)))
-		return FALSE;
+	      (*info->callbacks->reloc_dangerous)
+		(info, error_message, input_bfd, input_section, rel->r_offset);
 	      break;
 	    }
 	}
@@ -12734,6 +12948,31 @@ elf32_arm_merge_eabi_attributes (bfd *ibfd, bfd *obfd)
 		}
 	    }
 	  break;
+
+	case Tag_DSP_extension:
+	  /* No need to change output value if any of:
+	     - pre (<=) ARMv5T input architecture (do not have DSP)
+	     - M input profile not ARMv7E-M and do not have DSP.  */
+	  if (in_attr[Tag_CPU_arch].i <= 3
+	      || (in_attr[Tag_CPU_arch_profile].i == 'M'
+		  && in_attr[Tag_CPU_arch].i != 13
+		  && in_attr[i].i == 0))
+	    ; /* Do nothing.  */
+	  /* Output value should be 0 if DSP part of architecture, ie.
+	     - post (>=) ARMv5te architecture output
+	     - A, R or S profile output or ARMv7E-M output architecture.  */
+	  else if (out_attr[Tag_CPU_arch].i >= 4
+		   && (out_attr[Tag_CPU_arch_profile].i == 'A'
+		       || out_attr[Tag_CPU_arch_profile].i == 'R'
+		       || out_attr[Tag_CPU_arch_profile].i == 'S'
+		       || out_attr[Tag_CPU_arch].i == 13))
+	    out_attr[i].i = 0;
+	  /* Otherwise, DSP instructions are added and not part of output
+	     architecture.  */
+	  else
+	    out_attr[i].i = 1;
+	  break;
+
 	case Tag_FP_arch:
 	    {
 	      /* Tag_ABI_HardFP_use is handled along with Tag_FP_arch since
@@ -14118,8 +14357,6 @@ elf32_arm_adjust_dynamic_symbol (struct bfd_link_info * info,
      .rel(a).bss section we are going to use.  */
   if (info->nocopyreloc == 0
       && (h->root.u.def.section->flags & SEC_ALLOC) != 0
-      /* PR 16177: A copy is only needed if the input section is readonly.  */
-      && (h->root.u.def.section->flags & SEC_READONLY) == 0
       && h->size != 0)
     {
       asection *srel;
@@ -14203,7 +14440,7 @@ allocate_dynrelocs_for_symbol (struct elf_link_hash_entry *h, void * inf)
 	      /* Make sure the function is not marked as Thumb, in case
 		 it is the target of an ABS32 relocation, which will
 		 point to the PLT entry.  */
-	      h->target_internal = ST_BRANCH_TO_ARM;
+	      ARM_SET_SYM_BRANCH_TYPE (h->target_internal, ST_BRANCH_TO_ARM);
 	    }
 
 	  /* VxWorks executables have a second set of relocations for
@@ -14351,7 +14588,7 @@ allocate_dynrelocs_for_symbol (struct elf_link_hash_entry *h, void * inf)
   /* Allocate stubs for exported Thumb functions on v4t.  */
   if (!htab->use_blx && h->dynindx != -1
       && h->def_regular
-      && h->target_internal == ST_BRANCH_TO_THUMB
+      && ARM_GET_SYM_BRANCH_TYPE (h->target_internal) == ST_BRANCH_TO_THUMB
       && ELF_ST_VISIBILITY (h->other) == STV_DEFAULT)
     {
       struct elf_link_hash_entry * th;
@@ -14371,12 +14608,12 @@ allocate_dynrelocs_for_symbol (struct elf_link_hash_entry *h, void * inf)
       myh = (struct elf_link_hash_entry *) bh;
       myh->type = ELF_ST_INFO (STB_LOCAL, STT_FUNC);
       myh->forced_local = 1;
-      myh->target_internal = ST_BRANCH_TO_THUMB;
+      ARM_SET_SYM_BRANCH_TYPE (myh->target_internal, ST_BRANCH_TO_THUMB);
       eh->export_glue = myh;
       th = record_arm_to_thumb_glue (info, h);
       /* Point the symbol at the stub.  */
       h->type = ELF_ST_INFO (ELF_ST_BIND (h->type), STT_FUNC);
-      h->target_internal = ST_BRANCH_TO_ARM;
+      ARM_SET_SYM_BRANCH_TYPE (h->target_internal, ST_BRANCH_TO_ARM);
       h->root.u.def.section = th->root.u.def.section;
       h->root.u.def.value = th->root.u.def.value & ~1;
     }
@@ -15031,7 +15268,7 @@ elf32_arm_finish_dynamic_symbol (bfd * output_bfd,
 	  /* At least one non-call relocation references this .iplt entry,
 	     so the .iplt entry is the function's canonical address.  */
 	  sym->st_info = ELF_ST_INFO (ELF_ST_BIND (sym->st_info), STT_FUNC);
-	  sym->st_target_internal = ST_BRANCH_TO_ARM;
+	  ARM_SET_SYM_BRANCH_TYPE (sym->st_target_internal, ST_BRANCH_TO_ARM);
 	  sym->st_shndx = (_bfd_elf_section_from_bfd_section
 			   (output_bfd, htab->root.iplt->output_section));
 	  sym->st_value = (h->plt.offset
@@ -15194,27 +15431,26 @@ elf32_arm_finish_dynamic_sections (bfd * output_bfd, struct bfd_link_info * info
 	      goto get_vma_if_bpabi;
 
 	    case DT_PLTGOT:
-	      name = ".got";
+	      name = htab->symbian_p ? ".got" : ".got.plt";
 	      goto get_vma;
 	    case DT_JMPREL:
 	      name = RELOC_SECTION (htab, ".plt");
 	    get_vma:
-	      s = bfd_get_section_by_name (output_bfd, name);
+	      s = bfd_get_linker_section (dynobj, name);
 	      if (s == NULL)
 		{
-		  /* PR ld/14397: Issue an error message if a required section is missing.  */
 		  (*_bfd_error_handler)
-		    (_("error: required section '%s' not found in the linker script"), name);
+		    (_("could not find section %s"), name);
 		  bfd_set_error (bfd_error_invalid_operation);
 		  return FALSE;
 		}
 	      if (!htab->symbian_p)
-		dyn.d_un.d_ptr = s->vma;
+		dyn.d_un.d_ptr = s->output_section->vma + s->output_offset;
 	      else
 		/* In the BPABI, tags in the PT_DYNAMIC section point
 		   at the file offset, not the memory address, for the
 		   convenience of the post linker.  */
-		dyn.d_un.d_ptr = s->filepos;
+		dyn.d_un.d_ptr = s->output_section->filepos + s->output_offset;
 	      bfd_elf32_swap_dyn_out (output_bfd, &dyn, dyncon);
 	      break;
 
@@ -15315,7 +15551,9 @@ elf32_arm_finish_dynamic_sections (bfd * output_bfd, struct bfd_link_info * info
 
 		  eh = elf_link_hash_lookup (elf_hash_table (info), name,
 					     FALSE, FALSE, TRUE);
-		  if (eh != NULL && eh->target_internal == ST_BRANCH_TO_THUMB)
+		  if (eh != NULL
+		      && ARM_GET_SYM_BRANCH_TYPE (eh->target_internal)
+			 == ST_BRANCH_TO_THUMB)
 		    {
 		      dyn.d_un.d_val |= 1;
 		      bfd_elf32_swap_dyn_out (output_bfd, &dyn, dyncon);
@@ -15799,6 +16037,20 @@ elf32_arm_output_plt_map (struct elf_link_hash_entry *h, void *inf)
 				     &h->plt, &eh->plt);
 }
 
+/* Bind a veneered symbol to its veneer identified by its hash entry
+   STUB_ENTRY.  The veneered location thus loose its symbol.  */
+
+static void
+arm_stub_claim_sym (struct elf32_arm_stub_hash_entry *stub_entry)
+{
+  struct elf32_arm_link_hash_entry *hash = stub_entry->h;
+
+  BFD_ASSERT (hash);
+  hash->root.root.u.def.section = stub_entry->stub_sec;
+  hash->root.root.u.def.value = stub_entry->stub_offset;
+  hash->root.size = stub_entry->stub_size;
+}
+
 /* Output a single local symbol for a generated stub.  */
 
 static bfd_boolean
@@ -15845,24 +16097,30 @@ arm_map_one_stub (struct bfd_hash_entry * gen_entry,
     return TRUE;
 
   addr = (bfd_vma) stub_entry->stub_offset;
-  stub_name = stub_entry->output_name;
-
   template_sequence = stub_entry->stub_template;
-  switch (template_sequence[0].type)
+
+  if (arm_stub_sym_claimed (stub_entry->stub_type))
+    arm_stub_claim_sym (stub_entry);
+  else
     {
-    case ARM_TYPE:
-      if (!elf32_arm_output_stub_sym (osi, stub_name, addr, stub_entry->stub_size))
-	return FALSE;
-      break;
-    case THUMB16_TYPE:
-    case THUMB32_TYPE:
-      if (!elf32_arm_output_stub_sym (osi, stub_name, addr | 1,
-				      stub_entry->stub_size))
-	return FALSE;
-      break;
-    default:
-      BFD_FAIL ();
-      return 0;
+      stub_name = stub_entry->output_name;
+      switch (template_sequence[0].type)
+	{
+	case ARM_TYPE:
+	  if (!elf32_arm_output_stub_sym (osi, stub_name, addr,
+					  stub_entry->stub_size))
+	    return FALSE;
+	  break;
+	case THUMB16_TYPE:
+	case THUMB32_TYPE:
+	  if (!elf32_arm_output_stub_sym (osi, stub_name, addr | 1,
+					  stub_entry->stub_size))
+	    return FALSE;
+	  break;
+	default:
+	  BFD_FAIL ();
+	  return 0;
+	}
     }
 
   prev_type = DATA_TYPE;
@@ -16251,7 +16509,7 @@ make_branch_to_a8_stub (struct bfd_hash_entry *gen_entry,
   bfd_vma veneered_insn_loc, veneer_entry_loc;
   bfd_signed_vma branch_offset;
   bfd *abfd;
-  unsigned int target;
+  unsigned int loc;
 
   stub_entry = (struct elf32_arm_stub_hash_entry *) gen_entry;
   data = (struct a8_branch_to_stub_data *) in_arg;
@@ -16262,9 +16520,11 @@ make_branch_to_a8_stub (struct bfd_hash_entry *gen_entry,
 
   contents = data->contents;
 
+  /* We use target_section as Cortex-A8 erratum workaround stubs are only
+     generated when both source and target are in the same section.  */
   veneered_insn_loc = stub_entry->target_section->output_section->vma
 		      + stub_entry->target_section->output_offset
-		      + stub_entry->target_value;
+		      + stub_entry->source_value;
 
   veneer_entry_loc = stub_entry->stub_sec->output_section->vma
 		     + stub_entry->stub_sec->output_offset
@@ -16276,7 +16536,7 @@ make_branch_to_a8_stub (struct bfd_hash_entry *gen_entry,
   branch_offset = veneer_entry_loc - veneered_insn_loc - 4;
 
   abfd = stub_entry->target_section->owner;
-  target = stub_entry->target_value;
+  loc = stub_entry->source_value;
 
   /* We attempt to avoid this condition by setting stubs_always_after_branch
      in elf32_arm_size_stubs if we've enabled the Cortex-A8 erratum workaround.
@@ -16337,8 +16597,8 @@ make_branch_to_a8_stub (struct bfd_hash_entry *gen_entry,
       return FALSE;
     }
 
-  bfd_put_16 (abfd, (branch_insn >> 16) & 0xffff, &contents[target]);
-  bfd_put_16 (abfd, branch_insn & 0xffff, &contents[target + 2]);
+  bfd_put_16 (abfd, (branch_insn >> 16) & 0xffff, &contents[loc]);
+  bfd_put_16 (abfd, branch_insn & 0xffff, &contents[loc + 2]);
 
   return TRUE;
 }
@@ -16434,30 +16694,31 @@ create_instruction_sub (int target_reg, int source_reg, int value)
 }
 
 static inline bfd_vma
-create_instruction_vldmia (int base_reg, int wback, int num_regs,
+create_instruction_vldmia (int base_reg, int is_dp, int wback, int num_words,
 			   int first_reg)
 {
   /* A8.8.332 VLDM (A8-922)
-     VLMD{MODE} Rn{!}, {list} (Encoding T2).  */
-  bfd_vma patched_inst = 0xec900a00
+     VLMD{MODE} Rn{!}, {list} (Encoding T1 or T2).  */
+  bfd_vma patched_inst = (is_dp ? 0xec900b00 : 0xec900a00)
     | (/*W=*/wback << 21)
     | (base_reg << 16)
-    | (num_regs & 0x000000ff)
-    | (((unsigned)first_reg>>1) & 0x0000000f) << 12
+    | (num_words & 0x000000ff)
+    | (((unsigned)first_reg >> 1) & 0x0000000f) << 12
     | (first_reg & 0x00000001) << 22;
 
   return patched_inst;
 }
 
 static inline bfd_vma
-create_instruction_vldmdb (int base_reg, int num_regs, int first_reg)
+create_instruction_vldmdb (int base_reg, int is_dp, int num_words,
+			   int first_reg)
 {
   /* A8.8.332 VLDM (A8-922)
-     VLMD{MODE} Rn!, {} (Encoding T2).  */
-  bfd_vma patched_inst = 0xed300a00
+     VLMD{MODE} Rn!, {} (Encoding T1 or T2).  */
+  bfd_vma patched_inst = (is_dp ? 0xed300b00 : 0xed300a00)
     | (base_reg << 16)
-    | (num_regs & 0x000000ff)
-    | (((unsigned)first_reg>>1) & 0x0000000f) << 12
+    | (num_words & 0x000000ff)
+    | (((unsigned)first_reg >>1 ) & 0x0000000f) << 12
     | (first_reg & 0x00000001) << 22;
 
   return patched_inst;
@@ -16937,15 +17198,15 @@ stm32l4xx_create_replacing_stub_vldm (struct elf32_arm_link_hash_table * htab,
 				      const bfd_byte *const initial_insn_addr,
 				      bfd_byte *const base_stub_contents)
 {
-  int num_regs = ((unsigned int)initial_insn << 24) >> 24;
+  int num_words = ((unsigned int) initial_insn << 24) >> 24;
   bfd_byte *current_stub_contents = base_stub_contents;
 
   BFD_ASSERT (is_thumb2_vldm (initial_insn));
 
   /* In BFD_ARM_STM32L4XX_FIX_ALL mode we may have to deal with
-     smaller than 8 registers load sequences that do not cause the
+     smaller than 8 words load sequences that do not cause the
      hardware issue.  */
-  if (num_regs <= 8)
+  if (num_words <= 8)
     {
       /* Untouched instruction.  */
       current_stub_contents =
@@ -16960,28 +17221,30 @@ stm32l4xx_create_replacing_stub_vldm (struct elf32_arm_link_hash_table * htab,
     }
   else
     {
+      bfd_boolean is_dp = /* DP encoding. */
+	(initial_insn & 0xfe100f00) == 0xec100b00;
       bfd_boolean is_ia_nobang = /* (IA without !).  */
 	(((initial_insn << 7) >> 28) & 0xd) == 0x4;
       bfd_boolean is_ia_bang = /* (IA with !) - includes VPOP.  */
 	(((initial_insn << 7) >> 28) & 0xd) == 0x5;
       bfd_boolean is_db_bang = /* (DB with !).  */
 	(((initial_insn << 7) >> 28) & 0xd) == 0x9;
-      int base_reg = ((unsigned int)initial_insn << 12) >> 28;
+      int base_reg = ((unsigned int) initial_insn << 12) >> 28;
       /* d = UInt (Vd:D);.  */
-      int first_reg = ((((unsigned int)initial_insn << 16) >> 28) << 1)
+      int first_reg = ((((unsigned int) initial_insn << 16) >> 28) << 1)
 	| (((unsigned int)initial_insn << 9) >> 31);
 
-      /* Compute the number of 8-register chunks needed to split.  */
-      int chunks = (num_regs%8) ? (num_regs/8 + 1) : (num_regs/8);
+      /* Compute the number of 8-words chunks needed to split.  */
+      int chunks = (num_words % 8) ? (num_words / 8 + 1) : (num_words / 8);
       int chunk;
 
       /* The test coverage has been done assuming the following
 	 hypothesis that exactly one of the previous is_ predicates is
 	 true.  */
-      BFD_ASSERT ((is_ia_nobang ^ is_ia_bang ^ is_db_bang) &&
-		  !(is_ia_nobang & is_ia_bang & is_db_bang));
+      BFD_ASSERT (    (is_ia_nobang ^ is_ia_bang ^ is_db_bang)
+		  && !(is_ia_nobang & is_ia_bang & is_db_bang));
 
-      /* We treat the cutting of the register in one pass for all
+      /* We treat the cutting of the words in one pass for all
 	 cases, then we emit the adjustments:
 
 	 vldm rx, {...}
@@ -16994,29 +17257,34 @@ stm32l4xx_create_replacing_stub_vldm (struct elf32_arm_link_hash_table * htab,
 
 	 vldmd rx!, {...}
 	 -> vldmb rx!, {8_words_or_less} for each needed 8_word.  */
-      for (chunk = 0; chunk<chunks; ++chunk)
+      for (chunk = 0; chunk < chunks; ++chunk)
 	{
+	  bfd_vma new_insn = 0;
+
 	  if (is_ia_nobang || is_ia_bang)
 	    {
-	      current_stub_contents =
-		push_thumb2_insn32 (htab, output_bfd, current_stub_contents,
-				    create_instruction_vldmia
-				    (base_reg,
-				     /*wback= .  */1,
-				     chunks - (chunk + 1) ?
-				     8 : num_regs - chunk * 8,
-				     first_reg + chunk * 8));
+	      new_insn = create_instruction_vldmia
+		(base_reg,
+		 is_dp,
+		 /*wback= .  */1,
+		 chunks - (chunk + 1) ?
+		 8 : num_words - chunk * 8,
+		 first_reg + chunk * 8);
 	    }
 	  else if (is_db_bang)
 	    {
-	      current_stub_contents =
-		push_thumb2_insn32 (htab, output_bfd, current_stub_contents,
-				    create_instruction_vldmdb
-				    (base_reg,
-				     chunks - (chunk + 1) ?
-				     8 : num_regs - chunk * 8,
-				     first_reg + chunk * 8));
+	      new_insn = create_instruction_vldmdb
+		(base_reg,
+		 is_dp,
+		 chunks - (chunk + 1) ?
+		 8 : num_words - chunk * 8,
+		 first_reg + chunk * 8);
 	    }
+
+	  if (new_insn)
+	    current_stub_contents =
+	      push_thumb2_insn32 (htab, output_bfd, current_stub_contents,
+				  new_insn);
 	}
 
       /* Only this case requires the base register compensation
@@ -17026,7 +17294,7 @@ stm32l4xx_create_replacing_stub_vldm (struct elf32_arm_link_hash_table * htab,
 	  current_stub_contents =
 	    push_thumb2_insn32 (htab, output_bfd, current_stub_contents,
 				create_instruction_sub
-				(base_reg, base_reg, 4*num_regs));
+				(base_reg, base_reg, 4*num_words));
 	}
 
       /* B initial_insn_addr+4.  */
@@ -17481,6 +17749,7 @@ elf32_arm_swap_symbol_in (bfd * abfd,
 {
   if (!bfd_elf32_swap_symbol_in (abfd, psrc, pshn, dst))
     return FALSE;
+  dst->st_target_internal = 0;
 
   /* New EABI objects mark thumb function symbols by setting the low bit of
      the address.  */
@@ -17490,20 +17759,21 @@ elf32_arm_swap_symbol_in (bfd * abfd,
       if (dst->st_value & 1)
 	{
 	  dst->st_value &= ~(bfd_vma) 1;
-	  dst->st_target_internal = ST_BRANCH_TO_THUMB;
+	  ARM_SET_SYM_BRANCH_TYPE (dst->st_target_internal,
+				   ST_BRANCH_TO_THUMB);
 	}
       else
-	dst->st_target_internal = ST_BRANCH_TO_ARM;
+	ARM_SET_SYM_BRANCH_TYPE (dst->st_target_internal, ST_BRANCH_TO_ARM);
     }
   else if (ELF_ST_TYPE (dst->st_info) == STT_ARM_TFUNC)
     {
       dst->st_info = ELF_ST_INFO (ELF_ST_BIND (dst->st_info), STT_FUNC);
-      dst->st_target_internal = ST_BRANCH_TO_THUMB;
+      ARM_SET_SYM_BRANCH_TYPE (dst->st_target_internal, ST_BRANCH_TO_THUMB);
     }
   else if (ELF_ST_TYPE (dst->st_info) == STT_SECTION)
-    dst->st_target_internal = ST_BRANCH_LONG;
+    ARM_SET_SYM_BRANCH_TYPE (dst->st_target_internal, ST_BRANCH_LONG);
   else
-    dst->st_target_internal = ST_BRANCH_UNKNOWN;
+    ARM_SET_SYM_BRANCH_TYPE (dst->st_target_internal, ST_BRANCH_UNKNOWN);
 
   return TRUE;
 }
@@ -17523,7 +17793,7 @@ elf32_arm_swap_symbol_out (bfd *abfd,
      of the address set, as per the new EABI.  We do this unconditionally
      because objcopy does not set the elf header flags until after
      it writes out the symbol table.  */
-  if (src->st_target_internal == ST_BRANCH_TO_THUMB)
+  if (ARM_GET_SYM_BRANCH_TYPE (src->st_target_internal) == ST_BRANCH_TO_THUMB)
     {
       newsym = *src;
       if (ELF_ST_TYPE (src->st_info) != STT_GNU_IFUNC)
@@ -17605,11 +17875,10 @@ elf32_arm_add_symbol_hook (bfd *abfd, struct bfd_link_info *info,
 			   Elf_Internal_Sym *sym, const char **namep,
 			   flagword *flagsp, asection **secp, bfd_vma *valp)
 {
-  if ((ELF_ST_TYPE (sym->st_info) == STT_GNU_IFUNC
-       || ELF_ST_BIND (sym->st_info) == STB_GNU_UNIQUE)
+  if (ELF_ST_TYPE (sym->st_info) == STT_GNU_IFUNC
       && (abfd->flags & DYNAMIC) == 0
       && bfd_get_flavour (info->output_bfd) == bfd_target_elf_flavour)
-    elf_tdata (info->output_bfd)->has_gnu_symbols = elf_gnu_symbol_any;
+    elf_tdata (info->output_bfd)->has_gnu_symbols |= elf_gnu_symbol_ifunc;
 
   if (elf32_arm_hash_table (info) == NULL)
     return FALSE;

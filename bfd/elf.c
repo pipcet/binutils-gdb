@@ -407,11 +407,17 @@ bfd_elf_get_elf_syms (bfd *ibfd,
 
       /* Find an index section that is linked to this symtab section.  */
       for (entry = elf_symtab_shndx_list (ibfd); entry != NULL; entry = entry->next)
-	if (sections[entry->hdr.sh_link] == symtab_hdr)
-	  {
-	    shndx_hdr = & entry->hdr;
-	    break;
-	  };
+	{
+	  /* PR 20063.  */
+	  if (entry->hdr.sh_link >= elf_numsections (ibfd))
+	    continue;
+
+	  if (sections[entry->hdr.sh_link] == symtab_hdr)
+	    {
+	      shndx_hdr = & entry->hdr;
+	      break;
+	    };
+	}
 
       if (shndx_hdr == NULL)
 	{
@@ -3202,12 +3208,15 @@ elf_fake_sections (bfd *abfd, asection *asect, void *fsarg)
       break;
 
     case SHT_STRTAB:
-    case SHT_INIT_ARRAY:
-    case SHT_FINI_ARRAY:
-    case SHT_PREINIT_ARRAY:
     case SHT_NOTE:
     case SHT_NOBITS:
     case SHT_PROGBITS:
+      break;
+
+    case SHT_INIT_ARRAY:
+    case SHT_FINI_ARRAY:
+    case SHT_PREINIT_ARRAY:
+      this_hdr->sh_entsize = bed->s->arch_size / 8;
       break;
 
     case SHT_HASH:

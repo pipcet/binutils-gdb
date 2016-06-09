@@ -25,7 +25,7 @@
 #define OPCODE_ARC_H
 
 #ifndef MAX_INSN_ARGS
-#define MAX_INSN_ARGS	     8
+#define MAX_INSN_ARGS	     16
 #endif
 
 #ifndef MAX_INSN_FLGS
@@ -59,6 +59,7 @@ typedef enum
     BTSCN,
     CD1,
     CD2,
+    COND,
     DIV,
     DP,
     DPA,
@@ -91,7 +92,10 @@ typedef enum
 
     /* The conditional code can be extended over the standard variants
        via .extCondCode pseudo-op.  */
-    F_CLASS_EXTEND = (1 << 2)
+    F_CLASS_EXTEND = (1 << 2),
+
+    /* Condition code flag.  */
+    F_CLASS_COND = (1 << 3)
   } flag_class_t;
 
 /* The opcode table is an array of struct arc_opcode.  */
@@ -116,7 +120,7 @@ struct arc_opcode
   unsigned cpu;
 
   /* The instruction class.  This is used by gdb.  */
-  insn_class_t class;
+  insn_class_t insn_class;
 
   /* The instruction subclass.  */
   insn_subclass_t subclass;
@@ -131,6 +135,30 @@ struct arc_opcode
      assembly code, and are terminated by a zero.  */
   unsigned char flags[MAX_INSN_FLGS + 1];
 };
+
+/* Structure used to describe 48 and 64 bit instructions.  */
+struct arc_long_opcode
+{
+  /* The base instruction is either 16 or 32 bits, and is described like a
+     normal instruction.  */
+  struct arc_opcode base_opcode;
+
+  /* The template value for the 32-bit LIMM extension.  Used by the
+     assembler and disassembler in the same way as the 'opcode' field of
+     'struct arc_opcode'.  */
+  unsigned limm_template;
+
+  /* The mask value for the 32-bit LIMM extension.  Used by the
+     disassembler just like the 'mask' field in 'struct arc_opcode'.  */
+  unsigned limm_mask;
+
+  /* Array of operand codes similar to the 'operands' array in 'struct
+     arc_opcode'.  These operands are used to fill in the LIMM value.  */
+  unsigned char operands[MAX_INSN_ARGS + 1];
+};
+
+extern const struct arc_long_opcode arc_long_opcodes[];
+extern const unsigned arc_num_long_opcodes;
 
 /* The table itself is sorted by major opcode number, and is otherwise
    in the order in which the disassembler should consider
@@ -335,7 +363,7 @@ extern const unsigned arc_num_flag_operands;
 struct arc_flag_class
 {
   /* Flag class.  */
-  flag_class_t class;
+  flag_class_t flag_class;
 
   /* List of valid flags (codes).  */
   unsigned flags[256];

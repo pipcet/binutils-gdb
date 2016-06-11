@@ -3,8 +3,20 @@ ENTRY(_start)
 SECTIONS
 {
   . = 16384;
-  .predata :
+  .asmjs.header :
   {
+     LONG(ABSOLUTE(__data_start));
+     LONG(0);
+     LONG(ABSOLUTE(__terminator));
+     LONG(0);
+     LONG(0);
+     LONG(0);
+     LONG(0);
+     LONG(0);
+     LONG(0);
+     LONG(0);
+     LONG(0);
+     LONG(0);
      LONG(0);
      LONG(0);
      LONG(0);
@@ -13,6 +25,7 @@ SECTIONS
   .data :
   {
      . = ALIGN(., 16);
+     __data_start = .;
      *(.data*)
      . = ALIGN(., 16);
      *(.gnu.linkonce.d.*)
@@ -91,6 +104,27 @@ SECTIONS
     KEEP (*(EXCLUDE_FILE (*crtend.o *crtend?.o ) .dtors))
     KEEP (*(SORT(.dtors.*)))
     KEEP (*(.dtors))
+  }
+  . = ALIGN(., 16);
+  .asmjs.term :
+  {
+    PROVIDE_HIDDEN(__terminator = .);
+    LONG(0);
+    LONG(0);
+    LONG(0);
+    LONG(0);
+    LONG(0);
+    LONG(0);
+    LONG(0);
+    LONG(0);
+    LONG(0);
+    LONG(0);
+    LONG(0);
+    LONG(0);
+    LONG(0);
+    LONG(0);
+    LONG(0);
+    LONG(0);
   }
   . = 0x40010000;
   .init : { *(.init*) }

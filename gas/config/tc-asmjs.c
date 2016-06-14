@@ -389,17 +389,17 @@ void asmjs_start_line_hook (void)
         *q++ = '\\';
         *q++ = '\"';
         break;
-      case '$':
-        if (p[1] == '\n') {
-          p+=2;
-          goto out;
-        }
-        break;
       case '\n':
         *q++ = '\\';
         *q++ = 'n';
         p++;
         goto out;
+      case '$':
+        if (p[1] == '\n') {
+          p+=2;
+          goto out;
+        }
+        /* fall through */
       default:
         *q++ = *p;
         break;

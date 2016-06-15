@@ -431,6 +431,7 @@ ALL_EMULATION_SOURCES = \
 	evaxnbsd.c \
 	evsta.c \
 	ew65.c \
+	ewasm.c \
 	exgateelf.c \
 	ez80.c \
 	ez8001.c \
@@ -2053,6 +2054,11 @@ eshlelf64_nbsd.c: $(srcdir)/emulparams/shlelf64_nbsd.sh \
   $(srcdir)/emulparams/shelf64_nbsd.sh \
   $(srcdir)/emulparams/shelf32_nbsd.sh $(srcdir)/emulparams/shelf32.sh \
   $(ELF_DEPS) $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
+
+ewasm.c: $(srcdir)/emulparams/wasm.sh \
+  $(srcdir)/emulparams/wasm.sh $(ELF_DEPS) \
+  $(srcdir)/emultempl/wasm.em $(srcdir)/scripttempl/wasm.sc \
+  ${GEN_DEPENDS}
 
 
 # We need this for automake to use YLWRAP.

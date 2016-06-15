@@ -641,6 +641,10 @@ vax-*-*)
 	gdb_target_obs="vax-tdep.o"
 	;;
 
+wasm-*-*)
+        # Target: ASMJS virtual machine
+        gdb_target_obs="wasm-tdep.o"
+        ;;
 x86_64-*-darwin*)
 	# Target: Darwin/x86-64
 	gdb_target_obs="amd64-tdep.o i386-tdep.o i387-tdep.o \

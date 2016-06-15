@@ -256,6 +256,7 @@ TARGET_LIBOPCODES_CFILES = \
 	visium-dis.c \
 	visium-opc.c \
 	w65-dis.c \
+	wasm-dis.c \
 	xc16x-asm.c \
 	xc16x-desc.c \
 	xc16x-dis.c \

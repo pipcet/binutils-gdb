@@ -93,6 +93,7 @@
 #define ARCH_vax
 #define ARCH_visium
 #define ARCH_w65
+#define ARCH_wasm
 #define ARCH_xstormy16
 #define ARCH_xc16x
 #define ARCH_xgate
@@ -466,6 +467,11 @@ disassembler (bfd *abfd)
 #ifdef ARCH_w65
     case bfd_arch_w65:
       disassemble = print_insn_w65;
+      break;
+#endif
+#ifdef ARCH_wasm
+    case bfd_arch_wasm:
+      disassemble = print_insn_little_wasm;
       break;
 #endif
 #ifdef ARCH_xgate

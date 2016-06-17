@@ -149,6 +149,20 @@ SECTIONS
   .javascript.special.export : { *(.javascript.special.export*) }
   .javascript.special.define : { *(.javascript.special.define*) }
   .javascript.special.fpswitch : { *(.javascript.special.fpswitch*) }
+
+  .wasm-pwas.init : { FILL(0x20202020); *(.wasm-pwas.init*) }
+  .wasm-pwas.text :
+  {
+    FILL(0x20202020);
+    *(.wasm-pwas.text*)
+    *(.wasm-pwas__libc_freeres_fn*)
+    *(.wasm-pwas__libc_thread_freeres_fn*)
+  }
+  .wasm-pwas.fini : { FILL(0x20202020); *(.wasm-pwas.fini*) }
+
+  .wasm-pwas.special.export : { *(.wasm-pwas.special.export*) }
+  .wasm-pwas.special.define : { *(.wasm-pwas.special.define*) }
+  .wasm-pwas.special.fpswitch : { *(.wasm-pwas.special.fpswitch*) }
 EOF
 
 . $srcdir/scripttempl/DWARF.sc

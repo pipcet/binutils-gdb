@@ -111,6 +111,7 @@ case ${cpu} in
   v850*)		cpu_type=v850 ;;
   visium)		cpu_type=visium endian=big ;;
   wasm)                 cpu_type=wasm endian=little ;;
+  wasm64)               cpu_type=wasm64 endian=little ;;
   x86_64*)		cpu_type=i386 arch=x86_64;;
   xgate)		cpu_type=xgate ;;
   xtensa*)		cpu_type=xtensa arch=xtensa ;;
@@ -468,6 +469,8 @@ case ${generic_target} in
   visium-*-elf)				fmt=elf ;;
 
   wasm-*-*)                             fmt=elf ;;
+
+  wasm64-*-*)                           fmt=elf ;;
 
   xstormy16-*-*)			fmt=elf ;;
   

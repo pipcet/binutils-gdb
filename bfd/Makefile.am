@@ -169,6 +169,7 @@ ALL_MACHINES = \
 	cpu-visium.lo \
 	cpu-w65.lo \
 	cpu-wasm.lo \
+	cpu-wasm64.lo \
 	cpu-we32k.lo \
 	cpu-xc16x.lo \
 	cpu-xgate.lo \
@@ -257,6 +258,7 @@ ALL_MACHINES_CFILES = \
 	cpu-vax.c \
 	cpu-visium.c \
 	cpu-wasm.c \
+	cpu-wasm64.c \
 	cpu-w65.c \
 	cpu-we32k.c \
 	cpu-xc16x.c \
@@ -686,6 +688,7 @@ BFD64_BACKENDS = \
 	elf64-sh64.lo \
 	elf64-sparc.lo \
 	elf64-tilegx.lo \
+	elf64-wasm64.lo \
 	elf64-x86-64.lo \
 	elf64.lo \
 	elfn32-mips.lo \
@@ -724,6 +727,7 @@ BFD64_BACKENDS_CFILES = \
 	elf64-sh64.c \
 	elf64-sparc.c \
 	elf64-tilegx.c \
+	elf64-wasm64.c \
 	elf64-x86-64.c \
 	elf64.c \
 	elfn32-mips.c \

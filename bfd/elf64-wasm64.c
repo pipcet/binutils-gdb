@@ -172,7 +172,9 @@ wasm64_elf64_hex16_reloc (bfd *abfd ATTRIBUTE_UNUSED,
 
   char buf[17];
   memset(buf, ' ', 16);
-  int len = snprintf(buf, 16, "%llx", value);
+  int len = snprintf(buf, 17, "%llx", value);
+  if (len < 0 || len > 16)
+    return bfd_reloc_outofrange;
   buf[len] = ' ';
 
   int i;
@@ -304,7 +306,7 @@ static reloc_howto_type wasm64_elf64_howto_table[] =
   /* 64 bit absolute */
   HOWTO (R_ASMJS_ABS64,		/* type */
 	 0,			/* rightshift */
-	 3,			/* size (0 = byte, 1 = short, 2 = long) */
+	 4,			/* size (0 = byte, 1 = short, 2 = long) */
 	 64,			/* bitsize */
 	 FALSE,			/* pc_relative */
 	 0,			/* bitpos */
@@ -319,7 +321,7 @@ static reloc_howto_type wasm64_elf64_howto_table[] =
   /* standard 64bit pc-relative reloc */
   HOWTO (R_ASMJS_REL64,		/* type */
 	 0,			/* rightshift */
-	 3,			/* size (0 = byte, 1 = short, 2 = long) */
+	 4,			/* size (0 = byte, 1 = short, 2 = long) */
 	 64,			/* bitsize */
 	 TRUE,			/* pc_relative */
 	 0,			/* bitpos */

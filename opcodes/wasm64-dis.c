@@ -44,52 +44,29 @@
 
 
 
-static void
-print_insn_wasm64l (bfd_vma pc ATTRIBUTE_UNUSED,
-                  struct disassemble_info *info,
-                  unsigned long off0, unsigned long off1)
-{
-  fprintf_ftype func = info->fprintf_func;
+enum wasm_clas { wasm_special, wasm_break, wasm_break_if, wasm_break_table,
+wasm_return, wasm_call, wasm_call_indirect, wasm_get_local, wasm_set_local,
+wasm_constant, wasm_constant_f32, wasm_constant_f64, wasm_unary, wasm_binary,
+wasm_conv, wasm_load, wasm_store, wasm_select, wasm_relational, wasm_eqz };
 
-  if (off1 - off0 >= 1024)
-    return;
+enum wasm_signedness { wasm_signed, wasm_unsigned, wasm_agnostic, wasm_floating };
 
-  unsigned long off;
+enum wasm_type { wasm_void, wasm_any, wasm_i32, wasm_i64, wasm_f32, wasm_f64 };
 
-  func (info->stream, "\n");
-  for (off = off0; off < off1; off++) {
-    unsigned char b[1];
-    int status;
+#define WASM_OPCODE(name, intype, outtype, clas, signedness, opcode) \
+  { name, wasm_ ## intype, wasm_ ## outtype, wasm_ ## clas, wasm_ ## signedness, opcode },
 
-    status = info->read_memory_func (off, (bfd_byte *) b, 1, info);
-    if (status)
-      return;
-    func (info->stream, "%c", b[0]);
-  }
-}
-
-/* Print data bytes on INFO->STREAM.  */
-
-static void
-print_insn_data (bfd_vma pc ATTRIBUTE_UNUSED,
-		 struct disassemble_info *info,
-		 unsigned long given, unsigned long ign ATTRIBUTE_UNUSED)
-{
-  switch (info->bytes_per_chunk)
-    {
-    case 1:
-      info->fprintf_func (info->stream, ".byte\t0x%02lx", given);
-      break;
-    case 2:
-      info->fprintf_func (info->stream, ".short\t0x%04lx", given);
-      break;
-    case 4:
-      info->fprintf_func (info->stream, ".word\t0x%08lx", given);
-      break;
-    default:
-      abort ();
-    }
-}
+struct wasm64_opcode_s {
+  const char *name;
+  enum wasm_type intype;
+  enum wasm_type outtype;
+  enum wasm_clas clas;
+  enum wasm_signedness signedness;
+  unsigned char opcode;
+} wasm64_opcodes[] = {
+#include "opcode/wasm.h"
+  { NULL, 0, 0, 0, 0, 0 }
+};
 
 bfd_boolean
 wasm64_symbol_is_valid (asymbol * sym,
@@ -123,88 +100,81 @@ parse_wasm64_disassembler_option (char *option)
 /* Parse the string of disassembler options, spliting it at whitespaces
    or commas.  (Whitespace separators supported for backwards compatibility).  */
 
-static void
-parse_disassembler_options (char *options)
+extern
+int read_uleb128(long *value, bfd_vma pc, struct disassemble_info *info);
+
+int read_uleb128(long *value, bfd_vma pc, struct disassemble_info *info)
 {
-  if (options == NULL)
-    return;
+  bfd_byte buffer[16];
+  int len = 1;
 
-  while (*options)
+  if (info->read_memory_func (pc, buffer, 1, info))
+    return -1;
+
+  if (buffer[0] & 0x80)
     {
-      parse_wasm64_disassembler_option (options);
-
-      /* Skip forward to next seperator.  */
-      while ((*options) && (! ISSPACE (*options)) && (*options != ','))
-	++ options;
-      /* Skip forward past seperators.  */
-      while (ISSPACE (*options) || (*options == ','))
-	++ options;
+      len = read_uleb128(value, pc + 1, info) + 1;
     }
+  *value <<= 7;
+  *value |= buffer[0]&0x7f;
+
+  return len;
 }
 
-/* NOTE: There are no checks in these routines that
-   the relevant number of data bytes exist.  */
-
-static int
-print_insn (bfd_vma pc, struct disassemble_info *info, bfd_boolean little)
+int read_u32(long *value, bfd_vma pc, struct disassemble_info *info);
+int read_u32(long *value, bfd_vma pc, struct disassemble_info *info)
 {
-  unsigned char b[4];
-  unsigned long	off0, off1, given;
-  int           status;
-  int           is_data = FALSE;
-  unsigned int	size = 4;
-  void	 	(*printer) (bfd_vma, struct disassemble_info *, unsigned long, unsigned long);
+  int ret;
 
-  if (info->disassembler_options)
-    {
-      parse_disassembler_options (info->disassembler_options);
+  if (info->read_memory_func (pc, (bfd_byte*)&ret, 4, info))
+    return -1;
 
-      /* To avoid repeated parsing of these options, we remove them here.  */
-      info->disassembler_options = NULL;
-    }
+  *value = ret;
 
-  info->bytes_per_line = 16;
+  return 4;
+}
 
-  if (is_data && ((info->flags & DISASSEMBLE_DATA) == 0))
-    {
-      int i;
+int read_f32(double *value, bfd_vma pc, struct disassemble_info *info);
+int read_f32(double *value, bfd_vma pc, struct disassemble_info *info)
+{
+  float ret;
 
-      /* Size was already set above.  */
-      info->bytes_per_chunk = size;
-      printer = print_insn_data;
+  if (info->read_memory_func (pc, (bfd_byte*)&ret, 4, info))
+    return -1;
 
-      status = info->read_memory_func (pc, (bfd_byte *) b, size, info);
-      given = 0;
-      if (little)
-	for (i = size - 1; i >= 0; i--)
-	  given = b[i] | (given << 8);
-      else
-	for (i = 0; i < (int) size; i++)
-	  given = b[i] | (given << 8);
-    }
-  else
-    {
-      printer = print_insn_wasm64l;
-      info->bytes_per_chunk = 16;
-      size = 16;
+  *value = ret;
 
-      status = info->read_memory_func (pc, (bfd_byte *) b, 4, info);
-      off0 = (b[0]) | (b[1] << 8) | (b[2] << 16) | (b[3] << 24);
-      status = info->read_memory_func (pc+8, (bfd_byte *) b, 4, info);
-      off1 = (b[0]) | (b[1] << 8) | (b[2] << 16) | (b[3] << 24);
-      off0 &= 0xffffffff;
-      off1 &= 0xffffffff;
-    }
+  return 4;
+}
 
-  if (status)
-    {
-      info->memory_error_func (status, pc, info);
-      return -1;
-    }
+int read_f64(double *value, bfd_vma pc, struct disassemble_info *info);
+int read_f64(double *value, bfd_vma pc, struct disassemble_info *info)
+{
+  double ret;
 
-  printer (pc, info, off0, off1);
+  if (info->read_memory_func (pc, (bfd_byte*)&ret, 8, info))
+    return -1;
 
-  return size;
+  *value = ret;
+
+  return 8;
+}
+
+const char *print_type(enum wasm_type);
+const char *print_type(enum wasm_type type)
+{
+  switch (type) {
+  case wasm_i32:
+    return "i32";
+  case wasm_f32:
+    return "f32";
+  case wasm_i64:
+    return "i64";
+  case wasm_f64:
+    return "f64";
+  default:
+    return NULL;
+  }
 }
 
 int
@@ -212,14 +182,129 @@ print_insn_little_wasm64 (bfd_vma pc, struct disassemble_info *info);
 int
 print_insn_little_wasm64 (bfd_vma pc, struct disassemble_info *info)
 {
-  return print_insn (pc, info, TRUE);
+  unsigned char opcode;
+  struct wasm64_opcode_s *op;
+  bfd_byte buffer[16];
+  void *stream = info->stream;
+  fprintf_ftype prin = info->fprintf_func;
+  long argument_count = 0;
+  long constant = 0;
+  double fconstant = 0.0;
+  long flags = 0;
+  long offset = 0;
+  long depth = 0;
+  long index = 0;
+  long target_count = 0;
+  int len = 1;
+  int i;
+
+  if (info->read_memory_func (pc, buffer, 1, info))
+    return -1;
+
+  opcode = buffer[0];
+
+  for (op = wasm64_opcodes; op->name; op++)
+    if (op->opcode == opcode)
+      break;
+
+  if (!op->name)
+    {
+      prin (stream, "\t.byte %02x\n", buffer[0]);
+      return 1;
+    }
+  else
+    {
+      len = 1;
+
+      prin (stream, "\t");
+      if (op->clas == wasm_relational || op->clas == wasm_eqz) {
+        prin (stream, "%s.", print_type (op->intype));
+        prin (stream, ".");
+      } else if (op->outtype != wasm_void && op->outtype != wasm_any) {
+        prin (stream, "%s", print_type (op->outtype));
+        prin (stream, ".");
+      }
+      prin (stream, "%s", op->name);
+      if (op->signedness == wasm_signed)
+        prin (stream, "_s");
+      else if (op->signedness == wasm_unsigned)
+        prin (stream, "_u");
+      if (op->clas == wasm_conv)
+        {
+          prin (stream, "_%s", print_type (op->intype));
+        }
+
+      switch (op->clas)
+        {
+        case wasm_special:
+        case wasm_eqz:
+        case wasm_binary:
+        case wasm_unary:
+        case wasm_conv:
+        case wasm_relational:
+          break;
+        case wasm_select:
+          break;
+        case wasm_break_table:
+          len += read_uleb128(&argument_count, pc + len, info);
+          len += read_uleb128(&target_count, pc + len, info);
+          prin (stream, " %ld %ld", argument_count, target_count);
+          for (i = 0; i < target_count + 1; i++)
+            {
+              long target = 0;
+              len += read_u32(&target, pc + len, info);
+              prin (stream, " %ld", target);
+            }
+          
+        case wasm_break:
+        case wasm_break_if:
+          len += read_uleb128(&argument_count, pc + len, info);
+          len += read_uleb128(&depth, pc + len, info);
+          prin (stream, " %ld %ld", argument_count, depth);
+          break;
+        case wasm_return:
+          len += read_uleb128(&argument_count, pc + len, info);
+          prin (stream, " %ld", argument_count);
+          break;
+        case wasm_constant:
+          len += read_uleb128(&constant, pc + len, info);
+          prin (stream, " %lx", constant);
+          break;
+        case wasm_constant_f32:
+          len += read_f32(&fconstant, pc + len, info);
+          prin (stream, " %f", fconstant);
+          break;
+        case wasm_constant_f64:
+          len += read_f64(&fconstant, pc + len, info);
+          prin (stream, " %f", fconstant);
+          break;
+        case wasm_call:
+        case wasm_call_indirect:
+          len += read_uleb128(&argument_count, pc + len, info);
+          len += read_uleb128(&index, pc + len, info);
+          prin (stream, " %ld %ld", argument_count, index);
+          break;
+        case wasm_get_local:
+        case wasm_set_local:
+          len += read_uleb128(&constant, pc + len, info);
+          prin (stream, " %ld", constant);
+          break;
+        case wasm_load:
+        case wasm_store:
+          len += read_uleb128(&flags, pc + len, info);
+          len += read_uleb128(&offset, pc + len, info);
+          prin (stream, " a=%ld %ld", flags, offset);
+          break;
+        }
+    }
+  return len;
 }
 
 void print_wasm64_disassembler_options(FILE *);
 void
 print_wasm64_disassembler_options (FILE *stream)
 {
-  fprintf (stream, _("\n\
+  fprintf (stream, _("\
 The following WASM64 specific disassembler options are supported for use with\n\
 the -M switch:\nnone\n"));
 }

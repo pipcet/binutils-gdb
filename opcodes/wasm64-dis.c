@@ -44,7 +44,7 @@
 
 
 
-enum wasm_clas { wasm_special, wasm_break, wasm_break_if, wasm_break_table,
+enum wasm_clas { wasm_special, wasm_special1, wasm_break, wasm_break_if, wasm_break_table,
 wasm_return, wasm_call, wasm_call_indirect, wasm_get_local, wasm_set_local,
 wasm_constant, wasm_constant_f32, wasm_constant_f64, wasm_unary, wasm_binary,
 wasm_conv, wasm_load, wasm_store, wasm_select, wasm_relational, wasm_eqz };
@@ -218,7 +218,7 @@ print_insn_little_wasm64 (bfd_vma pc, struct disassemble_info *info)
 
       prin (stream, "\t");
       if (op->clas == wasm_relational || op->clas == wasm_eqz) {
-        prin (stream, "%s.", print_type (op->intype));
+        prin (stream, "%s", print_type (op->intype));
         prin (stream, ".");
       } else if (op->outtype != wasm_void && op->outtype != wasm_any) {
         prin (stream, "%s", print_type (op->outtype));
@@ -237,6 +237,57 @@ print_insn_little_wasm64 (bfd_vma pc, struct disassemble_info *info)
       switch (op->clas)
         {
         case wasm_special:
+          prin (stream, "[0:0]");
+          break;
+        case wasm_special1:
+          prin (stream, "[1:0]");
+          break;
+        case wasm_binary:
+        case wasm_relational:
+        case wasm_store:
+          prin (stream, "[2:1]");
+          break;
+        case wasm_select:
+          prin (stream, "[3:1]");
+          break;
+        case wasm_eqz:
+        case wasm_unary:
+        case wasm_conv:
+        case wasm_load:
+        case wasm_set_local:
+          prin (stream, "[1:1]");
+          break;
+        case wasm_break_table:
+        case wasm_break:
+        case wasm_return:
+          read_uleb128(&argument_count, pc + len, info);
+          prin (stream, "[%ld:0]", argument_count);
+          argument_count = 0;
+          break;
+        case wasm_call:
+        case wasm_call_indirect:
+          read_uleb128(&argument_count, pc + len, info);
+          /* the :1 is subject to change, maybe */
+          prin (stream, "[%ld:1]", argument_count);
+          argument_count = 0;
+          break;
+        case wasm_break_if:
+          read_uleb128(&argument_count, pc + len, info);
+          prin (stream, "[%ld:0]", argument_count+1);
+          argument_count = 0;
+          break;
+        case wasm_constant:
+        case wasm_constant_f32:
+        case wasm_constant_f64:
+        case wasm_get_local:
+          prin (stream, "[0:1]");
+          break;
+        }
+
+      switch (op->clas)
+        {
+        case wasm_special:
+        case wasm_special1:
         case wasm_eqz:
         case wasm_binary:
         case wasm_unary:
@@ -248,23 +299,24 @@ print_insn_little_wasm64 (bfd_vma pc, struct disassemble_info *info)
         case wasm_break_table:
           len += read_uleb128(&argument_count, pc + len, info);
           len += read_uleb128(&target_count, pc + len, info);
-          prin (stream, " %ld %ld", argument_count, target_count);
+          //prin (stream, " %ld %ld", argument_count, target_count);
           for (i = 0; i < target_count + 1; i++)
             {
               long target = 0;
               len += read_u32(&target, pc + len, info);
               prin (stream, " %ld", target);
             }
-          
+          break;
         case wasm_break:
         case wasm_break_if:
           len += read_uleb128(&argument_count, pc + len, info);
           len += read_uleb128(&depth, pc + len, info);
-          prin (stream, " %ld %ld", argument_count, depth);
+          //prin (stream, " %ld %ld", argument_count, depth);
+          prin (stream, " %ld", depth);
           break;
         case wasm_return:
           len += read_uleb128(&argument_count, pc + len, info);
-          prin (stream, " %ld", argument_count);
+          //prin (stream, " %ld", argument_count);
           break;
         case wasm_constant:
           len += read_uleb128(&constant, pc + len, info);
@@ -282,7 +334,8 @@ print_insn_little_wasm64 (bfd_vma pc, struct disassemble_info *info)
         case wasm_call_indirect:
           len += read_uleb128(&argument_count, pc + len, info);
           len += read_uleb128(&index, pc + len, info);
-          prin (stream, " %ld %ld", argument_count, index);
+          //prin (stream, " %ld %ld", argument_count, index);
+          prin (stream, " %ld", index);
           break;
         case wasm_get_local:
         case wasm_set_local:

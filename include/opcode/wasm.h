@@ -1,7 +1,7 @@
 WASM_OPCODE("nop", void, void, special, agnostic, 0x00)
 WASM_OPCODE("block", void, void, special, agnostic, 0x01)
 WASM_OPCODE("loop", void, void, special, agnostic, 0x02)
-WASM_OPCODE("if", void, void, special, agnostic, 0x03)
+WASM_OPCODE("if", void, void, special1, agnostic, 0x03)
 WASM_OPCODE("else", void, void, special, agnostic, 0x04)
 WASM_OPCODE("select", any, any, select, agnostic, 0x05)
 WASM_OPCODE("br", void, void, break, agnostic, 0x06)

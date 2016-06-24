@@ -27,26 +27,32 @@
 #include "dw2gencfi.h"
 #include "elf/wasm64.h"
 
-struct wasm64_opcodes_s
-{
-  char *        name;
-  char *        constraints;
-  char *        opcode;
-  int           insn_size;		/* In words.  */
-  int           isa;
-  unsigned int  bin_opcode;
-};
+enum wasm_clas { wasm_special, wasm_special1, wasm_break, wasm_break_if, wasm_break_table,
+wasm_return, wasm_call, wasm_call_indirect, wasm_get_local, wasm_set_local,
+wasm_constant, wasm_constant_f32, wasm_constant_f64, wasm_unary, wasm_binary,
+wasm_conv, wasm_load, wasm_store, wasm_select, wasm_relational, wasm_eqz, wasm_signature };
 
-#define WASM64_INSN(NAME, CONSTR, OPCODE, SIZE, ISA, BIN) \
-{#NAME, CONSTR, OPCODE, SIZE, ISA, BIN},
+enum wasm_signedness { wasm_signed, wasm_unsigned, wasm_agnostic, wasm_floating };
 
-struct wasm64_opcodes_s wasm64_opcodes[] =
-{
-  {NULL, NULL, NULL, 0, 0, 0}
+enum wasm_type { wasm_void, wasm_any, wasm_i32, wasm_i64, wasm_f32, wasm_f64 };
+
+#define WASM_OPCODE(name, intype, outtype, clas, signedness, opcode) \
+  { name, wasm_ ## intype, wasm_ ## outtype, wasm_ ## clas, wasm_ ## signedness, opcode },
+
+struct wasm64_opcode_s {
+  const char *name;
+  enum wasm_type intype;
+  enum wasm_type outtype;
+  enum wasm_clas clas;
+  enum wasm_signedness signedness;
+  unsigned char opcode;
+} wasm64_opcodes[] = {
+#include "opcode/wasm.h"
+  { NULL, 0, 0, 0, 0, 0 }
 };
 
 const char comment_chars[] = "";
-const char line_comment_chars[] = "#";
+const char line_comment_chars[] = ";";
 const char line_separator_chars[] = "";
 
 const char *md_shortopts = "m:";
@@ -156,7 +162,7 @@ md_convert_frag (bfd *abfd ATTRIBUTE_UNUSED,
 void
 md_begin (void)
 {
-  struct wasm64_opcodes_s *opcode;
+  struct wasm64_opcode_s *opcode;
 
   wasm64_hash = hash_new ();
 
@@ -223,27 +229,303 @@ md_apply_fix (fixS *fixP, valueT * valP ATTRIBUTE_UNUSED, segT seg ATTRIBUTE_UNU
     }
 }
 
+static inline char *
+skip_space (char *s)
+{
+  while (*s == ' ' || *s == '\t')
+    ++s;
+  return s;
+}
+
+static char *
+extract_word (char *from, char *to, int limit)
+{
+  char *op_end;
+  int size = 0;
+
+  /* Drop leading whitespace.  */
+  from = skip_space (from);
+  *to = 0;
+
+  /* Find the op code end.  */
+  for (op_end = from; *op_end != 0 && is_part_of_name (*op_end);)
+    {
+      to[size++] = *op_end++;
+      if (size + 1 >= limit)
+	break;
+    }
+
+  to[size] = 0;
+  return op_end;
+}
+
+static expressionS wasm64_get_constant(char **line)
+{
+  expressionS ex;
+  char *str = *line;
+  char *t = input_line_pointer;
+
+  str = skip_space (str);
+  input_line_pointer = str;
+  expression (& ex);
+  *line = input_line_pointer;
+  input_line_pointer = t;
+
+  if (ex.X_op != O_constant)
+    as_bad (_("constant value required"));
+
+  return ex;
+}
+
+static void wasm64_put_uleb128(unsigned long value)
+{
+  unsigned char c;
+
+  do {
+    c = value & 0x7f;
+    value >>= 7;
+    if (value)
+      c |= 0x80;
+    FRAG_APPEND_1_CHAR (c);
+  } while (value);
+}
+
+static void wasm64_put_long_uleb128(void)
+{
+  unsigned char c;
+  int i = 0;
+  unsigned long value = 0;
+
+  do {
+    c = value & 0x7f;
+    value >>= 7;
+    if (i < 15)
+      c |= 0x80;
+    FRAG_APPEND_1_CHAR (c);
+  } while (++i < 16);
+}
+
+static void wasm64_uleb128(char **line)
+{
+  char *t = input_line_pointer;
+  char *str = *line;
+  struct reloc_list *reloc;
+  expressionS ex;
+  reloc = XNEW (struct reloc_list);
+  input_line_pointer = str;
+  expression (&ex);
+  reloc->u.a.offset_sym = expr_build_dot ();
+  if (ex.X_op == O_symbol)
+    {
+      reloc->u.a.sym = ex.X_add_symbol;
+      reloc->u.a.addend = ex.X_add_number;
+    }
+  else
+    {
+      reloc->u.a.sym = make_expr_symbol (&ex);
+      reloc->u.a.addend = 0;
+    }
+  reloc->u.a.howto = bfd_reloc_name_lookup (stdoutput, "R_ASMJS_LEB128");
+  reloc->file = as_where (&reloc->line);
+  reloc->next = reloc_list;
+  reloc_list = reloc;
+
+  str = skip_space (str);
+  wasm64_put_long_uleb128();
+  input_line_pointer = t;
+}
+
+static void wasm64_u32(char **line)
+{
+  char *t = input_line_pointer;
+  input_line_pointer = *line;
+  cons (4);
+  *line = input_line_pointer;
+  input_line_pointer = t;
+}
+
+static void wasm64_f32(char **line)
+{
+  char *t = input_line_pointer;
+  input_line_pointer = *line;
+  float_cons('f');
+  *line = input_line_pointer;
+  input_line_pointer = t;
+}
+
+static void wasm64_f64(char **line)
+{
+  char *t = input_line_pointer;
+  input_line_pointer = *line;
+  float_cons('d');
+  *line = input_line_pointer;
+  input_line_pointer = t;
+}
+
+static unsigned
+wasm64_operands (struct wasm64_opcode_s *opcode, char **line)
+{
+  char *str = *line;
+  unsigned long consumed = 0;
+  FRAG_APPEND_1_CHAR (opcode->opcode);
+  str = skip_space (str);
+  if (str[0] == '[')
+    {
+      consumed = wasm64_get_constant(&str).X_add_number;
+      str = skip_space (str);
+      while (str[0] == ':' || (str[0] >= '0' && str[0] <= '9'))
+        str++;
+      if (str[0] == ']')
+        str++;
+      str = skip_space (str);
+    }
+  switch (opcode->clas)
+    {
+    case wasm_special:
+    case wasm_special1:
+    case wasm_binary:
+    case wasm_unary:
+    case wasm_relational:
+    case wasm_select:
+    case wasm_eqz:
+    case wasm_conv:
+      break;
+    case wasm_store:
+    case wasm_load:
+      if (str[0] == 'a' && str[1] == '=')
+        {
+          str += 2;
+          wasm64_uleb128(&str);
+        }
+      else
+        {
+          as_bad (_("missing alignment hint"));
+        }
+      str = skip_space (str);
+      wasm64_uleb128(&str);
+      break;
+    case wasm_set_local:
+    case wasm_get_local:
+      wasm64_uleb128(&str);
+      break;
+    case wasm_break:
+    case wasm_break_if:
+      wasm64_put_uleb128(consumed);
+      wasm64_uleb128(&str);
+      break;
+    case wasm_return:
+      wasm64_put_uleb128(consumed);
+      break;
+    case wasm_call:
+    case wasm_call_indirect:
+      wasm64_put_uleb128(consumed);
+      wasm64_uleb128(&str);
+      break;
+    case wasm_constant:
+      wasm64_uleb128(&str);
+      break;
+    case wasm_constant_f32:
+      wasm64_f32(&str);
+      break;
+    case wasm_constant_f64:
+      wasm64_f64(&str);
+      break;
+    case wasm_break_table:
+      {
+        unsigned long count = 0;
+        char *pstr = str;
+        do {
+          wasm64_get_constant(&pstr);
+          count++;
+          pstr  = skip_space (pstr);
+        } while (pstr[0]);
+
+        wasm64_put_uleb128(consumed);
+        wasm64_put_uleb128(count);
+        count++;
+        while (count--)
+          {
+            wasm64_u32(&str);
+            str = skip_space (str);
+          }
+        break;
+      }
+    case wasm_signature:
+      {
+        unsigned long count = 0;
+        char *ostr = str;
+        int has_result = 0;
+        while (*str) {
+          if (strncmp(str, "i32", 3) == 0)
+            count++;
+          else if (strncmp(str, "i64", 3) == 0)
+            count++;
+          else if (strncmp(str, "f32", 3) == 0)
+            count++;
+          else if (strncmp(str, "f64", 3) == 0)
+            count++;
+          else if (strncmp(str, "result", 6) == 0) {
+            count--;
+            str += 3;
+            has_result = 1;
+          }
+          str += 3;
+          str = skip_space (str);
+        }
+        FRAG_APPEND_1_CHAR (count); /* XXX >128 arguments */
+        str = ostr;
+        while (*str) {
+          if (strncmp(str, "i32", 3) == 0)
+            FRAG_APPEND_1_CHAR (0x01);
+          else if (strncmp(str, "i64", 3) == 0)
+            FRAG_APPEND_1_CHAR (0x02);
+          else if (strncmp(str, "f32", 3) == 0)
+            FRAG_APPEND_1_CHAR (0x03);
+          else if (strncmp(str, "f64", 3) == 0)
+            FRAG_APPEND_1_CHAR (0x04);
+          else if (strncmp(str, "result", 6) == 0) {
+            FRAG_APPEND_1_CHAR (0x01);
+            str += 3;
+          }
+          str += 3;
+          str = skip_space (str);
+        }
+        if (!has_result)
+          FRAG_APPEND_1_CHAR (0x00);
+      }
+    }
+  str = skip_space (str);
+
+  *line = str;
+
+  return 0;
+}
+
 void
 md_assemble (char *str)
 {
-  printf ("aborting: %s\n", str);
-  abort ();
-  char *p;
-  int c;
+  char op[32];
+  char *t;
+  struct wasm64_opcode_s *opcode;
 
-  for (p = str; *p; p++) {
-    c = *p;
+  str = skip_space (extract_word (str, op, sizeof (op)));
 
-    if (c == '$' && !p[1])
-      ;
-    else
-      FRAG_APPEND_1_CHAR (c);
-  }
+  if (!op[0])
+    as_bad (_("can't find opcode "));
 
-  if (c != '$')
-    FRAG_APPEND_1_CHAR ('\n');
+  opcode = (struct wasm64_opcode_s *) hash_find (wasm64_hash, op);
 
-  input_line_pointer = p;
+  if (opcode == NULL)
+    {
+      as_bad (_("unknown opcode `%s'"), op);
+      return;
+    }
+
+  t = input_line_pointer;
+  wasm64_operands (opcode, &str);
+  //if (*skip_space (str))
+  //  as_bad (_("garbage at end of line"));
+  input_line_pointer = t;
 }
 
 void
@@ -317,102 +599,6 @@ tc_gen_reloc (asection *sec ATTRIBUTE_UNUSED,
   return ret;
 }
 
-int is_pseudo_line (void);
-int is_pseudo_line (void)
-{
-  char *p = input_line_pointer;
-
-  while (ISBLANK (*p))
-    p++;
-
-  if (*p == '.' || *p == 0 || *p == '\n')
-    return 1;
-
-  return 0;
-}
-
-int is_label_line (void);
-int is_label_line (void)
-{
-  char *p = input_line_pointer;
-
-  while (ISALNUM (*p) || *p == '.' || *p == '_')
-    p++;
-
-  if (*p == ':')
-    return 1;
-
-  return 0;
-}
-
-int is_noapp_line (void);
-int is_noapp_line (void)
-{
-  return strncmp(input_line_pointer, "#NO_APP\n", strlen("#NO_APP\n")) == 0;
-}
-
-int is_comment_line (void);
-int is_comment_line (void)
-{
-  char *p = input_line_pointer;
-
-  while (ISBLANK (*p))
-    p++;
-
-  if (*p == '#' || *p == 0 || *p == '\n')
-    return 1;
-
-  return 0;
-}
-
-
 void wasm64_start_line_hook (void)
 {
-  if (!is_pseudo_line () &&
-      !is_label_line () &&
-      !is_noapp_line () &&
-      !is_comment_line ()) {
-    char *input = input_line_pointer;
-    char *output = xmalloc (strlen(input) * 2 + strlen("\t.ascii \"\\n\"\n\n"));
-
-    char *p = input;
-    char *q = output;
-
-    q += sprintf(q, "\n\t.ascii \"");
-    while (*p) {
-      switch (*p) {
-      case '\\':
-        *q++ = '\\';
-        *q++ = '\\';
-        break;
-      case '\"':
-        *q++ = '\\';
-        *q++ = '\"';
-        break;
-      case '\n':
-        *q++ = '\\';
-        *q++ = 'n';
-        p++;
-        goto out;
-      case '$':
-        if (p[1] == '\n') {
-          p+=2;
-          goto out;
-        }
-        /* fall through */
-      default:
-        *q++ = *p;
-        break;
-      }
-      p++;
-    }
-  out:
-    q += sprintf(q, "\"\n\n");
-    *q++ = 0;
-
-    bump_line_counters (); // XXX work out why this is needed
-    input_line_pointer = p;
-    input_scrub_insert_line (output);
-    free (output);
-  }
 }

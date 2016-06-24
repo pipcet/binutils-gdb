@@ -47,7 +47,7 @@
 enum wasm_clas { wasm_special, wasm_special1, wasm_break, wasm_break_if, wasm_break_table,
 wasm_return, wasm_call, wasm_call_indirect, wasm_get_local, wasm_set_local,
 wasm_constant, wasm_constant_f32, wasm_constant_f64, wasm_unary, wasm_binary,
-wasm_conv, wasm_load, wasm_store, wasm_select, wasm_relational, wasm_eqz };
+wasm_conv, wasm_load, wasm_store, wasm_select, wasm_relational, wasm_eqz, wasm_signature };
 
 enum wasm_signedness { wasm_signed, wasm_unsigned, wasm_agnostic, wasm_floating };
 
@@ -217,22 +217,7 @@ print_insn_little_wasm64 (bfd_vma pc, struct disassemble_info *info)
       len = 1;
 
       prin (stream, "\t");
-      if (op->clas == wasm_relational || op->clas == wasm_eqz) {
-        prin (stream, "%s", print_type (op->intype));
-        prin (stream, ".");
-      } else if (op->outtype != wasm_void && op->outtype != wasm_any) {
-        prin (stream, "%s", print_type (op->outtype));
-        prin (stream, ".");
-      }
       prin (stream, "%s", op->name);
-      if (op->signedness == wasm_signed)
-        prin (stream, "_s");
-      else if (op->signedness == wasm_unsigned)
-        prin (stream, "_u");
-      if (op->clas == wasm_conv)
-        {
-          prin (stream, "_%s", print_type (op->intype));
-        }
 
       switch (op->clas)
         {
@@ -281,6 +266,7 @@ print_insn_little_wasm64 (bfd_vma pc, struct disassemble_info *info)
         case wasm_constant_f64:
         case wasm_get_local:
           prin (stream, "[0:1]");
+        case wasm_signature:
           break;
         }
 
@@ -347,6 +333,7 @@ print_insn_little_wasm64 (bfd_vma pc, struct disassemble_info *info)
           len += read_uleb128(&flags, pc + len, info);
           len += read_uleb128(&offset, pc + len, info);
           prin (stream, " a=%ld %ld", flags, offset);
+        case wasm_signature:
           break;
         }
     }

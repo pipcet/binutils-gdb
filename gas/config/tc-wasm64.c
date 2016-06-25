@@ -51,8 +51,8 @@ struct wasm64_opcode_s {
   { NULL, 0, 0, 0, 0, 0 }
 };
 
-const char comment_chars[] = "";
-const char line_comment_chars[] = ";";
+const char comment_chars[] = ";#";
+const char line_comment_chars[] = ";#";
 const char line_separator_chars[] = "";
 
 const char *md_shortopts = "m:";
@@ -174,7 +174,7 @@ md_begin (void)
 
   linkrelax = !wasm64_opt.no_link_relax;
   flag_sectname_subst = 1;
-  flag_no_comments = 1;
+  flag_no_comments = 0;
 }
 
 /* GAS will call this function for each section at the end of the assembly,
@@ -472,7 +472,7 @@ wasm64_operands (struct wasm64_opcode_s *opcode, char **line)
           str += 3;
           str = skip_space (str);
         }
-        FRAG_APPEND_1_CHAR (count); /* XXX >128 arguments */
+        FRAG_APPEND_1_CHAR (count); /* XXX >127 arguments */
         str = ostr;
         while (*str) {
           if (strncmp(str, "i32", 3) == 0)

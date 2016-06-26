@@ -402,7 +402,7 @@ static void wasm64_f64(char **line)
 
 static void wasm64_signature(char **line)
 {
-#if 0
+#if 1
   unsigned long count = 0;
   char *str = *line;
   char *ostr;
@@ -411,7 +411,8 @@ static void wasm64_signature(char **line)
     as_bad (_("Not a function type"));
   result = str;
   ostr = str + 1;
-  while (*str != 'Z') {
+  str++;
+  while (*str != 'E') {
     switch (*str++) {
     case 'i':
     case 'l':
@@ -420,14 +421,12 @@ static void wasm64_signature(char **line)
       count++;
       break;
     default:
-      as_bad (_("Unknown type"));
+      as_bad (_("Unknown type %c\n"), str[-1]);
     }
   }
-  str++;
-  count--;
   FRAG_APPEND_1_CHAR (count);
   str = ostr;
-  while (*str != 'Z') {
+  while (*str != 'E') {
     switch (*str++) {
     case 'i':
       FRAG_APPEND_1_CHAR(0x01);
@@ -445,6 +444,7 @@ static void wasm64_signature(char **line)
       as_bad (_("Unknown type"));
     }
   }
+  str++;
   switch (*result) {
   case 'v':
     FRAG_APPEND_1_CHAR(0x00);
@@ -465,6 +465,8 @@ static void wasm64_signature(char **line)
     FRAG_APPEND_1_CHAR(0x01);
     FRAG_APPEND_1_CHAR(0x04);
     break;
+  default:
+    as_bad (_("Unknown type"));
   }
   *line = str;
 #else

@@ -44,7 +44,7 @@ WASM_OPCODE("get_local", any, any, get_local, agnostic, 0x14)
 WASM_OPCODE("set_local", any, any, set_local, agnostic, 0x15)
 WASM_OPCODE("call", any, any, call, agnostic, 0x16)
 WASM_OPCODE("call_indirect", any, any, call_indirect, agnostic, 0x17)
-WASM_OPCODE("call_import", any, any, call, agnostic, 0x18)
+WASM_OPCODE("call_import", any, any, call_import, agnostic, 0x18)
 
 WASM_OPCODE("i32.add", i32, i32, binary, agnostic, 0x40)
 WASM_OPCODE("i32.sub", i32, i32, binary, agnostic, 0x41)

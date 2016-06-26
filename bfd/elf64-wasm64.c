@@ -476,6 +476,20 @@ static reloc_howto_type wasm64_elf64_howto_table[] =
 	 0xffffffffffffffff,	/* src_mask */
 	 0xffffffffffffffff,	/* dst_mask */
 	 FALSE),		/* pcrel_offset */
+
+  HOWTO (R_ASMJS_LEB128R32,	/* type */
+	 32,			/* rightshift */
+	 8,			/* size - 16 bytes*/
+	 64,			/* bitsize */
+	 FALSE,			/* pc_relative */
+	 0,			/* bitpos */
+	 complain_overflow_signed,/* complain_on_overflow */
+	 wasm64_elf64_leb128_reloc,/* special_function */
+	 "R_ASMJS_LEB128_R32",	/* name */
+	 FALSE,			/* partial_inplace */
+	 0xffffffffffffffff,	/* src_mask */
+	 0xffffffffffffffff,	/* dst_mask */
+	 FALSE),		/* pcrel_offset */
 };
 
 reloc_howto_type *

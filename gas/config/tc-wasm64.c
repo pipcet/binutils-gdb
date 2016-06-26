@@ -28,7 +28,7 @@
 #include "elf/wasm64.h"
 
 enum wasm_clas { wasm_special, wasm_special1, wasm_break, wasm_break_if, wasm_break_table,
-wasm_return, wasm_call, wasm_call_indirect, wasm_get_local, wasm_set_local,
+                 wasm_return, wasm_call, wasm_call_import, wasm_call_indirect, wasm_get_local, wasm_set_local,
 wasm_constant, wasm_constant_f32, wasm_constant_f64, wasm_unary, wasm_binary,
 wasm_conv, wasm_load, wasm_store, wasm_select, wasm_relational, wasm_eqz, wasm_signature };
 
@@ -326,6 +326,44 @@ static void wasm64_uleb128(char **line)
       reloc->u.a.addend = 0;
     }
   reloc->u.a.howto = bfd_reloc_name_lookup (stdoutput, "R_ASMJS_LEB128");
+  if (!reloc->u.a.howto)
+    {
+      as_bad (_("couldn't find relocation to use"));
+    }
+  reloc->file = as_where (&reloc->line);
+  reloc->next = reloc_list;
+  reloc_list = reloc;
+
+  str = skip_space (str);
+  wasm64_put_long_uleb128();
+  input_line_pointer = t;
+}
+
+static void wasm64_uleb128_r32(char **line)
+{
+  char *t = input_line_pointer;
+  char *str = *line;
+  struct reloc_list *reloc;
+  expressionS ex;
+  reloc = XNEW (struct reloc_list);
+  input_line_pointer = str;
+  expression (&ex);
+  reloc->u.a.offset_sym = expr_build_dot ();
+  if (ex.X_op == O_symbol)
+    {
+      reloc->u.a.sym = ex.X_add_symbol;
+      reloc->u.a.addend = ex.X_add_number;
+    }
+  else
+    {
+      reloc->u.a.sym = make_expr_symbol (&ex);
+      reloc->u.a.addend = 0;
+    }
+  reloc->u.a.howto = bfd_reloc_name_lookup (stdoutput, "R_ASMJS_LEB128_R32");
+  if (!reloc->u.a.howto)
+    {
+      as_bad (_("couldn't find relocation to use"));
+    }
   reloc->file = as_where (&reloc->line);
   reloc->next = reloc_list;
   reloc_list = reloc;
@@ -360,6 +398,119 @@ static void wasm64_f64(char **line)
   float_cons('d');
   *line = input_line_pointer;
   input_line_pointer = t;
+}
+
+static void wasm64_signature(char **line)
+{
+#if 0
+  unsigned long count = 0;
+  char *str = *line;
+  char *ostr;
+  char *result;
+  if (*str++ != 'F')
+    as_bad (_("Not a function type"));
+  result = str;
+  ostr = str + 1;
+  while (*str != 'Z') {
+    switch (*str++) {
+    case 'i':
+    case 'l':
+    case 'f':
+    case 'd':
+      count++;
+      break;
+    default:
+      as_bad (_("Unknown type"));
+    }
+  }
+  str++;
+  count--;
+  FRAG_APPEND_1_CHAR (count);
+  str = ostr;
+  while (*str != 'Z') {
+    switch (*str++) {
+    case 'i':
+      FRAG_APPEND_1_CHAR(0x01);
+      break;
+    case 'l':
+      FRAG_APPEND_1_CHAR(0x02);
+      break;
+    case 'f':
+      FRAG_APPEND_1_CHAR(0x03);
+      break;
+    case 'd':
+      FRAG_APPEND_1_CHAR(0x04);
+      break;
+    default:
+      as_bad (_("Unknown type"));
+    }
+  }
+  switch (*result) {
+  case 'v':
+    FRAG_APPEND_1_CHAR(0x00);
+    break;
+  case 'i':
+    FRAG_APPEND_1_CHAR(0x01);
+    FRAG_APPEND_1_CHAR(0x01);
+    break;
+  case 'l':
+    FRAG_APPEND_1_CHAR(0x01);
+    FRAG_APPEND_1_CHAR(0x02);
+    break;
+  case 'f':
+    FRAG_APPEND_1_CHAR(0x01);
+    FRAG_APPEND_1_CHAR(0x03);
+    break;
+  case 'd':
+    FRAG_APPEND_1_CHAR(0x01);
+    FRAG_APPEND_1_CHAR(0x04);
+    break;
+  }
+  *line = str;
+#else
+  unsigned long count = 0;
+  char *str = *line;
+  char *ostr = str;
+  int has_result = 0;
+  while (*str) {
+    if (strncmp(str, "i32", 3) == 0)
+      count++;
+    else if (strncmp(str, "i64", 3) == 0)
+      count++;
+    else if (strncmp(str, "f32", 3) == 0)
+      count++;
+    else if (strncmp(str, "f64", 3) == 0)
+      count++;
+    else if (strncmp(str, "result", 6) == 0) {
+      count--;
+      str += 3;
+      has_result = 1;
+    }
+    str += 3;
+    str = skip_space (str);
+  }
+  FRAG_APPEND_1_CHAR (count); /* XXX >127 arguments */
+  str = ostr;
+  while (*str) {
+    if (strncmp(str, "i32", 3) == 0)
+      FRAG_APPEND_1_CHAR (0x01);
+    else if (strncmp(str, "i64", 3) == 0)
+      FRAG_APPEND_1_CHAR (0x02);
+    else if (strncmp(str, "f32", 3) == 0)
+      FRAG_APPEND_1_CHAR (0x03);
+    else if (strncmp(str, "f64", 3) == 0)
+      FRAG_APPEND_1_CHAR (0x04);
+    else if (strncmp(str, "result", 6) == 0) {
+      FRAG_APPEND_1_CHAR (0x01);
+      str += 3;
+    }
+    str += 3;
+    str = skip_space (str);
+  }
+  if (!has_result)
+    FRAG_APPEND_1_CHAR (0x00);
+  *line = str;
+#endif
 }
 
 static unsigned
@@ -417,7 +568,11 @@ wasm64_operands (struct wasm64_opcode_s *opcode, char **line)
       wasm64_put_uleb128(consumed);
       break;
     case wasm_call:
+      wasm64_put_uleb128(consumed);
+      wasm64_uleb128_r32(&str);
+      break;
     case wasm_call_indirect:
+    case wasm_call_import:
       wasm64_put_uleb128(consumed);
       wasm64_uleb128(&str);
       break;
@@ -451,48 +606,7 @@ wasm64_operands (struct wasm64_opcode_s *opcode, char **line)
         break;
       }
     case wasm_signature:
-      {
-        unsigned long count = 0;
-        char *ostr = str;
-        int has_result = 0;
-        while (*str) {
-          if (strncmp(str, "i32", 3) == 0)
-            count++;
-          else if (strncmp(str, "i64", 3) == 0)
-            count++;
-          else if (strncmp(str, "f32", 3) == 0)
-            count++;
-          else if (strncmp(str, "f64", 3) == 0)
-            count++;
-          else if (strncmp(str, "result", 6) == 0) {
-            count--;
-            str += 3;
-            has_result = 1;
-          }
-          str += 3;
-          str = skip_space (str);
-        }
-        FRAG_APPEND_1_CHAR (count); /* XXX >127 arguments */
-        str = ostr;
-        while (*str) {
-          if (strncmp(str, "i32", 3) == 0)
-            FRAG_APPEND_1_CHAR (0x01);
-          else if (strncmp(str, "i64", 3) == 0)
-            FRAG_APPEND_1_CHAR (0x02);
-          else if (strncmp(str, "f32", 3) == 0)
-            FRAG_APPEND_1_CHAR (0x03);
-          else if (strncmp(str, "f64", 3) == 0)
-            FRAG_APPEND_1_CHAR (0x04);
-          else if (strncmp(str, "result", 6) == 0) {
-            FRAG_APPEND_1_CHAR (0x01);
-            str += 3;
-          }
-          str += 3;
-          str = skip_space (str);
-        }
-        if (!has_result)
-          FRAG_APPEND_1_CHAR (0x00);
-      }
+      wasm64_signature(&str);
     }
   str = skip_space (str);
 

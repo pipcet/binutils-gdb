@@ -101,7 +101,7 @@ WASM_OPCODE("i64.le_s", i64, i32, relational, signed,   0x6b)
 WASM_OPCODE("i64.gt_s", i64, i32, relational, signed,   0x6e)
 WASM_OPCODE("i64.ge_s", i64, i32, relational, signed,   0x6f)
 WASM_OPCODE("i64.lt_u", i64, i32, relational, unsigned, 0x6c)
-WASM_OPCODE("i64.le_u", i64, i32, relational, unsigned, 0x6c)
+WASM_OPCODE("i64.le_u", i64, i32, relational, unsigned, 0x6d)
 WASM_OPCODE("i64.gt_u", i64, i32, relational, unsigned, 0x70)
 WASM_OPCODE("i64.ge_u", i64, i32, relational, unsigned, 0x71)
 

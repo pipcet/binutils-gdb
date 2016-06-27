@@ -334,7 +334,9 @@ static void wasm64_uleb128(char **line)
   reloc->next = reloc_list;
   reloc_list = reloc;
 
+  str = input_line_pointer;
   str = skip_space (str);
+  *line = str;
   wasm64_put_long_uleb128();
   input_line_pointer = t;
 }
@@ -368,7 +370,9 @@ static void wasm64_uleb128_r32(char **line)
   reloc->next = reloc_list;
   reloc_list = reloc;
 
+  str = input_line_pointer;
   str = skip_space (str);
+  *line = str;
   wasm64_put_long_uleb128();
   input_line_pointer = t;
 }
@@ -549,6 +553,7 @@ wasm64_operands (struct wasm64_opcode_s *opcode, char **line)
         {
           str += 2;
           wasm64_uleb128(&str);
+          str++;
         }
       else
         {

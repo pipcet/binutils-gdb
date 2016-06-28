@@ -319,6 +319,7 @@ print_insn_little_wasm64 (bfd_vma pc, struct disassemble_info *info)
           prin (stream, " %f", fconstant);
           break;
         case wasm_call:
+        case wasm_call_import:
         case wasm_call_indirect:
           len += read_uleb128(&argument_count, pc + len, info);
           len += read_uleb128(&index, pc + len, info);

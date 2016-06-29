@@ -1,3 +1,65 @@
+2016-06-29  Trevor Saunders  <tbsaunde+binutils@tbsaunde.org>
+
+	* opcode/sparc.h (enum sparc_opcode_arch_val): Move
+	SPARC_OPCODE_ARCH_MAX into the enum.
+
+2016-06-28  Richard Sandiford  <richard.sandiford@arm.com>
+
+	* opcode/aarch64.h (aarch64_opnd_info): Change index fields to int64_t.
+
+2016-06-28  Maciej W. Rozycki  <macro@imgtec.com>
+
+	* elf/mips.h (R_MIPS16_PC16_S1): New relocation.
+
+2016-06-25  Trevor Saunders  <tbsaunde+binutils@tbsaunde.org>
+
+	* elf/xtensa.h (xtensa_make_property_section): New prototype.
+
+2016-06-24  John Baldwin  <jhb@FreeBSD.org>
+
+	* elf/common.h (AT_FREEBSD_EXECPATH, AT_FREEBSD_CANARY)
+	(AT_FREEBSD_CANARYLEN, AT_FREEBSD_OSRELDATE, AT_FREEBSD_NCPUS)
+	(AT_FREEBSD_PAGESIZES, AT_FREEBSD_PAGESIZESLEN)
+	(AT_FREEBSD_TIMEKEEP, AT_FREEBSD_STACKPROT): Define.
+
+2016-06-23  Graham Markall  <graham.markall@embecosm.com>
+
+	* opcode/arc.h: Make insn_class_t alphabetical again.
+
+2016-06-22  Trevor Saunders  <tbsaunde+binutils@tbsaunde.org>
+
+	* elf/dlx.h: Wrap in extern C.
+	* elf/xtensa.h: Likewise.
+	* opcode/arc.h: Likewise.
+
+2016-06-22  Trevor Saunders  <tbsaunde+binutils@tbsaunde.org>
+
+	* opcode/tilegx.h: Move TILEGX_NUM_PIPELINE_ENCODINGS into
+	tilegx_pipeline.
+
+2016-06-21  Graham Markall  <graham.markall@embecosm.com>
+
+	* opcode/arc.h: Add nps400 extension and instruction
+	subclass.
+	Remove ARC_OPCODE_NPS400
+	* elf/arc.h: Remove E_ARC_MACH_NPS400
+
+2016-06-17  Jose E. Marchesi  <jose.marchesi@oracle.com>
+
+	* opcode/sparc.h (enum sparc_opcode_arch_val): Add
+	SPARC_OPCODE_ARCH_V9C, SPARC_OPCODE_ARCH_V9D,
+	SPARC_OPCODE_ARCH_V9E, SPARC_OPCODE_ARCH_V9V and
+	SPARC_OPCODE_ARCH_V9M.
+
+2016-06-14  John Baldwin  <jhb@FreeBSD.org>
+
+	* opcode/msp430-decode.h (MSP430_Size): Remove.
+	(Msp430_Opcode_Decoded): Change type of size to int.
+
+2016-06-11  Alan Modra  <amodra@gmail.com>
+
+	* coff/sparc.h (COFF_ADJUST_SYM_OUT_POST): Define.
+
 2016-06-08  Jose E. Marchesi  <jose.marchesi@oracle.com>
 
 	* opcode/sparc.h: Add missing documentation for hyperprivileged

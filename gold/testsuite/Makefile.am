@@ -848,6 +848,7 @@ copy_test_2_pic.o: copy_test_2.cc
 copy_test_2.so: gcctestdir/ld copy_test_2_pic.o
 	$(CXXLINK) -Bgcctestdir/ -shared copy_test_2_pic.o
 
+if !DEFAULT_TARGET_POWERPC
 check_SCRIPTS += copy_test_protected.sh
 check_DATA += copy_test_protected.err
 MOSTLYCLEANFILES += copy_test_protected.err
@@ -859,6 +860,7 @@ copy_test_protected.err: copy_test_protected.o copy_test_2.so gcctestdir/ld
 	  rm -f $@; \
 	  exit 1; \
 	fi
+endif
 
 if TLS
 
@@ -1094,6 +1096,25 @@ x86_64_mov_to_lea12.stdout: x86_64_mov_to_lea12
 x86_64_mov_to_lea13.stdout: x86_64_mov_to_lea13
 	$(TEST_OBJDUMP) -dw $< > $@
 x86_64_mov_to_lea14.stdout: x86_64_mov_to_lea14
+	$(TEST_OBJDUMP) -dw $< > $@
+
+check_SCRIPTS += x86_64_indirect_call_to_direct.sh
+check_DATA += x86_64_indirect_call_to_direct1.stdout \
+	x86_64_indirect_jump_to_direct1.stdout
+MOSTLYCLEANFILES += x86_64_indirect_call_to_direct1 \
+	x86_64_indirect_jump_to_direct1
+
+x86_64_indirect_call_to_direct1.o: x86_64_indirect_call_to_direct1.s
+	$(TEST_AS) --64 -mrelax-relocations=yes -o $@ $<
+x86_64_indirect_call_to_direct1: x86_64_indirect_call_to_direct1.o gcctestdir/ld
+	gcctestdir/ld -o $@ $<
+x86_64_indirect_call_to_direct1.stdout: x86_64_indirect_call_to_direct1
+	$(TEST_OBJDUMP) -dw $< > $@
+x86_64_indirect_jump_to_direct1.o: x86_64_indirect_jump_to_direct1.s
+	$(TEST_AS) --64 -mrelax-relocations=yes -o $@ $<
+x86_64_indirect_jump_to_direct1: x86_64_indirect_jump_to_direct1.o gcctestdir/ld
+	gcctestdir/ld -o $@ $<
+x86_64_indirect_jump_to_direct1.stdout: x86_64_indirect_jump_to_direct1
 	$(TEST_OBJDUMP) -dw $< > $@
 
 check_SCRIPTS += x86_64_overflow_pc32.sh
@@ -1858,6 +1879,17 @@ script_test_12a.o: script_test_12a.c
 	$(COMPILE) -O0 -c -o $@ $<
 script_test_12b.o: script_test_12b.c
 	$(COMPILE) -O0 -c -o $@ $<
+
+# Test for SORT_BY_INIT_PRIORITY.
+check_SCRIPTS += script_test_14.sh
+check_DATA += script_test_14.stdout
+MOSTLYCLEANFILES += script_test_14
+script_test_14.o: script_test_14.s
+	$(TEST_AS) -o $@ $<
+script_test_14: $(srcdir)/script_test_14.t script_test_14.o gcctestdir/ld
+	gcctestdir/ld -o $@ script_test_14.o -T $(srcdir)/script_test_14.t
+script_test_14.stdout: script_test_14
+	$(TEST_OBJDUMP) -s script_test_14 > $@
 
 # Test --dynamic-list, --dynamic-list-data, --dynamic-list-cpp-new,
 # and --dynamic-list-cpp-typeinfo
@@ -3471,6 +3503,21 @@ arm_farcall_thumb_arm_5t.o: arm_farcall_thumb_arm.s
 MOSTLYCLEANFILES += arm_farcall_thumb_arm arm_farcall_thumb_arm_5t
 
 endif DEFAULT_TARGET_ARM
+
+if DEFAULT_TARGET_AARCH64
+
+check_SCRIPTS += aarch64_reloc_none.sh
+check_DATA += aarch64_reloc_none.stdout
+aarch64_reloc_none.o: aarch64_reloc_none.s
+	$(TEST_AS) -o $@ $<
+aarch64_reloc_none: aarch64_reloc_none.o ../ld-new
+	../ld-new -o $@ aarch64_reloc_none.o --gc-sections
+aarch64_reloc_none.stdout: aarch64_reloc_none
+	$(TEST_NM) $< > $@
+
+MOSTLYCLEANFILES += aarch64_reloc_none
+
+endif DEFAULT_TARGET_AARCH64
 
 if DEFAULT_TARGET_S390
 

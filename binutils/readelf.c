@@ -2381,9 +2381,6 @@ decode_ARC_machine_flags (unsigned e_flags, unsigned e_machine, char buf[])
     case E_ARC_MACH_ARC700:
       strcat (buf, ", ARC700");
       break;
-    case E_ARC_MACH_NPS400:
-      strcat (buf, ", NPS400");
-      break;
 
       /* The only times we should end up here are (a) A corrupt ELF, (b) A
          new ELF with new architecture being read by an old version of
@@ -8714,7 +8711,7 @@ dynamic_section_mips_val (Elf_Internal_Dyn * entry)
 
     case DT_MIPS_TIME_STAMP:
       {
-	char timebuf[20];
+	char timebuf[128];
 	struct tm * tmp;
 	time_t atime = entry->d_un.d_val;
 
@@ -11833,6 +11830,8 @@ is_24bit_abs_reloc (unsigned int reloc_type)
     case EM_CYGNUS_MN10200:
     case EM_MN10200:
       return reloc_type == 4; /* R_MN10200_24.  */
+    case EM_FT32:
+      return reloc_type == 5; /* R_FT32_20.  */
     default:
       return FALSE;
     }
@@ -14490,7 +14489,7 @@ process_mips_specific (FILE * file)
 	    {
 	      Elf32_Lib liblist;
 	      time_t atime;
-	      char timebuf[20];
+	      char timebuf[128];
 	      struct tm * tmp;
 
 	      liblist.l_name = BYTE_GET (elib[cnt].l_name);
@@ -15144,7 +15143,7 @@ process_gnu_liblist (FILE * file)
 	    {
 	      Elf32_Lib liblist;
 	      time_t atime;
-	      char timebuf[20];
+	      char timebuf[128];
 	      struct tm * tmp;
 
 	      liblist.l_name = BYTE_GET (elib[cnt].l_name);

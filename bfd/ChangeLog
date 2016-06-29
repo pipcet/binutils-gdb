@@ -1,3 +1,397 @@
+2016-06-29  Nick Clifton  <nickc@redhat.com>
+
+	* elfnn-aarch64.c (is_aarch64_mapping_symbol): New function.
+	Returns TRUE for AArch64 mapping symbols.
+	(elfNN_aarch64_backend_symbol_processing): New function.  Marks
+	mapping symbols as precious in object files so that they will not
+	be stripped.
+	(elf_backend_symbol_processing): Define.
+
+	* elf32-arm.c (is_arm_mapping_symbol): New function.  Returns TRUE
+	for ARM mapping symbols.
+	(elf32_arm_backend_symbol_processing): Make use of the new function.
+
+2016-06-28  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR ld/20306
+	* elflink.c (elf_link_check_versioned_symbol): Return false
+	for unreferenced undefined symbol.
+
+2016-06-28  Nick Clifton  <nickc@redhat.com>
+
+	* elf32-bfin.c (bfin_adjust_dynamic_symbol): Fail if a COPY reloc
+	is needed.
+
+	* elf32-arm.c (elf32_arm_backend_symbol_processing): New
+	function.  Marks mapping symbols in object files as precious, so
+	that strip will not remove them.
+	(elf_backend_symbol_processing): Define.
+
+2016-06-28  James Clarke  <jrtc27@jrtc27.com>
+
+	* elfxx-sparc.c (_bfd_sparc_elf_relocate_section): Don't convert
+	R_SPARC_32 to R_SPARC_RELATIVE if class is ELFCLASS64.
+
+2016-06-28  Maciej W. Rozycki  <macro@imgtec.com>
+
+	* elf32-mips.c (elf_mips16_howto_table_rel): Add
+	R_MIPS16_PC16_S1.
+	(mips16_reloc_map): Likewise.
+	* elf64-mips.c (mips16_elf64_howto_table_rel): Likewise.
+	(mips16_elf64_howto_table_rela): Likewise.
+	(mips16_reloc_map): Likewise.
+	* elfn32-mips.c (elf_mips16_howto_table_rel): Likewise.
+	(elf_mips16_howto_table_rela): Likewise.
+	(mips16_reloc_map): Likewise.
+	* elfxx-mips.c (mips16_branch_reloc_p): New function.
+	(mips16_reloc_p): Handle R_MIPS16_PC16_S1.
+	(b_reloc_p): Likewise.
+	(mips_elf_calculate_relocation): Likewise.
+	(_bfd_mips_elf_check_relocs): Likewise.
+	* reloc.c (BFD_RELOC_MIPS16_16_PCREL_S1): New relocation.
+	* bfd-in2.h: Regenerate.
+	* libbfd.h: Regenerate.
+
+2016-06-27  Alan Modra  <amodra@gmail.com>
+
+	PR ld/19264
+	* elf64-ppc.c (STUB_SHRINK_ITER): Define.
+	(ppc64_elf_size_stubs): Exit stub sizing loop past STUB_SHRINK_ITER
+	if shrinking stubs.
+	(ppc64_elf_size_stubs): Adjust to suit.
+
+2016-06-27  Trevor Saunders  <tbsaunde+binutils@tbsaunde.org>
+
+	* elf32-dlx.h: New file.
+	* elf32-dlx.c: Adjust.
+
+2016-06-25  Trevor Saunders  <tbsaunde+binutils@tbsaunde.org>
+
+	* elf32-xtensa.c (xtensa_make_property_section): Remove prototype.
+
+2016-06-24  John Baldwin  <jhb@FreeBSD.org>
+
+	* elf.c (elfcore_grok_freebsd_note): Handle NT_FREEBSD_PROCSTAT_AUXV
+	notes.
+
+2016-06-24  John Baldwin  <jhb@FreeBSD.org>
+
+	* elf.c (elfcore_grok_note): Remove handling of NT_X86_XSTATE for
+	FreeBSD.  Remove case for NT_FREEBSD_THRMISC.
+	(elfcore_grok_freebsd_psinfo): New function.
+	(elfcore_grok_freebsd_prstatus): New function.
+	(elfcore_grok_freebsd_note): New function.
+	(elf_parse_notes): Use "elfcore_grok_freebsd_note" for "FreeBSD"
+	notes.
+
+2016-06-24  Joel Brobecker  <brobecker@adacore.com>
+
+	* elflink.c: Check the value of BFD_SUPPORTS_PLUGINS rather
+	than its existance.
+
+2016-06-24  Alan Modra  <amodra@gmail.com>
+
+	* config.bfd: Delete mips vxworks patterns matched earlier.
+	Combine mips*-*-none with mips*-*-elf*.
+
+2016-06-21  Maciej W. Rozycki  <macro@imgtec.com>
+
+	* elfxx-mips.c (mips_elf_perform_relocation): Call
+	`info->callbacks->einfo' rather than `*_bfd_error_handler' and
+	use the `%X%H' format for the cross-mode jump conversion error
+	message.  Remove the full stop from the end of the message.
+	Continue processing rather than returning failure.
+
+2016-06-21  Graham Markall  <graham.markall@embecosm.com>
+
+	* archures.c: Remove bfd_mach_arc_nps400.
+	* bfd-in2.h: Likewise.
+	* cpu-arc.c (arch_info_struct): Likewise.
+	* elf32-arc.c (arc_elf_object_p, arc_elf_final_write_processing):
+	Likewise.
+
+2016-06-20  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR ld/18250
+	PR ld/20267
+	* elflink.c: Include plugin.h if BFD_SUPPORTS_PLUGINS is
+	defined.
+	(elf_link_is_defined_archive_symbol): Call
+	bfd_link_plugin_object_p on unknown plugin object and use the
+	IR symbol table if the input is an IR object.
+	* plugin.c (bfd_link_plugin_object_p): New function.
+	* plugin.h (bfd_link_plugin_object_p): New prototype.
+
+2016-06-20  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR ld/20276
+	* elflink.c (elf_link_add_object_symbols): Don't check alignment
+	on symbol from plugin dummy input.
+
+2016-06-18  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* bfd.c (bfd_plugin_format): Rename bfd_plugin_uknown to
+	bfd_plugin_unknown.
+	* bfd-in2.h: Regenerated.
+	* plugin.c (bfd_plugin_object_p): Replace bfd_plugin_uknown
+	with bfd_plugin_unknown.
+
+2016-06-18  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR ld/20253
+	* elf-bfd.h (_bfd_elf_allocate_ifunc_dyn_relocs): Add an
+	bfd_boolean argument.
+	* elf-ifunc.c (_bfd_elf_create_ifunc_sections): Replace
+	"shared object" with "PIC object" in comments.
+	(_bfd_elf_allocate_ifunc_dyn_relocs): Updated.  Replace
+	"shared object" with "PIC object" in comments.  Avoid PLT if
+	requested.  Generate dynamic relocations for non-GOT references.
+	Make room for the special first entry in PLT and allocate PLT
+	entry only for PLT and PC-relative references.  Store dynamic
+	GOT relocations in .rel[a].iplt section for static executables.
+	If PLT isn't used, always use GOT for symbol value.  Don't
+	allocate GOT entry if it isn't used.
+	* elf32-i386.c (elf_i386_check_relocs): Increment PLT reference
+	count only in the code section.  Allocate dynamic pointer
+	relocation against STT_GNU_IFUNC symbol in the non-code section.
+	(elf_i386_adjust_dynamic_symbol): Increment PLT reference count
+	only for PC-relative references.
+	(elf_i386_allocate_dynrelocs): Pass TRUE to
+	_bfd_elf_allocate_ifunc_dyn_relocs.
+	(elf_i386_relocate_section): Allow R_386_GOT32/R_386_GOT32X
+	relocations against STT_GNU_IFUNC symbols without PLT.  Generate
+	dynamic pointer relocation against STT_GNU_IFUNC symbol in
+	the non-code section and store it in the proper REL section.
+	Don't allow non-pointer relocation against STT_GNU_IFUNC symbol
+	without PLT.
+	(elf_i386_finish_dynamic_symbol): Generate dynamic
+	R_386_IRELATIVE and R_386_GLOB_DAT GOT relocations against
+	STT_GNU_IFUNC symbols without PLT.
+	(elf_i386_finish_dynamic_sections): Don't handle local
+	STT_GNU_IFUNC symbols here.
+	(elf_i386_output_arch_local_syms): Handle local STT_GNU_IFUNC
+	symbols here.
+	(elf_backend_output_arch_local_syms): New.
+	* elf32-x86-64.c (elf_i386_check_relocs): Increment PLT reference
+	count only in the code section.  Allocate dynamic pointer
+	relocation against STT_GNU_IFUNC symbol in the non-code section.
+	(elf_x86_64_adjust_dynamic_symbol): Increment PLT reference
+	count only for PC-relative references.
+	(elf_x86_64_allocate_dynrelocs): Pass TRUE to
+	_bfd_elf_allocate_ifunc_dyn_relocs.
+	(elf_x86_64_relocate_section): Allow R_X86_64_GOTPCREL,
+	R_X86_64_GOTPCRELX, R_X86_64_REX_GOTPCRELX and
+	R_X86_64_GOTPCREL64 relocations against STT_GNU_IFUNC symbols
+	without PLT.  Generate dynamic pointer relocation against
+	STT_GNU_IFUNC symbol in the non-code section and store it in
+	the proper RELA section.  Don't allow non-pointer relocation
+	against STT_GNU_IFUNC symbol without PLT.
+	(elf_x86_64_finish_dynamic_symbol): Generate dynamic
+	R_X86_64_IRELATIVE and R_X86_64_GLOB_DAT GOT relocations against
+	STT_GNU_IFUNC symbols without PLT.
+	(elf_x86_64_finish_dynamic_sections): Don't handle local
+	STT_GNU_IFUNC symbols here.
+	(elf_x86_64_output_arch_local_syms): Handle local STT_GNU_IFUNC
+	symbols here.
+	(elf_backend_output_arch_local_syms): New.
+	* elfnn-aarch64.c (elfNN_aarch64_allocate_ifunc_dynrelocs):
+	Pass FALSE to _bfd_elf_allocate_ifunc_dyn_relocs.
+
+2016-06-17  Thomas Preud'homme  <thomas.preudhomme@arm.com>
+	    Tony Wang  <tony.wang@arm.com>
+
+	* elf32-arm.c (elf32_arm_stub_long_branch_thumb2_only): Define stub
+	sequence.
+	(stub_long_branch_thumb2_only): Define stub.
+	(arm_stub_is_thumb): Add case for arm_stub_long_branch_thumb2_only.
+	(arm_stub_long_branch_thumb2_only): Likewise.
+	(arm_type_of_stub): Use arm_stub_long_branch_thumb2_only for Thumb-2
+	capable targets.
+
+2016-06-17  Jose E. Marchesi  <jose.marchesi@oracle.com>
+
+	* archures.c (bfd_mach_sparc_v8plusc): Define.
+	(bfd_mach_sparc_v9c): Likewise.
+	(bfd_mach_sparc_v8plusd): Likewise.
+	(bfd_mach_sparc_v9d): Likewise.
+	(bfd_mach_sparc_v8pluse): Likewise.
+	(bfd_mach_sparc_v9e): Likewise.
+	(bfd_mach_sparc_v8plusv): Likewise
+	(bfd_mach_sparc_v9v): Likewise.
+	(bfd_mach_sparc_v8plusm): Likewise.
+	(bfd_mach_sparc_v9m): Likewise.
+	(bfd_mach_sparc_v9_p): Adapt to v8plusm and v9m.
+	(bfd_mach_sparc_64bit_p): Likewise.
+	* bfd-in2.h: Regenerate.
+	* cpu-sparc.c (arch_info_struct): Add entries for
+	bfd_mach_sparc_v8plus{c,d,e,v,m} and bfd_mach_sparc_v9{c,d,e,v,m}.
+	* aoutx.h (machine_type): Handle bfd_mach_sparc_v8plus{c,d,e,v,m}
+	and bfd_mach_sparc_v9{c,d,e,v,m}.
+	* elf32-sparc.c (elf32_sparc_final_write_processing): Likewise.
+	* elfxx-sparc.c (_bfd_sparc_elf_object_p): Likewise.
+
+2016-06-16  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* elf32-i386.c (elf_i386_check_relocs): Don't check undefined
+	symbols for relocations against IFUNC symbols.
+	* elf64-x86-64.c (elf_x86_64_check_relocs): Likewise.
+
+2016-06-16  Marcin Kościelnicki  <koriakin@0x04.net>
+
+	* elf32-s390.c (elf_s390_finish_dynamic_sections): Include
+	.rela.iplt in DT_PLTRELSZ.
+	* elf64-s390.c (elf_s390_finish_dynamic_sections): Likewise,
+	for DT_PLTRELSZ and DT_RELASZ as well.
+
+2016-06-16  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* elf32-i386.c (elf_i386_check_relocs): Skip relocations in
+	non-loaded, non-alloced sections.
+	* elf64-x86-64.c (elf_x86_64_check_relocs): Likewise.
+
+2016-06-15  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* elf32-i386.c (elf_i386_check_relocs): Check SEC_ALLOC before
+	allocating dynamic relocation.
+	* elf64-x86-64.c (elf_x86_64_check_relocs): Likewise.
+
+2016-06-14  Senthil Kumar Selvaraj  <senthil_kumar.selvaraj@atmel.com>
+
+	PR ld/20254
+	* elf32-avr.c (elf32_avr_relax_delete_bytes): Adjust reloc
+	offsets until reloc_toaddr.
+
+2016-06-14  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* elf32-i386.c (elf_i386_reloc_type_class): Check R_386_IRELATIVE.
+	Don't check symbol type for STN_UNDEF symbol index.
+	* elf64-x86-64.c (elf_x86_64_reloc_type_class): Check
+	R_X86_64_IRELATIVE.  Don't check symbol type for STN_UNDEF symbol
+	index.
+
+2016-06-14  Thomas Preud'homme  <thomas.preudhomme@arm.com>
+
+	* elf32-arm.c (using_thumb_only): Force review of arch check logic for
+	new architecture.
+	(using_thumb2): Try Tag_THUMB_ISA_use first and check
+	for exact arch value then.  Force review of arch check logic for new
+	architecture.
+	(arch_has_arm_nop): Update and fix arch check logic.  Force review of
+	that logic for new architecture.
+	(arch_has_thumb2_nop): Remove.
+	(elf32_arm_tls_relax): Use using_thumb2 instead of above function.
+	(elf32_arm_final_link_relocate): Likewise but using thumb2.
+
+2016-06-14  Alan Modra  <amodra@gmail.com>
+
+	* bfd-in.h (bfd_my_archive): Delete.
+	* bfd-in2.h: Regenerate.
+
+2016-06-14  Alan Modra  <amodra@gmail.com>
+
+	PR ld/20241
+	* archive.c (open_nested_file): Set my_archive.
+	* bfd.c (_bfd_default_error_handler <%B>): Exclude archive file name
+	for thin archives.
+	* bfdio.c (bfd_tell): Don't adjust origin for thin archives.
+	(bfd_seek): Likewise.
+	* bfdwin.c (bfd_get_file_window): Likewise.
+	* cache.c (cache_bmmap): Likewise.
+	(bfd_cache_lookup_worker): Don't look in my_archive for thin archives.
+	* mach-o.c (bfd_mach_o_follow_dsym): Don't open my_archive for
+	thin archives.
+	* plugin.c (try_claim): Likewise.
+	* xcofflink.c (xcoff_link_add_dynamic_symbols): Use import path of
+	file within thin archive, not the archive.
+
+2016-06-13  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR ld/20244
+	* elf32-i386.c (elf_i386_relocate_section): Add the .got.plt
+	section address for R_386_GOT32/R_386_GOT32X relocations against
+	IFUNC symbols if there is no base register and return error for
+	PIC.
+
+2016-06-13  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* elf32-i386.c (elf_i386_relocate_section): Simplify IFUNC
+	GOT32 adjustment for static executables.
+
+2016-06-13  Maciej W. Rozycki  <macro@imgtec.com>
+
+	* elf32-mips.c (elf_mips_gnu_pcrel32): Update comment.
+
+2016-06-13  Cupertino Miranda  <cmiranda@synospsy.com>
+
+	* elf32-arc.c (elf_arc_relocate_section): Fixed condition.
+
+2016-06-13  Cupertino Miranda  <cmiranda@synospsy.com>
+
+	* elf32-arc.c (elf_arc_finish_dynamic_sections): Changed.
+
+2016-06-13  Cupertino Miranda  <cmiranda@synospsy.com>
+
+	* elf32-arc.c (arc_local_data, arc_local_data): Removed.
+	(SECTSTART): Changed.
+	(elf_arc_relocate_section): Fixed mistake in PIE related
+	condition.
+	(elf_arc_size_dynamic_sections): Changed DT_RELENT to DT_RELAENT.
+
+2016-06-13  Cupertino Miranda  <cmiranda@synospsy.com>
+
+	* elf32-arc.c (elf32_arc_reloc_type_class): Defined function to
+	enable support for "-z combreloc" and DT_RELACOUNT.
+	(elf_backend_reloc_type_class): Likewise
+
+2016-06-11  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR ld/20244
+	* elf32-i386.c (elf_i386_relocate_section): When relocating
+	R_386_GOT32, return error without a base register for PIC and
+	subtract the .got.plt section address only with a base register.
+
+2016-06-10  Alan Modra  <amodra@gmail.com>
+
+	* elf-strtab.c (struct strtab_save): Use size_t for "size".
+	(struct elf_strtab_hash): Likewise for "size" and "alloced".
+	(_bfd_elf_strtab_init): Formatting.
+	(_bfd_elf_strtab_add): Return size_t rather than bfd_size_type.
+	(_bfd_elf_strtab_addref): Take size_t idx param.
+	(_bfd_elf_strtab_delref, _bfd_elf_strtab_refcount): Likewise.
+	(_bfd_elf_strtab_offset): Likewise.
+	(_bfd_elf_strtab_clear_all_refs): Use size_t idx.
+	(_bfd_elf_strtab_save): Use size_t "idx" and "size" vars.
+	(_bfd_elf_strtab_restore, _bfd_elf_strtab_emit): Similarly.
+	(_bfd_elf_strtab_finalize): Similarly.
+	* elf-bfd.h (_bfd_elf_strtab_add): Update prototypes.
+	(_bfd_elf_strtab_addref, _bfd_elf_strtab_delref): Likewise.
+	(_bfd_elf_strtab_refcount, _bfd_elf_strtab_offset): Likewise.
+	* elf.c (bfd_elf_get_elf_syms): Calculate symbol buffer size
+	using bfd_size_type.
+	(bfd_section_from_shdr): Delete amt.
+	(_bfd_elf_init_reloc_shdr): Likewise.
+	(_bfd_elf_link_assign_sym_version): Likewise.
+	(assign_section_numbers): Use size_t reloc_count.
+	* elflink.c (struct elf_symbuf_head): Use size_t "count".
+	(bfd_elf_link_record_dynamic_symbol): Use size_t for some vars.
+	(elf_link_is_defined_archive_symbol): Likewise.
+	(elf_add_dt_needed_tag): Likewise.
+	(elf_finalize_dynstr): Likewise.
+	(elf_link_add_object_symbols): Likewise.
+	(bfd_elf_size_dynamic_sections): Likewise.
+	(elf_create_symbuf): Similarly.
+	(bfd_elf_match_symbols_in_sections): Likewise.
+	(elf_link_swap_symbols_out): Likewise.
+	(elf_link_check_versioned_symbol): Likewise.
+	(bfd_elf_gc_record_vtinherit): Likewise.
+	(bfd_elf_gc_common_finalize_got_offsets): Likewise.
+
+2016-06-08  Senthil Kumar Selvaraj  <senthil_kumar.selvaraj@atmel.com>
+
+	PR ld/20221
+	* elf32-avr.c (elf32_avr_relax_delete_bytes): Adjust syms
+	and relocs only if shrinking occurred.
+
 2016-06-08  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* elf64-i386.c (elf_i386_link_hash_entry): Add tls_get_addr.

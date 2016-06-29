@@ -24,6 +24,10 @@
 #ifndef OPCODE_ARC_H
 #define OPCODE_ARC_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef MAX_INSN_ARGS
 #define MAX_INSN_ARGS	     16
 #endif
@@ -35,10 +39,13 @@
 /* Instruction Class.  */
 typedef enum
   {
+    ACL,
     ARITH,
     AUXREG,
+    BITOP,
     BRANCH,
     CONTROL,
+    DPI,
     DSP,
     FLOAT,
     INVALID,
@@ -46,9 +53,7 @@ typedef enum
     KERNEL,
     LOGICAL,
     MEMORY,
-    BITOP,
     NET,
-    ACL,
   } insn_class_t;
 
 /* Instruction Subclass.  */
@@ -69,6 +74,7 @@ typedef enum
     MPY7E,
     MPY8E,
     MPY9E,
+    NPS400,
     QUARKSE,
     SHFT1,
     SHFT2,
@@ -171,7 +177,6 @@ extern const struct arc_opcode arc_opcodes[];
 #define ARC_OPCODE_ARC700   0x0002  /* ARC 700 specific insns.  */
 #define ARC_OPCODE_ARCv2EM  0x0004  /* ARCv2 EM specific insns.  */
 #define ARC_OPCODE_ARCv2HS  0x0008  /* ARCv2 HS specific insns.  */
-#define ARC_OPCODE_NPS400   0x0010  /* NPS400 specific insns.  */
 
 /* CPU combi.  */
 #define ARC_OPCODE_ARCALL  (ARC_OPCODE_ARC600 | ARC_OPCODE_ARC700	\
@@ -185,6 +190,7 @@ extern const struct arc_opcode arc_opcodes[];
 #define ARC_ATOMIC   0x0002    /* Mutual exclusive with LLOCK.  */
 #define ARC_MPY      0x0004
 #define ARC_MULT     0x0004
+#define ARC_NPS400   0x0008
 
 /* Floating point support.  */
 #define ARC_DPFP     0x0010
@@ -601,5 +607,9 @@ extern const unsigned char arg_32bit_limmlimm[MAX_INSN_ARGS + 1];
 extern const unsigned char arg_32bit_rc[MAX_INSN_ARGS + 1];
 extern const unsigned char arg_32bit_u6[MAX_INSN_ARGS + 1];
 extern const unsigned char arg_32bit_limm[MAX_INSN_ARGS + 1];
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* OPCODE_ARC_H */

@@ -1,3 +1,419 @@
+2016-06-28  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* testsuite/ld-gc/gc.exp: Run pr20306 test.
+	* ld-gc/pr20306.c: New file.
+	* ld-gc/pr20306.d: Likewise.
+
+2016-06-28  Nick Clifton  <nickc@redhat.com>
+
+	* testsuite/ld-elf/comm-data.exp: Expect comm-data2 test to fail
+	for bfin.
+	* testsuite/ld-elf/elf.exp: Expect pr14170 and symbolic function
+	tests to fail for bfin.
+	* testsuite/ld-elf/endsym.d: Expect to fail with cr16, crx, dlx,
+	nds32 and visium.
+	* testsuite/ld-elf/var1.d: Expect to fail with d30v, dlx, ft32 and
+	microblaze.
+	* testsuite/ld-pe/pe.exp: Expect foreign symbol test to fail for
+	mcore-pe.
+
+2016-06-28  Nick Clifton  <nickc@redhat.com>
+
+	* testsuite/ld-elf/merge.d: Add m68hc11 to list of targets that
+	expect to fail this test.
+	* testsuite/ld-scripts/overlay-size.d: Skip the entire test for
+	RX.
+	* testsuite/ld-scripts/rgn-at10.d: No longer expect this test to
+	fail for the RX.
+	* testsuite/ld-scripts/rgn-at11.d: Likewise.
+	* testsuite/ld-scripts/rgn-at2.d: Likewise.
+	* testsuite/ld-scripts/rgn-at6.d: Likewise.
+	* testsuite/ld-scripts/rgn-at7.d: Likewise.
+	* testsuite/ld-scripts/rgn-at8.d: Likewise.
+
+2016-06-28  James Clarke  <jrtc27@jrtc27.com>
+
+	* testsuite/ld-elf/symbolic-func.r: Allow non-zero offsets from
+	.text.
+
+2016-06-28  Maciej W. Rozycki  <macro@imgtec.com>
+
+	* testsuite/ld-mips-elf/attr-gnu-4-10.d: Match any UNIX OS/ABI.
+	* testsuite/ld-mips-elf/attr-gnu-4-50.d: Likewise.
+	* testsuite/ld-mips-elf/attr-gnu-4-60.d: Likewise.
+	* testsuite/ld-mips-elf/attr-gnu-4-70.d: Likewise.
+
+2016-06-28  Alan Modra  <amodra@gmail.com>
+
+	PR ld/20302
+	* testsuite/ld-scripts/pr20302.d: Exclude *-*-*aout.
+
+2016-06-28  Maciej W. Rozycki  <macro@imgtec.com>
+
+	* testsuite/ld-mips-elf/mips16-branch-2.d: New test.
+	* testsuite/ld-mips-elf/mips16-branch-3.d: New test.
+	* testsuite/ld-mips-elf/mips16-branch-addend-2.d: New test.
+	* testsuite/ld-mips-elf/mips16-branch-addend-3.d: New test.
+	* testsuite/ld-mips-elf/mips16-branch.s: New test source.
+	* testsuite/ld-mips-elf/mips-elf.exp: Run the new tests.
+
+2016-06-27  Nick Clifton  <nickc@redhat.com>
+
+	PR ld/20302
+	* lexsup.c (set_segment_start): If resetting the start address of
+	a section, remember to generate a new script element as well.
+	* testsuite/ld-scripts/pr20302.d: New test.
+	* testsuite/ld-scripts/scripts.exp: Run the new test.
+
+2016-06-24  Alan Modra  <amodra@gmail.com>
+
+	* testsuite/ld-aarch64/aarch64-elf.exp (aarch64_choose_ilp32_emul):
+	Don't error out, always return an emulation.
+
+2016-06-24  Dilyan Palauzov <dilyan.palauzov@aegee.org>
+	    H.J. Lu  <hongjiu.lu@intel.com>
+
+	* lexsup.c (elf_shlib_list_options): Check DEFAULT_LD_Z_RELRO
+	for -z relro help message.
+
+2016-06-22  Maciej W. Rozycki  <macro@imgtec.com>
+
+	* testsuite/ld-mips-elf/undefweak-overflow.d: Use wildcard
+	address matching.
+
+2016-06-22  Maciej W. Rozycki  <macro@imgtec.com>
+
+	* testsuite/ld-mips-elf/mips-elf.exp: Uniquely identify
+	`undefweak-overflow' tests.
+
+2016-06-22  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR ld/20283
+	* NEWS: Mention --enable-relro.
+	* configure.ac: Add --enable-relro.
+	(DEFAULT_LD_Z_RELRO): New.  Set by --enable-relro.
+	* configure.tgt (ac_default_ld_z_relro): Default it to 1 for
+	some Linux targets.
+	* config.in: Regenerated.
+	* configure: Likewise.
+	* emultempl/elf32.em (gld${EMULATION_NAME}_before_parse): Set
+	link_info.relro to DEFAULT_LD_Z_RELRO.
+	* testsuite/config/default.exp (ld_elf_shared_opt): New.
+	* testsuite/lib/ld-lib.exp (run_dump_test): Pass
+	$ld_elf_shared_opt to ld for ELF targets with shared object
+	support.
+	(run_ld_link_tests): Likewise.
+
+2016-06-21  Maciej W. Rozycki  <macro@imgtec.com>
+
+	* testsuite/ld-mips-elf/mode-change-error-1a.s: Trigger an error
+	twice rather than once.
+	* testsuite/ld-mips-elf/mode-change-error-1.d: Adjust
+	accordingly.  Remove the full stop from the end of the message.
+
+2016-06-21  Graham Markall  <graham.markall@embecosm.com>
+
+	* testsuite/ld-arc/nps-1a.d: Use -mcpu=arc700 -mnps400.
+	* testsuite/ld-arc/nps-1b.d: Likewise.
+
+2016-06-20  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR ld/20267
+	* testsuite/ld-plugin/lto.exp (lto_link_tests): Add test for
+	PR ld/20267.
+	(lto_run_tests): Likewise.
+	* testsuite/ld-plugin/pr20267a.c: New file.
+	* testsuite/ld-plugin/pr20267b.c: Likewise.
+
+2016-06-20  H.J. Lu  <hongjiu.lu@intel.com>
+	    Alan Modra  <amodra@gmail.com>
+
+	PR ld/20276
+	* plugin.c (plugin_notice): Set non_ir_ref on common symbols.
+	* testsuite/ld-plugin/lto.exp (lto_link_tests): Add test for
+	PR ld/20276.
+	(lto_run_tests): Likewise.
+	* testsuite/ld-plugin/pass.out: New file.
+	* testsuite/ld-plugin/pr20276a.c: Likewise.
+	* testsuite/ld-plugin/pr20276b.c: Likewise.
+
+2016-06-18  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* plugin.c (plugin_object_p): Replace bfd_plugin_uknown
+	with bfd_plugin_unknown.
+
+2016-06-18  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR ld/20253
+	* testsuite/ld-i386/i386.exp: Run PR ld/20253 tests.
+	* testsuite/ld-i386/no-plt.exp: Likewise.
+	* testsuite/ld-x86-64/no-plt.exp: Likewise.
+	* testsuite/ld-i386/pr13302.d: Remove .rel.plt section.
+	* testsuite/ld-ifunc/ifunc-13-i386.d: Likewise.
+	* testsuite/ld-ifunc/ifunc-13-x86-64.d: Likewise.
+	* testsuite/ld-ifunc/ifunc-15-i386.d: Likewise.
+	* testsuite/ld-ifunc/ifunc-15-x86-64.d: Likewise.
+	* testsuite/ld-x86-64/pr13082-5a.d: Likewise.
+	* testsuite/ld-x86-64/pr13082-5b.d: Likewise.
+	* testsuite/ld-x86-64/pr13082-6a.d: Likewise.
+	* testsuite/ld-x86-64/pr13082-6b.d: Likewise.
+	* testsuite/ld-i386/pr20244-2a.d: Remove .plt section.
+	* testsuite/ld-ifunc/ifunc-21-i386.d: Likewise.
+	* testsuite/ld-ifunc/ifunc-21-x86-64.d: Likewise.
+	* testsuite/ld-ifunc/ifunc-22-i386.d: Likewise.
+	* testsuite/ld-ifunc/ifunc-22-x86-64.d: Likewise.
+	* testsuite/ld-i386/pr20244-2b.d: Updated.
+	* testsuite/ld-i386/pr20244-2c.d: Likewise.
+	* testsuite/ld-ifunc/ifunc-18a-i386.d: Likewise.
+	* testsuite/ld-ifunc/ifunc-18a-x86-64.d: Likewise.
+	* testsuite/ld-ifunc/ifunc-18b-i386.d: Likewise.
+	* testsuite/ld-ifunc/ifunc-18b-x86-64.d: Likewise.
+	* testsuite/ld-i386/pr20253-1a.c: New file.
+	* testsuite/ld-i386/pr20253-1b.S: Likewise.
+	* testsuite/ld-i386/pr20253-1c.S: Likewise.
+	* testsuite/ld-i386/pr20253-1d.S: Likewise.
+	* testsuite/ld-i386/pr20253-2a.c: Likewise.
+	* testsuite/ld-i386/pr20253-2b.S: Likewise.
+	* testsuite/ld-i386/pr20253-2c.S: Likewise.
+	* testsuite/ld-i386/pr20253-2d.S: Likewise.
+	* testsuite/ld-i386/pr20253-3.d: Likewise.
+	* testsuite/ld-i386/pr20253-3.s: Likewise.
+	* testsuite/ld-i386/pr20253-4.s: Likewise.
+	* testsuite/ld-i386/pr20253-4a.d: Likewise.
+	* testsuite/ld-i386/pr20253-4b.d: Likewise.
+	* testsuite/ld-i386/pr20253-4c.d: Likewise.
+	* testsuite/ld-i386/pr20253-5.d: Likewise.
+	* testsuite/ld-i386/pr20253-5.s: Likewise.
+	* testsuite/ld-ifunc/ifunc-23-x86.s: Likewise.
+	* testsuite/ld-ifunc/ifunc-23a-x86.d: Likewise.
+	* testsuite/ld-ifunc/ifunc-23b-x86.d: Likewise.
+	* testsuite/ld-ifunc/ifunc-23c-x86.d: Likewise.
+	* testsuite/ld-ifunc/ifunc-24-x86.s: Likewise.
+	* testsuite/ld-ifunc/ifunc-24a-x86.d: Likewise.
+	* testsuite/ld-ifunc/ifunc-24b-x86.d: Likewise.
+	* testsuite/ld-ifunc/ifunc-24c-x86.d: Likewise.
+	* testsuite/ld-ifunc/ifunc-25-x86.s: Likewise.
+	* testsuite/ld-ifunc/ifunc-25a-x86.d: Likewise.
+	* testsuite/ld-ifunc/ifunc-25b-x86.d: Likewise.
+	* testsuite/ld-ifunc/ifunc-25c-x86.d: Likewise.
+	* testsuite/ld-x86-64/pr20253-1.s: Likewise.
+	* testsuite/ld-x86-64/pr20253-1a.d: Likewise.
+	* testsuite/ld-x86-64/pr20253-1b.d: Likewise.
+	* testsuite/ld-x86-64/pr20253-1c.d: Likewise.
+	* testsuite/ld-x86-64/pr20253-1d.d: Likewise.
+	* testsuite/ld-x86-64/pr20253-1e.d: Likewise.
+	* testsuite/ld-x86-64/pr20253-1f.d: Likewise.
+	* testsuite/ld-x86-64/pr20253-1g.d: Likewise.
+	* testsuite/ld-x86-64/pr20253-1h.d: Likewise.
+	* testsuite/ld-x86-64/pr20253-1i.d: Likewise.
+	* testsuite/ld-x86-64/pr20253-1j.d: Likewise.
+	* testsuite/ld-x86-64/pr20253-1k.d: Likewise.
+	* testsuite/ld-x86-64/pr20253-1l.d: Likewise.
+	* testsuite/ld-x86-64/pr20253-2a.c: Likewise.
+	* testsuite/ld-x86-64/pr20253-2b.S: Likewise.
+	* testsuite/ld-x86-64/pr20253-2c.S: Likewise.
+	* testsuite/ld-x86-64/pr20253-2d.S: Likewise.
+	* testsuite/ld-x86-64/pr20253-3.d: Likewise.
+	* testsuite/ld-x86-64/pr20253-3.s: Likewise.
+	* testsuite/ld-x86-64/pr20253-4.s: Likewise.
+	* testsuite/ld-x86-64/pr20253-4a.d: Likewise.
+	* testsuite/ld-x86-64/pr20253-4b.d: Likewise.
+	* testsuite/ld-x86-64/pr20253-4c.d: Likewise.
+	* testsuite/ld-x86-64/pr20253-4d.d: Likewise.
+	* testsuite/ld-x86-64/pr20253-4e.d: Likewise.
+	* testsuite/ld-x86-64/pr20253-4f.d: Likewise.
+	* testsuite/ld-x86-64/pr20253-5.s: Likewise.
+	* testsuite/ld-x86-64/pr20253-5a.d: Likewise.
+	* testsuite/ld-x86-64/pr20253-5b.d: Likewise.
+	* testsuite/ld-ifunc/ifunc-18a-i386.d: Remove extra IRELATIVE
+	relocation.
+	* testsuite/ld-ifunc/ifunc-18a-x86-64.d: Likewise.
+	* testsuite/ld-ifunc/ifunc-18b-i386.d: Likewise.
+	* testsuite/ld-ifunc/ifunc-18b-x86-64.d: Likewise.
+	* testsuite/ld-ifunc/ifunc-18a.s: Fix a typo.
+	* testsuite/ld-x86-64/x86-64.exp: Run pr20253-1 tests.
+
+2016-06-17  Thomas Preud'homme  <thomas.preudhomme@arm.com>
+	    Tony Wang  <tony.wang@arm.com>
+
+	* testsuite/ld-arm/arm-elf.exp (Thumb-Thumb farcall M profile):
+	Assemble for ARMv6-M.
+	(Thumb2-Thumb2 farcall M profile): New testcase.
+	* testsuite/ld-arm/farcall-thumb2-thumb2-m.d: New file.
+	* testsuite/ld-arm/jump-reloc-veneers-cond-long-backward.d: Update to
+	reflect the use of Thumb-2 veneers for Thumb-2 capable targets.
+	* testsuite/ld-arm/jump-reloc-veneers-cond-long.d: Likewise.
+
+2016-06-16  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* testsuite/ld-i386/i386.exp: Run pr19636-2e-nacl.
+	* testsuite/ld-i386/pr19636-2e.d: Skip for NaCl targets.
+	Remove .rel.plt section.
+	* testsuite/ld-i386/pr19636-2e-nacl.d: New file.
+
+2016-06-15  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* testsuite/ld-i386/no-plt-check1a.S (check): Test static
+	function pointer.
+	* testsuite/ld-i386/no-plt-check1b.S (check): Likewise.
+	* testsuite/ld-x86-64/no-plt-check1.S (check): Likewise.
+	* testsuite/ld-i386/no-plt-extern1a.S (func_p): New.  Static
+	function pointer.
+	* testsuite/ld-i386/no-plt-extern1b.S (func_p): Likewise.
+	* testsuite/ld-x86-64/no-plt-extern1.S (func_p): Likewise.
+	* testsuite/ld-i386/no-plt-1a.dd: Updated.
+	* testsuite/ld-i386/no-plt-1b.dd: Likewise.
+	* testsuite/ld-i386/no-plt-1c.dd: Likewise.
+	* testsuite/ld-i386/no-plt-1d.dd: Likewise.
+	* testsuite/ld-i386/no-plt-1e.dd: Likewise.
+	* testsuite/ld-i386/no-plt-1f.dd: Likewise.
+	* testsuite/ld-i386/no-plt-1g.dd: Likewise.
+	* testsuite/ld-i386/no-plt-1h.dd: Likewise.
+	* testsuite/ld-i386/no-plt-1i.dd: Likewise.
+	* testsuite/ld-i386/no-plt-1j.dd: Likewise.
+	* testsuite/ld-x86-64/no-plt-1a.dd: Likewise.
+	* testsuite/ld-x86-64/no-plt-1b.dd: Likewise.
+	* testsuite/ld-x86-64/no-plt-1c.dd: Likewise.
+	* testsuite/ld-x86-64/no-plt-1d.dd: Likewise.
+	* testsuite/ld-x86-64/no-plt-1e.dd: Likewise.
+	* testsuite/ld-x86-64/no-plt-1f.dd: Likewise.
+	* testsuite/ld-x86-64/no-plt-1g.dd: Likewise.
+
+2016-06-14  Senthil Kumar Selvaraj  <senthil_kumar.selvaraj@atmel.com>
+
+	PR ld/20254
+	* testsuite/ld-avr/avr-prop-6.d: New test.
+	* testsuite/ld-avr/avr-prop-6.s: New test.
+
+2016-06-14  Alan Modra  <amodra@gmail.com>
+
+	* ldbuildid.c: Formatting.
+	* ldcref.c: Formatting.
+	* ldctor.c: Formatting.
+	* ldemul.c: Formatting.
+	* ldexp.c: Formatting.
+	* ldfile.c: Formatting.
+	* ldlang.c: Formatting.
+	* ldmain.c: Formatting.
+	* ldwrite.c: Formatting.
+
+2016-06-14  Alan Modra  <amodra@gmail.com>
+
+	* ldlang.c: Expand uses of bfd_my_archive.
+	* ldmain.c: Likewise.
+	* ldmisc.c: Likewise.
+	* plugin.c: Likewise.
+
+2016-06-14  Alan Modra  <amodra@gmail.com>
+
+	PR ld/20241
+	* ldmain.c (add_archive_element): Just print file name of file within
+	thin archives.
+	* ldmisc.c (vfinfo): Likewise.
+	* plugin.c (plugin_object_p): Open file within thin archives.
+	(plugin_maybe_claim): Expand comment.
+
+2016-06-13  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR ld/20244
+	* testsuite/ld-i386/i386.exp: Run pr20244-2a, pr20244-2b,
+	pr20244-2c and pr20244-2d.
+	* testsuite/ld-i386/no-plt.exp: Run pr20244-3a and pr20244-3b.
+	* testsuite/ld-i386/pr20244-2.s: New file.
+	* testsuite/ld-i386/pr20244-2a.d: Likewise.
+	* testsuite/ld-i386/pr20244-2b.d: Likewise.
+	* testsuite/ld-i386/pr20244-2c.d: Likewise.
+	* testsuite/ld-i386/pr20244-2d.d: Likewise.
+	* testsuite/ld-i386/pr20244-3a.c: Likewise.
+	* testsuite/ld-i386/pr20244-3b.S: Likewise.
+	* testsuite/ld-i386/pr20244-3c.S: Likewise.
+	* testsuite/ld-i386/pr20244-3d.S: Likewise.
+
+2016-06-13  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* testsuite/ld-i386/i386.exp: Run ifunc-1a and ifunc-1b.
+	* testsuite/ld-i386/ifunc-1a.c: New file.
+	* testsuite/ld-i386/ifunc-1b.S: Likewise.
+	* testsuite/ld-i386/ifunc-1c.S: Likewise.
+	* testsuite/ld-i386/ifunc-1d.S: Likewise.
+
+2016-06-13  Cupertino Miranda  <cmiranda@synospsy.com>
+
+	* testsuite/ld-srec/srec.exp: Changed to XFAIL on both little and
+	big endian ARC targets.
+
+2016-06-12  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* testsuite/ld-x86-64/libno-plt-1b.dd: Updated for x32.
+	* testsuite/ld-x86-64/libno-plt-1b.rd: Likewise.
+	* testsuite/ld-x86-64/no-plt-1a.dd: Likewise.
+	* testsuite/ld-x86-64/no-plt-1a.rd: Likewise.
+	* testsuite/ld-x86-64/no-plt-1b.dd: Likewise.
+	* testsuite/ld-x86-64/no-plt-1b.rd: Likewise.
+	* testsuite/ld-x86-64/no-plt-1c.dd: Likewise.
+	* testsuite/ld-x86-64/no-plt-1c.rd: Likewise.
+	* testsuite/ld-x86-64/no-plt-1d.dd: Likewise.
+	* testsuite/ld-x86-64/no-plt-1e.dd: Likewise.
+	* testsuite/ld-x86-64/no-plt-1e.rd: Likewise.
+	* testsuite/ld-x86-64/no-plt-1f.dd: Likewise.
+	* testsuite/ld-x86-64/no-plt-1f.rd: Likewise.
+	* testsuite/ld-x86-64/no-plt-1g.dd: Likewise.
+	* testsuite/ld-x86-64/no-plt-1g.rd: Likewise.
+
+2016-06-11  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR ld/20244
+	* testsuite/ld-i386/i386.exp: Run pr20244-1a and pr20244-1b.
+	* testsuite/ld-i386/pr20244-1.s: New file.
+	* testsuite/ld-i386/pr20244-1a.d: Likewise.
+	* testsuite/ld-i386/pr20244-1b.d: Likewise.
+	* testsuite/ld-i386/pr20244-1c.d: Likewise.
+
+2016-06-08  Senthil Kumar Selvaraj  <senthil_kumar.selvaraj@atmel.com>
+
+	PR ld/20221
+	* testsuite/ld-avr/avr-prop-5.d: New.
+	* testsuite/ld-avr/avr-prop-5.s: New.
+
+2016-06-09  Pitchumani Sivanupandi  <pitchumani.s@atmel.com>
+
+	* testsuite/ld-avr/lds-mega.d: New test.
+	* testsuite/ld-avr/lds-mega.s: New test source.
+	* testsuite/ld-avr/lds-tiny.d: New test.
+	* testsuite/ld-avr/lds-tiny.s: New test source.
+
+2016-06-08  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* testsuite/ld-i386/libno-plt-1b.dd: New file.
+	* testsuite/ld-i386/libno-plt-1b.rd: Likewise.
+	* testsuite/ld-i386/no-plt-1a.dd: Likewise.
+	* testsuite/ld-i386/no-plt-1a.rd: Likewise.
+	* testsuite/ld-i386/no-plt-1b.dd: Likewise.
+	* testsuite/ld-i386/no-plt-1b.rd: Likewise.
+	* testsuite/ld-i386/no-plt-1c.dd: Likewise.
+	* testsuite/ld-i386/no-plt-1c.rd: Likewise.
+	* testsuite/ld-i386/no-plt-1d.dd: Likewise.
+	* testsuite/ld-i386/no-plt-1d.rd: Likewise.
+	* testsuite/ld-i386/no-plt-1e.dd: Likewise.
+	* testsuite/ld-i386/no-plt-1e.rd: Likewise.
+	* testsuite/ld-i386/no-plt-1f.dd: Likewise.
+	* testsuite/ld-i386/no-plt-1f.rd: Likewise.
+	* testsuite/ld-i386/no-plt-1g.dd: Likewise.
+	* testsuite/ld-i386/no-plt-1g.rd: Likewise.
+	* testsuite/ld-i386/no-plt-1h.dd: Likewise.
+	* testsuite/ld-i386/no-plt-1h.rd: Likewise.
+	* testsuite/ld-i386/no-plt-1i.dd: Likewise.
+	* testsuite/ld-i386/no-plt-1i.rd: Likewise.
+	* testsuite/ld-i386/no-plt-1j.dd: Likewise.
+	* testsuite/ld-i386/no-plt-1j.rd: Likewise.
+	* testsuite/ld-i386/no-plt-check1a.S: Likewise.
+	* testsuite/ld-i386/no-plt-check1b.S: Likewise.
+	* testsuite/ld-i386/no-plt-extern1a.S: Likewise.
+	* testsuite/ld-i386/no-plt-extern1b.S: Likewise.
+	* testsuite/ld-i386/no-plt-func1.c: Likewise.
+	* testsuite/ld-i386/no-plt-main1.c: Likewise.
+	* testsuite/ld-i386/no-plt.exp: Likewise.
+
 2016-06-08  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* testsuite/ld-x86-64/tls.exp (run_cc_link_tests): Update test

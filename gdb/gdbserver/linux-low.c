@@ -252,6 +252,7 @@ static void linux_resume_one_lwp (struct lwp_info *lwp,
 static void linux_resume (struct thread_resume *resume_info, size_t n);
 static void stop_all_lwps (int suspend, struct lwp_info *except);
 static void unstop_all_lwps (int unsuspend, struct lwp_info *except);
+static void unsuspend_all_lwps (struct lwp_info *except);
 static int linux_wait_for_event_filtered (ptid_t wait_ptid, ptid_t filter_ptid,
 					  int *wstat, int options);
 static int linux_wait_for_event (ptid_t ptid, int *wstat, int options);
@@ -542,6 +543,22 @@ handle_extended_wait (struct lwp_info **orig_event_lwp, int wstat)
 
 	  parent_proc = get_thread_process (event_thr);
 	  child_proc->attached = parent_proc->attached;
+
+	  if (event_lwp->bp_reinsert != 0
+	      && can_software_single_step ()
+	      && event == PTRACE_EVENT_VFORK)
+	    {
+	      struct thread_info *saved_thread = current_thread;
+
+	      current_thread = event_thr;
+	      /* If we leave reinsert breakpoints there, child will
+		 hit it, so uninsert reinsert breakpoints from parent
+		 (and child).  Once vfork child is done, reinsert
+		 them back to parent.  */
+	      uninsert_reinsert_breakpoints ();
+	      current_thread = saved_thread;
+	    }
+
 	  clone_all_breakpoints (&child_proc->breakpoints,
 				 &child_proc->raw_breakpoints,
 				 parent_proc->breakpoints);
@@ -567,6 +584,27 @@ handle_extended_wait (struct lwp_info **orig_event_lwp, int wstat)
 	     the handler will look at lwp->waitstatus.  */
 	  event_lwp->status_pending_p = 1;
 	  event_lwp->status_pending = wstat;
+
+	  /* If the parent thread is doing step-over with reinsert
+	     breakpoints, the list of reinsert breakpoints are cloned
+	     from the parent's.  Remove them from the child process.
+	     In case of vfork, we'll reinsert them back once vforked
+	     child is done.  */
+	  if (event_lwp->bp_reinsert != 0
+	      && can_software_single_step ())
+	    {
+	      struct thread_info *saved_thread = current_thread;
+
+	      /* The child process is forked and stopped, so it is safe
+		 to access its memory without stopping all other threads
+		 from other processes.  */
+	      current_thread = child_thr;
+	      delete_reinsert_breakpoints ();
+	      current_thread = saved_thread;
+
+	      gdb_assert (has_reinsert_breakpoints (parent_proc));
+	      gdb_assert (!has_reinsert_breakpoints (child_proc));
+	    }
 
 	  /* Report the event.  */
 	  return 0;
@@ -616,6 +654,18 @@ handle_extended_wait (struct lwp_info **orig_event_lwp, int wstat)
   else if (event == PTRACE_EVENT_VFORK_DONE)
     {
       event_lwp->waitstatus.kind = TARGET_WAITKIND_VFORK_DONE;
+
+      if (event_lwp->bp_reinsert != 0 && can_software_single_step ())
+	{
+	  struct thread_info *saved_thread = current_thread;
+	  struct process_info *proc = get_thread_process (event_thr);
+
+	  current_thread = event_thr;
+	  reinsert_reinsert_breakpoints ();
+	  current_thread = saved_thread;
+
+	  gdb_assert (has_reinsert_breakpoints (proc));
+	}
 
       /* Report the event.  */
       return 0;
@@ -708,11 +758,10 @@ get_pc (struct lwp_info *lwp)
 }
 
 /* This function should only be called if LWP got a SYSCALL_SIGTRAP.
-   Fill *SYSNO with the syscall nr trapped.  Fill *SYSRET with the
-   return code.  */
+   Fill *SYSNO with the syscall nr trapped.  */
 
 static void
-get_syscall_trapinfo (struct lwp_info *lwp, int *sysno, int *sysret)
+get_syscall_trapinfo (struct lwp_info *lwp, int *sysno)
 {
   struct thread_info *saved_thread;
   struct regcache *regcache;
@@ -720,9 +769,8 @@ get_syscall_trapinfo (struct lwp_info *lwp, int *sysno, int *sysret)
   if (the_low_target.get_syscall_trapinfo == NULL)
     {
       /* If we cannot get the syscall trapinfo, report an unknown
-	 system call number and -ENOSYS return value.  */
+	 system call number.  */
       *sysno = UNKNOWN_SYSCALL;
-      *sysret = -ENOSYS;
       return;
     }
 
@@ -730,13 +778,10 @@ get_syscall_trapinfo (struct lwp_info *lwp, int *sysno, int *sysret)
   current_thread = get_lwp_thread (lwp);
 
   regcache = get_thread_regcache (current_thread, 1);
-  (*the_low_target.get_syscall_trapinfo) (regcache, sysno, sysret);
+  (*the_low_target.get_syscall_trapinfo) (regcache, sysno);
 
   if (debug_threads)
-    {
-      debug_printf ("get_syscall_trapinfo sysno %d sysret %d\n",
-		    *sysno, *sysret);
-    }
+    debug_printf ("get_syscall_trapinfo sysno %d\n", *sysno);
 
   current_thread = saved_thread;
 }
@@ -2357,6 +2402,13 @@ linux_low_filter_event (int lwpid, int wstat)
     {
       if (debug_threads)
 	debug_printf ("LLFE: %d exited.\n", lwpid);
+
+      if (finish_step_over (child))
+	{
+	  /* Unsuspend all other LWPs, and set them back running again.  */
+	  unsuspend_all_lwps (child);
+	}
+
       /* If there is at least one more LWP, then the exit signal was
 	 not the end of the debugged application and should be
 	 ignored, unless GDB wants to hear about thread exits.  */
@@ -2493,6 +2545,24 @@ linux_low_filter_event (int lwpid, int wstat)
   child->status_pending_p = 1;
   child->status_pending = wstat;
   return child;
+}
+
+/* Return true if THREAD is doing hardware single step.  */
+
+static int
+maybe_hw_step (struct thread_info *thread)
+{
+  if (can_hardware_single_step ())
+    return 1;
+  else
+    {
+      struct process_info *proc = get_thread_process (thread);
+
+      /* GDBserver must insert reinsert breakpoint for software
+	 single step.  */
+      gdb_assert (has_reinsert_breakpoints (proc));
+      return 0;
+    }
 }
 
 /* Resume LWPs that are currently stopped without any pending status
@@ -3041,7 +3111,7 @@ static int
 gdb_catch_this_syscall_p (struct lwp_info *event_child)
 {
   int i, iter;
-  int sysno, sysret;
+  int sysno;
   struct thread_info *thread = get_lwp_thread (event_child);
   struct process_info *proc = get_thread_process (thread);
 
@@ -3051,7 +3121,7 @@ gdb_catch_this_syscall_p (struct lwp_info *event_child)
   if (VEC_index (int, proc->syscalls_to_catch, 0) == ANY_SYSCALL)
     return 1;
 
-  get_syscall_trapinfo (event_child, &sysno, &sysret);
+  get_syscall_trapinfo (event_child, &sysno);
   for (i = 0;
        VEC_iterate (int, proc->syscalls_to_catch, i, iter);
        i++)
@@ -3659,10 +3729,8 @@ linux_wait_1 (ptid_t ptid,
 
   if (WSTOPSIG (w) == SYSCALL_SIGTRAP)
     {
-      int sysret;
-
       get_syscall_trapinfo (event_child,
-			    &ourstatus->value.syscall_number, &sysret);
+			    &ourstatus->value.syscall_number);
       ourstatus->kind = event_child->syscall_state;
     }
   else if (current_thread->last_resume_kind == resume_stop
@@ -4215,9 +4283,15 @@ linux_resume_one_lwp_throw (struct lwp_info *lwp,
 		fprintf (stderr, "BAD - reinserting and suspended(%d).\n",
 			 lwp->suspended);
 	    }
-
-	  step = 1;
 	}
+
+      step = maybe_hw_step (thread);
+    }
+  else
+    {
+      /* If the thread isn't doing step-over, there shouldn't be any
+	 reinsert breakpoints.  */
+      gdb_assert (!has_reinsert_breakpoints (proc));
     }
 
   if (fast_tp_collecting == 1)
@@ -4689,8 +4763,12 @@ finish_step_over (struct lwp_info *lwp)
 {
   if (lwp->bp_reinsert != 0)
     {
+      struct thread_info *saved_thread = current_thread;
+
       if (debug_threads)
 	debug_printf ("Finished step over.\n");
+
+      current_thread = get_lwp_thread (lwp);
 
       /* Reinsert any breakpoint at LWP->BP_REINSERT.  Note that there
 	 may be no breakpoint to reinsert there by now.  */
@@ -4705,9 +4783,13 @@ finish_step_over (struct lwp_info *lwp)
 	 because we were stepping over a breakpoint, and we hold all
 	 threads but LWP stopped while doing that.  */
       if (!can_hardware_single_step ())
-	delete_reinsert_breakpoints ();
+	{
+	  gdb_assert (has_reinsert_breakpoints (current_process ()));
+	  delete_reinsert_breakpoints ();
+	}
 
       step_over_bkpt = null_ptid;
+      current_thread = saved_thread;
       return 1;
     }
   else
@@ -5029,7 +5111,8 @@ proceed_one_lwp (struct inferior_list_entry *entry, void *except)
       if (debug_threads)
 	debug_printf ("   stepping LWP %ld, reinsert set\n",
 		      lwpid_of (thread));
-      step = 1;
+
+      step = maybe_hw_step (thread);
     }
   else
     step = 0;

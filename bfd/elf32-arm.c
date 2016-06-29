@@ -2402,6 +2402,13 @@ static const insn_sequence elf32_arm_stub_long_branch_thumb_only[] =
   DATA_WORD (0, R_ARM_ABS32, 0),     /* dcd  R_ARM_ABS32(X) */
 };
 
+/* Thumb -> Thumb long branch stub in thumb2 encoding.  Used on armv7.  */
+static const insn_sequence elf32_arm_stub_long_branch_thumb2_only[] =
+{
+  THUMB32_INSN (0xf85ff000),         /* ldr.w  pc, [pc, #-0] */
+  DATA_WORD (0, R_ARM_ABS32, 0),     /* dcd  R_ARM_ABS32(x) */
+};
+
 /* V4T Thumb -> Thumb long branch stub. Using the stack is not
    allowed.  */
 static const insn_sequence elf32_arm_stub_long_branch_v4t_thumb_thumb[] =
@@ -2625,7 +2632,8 @@ static const insn_sequence elf32_arm_stub_a8_veneer_blx[] =
   DEF_STUB(a8_veneer_b_cond) \
   DEF_STUB(a8_veneer_b) \
   DEF_STUB(a8_veneer_bl) \
-  DEF_STUB(a8_veneer_blx)
+  DEF_STUB(a8_veneer_blx) \
+  DEF_STUB(long_branch_thumb2_only) \
 
 #define DEF_STUB(x) arm_stub_##x,
 enum elf32_arm_stub_type
@@ -3520,6 +3528,11 @@ using_thumb_only (struct elf32_arm_link_hash_table *globals)
 
   arch = bfd_elf_get_obj_attr_int (globals->obfd, OBJ_ATTR_PROC, Tag_CPU_arch);
 
+  /* Force return logic to be reviewed for each new architecture.  */
+  BFD_ASSERT (arch <= TAG_CPU_ARCH_V8
+	      || arch == TAG_CPU_ARCH_V8M_BASE
+	      || arch == TAG_CPU_ARCH_V8M_MAIN);
+
   if (arch == TAG_CPU_ARCH_V6_M
       || arch == TAG_CPU_ARCH_V6S_M
       || arch == TAG_CPU_ARCH_V7E_M
@@ -3535,9 +3548,25 @@ using_thumb_only (struct elf32_arm_link_hash_table *globals)
 static bfd_boolean
 using_thumb2 (struct elf32_arm_link_hash_table *globals)
 {
-  int arch = bfd_elf_get_obj_attr_int (globals->obfd, OBJ_ATTR_PROC,
-				       Tag_CPU_arch);
-  return arch == TAG_CPU_ARCH_V6T2 || arch >= TAG_CPU_ARCH_V7;
+  int arch;
+  int thumb_isa = bfd_elf_get_obj_attr_int (globals->obfd, OBJ_ATTR_PROC,
+					    Tag_THUMB_ISA_use);
+
+  if (thumb_isa)
+    return thumb_isa == 2;
+
+  arch = bfd_elf_get_obj_attr_int (globals->obfd, OBJ_ATTR_PROC, Tag_CPU_arch);
+
+  /* Force return logic to be reviewed for each new architecture.  */
+  BFD_ASSERT (arch <= TAG_CPU_ARCH_V8
+	      || arch == TAG_CPU_ARCH_V8M_BASE
+	      || arch == TAG_CPU_ARCH_V8M_MAIN);
+
+  return (arch == TAG_CPU_ARCH_V6T2
+	  || arch == TAG_CPU_ARCH_V7
+	  || arch == TAG_CPU_ARCH_V7E_M
+	  || arch == TAG_CPU_ARCH_V8
+	  || arch == TAG_CPU_ARCH_V8M_MAIN);
 }
 
 /* Create .plt, .rel(a).plt, .got, .got.plt, .rel(a).got, .dynbss, and
@@ -3742,19 +3771,16 @@ arch_has_arm_nop (struct elf32_arm_link_hash_table *globals)
 {
   const int arch = bfd_elf_get_obj_attr_int (globals->obfd, OBJ_ATTR_PROC,
 					     Tag_CPU_arch);
-  return arch == TAG_CPU_ARCH_V6T2
-	 || arch == TAG_CPU_ARCH_V6K
-	 || arch == TAG_CPU_ARCH_V7
-	 || arch == TAG_CPU_ARCH_V7E_M;
-}
 
-static bfd_boolean
-arch_has_thumb2_nop (struct elf32_arm_link_hash_table *globals)
-{
-  const int arch = bfd_elf_get_obj_attr_int (globals->obfd, OBJ_ATTR_PROC,
-					     Tag_CPU_arch);
-  return (arch == TAG_CPU_ARCH_V6T2 || arch == TAG_CPU_ARCH_V7
-	  || arch == TAG_CPU_ARCH_V7E_M);
+  /* Force return logic to be reviewed for each new architecture.  */
+  BFD_ASSERT (arch <= TAG_CPU_ARCH_V8
+	      || arch == TAG_CPU_ARCH_V8M_BASE
+	      || arch == TAG_CPU_ARCH_V8M_MAIN);
+
+  return (arch == TAG_CPU_ARCH_V6T2
+	  || arch == TAG_CPU_ARCH_V6K
+	  || arch == TAG_CPU_ARCH_V7
+	  || arch == TAG_CPU_ARCH_V8);
 }
 
 static bfd_boolean
@@ -3763,6 +3789,7 @@ arm_stub_is_thumb (enum elf32_arm_stub_type stub_type)
   switch (stub_type)
     {
     case arm_stub_long_branch_thumb_only:
+    case arm_stub_long_branch_thumb2_only:
     case arm_stub_long_branch_v4t_thumb_arm:
     case arm_stub_short_branch_v4t_thumb_arm:
     case arm_stub_long_branch_v4t_thumb_arm_pic:
@@ -3927,7 +3954,8 @@ arm_type_of_stub (struct bfd_link_info *info,
 		    /* PIC stub.  */
 		    ? arm_stub_long_branch_thumb_only_pic
 		    /* non-PIC stub.  */
-		    : arm_stub_long_branch_thumb_only;
+		    : (thumb2 ? arm_stub_long_branch_thumb2_only
+			      : arm_stub_long_branch_thumb_only);
 		}
 	    }
 	  else
@@ -4400,6 +4428,7 @@ arm_stub_required_alignment (enum elf32_arm_stub_type stub_type)
     case arm_stub_long_branch_any_any:
     case arm_stub_long_branch_v4t_arm_thumb:
     case arm_stub_long_branch_thumb_only:
+    case arm_stub_long_branch_thumb2_only:
     case arm_stub_long_branch_v4t_thumb_thumb:
     case arm_stub_long_branch_v4t_thumb_arm:
     case arm_stub_short_branch_v4t_thumb_arm:
@@ -8987,7 +9016,7 @@ elf32_arm_tls_relax (struct elf32_arm_link_hash_table *globals,
       if (!is_local)
 	/* add r0,pc; ldr r0, [r0]  */
 	insn = 0x44786800;
-      else if (arch_has_thumb2_nop (globals))
+      else if (using_thumb2 (globals))
 	/* nop.w */
 	insn = 0xf3af8000;
       else
@@ -9817,7 +9846,7 @@ elf32_arm_final_link_relocate (reloc_howto_type *           howto,
 	if (h && h->root.type == bfd_link_hash_undefweak
 	    && plt_offset == (bfd_vma) -1)
 	  {
-	    if (arch_has_thumb2_nop (globals))
+	    if (thumb2)
 	      {
 		bfd_put_16 (input_bfd, 0xf3af, hit_data);
 		bfd_put_16 (input_bfd, 0x8000, hit_data + 2);
@@ -18237,6 +18266,43 @@ elf32_arm_copy_special_section_fields (const bfd *ibfd ATTRIBUTE_UNUSED,
   return FALSE;
 }
 
+/* Returns TRUE if NAME is an ARM mapping symbol.
+   Traditionally the symbols $a, $d and $t have been used.
+   The ARM ELF standard also defines $x (for A64 code).  It also allows a
+   period initiated suffix to be added to the symbol: "$[adtx]\.[:sym_char]+".
+   Other tools might also produce $b (Thumb BL), $f, $p, $m and $v, but we do
+   not support them here.  $t.x indicates the start of ThumbEE instructions.  */
+
+static bfd_boolean
+is_arm_mapping_symbol (const char * name)
+{
+  return name != NULL /* Paranoia.  */
+    && name[0] == '$' /* Note: if objcopy --prefix-symbols has been used then
+			 the mapping symbols could have acquired a prefix.
+			 We do not support this here, since such symbols no
+			 longer conform to the ARM ELF ABI.  */
+    && (name[1] == 'a' || name[1] == 'd' || name[1] == 't' || name[1] == 'x')
+    && (name[2] == 0 || name[2] == '.');
+  /* FIXME: Strictly speaking the symbol is only a valid mapping symbol if
+     any characters that follow the period are legal characters for the body
+     of a symbol's name.  For now we just assume that this is the case.  */
+}
+
+/* Make sure that mapping symbols in object files are not removed via the
+   "strip --strip-unneeded" tool.  These symbols are needed in order to
+   correctly generate interworking veneers, and for byte swapping code
+   regions.  Once an object file has been linked, it is safe to remove the
+   symbols as they will no longer be needed.  */
+
+static void
+elf32_arm_backend_symbol_processing (bfd *abfd, asymbol *sym)
+{
+  if (((abfd->flags & (EXEC_P | DYNAMIC)) == 0)
+      && sym->section != bfd_abs_section_ptr
+      && is_arm_mapping_symbol (sym->name))
+    sym->flags |= BSF_KEEP;
+}
+
 #undef  elf_backend_copy_special_section_fields
 #define elf_backend_copy_special_section_fields elf32_arm_copy_special_section_fields
 
@@ -18295,6 +18361,7 @@ elf32_arm_copy_special_section_fields (const bfd *ibfd ATTRIBUTE_UNUSED,
 #define elf_backend_begin_write_processing      elf32_arm_begin_write_processing
 #define elf_backend_add_symbol_hook		elf32_arm_add_symbol_hook
 #define elf_backend_count_additional_relocs	elf32_arm_count_additional_relocs
+#define elf_backend_symbol_processing		elf32_arm_backend_symbol_processing
 
 #define elf_backend_can_refcount       1
 #define elf_backend_can_gc_sections    1

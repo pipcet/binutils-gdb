@@ -29,6 +29,7 @@
 #include "xtensa-istack.h"
 #include "struc-symbol.h"
 #include "xtensa-config.h"
+#include "elf/xtensa.h"
 
 /* Provide default values for new configuration settings.  */
 #ifndef XSHAL_ABI
@@ -213,8 +214,6 @@ int generating_literals = 0;
 /* Required branch target alignment.  */
 #define XTENSA_PROP_BT_ALIGN_REQUIRE    0x3
 
-#define GET_XTENSA_PROP_BT_ALIGN(flag) \
-  (((unsigned) ((flag) & (XTENSA_PROP_BT_ALIGN_MASK))) >> 9)
 #define SET_XTENSA_PROP_BT_ALIGN(flag, align) \
   (((flag) & (~XTENSA_PROP_BT_ALIGN_MASK)) | \
     (((align) << 9) & XTENSA_PROP_BT_ALIGN_MASK))
@@ -235,8 +234,6 @@ int generating_literals = 0;
 
 #define XTENSA_PROP_ALIGNMENT_MASK      0x0001f000
 
-#define GET_XTENSA_PROP_ALIGNMENT(flag) \
-  (((unsigned) ((flag) & (XTENSA_PROP_ALIGNMENT_MASK))) >> 12)
 #define SET_XTENSA_PROP_ALIGNMENT(flag, align) \
   (((flag) & (~XTENSA_PROP_ALIGNMENT_MASK)) | \
     (((align) << 12) & XTENSA_PROP_ALIGNMENT_MASK))
@@ -380,7 +377,6 @@ static struct suffix_reloc_map suffix_relocs[] =
   SUFFIX_MAP ("tlscall", BFD_RELOC_XTENSA_TLS_CALL,	O_tlscall),
   SUFFIX_MAP ("tpoff",	BFD_RELOC_XTENSA_TLS_TPOFF,	O_tpoff),
   SUFFIX_MAP ("dtpoff",	BFD_RELOC_XTENSA_TLS_DTPOFF,	O_dtpoff),
-  { (char *) 0, 0,	BFD_RELOC_UNUSED,		0 }
 };
 
 
@@ -528,10 +524,6 @@ static void xtensa_switch_to_non_abs_literal_fragment (emit_state *);
 static void xtensa_switch_section_emit_state (emit_state *, segT, subsegT);
 static void xtensa_restore_emit_state (emit_state *);
 static segT cache_literal_section (bfd_boolean);
-
-/* Import from elf32-xtensa.c in BFD library.  */
-
-extern asection *xtensa_make_property_section (asection *, const char *);
 
 /* op_placement_info functions.  */
 
@@ -1724,7 +1716,7 @@ xtensa_elf_suffix (char **str_p, expressionS *exp_p)
   char *str2;
   int ch;
   int len;
-  struct suffix_reloc_map *ptr;
+  unsigned int i;
 
   if (*str++ != '@')
     return BFD_RELOC_NONE;
@@ -1741,10 +1733,10 @@ xtensa_elf_suffix (char **str_p, expressionS *exp_p)
   len = str2 - ident;
 
   ch = ident[0];
-  for (ptr = &suffix_relocs[0]; ptr->length > 0; ptr++)
-    if (ch == ptr->suffix[0]
-	&& len == ptr->length
-	&& memcmp (ident, ptr->suffix, ptr->length) == 0)
+  for (i = 0; i < ARRAY_SIZE (suffix_relocs); i++)
+    if (ch == suffix_relocs[i].suffix[0]
+	&& len == suffix_relocs[i].length
+	&& memcmp (ident, suffix_relocs[i].suffix, suffix_relocs[i].length) == 0)
       {
 	/* Now check for "identifier@suffix+constant".  */
 	if (*str == '-' || *str == '+')
@@ -1765,7 +1757,7 @@ xtensa_elf_suffix (char **str_p, expressionS *exp_p)
 	  }
 
 	*str_p = str;
-	return ptr->reloc;
+	return suffix_relocs[i].reloc;
       }
 
   return BFD_RELOC_UNUSED;
@@ -1776,14 +1768,14 @@ xtensa_elf_suffix (char **str_p, expressionS *exp_p)
 static operatorT
 map_suffix_reloc_to_operator (bfd_reloc_code_real_type reloc)
 {
-  struct suffix_reloc_map *sfx;
   operatorT operator = O_illegal;
+  unsigned int i;
 
-  for (sfx = &suffix_relocs[0]; sfx->suffix; sfx++)
+  for (i = 0; i < ARRAY_SIZE (suffix_relocs); i++)
     {
-      if (sfx->reloc == reloc)
+      if (suffix_relocs[i].reloc == reloc)
 	{
-	  operator = sfx->operator;
+	  operator = suffix_relocs[i].operator;
 	  break;
 	}
     }
@@ -1796,14 +1788,14 @@ map_suffix_reloc_to_operator (bfd_reloc_code_real_type reloc)
 static bfd_reloc_code_real_type
 map_operator_to_reloc (unsigned char operator, bfd_boolean is_literal)
 {
-  struct suffix_reloc_map *sfx;
+  unsigned int i;
   bfd_reloc_code_real_type reloc = BFD_RELOC_UNUSED;
 
-  for (sfx = &suffix_relocs[0]; sfx->suffix; sfx++)
+  for (i = 0; i < ARRAY_SIZE (suffix_relocs); i++)
     {
-      if (sfx->operator == operator)
+      if (suffix_relocs[i].operator == operator)
 	{
-	  reloc = sfx->reloc;
+	  reloc = suffix_relocs[i].reloc;
 	  break;
 	}
     }

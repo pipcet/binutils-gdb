@@ -518,7 +518,6 @@ extern void warn_deprecated (const char *, const char *, int, const char *);
 #define bfd_get_file_flags(abfd) ((abfd)->flags)
 #define bfd_applicable_file_flags(abfd) ((abfd)->xvec->object_flags)
 #define bfd_applicable_section_flags(abfd) ((abfd)->xvec->section_flags)
-#define bfd_my_archive(abfd) ((abfd)->my_archive)
 #define bfd_has_map(abfd) ((abfd)->has_armap)
 #define bfd_is_thin_archive(abfd) ((abfd)->is_thin_archive)
 
@@ -1949,13 +1948,29 @@ enum bfd_architecture
 #define bfd_mach_sparc_v9a             8 /* with ultrasparc add'ns.  */
 #define bfd_mach_sparc_v8plusb         9 /* with cheetah add'ns.  */
 #define bfd_mach_sparc_v9b             10 /* with cheetah add'ns.  */
+#define bfd_mach_sparc_v8plusc         11 /* with UA2005 and T1 add'ns.  */
+#define bfd_mach_sparc_v9c             12 /* with UA2005 and T1 add'ns.  */
+#define bfd_mach_sparc_v8plusd         13 /* with UA2007 and T3 add'ns.  */
+#define bfd_mach_sparc_v9d             14 /* with UA2007 and T3 add'ns.  */
+#define bfd_mach_sparc_v8pluse         15 /* with OSA2001 and T4 add'ns (no IMA).  */
+#define bfd_mach_sparc_v9e             16 /* with OSA2001 and T4 add'ns (no IMA).  */
+#define bfd_mach_sparc_v8plusv         17 /* with OSA2011 and T4 and IMA and FJMAU add'ns.  */
+#define bfd_mach_sparc_v9v             18 /* with OSA2011 and T4 and IMA and FJMAU add'ns.  */
+#define bfd_mach_sparc_v8plusm         19 /* with OSA2015 and M7 add'ns.  */
+#define bfd_mach_sparc_v9m             20 /* with OSA2015 and M7 add'ns.  */
 /* Nonzero if MACH has the v9 instruction set.  */
 #define bfd_mach_sparc_v9_p(mach) \
-  ((mach) >= bfd_mach_sparc_v8plus && (mach) <= bfd_mach_sparc_v9b \
+  ((mach) >= bfd_mach_sparc_v8plus && (mach) <= bfd_mach_sparc_v9m \
    && (mach) != bfd_mach_sparc_sparclite_le)
 /* Nonzero if MACH is a 64 bit sparc architecture.  */
 #define bfd_mach_sparc_64bit_p(mach) \
-  ((mach) >= bfd_mach_sparc_v9 && (mach) != bfd_mach_sparc_v8plusb)
+  ((mach) >= bfd_mach_sparc_v9 \
+   && (mach) != bfd_mach_sparc_v8plusb \
+   && (mach) != bfd_mach_sparc_v8plusc \
+   && (mach) != bfd_mach_sparc_v8plusd \
+   && (mach) != bfd_mach_sparc_v8pluse \
+   && (mach) != bfd_mach_sparc_v8plusv \
+   && (mach) != bfd_mach_sparc_v8plusm)
   bfd_arch_spu,       /* PowerPC SPU */
 #define bfd_mach_spu           256
   bfd_arch_mips,      /* MIPS Rxxxx */
@@ -2173,7 +2188,6 @@ enum bfd_architecture
 #define bfd_mach_arc_arc601    4
 #define bfd_mach_arc_arc700    3
 #define bfd_mach_arc_arcv2     5
-#define bfd_mach_arc_nps400    6
  bfd_arch_m32c,     /* Renesas M16C/M32C.  */
 #define bfd_mach_m16c        0x75
 #define bfd_mach_m32c        0x78
@@ -2989,6 +3003,9 @@ to compensate for the borrow when the low bits are added.  */
   BFD_RELOC_MICROMIPS_7_PCREL_S1,
   BFD_RELOC_MICROMIPS_10_PCREL_S1,
   BFD_RELOC_MICROMIPS_16_PCREL_S1,
+
+/* MIPS16 PC-relative relocation.  */
+  BFD_RELOC_MIPS16_16_PCREL_S1,
 
 /* MIPS PC-relative relocations.  */
   BFD_RELOC_MIPS_21_PCREL_S2,
@@ -6535,7 +6552,7 @@ enum bfd_direction
 
 enum bfd_plugin_format
   {
-    bfd_plugin_uknown = 0,
+    bfd_plugin_unknown = 0,
     bfd_plugin_yes = 1,
     bfd_plugin_no = 2
   };

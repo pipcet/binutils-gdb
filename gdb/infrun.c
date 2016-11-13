@@ -1077,15 +1077,17 @@ show_follow_exec_mode_string (struct ui_file *file, int from_tty,
   fprintf_filtered (file, _("Follow exec mode is \"%s\".\n"),  value);
 }
 
-/* EXECD_PATHNAME is assumed to be non-NULL.  */
+/* EXEC_FILE_TARGET is assumed to be non-NULL.  */
 
 static void
-follow_exec (ptid_t ptid, char *execd_pathname)
+follow_exec (ptid_t ptid, char *exec_file_target)
 {
   struct thread_info *th, *tmp;
   struct inferior *inf = current_inferior ();
   int pid = ptid_get_pid (ptid);
   ptid_t process_ptid;
+  char *exec_file_host;
+  struct cleanup *old_chain;
 
   /* This is an exec event that we actually wish to pay attention to.
      Refresh our symbol table to the newly exec'd program, remove any
@@ -1155,7 +1157,7 @@ follow_exec (ptid_t ptid, char *execd_pathname)
   process_ptid = pid_to_ptid (pid);
   printf_unfiltered (_("%s is executing new program: %s\n"),
 		     target_pid_to_str (process_ptid),
-		     execd_pathname);
+		     exec_file_target);
 
   /* We've followed the inferior through an exec.  Therefore, the
      inferior has essentially been killed & reborn.  */
@@ -1164,14 +1166,17 @@ follow_exec (ptid_t ptid, char *execd_pathname)
 
   breakpoint_init_inferior (inf_execd);
 
-  if (*gdb_sysroot != '\0')
-    {
-      char *name = exec_file_find (execd_pathname, NULL);
+  exec_file_host = exec_file_find (exec_file_target, NULL);
+  old_chain = make_cleanup (xfree, exec_file_host);
 
-      execd_pathname = (char *) alloca (strlen (name) + 1);
-      strcpy (execd_pathname, name);
-      xfree (name);
-    }
+  /* If we were unable to map the executable target pathname onto a host
+     pathname, tell the user that.  Otherwise GDB's subsequent behavior
+     is confusing.  Maybe it would even be better to stop at this point
+     so that the user can specify a file manually before continuing.  */
+  if (exec_file_host == NULL)
+    warning (_("Could not load symbols for executable %s.\n"
+	       "Do you need \"set sysroot\"?"),
+	     exec_file_target);
 
   /* Reset the shared library package.  This ensures that we get a
      shlib event when the child reaches "_start", at which point the
@@ -1193,7 +1198,7 @@ follow_exec (ptid_t ptid, char *execd_pathname)
 
       inf = add_inferior_with_spaces ();
       inf->pid = pid;
-      target_follow_exec (inf, execd_pathname);
+      target_follow_exec (inf, exec_file_target);
 
       set_current_inferior (inf);
       set_current_program_space (inf->pspace);
@@ -1212,21 +1217,14 @@ follow_exec (ptid_t ptid, char *execd_pathname)
 
   gdb_assert (current_program_space == inf->pspace);
 
-  /* That a.out is now the one to use.  */
-  exec_file_attach (execd_pathname, 0);
+  /* Attempt to open the exec file.  SYMFILE_DEFER_BP_RESET is used
+     because the proper displacement for a PIE (Position Independent
+     Executable) main symbol file will only be computed by
+     solib_create_inferior_hook below.  breakpoint_re_set would fail
+     to insert the breakpoints with the zero displacement.  */
+  try_open_exec_file (exec_file_host, inf, SYMFILE_DEFER_BP_RESET);
 
-  /* SYMFILE_DEFER_BP_RESET is used as the proper displacement for PIE
-     (Position Independent Executable) main symbol file will get applied by
-     solib_create_inferior_hook below.  breakpoint_re_set would fail to insert
-     the breakpoints with the zero displacement.  */
-
-  symbol_file_add (execd_pathname,
-		   (inf->symfile_flags
-		    | SYMFILE_MAINLINE | SYMFILE_DEFER_BP_RESET),
-		   NULL, 0);
-
-  if ((inf->symfile_flags & SYMFILE_NO_READ) == 0)
-    set_initial_language ();
+  do_cleanups (old_chain);
 
   /* If the target can specify a description, read it.  Must do this
      after flipping to the new executable (because the target supplied
@@ -2256,11 +2254,9 @@ maybe_software_singlestep (struct gdbarch *gdbarch, CORE_ADDR pc)
   int hw_step = 1;
 
   if (execution_direction == EXEC_FORWARD
-      && gdbarch_software_single_step_p (gdbarch)
-      && gdbarch_software_single_step (gdbarch, get_current_frame ()))
-    {
-      hw_step = 0;
-    }
+      && gdbarch_software_single_step_p (gdbarch))
+    hw_step = !insert_single_step_breakpoints (gdbarch);
+
   return hw_step;
 }
 
@@ -2366,6 +2362,8 @@ do_target_resume (ptid_t resume_ptid, int step, enum gdb_signal sig)
     target_pass_signals ((int) GDB_SIGNAL_LAST, signal_pass);
 
   target_resume (resume_ptid, step, sig);
+
+  target_commit_resume ();
 }
 
 /* Resume the inferior, but allow a QUIT.  This is useful if the user
@@ -2984,6 +2982,7 @@ proceed (CORE_ADDR addr, enum gdb_signal siggnal)
   struct execution_control_state ecss;
   struct execution_control_state *ecs = &ecss;
   struct cleanup *old_chain;
+  struct cleanup *defer_resume_cleanup;
   int started;
 
   /* If we're stopped at a fork/vfork, follow the branch set by the
@@ -3125,6 +3124,8 @@ proceed (CORE_ADDR addr, enum gdb_signal siggnal)
      until the target stops again.  */
   tp->prev_pc = regcache_read_pc (regcache);
 
+  defer_resume_cleanup = make_cleanup_defer_target_commit_resume ();
+
   started = start_step_over ();
 
   if (step_over_info_valid_p ())
@@ -3188,6 +3189,9 @@ proceed (CORE_ADDR addr, enum gdb_signal siggnal)
       if (!ecs->wait_some_more)
 	error (_("Command aborted."));
     }
+
+  do_cleanups (defer_resume_cleanup);
+  target_commit_resume ();
 
   discard_cleanups (old_chain);
 
@@ -3433,7 +3437,6 @@ print_target_wait_results (ptid_t waiton_ptid, ptid_t result_ptid,
 {
   char *status_string = target_waitstatus_to_string (ws);
   struct ui_file *tmp_stream = mem_fileopen ();
-  char *text;
 
   /* The text is split over several lines because it was getting too long.
      Call fprintf_unfiltered (gdb_stdlog) once so that the text is still
@@ -3459,14 +3462,13 @@ print_target_wait_results (ptid_t waiton_ptid, ptid_t result_ptid,
 		      "infrun:   %s\n",
 		      status_string);
 
-  text = ui_file_xstrdup (tmp_stream, NULL);
+  std::string text = ui_file_as_string (tmp_stream);
 
   /* This uses %s in part to handle %'s in the text, but also to avoid
      a gcc error: the format attribute requires a string literal.  */
-  fprintf_unfiltered (gdb_stdlog, "%s", text);
+  fprintf_unfiltered (gdb_stdlog, "%s", text.c_str ());
 
   xfree (status_string);
-  xfree (text);
   ui_file_delete (tmp_stream);
 }
 
@@ -3848,6 +3850,7 @@ check_curr_ui_sync_execution_done (void)
     {
       target_terminal_ours ();
       observer_notify_sync_execution_done ();
+      ui_register_input_event_handler (ui);
     }
 }
 
@@ -3856,9 +3859,7 @@ check_curr_ui_sync_execution_done (void)
 void
 all_uis_check_sync_execution_done (void)
 {
-  struct switch_thru_all_uis state;
-
-  SWITCH_THRU_ALL_UIS (state)
+  SWITCH_THRU_ALL_UIS ()
     {
       check_curr_ui_sync_execution_done ();
     }
@@ -3869,24 +3870,11 @@ all_uis_check_sync_execution_done (void)
 void
 all_uis_on_sync_execution_starting (void)
 {
-  struct switch_thru_all_uis state;
-
-  SWITCH_THRU_ALL_UIS (state)
+  SWITCH_THRU_ALL_UIS ()
     {
       if (current_ui->prompt_state == PROMPT_NEEDED)
 	async_disable_stdin ();
     }
-}
-
-/* A cleanup that restores the execution direction to the value saved
-   in *ARG.  */
-
-static void
-restore_execution_direction (void *arg)
-{
-  enum exec_direction_kind *save_exec_dir = (enum exec_direction_kind *) arg;
-
-  execution_direction = *save_exec_dir;
 }
 
 /* Asynchronous version of wait_for_inferior.  It is called by the
@@ -3905,7 +3893,6 @@ fetch_inferior_event (void *client_data)
   struct execution_control_state *ecs = &ecss;
   struct cleanup *old_chain = make_cleanup (null_cleanup, NULL);
   struct cleanup *ts_old_chain;
-  enum exec_direction_kind save_exec_dir = execution_direction;
   int cmd_done = 0;
   ptid_t waiton_ptid = minus_one_ptid;
 
@@ -3914,8 +3901,7 @@ fetch_inferior_event (void *client_data)
   /* Events are always processed with the main UI as current UI.  This
      way, warnings, debug output, etc. are always consistently sent to
      the main console.  */
-  make_cleanup (restore_ui_cleanup, current_ui);
-  current_ui = main_ui;
+  scoped_restore save_ui = make_scoped_restore (&current_ui, main_ui);
 
   /* End up with readline processing input, if necessary.  */
   make_cleanup (reinstall_readline_callback_handler_cleanup, NULL);
@@ -3944,8 +3930,8 @@ fetch_inferior_event (void *client_data)
      event.  */
   target_dcache_invalidate ();
 
-  make_cleanup (restore_execution_direction, &save_exec_dir);
-  execution_direction = target_execution_direction ();
+  scoped_restore save_exec_dir
+    = make_scoped_restore (&execution_direction, target_execution_direction ());
 
   ecs->ptid = do_target_wait (waiton_ptid, &ecs->ws,
 			      target_can_async_p () ? TARGET_WNOHANG : 0);
@@ -5131,7 +5117,7 @@ Cannot fill $_exitsignal with the correct signal number.\n"));
 	}
 
       gdb_flush (gdb_stdout);
-      target_mourn_inferior ();
+      target_mourn_inferior (inferior_ptid);
       stop_print_frame = 0;
       stop_waiting (ecs);
       return;
@@ -8095,37 +8081,25 @@ print_stop_location (struct target_waitstatus *ws)
     print_stack_frame (get_selected_frame (NULL), 0, source_flag, 1);
 }
 
-/* Cleanup that restores a previous current uiout.  */
-
-static void
-restore_current_uiout_cleanup (void *arg)
-{
-  struct ui_out *saved_uiout = (struct ui_out *) arg;
-
-  current_uiout = saved_uiout;
-}
-
 /* See infrun.h.  */
 
 void
 print_stop_event (struct ui_out *uiout)
 {
-  struct cleanup *old_chain;
   struct target_waitstatus last;
   ptid_t last_ptid;
   struct thread_info *tp;
 
   get_last_target_status (&last_ptid, &last);
 
-  old_chain = make_cleanup (restore_current_uiout_cleanup, current_uiout);
-  current_uiout = uiout;
+  {
+    scoped_restore save_uiout = make_scoped_restore (&current_uiout, uiout);
 
-  print_stop_location (&last);
+    print_stop_location (&last);
 
-  /* Display the auto-display expressions.  */
-  do_displays ();
-
-  do_cleanups (old_chain);
+    /* Display the auto-display expressions.  */
+    do_displays ();
+  }
 
   tp = inferior_thread ();
   if (tp->thread_fsm != NULL
@@ -8239,7 +8213,6 @@ normal_stop (void)
   ptid_t last_ptid;
   struct cleanup *old_chain = make_cleanup (null_cleanup, NULL);
   ptid_t pid_ptid;
-  struct switch_thru_all_uis state;
 
   get_last_target_status (&last_ptid, &last);
 
@@ -8304,7 +8277,7 @@ normal_stop (void)
       && last.kind != TARGET_WAITKIND_EXITED
       && last.kind != TARGET_WAITKIND_NO_RESUMED)
     {
-      SWITCH_THRU_ALL_UIS (state)
+      SWITCH_THRU_ALL_UIS ()
 	{
 	  target_terminal_ours_for_output ();
 	  printf_filtered (_("[Switching to %s]\n"),
@@ -8316,7 +8289,7 @@ normal_stop (void)
 
   if (last.kind == TARGET_WAITKIND_NO_RESUMED)
     {
-      SWITCH_THRU_ALL_UIS (state)
+      SWITCH_THRU_ALL_UIS ()
 	if (current_ui->prompt_state == PROMPT_BLOCKED)
 	  {
 	    target_terminal_ours_for_output ();
@@ -8333,7 +8306,7 @@ normal_stop (void)
   if (stopped_by_random_signal)
     disable_current_display ();
 
-  SWITCH_THRU_ALL_UIS (state)
+  SWITCH_THRU_ALL_UIS ()
     {
       async_enable_stdin ();
     }
@@ -9409,6 +9382,8 @@ leave it stopped or free to run as needed."),
   signal_print[GDB_SIGNAL_WAITING] = 0;
   signal_stop[GDB_SIGNAL_CANCEL] = 0;
   signal_print[GDB_SIGNAL_CANCEL] = 0;
+  signal_stop[GDB_SIGNAL_LIBRT] = 0;
+  signal_print[GDB_SIGNAL_LIBRT] = 0;
 
   /* Update cached state.  */
   signal_cache_update (-1);

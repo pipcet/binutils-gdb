@@ -137,7 +137,7 @@ struct general_symbol_info
     struct obstack *obstack;
 
     /* This is used by languages which wish to store a demangled name.
-       currently used by Ada, C++, Java, and Objective C.  */
+       currently used by Ada, C++, and Objective C.  */
     const char *demangled_name;
   }
   language_specific;
@@ -261,7 +261,7 @@ extern const char *symbol_demangled_name
 extern int demangle;
 
 /* Macro that returns the name to be used when sorting and searching symbols.
-   In  C++ and Java, we search for the demangled form of a name,
+   In C++, we search for the demangled form of a name,
    and so sort symbols accordingly.  In Ada, however, we search by mangled
    name.  If there is no distinct demangled name, then SYMBOL_SEARCH_NAME
    returns the same value (same pointer) as SYMBOL_LINKAGE_NAME.  */
@@ -629,7 +629,8 @@ struct symbol_computed_ops
      frame FRAME.  If the variable has been optimized out, return
      zero.
 
-     Iff `read_needs_frame (SYMBOL)' is zero, then FRAME may be zero.  */
+     Iff `read_needs_frame (SYMBOL)' is not SYMBOL_NEEDS_FRAME, then
+     FRAME may be zero.  */
 
   struct value *(*read_variable) (struct symbol * symbol,
 				  struct frame_info * frame);
@@ -640,8 +641,11 @@ struct symbol_computed_ops
   struct value *(*read_variable_at_entry) (struct symbol *symbol,
 					   struct frame_info *frame);
 
-  /* Return non-zero if we need a frame to find the value of the SYMBOL.  */
-  int (*read_needs_frame) (struct symbol * symbol);
+  /* Find the "symbol_needs_kind" value for the given symbol.  This
+     value determines whether reading the symbol needs memory (e.g., a
+     global variable), just registers (a thread-local), or a frame (a
+     local variable).  */
+  enum symbol_needs_kind (*get_symbol_read_needs) (struct symbol * symbol);
 
   /* Write to STREAM a natural-language description of the location of
      SYMBOL, in the context of ADDR.  */
@@ -1633,8 +1637,43 @@ void iterate_over_symbols (const struct block *block, const char *name,
 			   symbol_found_callback_ftype *callback,
 			   void *data);
 
-struct cleanup *demangle_for_lookup (const char *name, enum language lang,
-				     const char **result_name);
+/* Storage type used by demangle_for_lookup.  demangle_for_lookup
+   either returns a const char * pointer that points to either of the
+   fields of this type, or a pointer to the input NAME.  This is done
+   this way because the underlying functions that demangle_for_lookup
+   calls either return a std::string (e.g., cp_canonicalize_string) or
+   a malloc'ed buffer (libiberty's demangled), and we want to avoid
+   unnecessary reallocation/string copying.  */
+class demangle_result_storage
+{
+public:
+
+  /* Swap the std::string storage with STR, and return a pointer to
+     the beginning of the new string.  */
+  const char *swap_string (std::string &str)
+  {
+    std::swap (m_string, str);
+    return m_string.c_str ();
+  }
+
+  /* Set the malloc storage to now point at PTR.  Any previous malloc
+     storage is released.  */
+  const char *set_malloc_ptr (char *ptr)
+  {
+    m_malloc.reset (ptr);
+    return ptr;
+  }
+
+private:
+
+  /* The storage.  */
+  std::string m_string;
+  gdb::unique_xmalloc_ptr<char> m_malloc;
+};
+
+const char *
+  demangle_for_lookup (const char *name, enum language lang,
+		       demangle_result_storage &storage);
 
 struct symbol *allocate_symbol (struct objfile *);
 

@@ -39,6 +39,7 @@
 #include "gdbtypes.h"
 #include "objfiles.h"
 #include "hppa-tdep.h"
+#include <algorithm>
 
 static int hppa_debug = 0;
 
@@ -603,13 +604,9 @@ hppa_stack_frame_destroyed_p (struct gdbarch *gdbarch, CORE_ADDR pc)
   return 0;
 }
 
-static const unsigned char *
-hppa_breakpoint_from_pc (struct gdbarch *gdbarch, CORE_ADDR *pc, int *len)
-{
-  static const unsigned char breakpoint[] = {0x00, 0x01, 0x00, 0x04};
-  (*len) = sizeof (breakpoint);
-  return breakpoint;
-}
+constexpr gdb_byte hppa_break_insn[] = {0x00, 0x01, 0x00, 0x04};
+
+typedef BP_MANIPULATION (hppa_break_insn) hppa_breakpoint;
 
 /* Return the name of a register.  */
 
@@ -1094,10 +1091,10 @@ hppa64_push_dummy_call (struct gdbarch *gdbarch, struct value *function,
       while (regnum > HPPA_ARG0_REGNUM - 8 && len > 0)
 	{
 	  regcache_cooked_write_part (regcache, regnum,
-				      offset % 8, min (len, 8), valbuf);
-	  offset += min (len, 8);
-	  valbuf += min (len, 8);
-	  len -= min (len, 8);
+				      offset % 8, std::min (len, 8), valbuf);
+	  offset += std::min (len, 8);
+	  valbuf += std::min (len, 8);
+	  len -= std::min (len, 8);
 	  regnum--;
 	}
 
@@ -1109,7 +1106,7 @@ hppa64_push_dummy_call (struct gdbarch *gdbarch, struct value *function,
 
   /* Allocate the outgoing parameter area.  Make sure the outgoing
      parameter area is multiple of 16 bytes in length.  */
-  sp += max (align_up (offset, 16), 64);
+  sp += std::max (align_up (offset, 16), (ULONGEST) 64);
 
   /* Allocate 32-bytes of scratch space.  The documentation doesn't
      mention this, but it seems to be needed.  */
@@ -1251,9 +1248,9 @@ hppa64_return_value (struct gdbarch *gdbarch, struct value *function,
       while (len > 0)
 	{
 	  regcache_cooked_read_part (regcache, regnum, offset,
-				     min (len, 8), readbuf);
-	  readbuf += min (len, 8);
-	  len -= min (len, 8);
+				     std::min (len, 8), readbuf);
+	  readbuf += std::min (len, 8);
+	  len -= std::min (len, 8);
 	  regnum++;
 	}
     }
@@ -1263,9 +1260,9 @@ hppa64_return_value (struct gdbarch *gdbarch, struct value *function,
       while (len > 0)
 	{
 	  regcache_cooked_write_part (regcache, regnum, offset,
-				      min (len, 8), writebuf);
-	  writebuf += min (len, 8);
-	  len -= min (len, 8);
+				      std::min (len, 8), writebuf);
+	  writebuf += std::min (len, 8);
+	  len -= std::min (len, 8);
 	  regnum++;
 	}
     }
@@ -1849,7 +1846,7 @@ hppa_skip_prologue (struct gdbarch *gdbarch, CORE_ADDR pc)
      may be the first instruction of the prologue.  If that happens, then
      the instruction skipping code has a bug that needs to be fixed.  */
   if (post_prologue_pc != 0)
-    return max (pc, post_prologue_pc);
+    return std::max (pc, post_prologue_pc);
   else
     return (skip_prologue_hard_way (gdbarch, pc, 1));
 }
@@ -3185,7 +3182,8 @@ hppa_gdbarch_init (struct gdbarch_info info, struct gdbarch_list *arches)
       internal_error (__FILE__, __LINE__, _("bad switch"));
     }
       
-  set_gdbarch_breakpoint_from_pc (gdbarch, hppa_breakpoint_from_pc);
+  set_gdbarch_breakpoint_kind_from_pc (gdbarch, hppa_breakpoint::kind_from_pc);
+  set_gdbarch_sw_breakpoint_from_kind (gdbarch, hppa_breakpoint::bp_from_kind);
   set_gdbarch_pseudo_register_read (gdbarch, hppa_pseudo_register_read);
 
   /* Frame unwind methods.  */

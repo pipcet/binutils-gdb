@@ -49,7 +49,7 @@ fi
 
 sysroot_relocatable=0
 if test -n "$sysroot"; then
-  case "sysroot" in
+  case "$sysroot" in
     "${prefix}" | "${prefix}/"* | \
     "${exec_prefix}" | "${exec_prefix}/"* | \
     '${prefix}' | '${prefix}/'*| \
@@ -237,6 +237,8 @@ for targ in $target $canon_targets; do
 	fi
 	AM_CONDITIONAL(DEFAULT_TARGET_X86_64, test "$target_x86_64" = "yes")
 	AM_CONDITIONAL(DEFAULT_TARGET_X32, test "$target_x32" = "yes")
+	AM_CONDITIONAL(DEFAULT_TARGET_X86_64_OR_X32,
+		       test "$target_x86_64" = "yes" -o "$target_x32" = "yes")
 	AM_CONDITIONAL(DEFAULT_TARGET_TILEGX, test "$targ_obj" = "tilegx")
         AM_CONDITIONAL(DEFAULT_TARGET_MIPS, test "$targ_obj" = "mips")
 	DEFAULT_TARGET=${targ_obj}

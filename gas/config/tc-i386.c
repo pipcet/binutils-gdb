@@ -173,7 +173,7 @@ static void swap_operands (void);
 static void swap_2_operands (int, int);
 static void optimize_imm (void);
 static void optimize_disp (void);
-static const insn_template *match_template (void);
+static const insn_template *match_template (char);
 static int check_string (void);
 static int process_suffix (void);
 static int check_byte_reg (void);
@@ -325,6 +325,9 @@ struct _i386_insn
     /* SEG gives the seg_entries of this insn.  They are zero unless
        explicit segment overrides are given.  */
     const seg_entry *seg[2];
+
+    /* Copied first memory operand string, for re-checking.  */
+    char *memop1_string;
 
     /* PREFIX holds all the given prefix opcodes (usually null).
        PREFIXES is the number of prefix opcodes.  */
@@ -955,12 +958,14 @@ static const arch_entry cpu_arch[] =
     CPU_SE1_FLAGS, 0 },
   { STRING_COMMA_LEN (".clwb"), PROCESSOR_UNKNOWN,
     CPU_CLWB_FLAGS, 0 },
-  { STRING_COMMA_LEN (".pcommit"), PROCESSOR_UNKNOWN,
-    CPU_PCOMMIT_FLAGS, 0 },
   { STRING_COMMA_LEN (".avx512ifma"), PROCESSOR_UNKNOWN,
     CPU_AVX512IFMA_FLAGS, 0 },
   { STRING_COMMA_LEN (".avx512vbmi"), PROCESSOR_UNKNOWN,
     CPU_AVX512VBMI_FLAGS, 0 },
+  { STRING_COMMA_LEN (".avx512_4fmaps"), PROCESSOR_UNKNOWN,
+    CPU_AVX512_4FMAPS_FLAGS, 0 },
+  { STRING_COMMA_LEN (".avx512_4vnniw"), PROCESSOR_UNKNOWN,
+    CPU_AVX512_4VNNIW_FLAGS, 0 },
   { STRING_COMMA_LEN (".clzero"), PROCESSOR_UNKNOWN,
     CPU_CLZERO_FLAGS, 0 },
   { STRING_COMMA_LEN (".mwaitx"), PROCESSOR_UNKNOWN,
@@ -969,6 +974,8 @@ static const arch_entry cpu_arch[] =
     CPU_OSPKE_FLAGS, 0 },
   { STRING_COMMA_LEN (".rdpid"), PROCESSOR_UNKNOWN,
     CPU_RDPID_FLAGS, 0 },
+  { STRING_COMMA_LEN (".ptwrite"), PROCESSOR_UNKNOWN,
+    CPU_PTWRITE_FLAGS, 0 },
 };
 
 static const noarch_entry cpu_noarch[] =
@@ -996,6 +1003,8 @@ static const noarch_entry cpu_noarch[] =
   { STRING_COMMA_LEN ("noavx512vl"), CPU_ANY_AVX512VL_FLAGS },
   { STRING_COMMA_LEN ("noavx512ifma"), CPU_ANY_AVX512IFMA_FLAGS },
   { STRING_COMMA_LEN ("noavx512vbmi"), CPU_ANY_AVX512VBMI_FLAGS },
+  { STRING_COMMA_LEN ("noavx512_4fmaps"), CPU_ANY_AVX512_4FMAPS_FLAGS },
+  { STRING_COMMA_LEN ("noavx512_4vnniw"), CPU_ANY_AVX512_4VNNIW_FLAGS },
 };
 
 #ifdef I386COFF
@@ -1369,9 +1378,11 @@ operand_type_all_zero (const union i386_operand_type *x)
     case 3:
       if (x->array[2])
 	return 0;
+      /* Fall through.  */
     case 2:
       if (x->array[1])
 	return 0;
+      /* Fall through.  */
     case 1:
       return !x->array[0];
     default:
@@ -1386,10 +1397,13 @@ operand_type_set (union i386_operand_type *x, unsigned int v)
     {
     case 3:
       x->array[2] = v;
+      /* Fall through.  */
     case 2:
       x->array[1] = v;
+      /* Fall through.  */
     case 1:
       x->array[0] = v;
+      /* Fall through.  */
       break;
     default:
       abort ();
@@ -1405,9 +1419,11 @@ operand_type_equal (const union i386_operand_type *x,
     case 3:
       if (x->array[2] != y->array[2])
 	return 0;
+      /* Fall through.  */
     case 2:
       if (x->array[1] != y->array[1])
 	return 0;
+      /* Fall through.  */
     case 1:
       return x->array[0] == y->array[0];
       break;
@@ -1424,9 +1440,11 @@ cpu_flags_all_zero (const union i386_cpu_flags *x)
     case 3:
       if (x->array[2])
 	return 0;
+      /* Fall through.  */
     case 2:
       if (x->array[1])
 	return 0;
+      /* Fall through.  */
     case 1:
       return !x->array[0];
     default:
@@ -1443,9 +1461,11 @@ cpu_flags_equal (const union i386_cpu_flags *x,
     case 3:
       if (x->array[2] != y->array[2])
 	return 0;
+      /* Fall through.  */
     case 2:
       if (x->array[1] != y->array[1])
 	return 0;
+      /* Fall through.  */
     case 1:
       return x->array[0] == y->array[0];
       break;
@@ -1468,8 +1488,10 @@ cpu_flags_and (i386_cpu_flags x, i386_cpu_flags y)
     {
     case 3:
       x.array [2] &= y.array [2];
+      /* Fall through.  */
     case 2:
       x.array [1] &= y.array [1];
+      /* Fall through.  */
     case 1:
       x.array [0] &= y.array [0];
       break;
@@ -1486,8 +1508,10 @@ cpu_flags_or (i386_cpu_flags x, i386_cpu_flags y)
     {
     case 3:
       x.array [2] |= y.array [2];
+      /* Fall through.  */
     case 2:
       x.array [1] |= y.array [1];
+      /* Fall through.  */
     case 1:
       x.array [0] |= y.array [0];
       break;
@@ -1504,8 +1528,10 @@ cpu_flags_and_not (i386_cpu_flags x, i386_cpu_flags y)
     {
     case 3:
       x.array [2] &= ~y.array [2];
+      /* Fall through.  */
     case 2:
       x.array [1] &= ~y.array [1];
+      /* Fall through.  */
     case 1:
       x.array [0] &= ~y.array [0];
       break;
@@ -1513,20 +1539,6 @@ cpu_flags_and_not (i386_cpu_flags x, i386_cpu_flags y)
       abort ();
     }
   return x;
-}
-
-static int
-valid_iamcu_cpu_flags (const i386_cpu_flags *flags)
-{
-  if (cpu_arch_isa == PROCESSOR_IAMCU)
-    {
-      static const i386_cpu_flags iamcu_flags = CPU_IAMCU_COMPAT_FLAGS;
-      i386_cpu_flags compat_flags;
-      compat_flags = cpu_flags_and_not (*flags, iamcu_flags);
-      return cpu_flags_all_zero (&compat_flags);
-    }
-  else
-    return 1;
 }
 
 #define CPU_FLAGS_ARCH_MATCH		0x1
@@ -1616,8 +1628,10 @@ operand_type_and (i386_operand_type x, i386_operand_type y)
     {
     case 3:
       x.array [2] &= y.array [2];
+      /* Fall through.  */
     case 2:
       x.array [1] &= y.array [1];
+      /* Fall through.  */
     case 1:
       x.array [0] &= y.array [0];
       break;
@@ -1634,8 +1648,10 @@ operand_type_or (i386_operand_type x, i386_operand_type y)
     {
     case 3:
       x.array [2] |= y.array [2];
+      /* Fall through.  */
     case 2:
       x.array [1] |= y.array [1];
+      /* Fall through.  */
     case 1:
       x.array [0] |= y.array [0];
       break;
@@ -1652,8 +1668,10 @@ operand_type_xor (i386_operand_type x, i386_operand_type y)
     {
     case 3:
       x.array [2] ^= y.array [2];
+      /* Fall through.  */
     case 2:
       x.array [1] ^= y.array [1];
+      /* Fall through.  */
     case 1:
       x.array [0] ^= y.array [0];
       break;
@@ -2419,10 +2437,7 @@ set_cpu_arch (int dummy ATTRIBUTE_UNUSED)
 	      flags = cpu_flags_or (cpu_arch_flags,
 				    cpu_arch[j].flags);
 
-	      if (!valid_iamcu_cpu_flags (&flags))
-		as_fatal (_("`%s' isn't valid for Intel MCU"),
-			  cpu_arch[j].name);
-	      else if (!cpu_flags_equal (&flags, &cpu_arch_flags))
+	      if (!cpu_flags_equal (&flags, &cpu_arch_flags))
 		{
 		  if (cpu_sub_arch_name)
 		    {
@@ -3534,7 +3549,7 @@ void
 md_assemble (char *line)
 {
   unsigned int j;
-  char mnemonic[MAX_MNEM_SIZE];
+  char mnemonic[MAX_MNEM_SIZE], mnem_suffix;
   const insn_template *t;
 
   /* Initialize globals.  */
@@ -3552,9 +3567,12 @@ md_assemble (char *line)
   line = parse_insn (line, mnemonic);
   if (line == NULL)
     return;
+  mnem_suffix = i.suffix;
 
   line = parse_operands (line, mnemonic);
   this_operand = -1;
+  xfree (i.memop1_string);
+  i.memop1_string = NULL;
   if (line == NULL)
     return;
 
@@ -3595,7 +3613,7 @@ md_assemble (char *line)
      making sure the overlap of the given operands types is consistent
      with the template operand types.  */
 
-  if (!(t = match_template ()))
+  if (!(t = match_template (mnem_suffix)))
     return;
 
   if (sse_check != check_none
@@ -3660,10 +3678,15 @@ md_assemble (char *line)
   if (i.bnd_prefix && !i.tm.opcode_modifier.bndprefixok)
     as_bad (_("expecting valid branch instruction after `bnd'"));
 
-  if (i.tm.cpu_flags.bitfield.cpumpx
-      && flag_code == CODE_64BIT
-      && i.prefix[ADDR_PREFIX])
-    as_bad (_("32-bit address isn't allowed in 64-bit MPX instructions."));
+  if (i.tm.cpu_flags.bitfield.cpumpx)
+    {
+      if (flag_code == CODE_64BIT && i.prefix[ADDR_PREFIX])
+	as_bad (_("32-bit address isn't allowed in 64-bit MPX instructions."));
+      else if (flag_code != CODE_16BIT
+	       ? i.prefix[ADDR_PREFIX]
+	       : i.mem_operands && !i.prefix[ADDR_PREFIX])
+	as_bad (_("16-bit address isn't allowed in MPX instructions"));
+    }
 
   /* Insert BND prefix.  */
   if (add_bnd_prefix
@@ -3932,6 +3955,7 @@ check_suffix:
 	  if (intel_syntax && (intel_float_operand (mnemonic) & 2))
 	    i.suffix = SHORT_MNEM_SUFFIX;
 	  else
+	    /* Fall through.  */
 	case BYTE_MNEM_SUFFIX:
 	case QWORD_MNEM_SUFFIX:
 	  i.suffix = mnem_p[-1];
@@ -4207,6 +4231,7 @@ swap_operands (void)
     case 5:
     case 4:
       swap_2_operands (1, i.operands - 2);
+      /* Fall through.  */
     case 3:
     case 2:
       swap_2_operands (0, i.operands - 1);
@@ -4719,14 +4744,14 @@ VEX_check_operands (const insn_template *t)
 }
 
 static const insn_template *
-match_template (void)
+match_template (char mnem_suffix)
 {
   /* Points to template once we've found it.  */
   const insn_template *t;
   i386_operand_type overlap0, overlap1, overlap2, overlap3;
   i386_operand_type overlap4;
   unsigned int found_reverse_match;
-  i386_opcode_modifier suffix_check;
+  i386_opcode_modifier suffix_check, mnemsuf_check;
   i386_operand_type operand_types [MAX_OPERANDS];
   int addr_prefix_disp;
   unsigned int j;
@@ -4754,6 +4779,19 @@ match_template (void)
     suffix_check.no_qsuf = 1;
   else if (i.suffix == LONG_DOUBLE_MNEM_SUFFIX)
     suffix_check.no_ldsuf = 1;
+
+  memset (&mnemsuf_check, 0, sizeof (mnemsuf_check));
+  if (intel_syntax)
+    {
+      switch (mnem_suffix)
+	{
+	case BYTE_MNEM_SUFFIX:  mnemsuf_check.no_bsuf = 1; break;
+	case WORD_MNEM_SUFFIX:  mnemsuf_check.no_wsuf = 1; break;
+	case SHORT_MNEM_SUFFIX: mnemsuf_check.no_ssuf = 1; break;
+	case LONG_MNEM_SUFFIX:  mnemsuf_check.no_lsuf = 1; break;
+	case QWORD_MNEM_SUFFIX: mnemsuf_check.no_qsuf = 1; break;
+	}
+    }
 
   /* Must have right number of operands.  */
   i.error = number_of_operands_mismatch;
@@ -4799,6 +4837,14 @@ match_template (void)
 	      || (t->opcode_modifier.no_ssuf && suffix_check.no_ssuf)
 	      || (t->opcode_modifier.no_qsuf && suffix_check.no_qsuf)
 	      || (t->opcode_modifier.no_ldsuf && suffix_check.no_ldsuf)))
+	continue;
+      /* In Intel mode all mnemonic suffixes must be explicitly allowed.  */
+      if ((t->opcode_modifier.no_bsuf && mnemsuf_check.no_bsuf)
+	  || (t->opcode_modifier.no_wsuf && mnemsuf_check.no_wsuf)
+	  || (t->opcode_modifier.no_lsuf && mnemsuf_check.no_lsuf)
+	  || (t->opcode_modifier.no_ssuf && mnemsuf_check.no_ssuf)
+	  || (t->opcode_modifier.no_qsuf && mnemsuf_check.no_qsuf)
+	  || (t->opcode_modifier.no_ldsuf && mnemsuf_check.no_ldsuf))
 	continue;
 
       if (!operand_size_match (t))
@@ -4925,11 +4971,13 @@ match_template (void)
 	      else if (t->opcode_modifier.d)
 		goto check_reverse;
 	    }
+	  /* Fall through.  */
 
 	case 3:
 	  /* If we swap operand in encoding, we match the next one.  */
 	  if (i.swap_operand && t->opcode_modifier.s)
 	    continue;
+	  /* Fall through.  */
 	case 4:
 	case 5:
 	  overlap1 = operand_type_and (i.types[1], operand_types[1]);
@@ -4981,9 +5029,11 @@ check_reverse:
 		case 5:
 		  overlap4 = operand_type_and (i.types[4],
 					       operand_types[4]);
+		  /* Fall through.  */
 		case 4:
 		  overlap3 = operand_type_and (i.types[3],
 					       operand_types[3]);
+		  /* Fall through.  */
 		case 3:
 		  overlap2 = operand_type_and (i.types[2],
 					       operand_types[2]);
@@ -5001,6 +5051,7 @@ check_reverse:
 						       i.types[4],
 						       operand_types[4]))
 		    continue;
+		  /* Fall through.  */
 		case 4:
 		  if (!operand_type_match (overlap3, i.types[3])
 		      || (check_register
@@ -5011,6 +5062,7 @@ check_reverse:
 							   i.types[3],
 							   operand_types[3])))
 		    continue;
+		  /* Fall through.  */
 		case 3:
 		  /* Here we make use of the fact that there are no
 		     reverse match 3 operand instructions, and all 3
@@ -5353,6 +5405,7 @@ process_suffix (void)
 	      i.suffix = QWORD_MNEM_SUFFIX;
 	      break;
 	    }
+	  /* Fall through.  */
 	case CODE_32BIT:
 	  if (!i.tm.opcode_modifier.no_lsuf)
 	    i.suffix = LONG_MNEM_SUFFIX;
@@ -5638,7 +5691,7 @@ check_qword_reg (void)
     /* Warn if the r prefix on a general reg is missing.  */
     else if ((i.types[op].bitfield.reg16
 	      || i.types[op].bitfield.reg32)
-	     && (i.tm.operand_types[op].bitfield.reg32
+	     && (i.tm.operand_types[op].bitfield.reg64
 		 || i.tm.operand_types[op].bitfield.acc))
       {
 	/* Prohibit these changes in the 64bit mode, since the
@@ -5919,6 +5972,25 @@ duplicate:
       i.reg_operands--;
       i.tm.operands--;
     }
+  else if (i.tm.opcode_modifier.implicitquadgroup)
+    {
+      /* The second operand must be {x,y,z}mmN, where N is a multiple of 4. */
+      gas_assert (i.operands >= 2
+          && (operand_type_equal (&i.types[1], &regxmm)
+              || operand_type_equal (&i.types[1], &regymm)
+              || operand_type_equal (&i.types[1], &regzmm)));
+      unsigned int regnum = register_number (i.op[1].regs);
+      unsigned int first_reg_in_group = regnum & ~3;
+      unsigned int last_reg_in_group = first_reg_in_group + 3;
+      if (regnum != first_reg_in_group) {
+        as_warn (_("the second source register `%s%s' implicitly denotes"
+            " `%s%.3s%d' to `%s%.3s%d' source group in `%s'"),
+            register_prefix, i.op[1].regs->reg_name,
+            register_prefix, i.op[1].regs->reg_name, first_reg_in_group,
+            register_prefix, i.op[1].regs->reg_name, last_reg_in_group,
+            i.tm.name);
+      }
+	}
   else if (i.tm.opcode_modifier.regkludge)
     {
       /* The imul $imm, %reg instruction is converted into
@@ -6936,6 +7008,7 @@ output_jump (void)
     {
     case 2:
       *p++ = i.tm.base_opcode >> 8;
+      /* Fall through.  */
     case 1:
       *p++ = i.tm.base_opcode;
       break;
@@ -8510,7 +8583,7 @@ i386_index_check (const char *operand_string)
 
       kind = "string address";
 
-      if (current_templates->start->opcode_modifier.w)
+      if (current_templates->start->opcode_modifier.repprefixok)
 	{
 	  i386_operand_type type = current_templates->end[-1].operand_types[0];
 
@@ -8580,6 +8653,23 @@ bad_address:
 			   || i.index_reg->reg_num == RegEiz))
 		      || !i.index_reg->reg_type.bitfield.baseindex)))
 	    goto bad_address;
+
+	  /* bndmk, bndldx, and bndstx have special restrictions. */
+	  if (current_templates->start->base_opcode == 0xf30f1b
+	      || (current_templates->start->base_opcode & ~1) == 0x0f1a)
+	    {
+	      /* They cannot use RIP-relative addressing. */
+	      if (i.base_reg && i.base_reg->reg_num == RegRip)
+		{
+		  as_bad (_("`%s' cannot be used here"), operand_string);
+		  return 0;
+		}
+
+	      /* bndldx and bndstx ignore their scale factor. */
+	      if (current_templates->start->base_opcode != 0xf30f1b
+		  && i.log2_scale_factor)
+		as_warn (_("register scaling is being ignored here"));
+	    }
 	}
       else
 	{
@@ -8658,6 +8748,49 @@ RC_SAE_immediate (const char *imm_start)
   exp->X_op_symbol = (symbolS *) 0;
 
   i.types[this_operand].bitfield.imm8 = 1;
+  return 1;
+}
+
+/* Only string instructions can have a second memory operand, so
+   reduce current_templates to just those if it contains any.  */
+static int
+maybe_adjust_templates (void)
+{
+  const insn_template *t;
+
+  gas_assert (i.mem_operands == 1);
+
+  for (t = current_templates->start; t < current_templates->end; ++t)
+    if (t->opcode_modifier.isstring)
+      break;
+
+  if (t < current_templates->end)
+    {
+      static templates aux_templates;
+      bfd_boolean recheck;
+
+      aux_templates.start = t;
+      for (; t < current_templates->end; ++t)
+	if (!t->opcode_modifier.isstring)
+	  break;
+      aux_templates.end = t;
+
+      /* Determine whether to re-check the first memory operand.  */
+      recheck = (aux_templates.start != current_templates->start
+		 || t != current_templates->end);
+
+      current_templates = &aux_templates;
+
+      if (recheck)
+	{
+	  i.mem_operands = 0;
+	  if (i.memop1_string != NULL
+	      && i386_index_check (i.memop1_string) == 0)
+	    return 0;
+	  i.mem_operands = 1;
+	}
+    }
+
   return 1;
 }
 
@@ -8800,6 +8933,8 @@ i386_att_operand (char *operand_string)
       char *vop_start;
 
     do_memory_reference:
+      if (i.mem_operands == 1 && !maybe_adjust_templates ())
+	return 0;
       if ((i.mem_operands == 1
 	   && !current_templates->start->opcode_modifier.isstring)
 	  || i.mem_operands == 2)
@@ -8977,6 +9112,8 @@ i386_att_operand (char *operand_string)
       if (i386_index_check (operand_string) == 0)
 	return 0;
       i.types[this_operand].bitfield.mem = 1;
+      if (i.mem_operands == 0)
+	i.memop1_string = xstrdup (operand_string);
       i.mem_operands++;
     }
   else
@@ -9923,9 +10060,7 @@ md_parse_option (int c, const char *arg)
 		  flags = cpu_flags_or (cpu_arch_flags,
 					cpu_arch[j].flags);
 
-		  if (!valid_iamcu_cpu_flags (&flags))
-		    as_fatal (_("`%s' isn't valid for Intel MCU"), arch);
-		  else if (!cpu_flags_equal (&flags, &cpu_arch_flags))
+		  if (!cpu_flags_equal (&flags, &cpu_arch_flags))
 		    {
 		      if (cpu_sub_arch_name)
 			{
@@ -10381,7 +10516,7 @@ i386_target_format (void)
 	      cpu_arch_tune_flags = cpu_arch_isa_flags;
 	    }
 	}
-      else
+      else if (cpu_arch_isa != PROCESSOR_IAMCU)
 	as_fatal (_("Intel MCU doesn't support `%s' architecture"),
 		  cpu_arch_name);
     }
@@ -10615,6 +10750,7 @@ tc_gen_reloc (asection *section ATTRIBUTE_UNUSED, fixS *fixp)
 	  return NULL;
 	}
 #endif
+      /* Fall through.  */
 
     case BFD_RELOC_X86_64_PLT32:
     case BFD_RELOC_X86_64_GOT32:
@@ -10667,6 +10803,7 @@ tc_gen_reloc (asection *section ATTRIBUTE_UNUSED, fixS *fixp)
 	  code = fixp->fx_r_type;
 	  break;
 	}
+      /* Fall through.  */
     default:
       if (fixp->fx_pcrel)
 	{

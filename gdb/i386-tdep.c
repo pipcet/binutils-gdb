@@ -66,6 +66,7 @@
 #include "expression.h"
 #include "parser-defs.h"
 #include <ctype.h>
+#include <algorithm>
 
 /* Register names.  */
 
@@ -587,14 +588,10 @@ static const char *disassembly_flavor = att_flavor;
 
    This function is 64-bit safe.  */
 
-static const gdb_byte *
-i386_breakpoint_from_pc (struct gdbarch *gdbarch, CORE_ADDR *pc, int *len)
-{
-  static gdb_byte break_insn[] = { 0xcc }; /* int 3 */
+constexpr gdb_byte i386_break_insn[] = { 0xcc }; /* int 3 */
 
-  *len = sizeof (break_insn);
-  return break_insn;
-}
+typedef BP_MANIPULATION (i386_break_insn) i386_breakpoint;
+
 
 /* Displaced instruction handling.  */
 
@@ -1365,7 +1362,7 @@ i386_analyze_stack_align (CORE_ADDR pc, CORE_ADDR current_pc,
   if (current_pc > pc + offset_and)
     cache->saved_sp_reg = regnums[reg];
 
-  return min (pc + offset + 3, current_pc);
+  return std::min (pc + offset + 3, current_pc);
 }
 
 /* Maximum instruction length we need to handle.  */
@@ -1836,7 +1833,7 @@ i386_skip_prologue (struct gdbarch *gdbarch, CORE_ADDR start_pc)
 	  && (cust != NULL
 	      && COMPUNIT_PRODUCER (cust) != NULL
 	      && startswith (COMPUNIT_PRODUCER (cust), "clang ")))
-        return max (start_pc, post_prologue_pc);
+        return std::max (start_pc, post_prologue_pc);
     }
  
   cache.locals = -1;
@@ -8161,6 +8158,23 @@ i386_fast_tracepoint_valid_at (struct gdbarch *gdbarch, CORE_ADDR addr,
     }
 }
 
+/* Return a floating-point format for a floating-point variable of
+   length LEN in bits.  If non-NULL, NAME is the name of its type.
+   If no suitable type is found, return NULL.  */
+
+const struct floatformat **
+i386_floatformat_for_type (struct gdbarch *gdbarch,
+			   const char *name, int len)
+{
+  if (len == 128 && name)
+    if (strcmp (name, "__float128") == 0
+	|| strcmp (name, "_Float128") == 0
+	|| strcmp (name, "complex _Float128") == 0)
+      return floatformats_ia64_quad;
+
+  return default_floatformat_for_type (gdbarch, name, len);
+}
+
 static int
 i386_validate_tdesc_p (struct gdbarch_tdep *tdep,
 		       struct tdesc_arch_data *tdesc_data)
@@ -8302,6 +8316,8 @@ i386_validate_tdesc_p (struct gdbarch_tdep *tdep,
 }
 
 
+/* Note: This is called for both i386 and amd64.  */
+
 static struct gdbarch *
 i386_gdbarch_init (struct gdbarch_info info, struct gdbarch_list *arches)
 {
@@ -8319,7 +8335,7 @@ i386_gdbarch_init (struct gdbarch_info info, struct gdbarch_list *arches)
   if (arches != NULL)
     return arches->gdbarch;
 
-  /* Allocate space for the new architecture.  */
+  /* Allocate space for the new architecture.  Assume i386 for now.  */
   tdep = XCNEW (struct gdbarch_tdep);
   gdbarch = gdbarch_alloc (&info, tdep);
 
@@ -8369,6 +8385,9 @@ i386_gdbarch_init (struct gdbarch_info info, struct gdbarch_list *arches)
      bits, a `long double' actually takes up 96, probably to enforce
      alignment.  */
   set_gdbarch_long_double_bit (gdbarch, 96);
+
+  /* Support for floating-point data type variants.  */
+  set_gdbarch_floatformat_for_type (gdbarch, i386_floatformat_for_type);
 
   /* Register numbers of various important registers.  */
   set_gdbarch_sp_regnum (gdbarch, I386_ESP_REGNUM); /* %esp */
@@ -8437,7 +8456,9 @@ i386_gdbarch_init (struct gdbarch_info info, struct gdbarch_list *arches)
   /* Stack grows downward.  */
   set_gdbarch_inner_than (gdbarch, core_addr_lessthan);
 
-  set_gdbarch_breakpoint_from_pc (gdbarch, i386_breakpoint_from_pc);
+  set_gdbarch_breakpoint_kind_from_pc (gdbarch, i386_breakpoint::kind_from_pc);
+  set_gdbarch_sw_breakpoint_from_kind (gdbarch, i386_breakpoint::bp_from_kind);
+
   set_gdbarch_decr_pc_after_break (gdbarch, 1);
   set_gdbarch_max_insn_length (gdbarch, I386_MAX_INSN_LEN);
 
@@ -8541,7 +8562,9 @@ i386_gdbarch_init (struct gdbarch_info info, struct gdbarch_list *arches)
   set_gdbarch_insn_is_ret (gdbarch, i386_insn_is_ret);
   set_gdbarch_insn_is_jump (gdbarch, i386_insn_is_jump);
 
-  /* Hook in ABI-specific overrides, if they have been registered.  */
+  /* Hook in ABI-specific overrides, if they have been registered.
+     Note: If INFO specifies a 64 bit arch, this is where we turn
+     a 32-bit i386 into a 64-bit amd64.  */
   info.tdep_info = tdesc_data;
   gdbarch_init_osabi (info, gdbarch);
 
@@ -8836,7 +8859,8 @@ i386_mpx_info_bounds (char *args, int from_tty)
   struct gdbarch *gdbarch = get_current_arch ();
   struct type *data_ptr_type = builtin_type (gdbarch)->builtin_data_ptr;
 
-  if (!i386_mpx_enabled ())
+  if (gdbarch_bfd_arch_info (gdbarch)->arch != bfd_arch_i386
+      || !i386_mpx_enabled ())
     {
       printf_unfiltered (_("Intel Memory Protection Extensions not "
 			   "supported on this target.\n"));
@@ -8879,7 +8903,8 @@ i386_mpx_set_bounds (char *args, int from_tty)
   enum bfd_endian byte_order = gdbarch_byte_order (gdbarch);
   struct type *data_ptr_type = builtin_type (gdbarch)->builtin_data_ptr;
 
-  if (!i386_mpx_enabled ())
+  if (gdbarch_bfd_arch_info (gdbarch)->arch != bfd_arch_i386
+      || !i386_mpx_enabled ())
     error (_("Intel Memory Protection Extensions not supported\
  on this target."));
 

@@ -60,6 +60,7 @@
 #include "arch/aarch64-insn.h"
 
 #include "opcode/aarch64.h"
+#include <algorithm>
 
 #define submask(x) ((1L << ((x) + 1)) - 1)
 #define bit(obj,st) (((obj) >> (st)) & 1)
@@ -67,7 +68,7 @@
 
 /* Pseudo register base numbers.  */
 #define AARCH64_Q0_REGNUM 0
-#define AARCH64_D0_REGNUM (AARCH64_Q0_REGNUM + 32)
+#define AARCH64_D0_REGNUM (AARCH64_Q0_REGNUM + AARCH64_D_REGISTER_COUNT)
 #define AARCH64_S0_REGNUM (AARCH64_D0_REGNUM + 32)
 #define AARCH64_H0_REGNUM (AARCH64_S0_REGNUM + 32)
 #define AARCH64_B0_REGNUM (AARCH64_H0_REGNUM + 32)
@@ -205,11 +206,12 @@ aarch64_analyze_prologue (struct gdbarch *gdbarch,
 {
   enum bfd_endian byte_order_for_code = gdbarch_byte_order_for_code (gdbarch);
   int i;
-  pv_t regs[AARCH64_X_REGISTER_COUNT];
+  /* Track X registers and D registers in prologue.  */
+  pv_t regs[AARCH64_X_REGISTER_COUNT + AARCH64_D_REGISTER_COUNT];
   struct pv_area *stack;
   struct cleanup *back_to;
 
-  for (i = 0; i < AARCH64_X_REGISTER_COUNT; i++)
+  for (i = 0; i < AARCH64_X_REGISTER_COUNT + AARCH64_D_REGISTER_COUNT; i++)
     regs[i] = pv_register (i, 0);
   stack = make_pv_area (AARCH64_SP_REGNUM, gdbarch_addr_bit (gdbarch));
   back_to = make_cleanup_free_pv_area (stack);
@@ -322,17 +324,20 @@ aarch64_analyze_prologue (struct gdbarch *gdbarch,
 			 is64 ? 8 : 4, regs[rt]);
 	}
       else if ((inst.opcode->iclass == ldstpair_off
-		|| inst.opcode->iclass == ldstpair_indexed)
-	       && inst.operands[2].addr.preind
+		|| (inst.opcode->iclass == ldstpair_indexed
+		    && inst.operands[2].addr.preind))
 	       && strcmp ("stp", inst.opcode->name) == 0)
 	{
-	  unsigned rt1 = inst.operands[0].reg.regno;
-	  unsigned rt2 = inst.operands[1].reg.regno;
+	  /* STP with addressing mode Pre-indexed and Base register.  */
+	  unsigned rt1;
+	  unsigned rt2;
 	  unsigned rn = inst.operands[2].addr.base_regno;
 	  int32_t imm = inst.operands[2].addr.offset.imm;
 
-	  gdb_assert (inst.operands[0].type == AARCH64_OPND_Rt);
-	  gdb_assert (inst.operands[1].type == AARCH64_OPND_Rt2);
+	  gdb_assert (inst.operands[0].type == AARCH64_OPND_Rt
+		      || inst.operands[0].type == AARCH64_OPND_Ft);
+	  gdb_assert (inst.operands[1].type == AARCH64_OPND_Rt2
+		      || inst.operands[1].type == AARCH64_OPND_Ft2);
 	  gdb_assert (inst.operands[2].type == AARCH64_OPND_ADDR_SIMM7);
 	  gdb_assert (!inst.operands[2].addr.offset.is_reg);
 
@@ -346,6 +351,17 @@ aarch64_analyze_prologue (struct gdbarch *gdbarch,
 	  if (pv_area_store_would_trash (stack,
 					 pv_add_constant (regs[rn], imm + 8)))
 	    break;
+
+	  rt1 = inst.operands[0].reg.regno;
+	  rt2 = inst.operands[1].reg.regno;
+	  if (inst.operands[0].type == AARCH64_OPND_Ft)
+	    {
+	      /* Only bottom 64-bit of each V register (D register) need
+		 to be preserved.  */
+	      gdb_assert (inst.operands[0].qualifier == AARCH64_OPND_QLF_S_D);
+	      rt1 += AARCH64_X_REGISTER_COUNT;
+	      rt2 += AARCH64_X_REGISTER_COUNT;
+	    }
 
 	  pv_area_store (stack, pv_add_constant (regs[rn], imm), 8,
 			 regs[rt1]);
@@ -406,6 +422,16 @@ aarch64_analyze_prologue (struct gdbarch *gdbarch,
 	cache->saved_regs[i].addr = offset;
     }
 
+  for (i = 0; i < AARCH64_D_REGISTER_COUNT; i++)
+    {
+      int regnum = gdbarch_num_regs (gdbarch);
+      CORE_ADDR offset;
+
+      if (pv_area_find_reg (stack, gdbarch, i + AARCH64_X_REGISTER_COUNT,
+			    &offset))
+	cache->saved_regs[i + regnum + AARCH64_D0_REGNUM].addr = offset;
+    }
+
   do_cleanups (back_to);
   return start;
 }
@@ -426,7 +452,7 @@ aarch64_skip_prologue (struct gdbarch *gdbarch, CORE_ADDR pc)
 	= skip_prologue_using_sal (gdbarch, func_addr);
 
       if (post_prologue_pc != 0)
-	return max (pc, post_prologue_pc);
+	return std::max (pc, post_prologue_pc);
     }
 
   /* Can't determine prologue from the symbol table, need to examine
@@ -479,7 +505,7 @@ aarch64_scan_prologue (struct frame_info *this_frame,
 	  prologue_end = sal.end;
 	}
 
-      prologue_end = min (prologue_end, prev_pc);
+      prologue_end = std::min (prologue_end, prev_pc);
       aarch64_analyze_prologue (gdbarch, prologue_start, prologue_end, cache);
     }
   else
@@ -1564,17 +1590,9 @@ aarch64_gdb_print_insn (bfd_vma memaddr, disassemble_info *info)
 /* AArch64 BRK software debug mode instruction.
    Note that AArch64 code is always little-endian.
    1101.0100.0010.0000.0000.0000.0000.0000 = 0xd4200000.  */
-static const gdb_byte aarch64_default_breakpoint[] = {0x00, 0x00, 0x20, 0xd4};
+constexpr gdb_byte aarch64_default_breakpoint[] = {0x00, 0x00, 0x20, 0xd4};
 
-/* Implement the "breakpoint_from_pc" gdbarch method.  */
-
-static const gdb_byte *
-aarch64_breakpoint_from_pc (struct gdbarch *gdbarch, CORE_ADDR *pcptr,
-			    int *lenptr)
-{
-  *lenptr = sizeof (aarch64_default_breakpoint);
-  return aarch64_default_breakpoint;
-}
+typedef BP_MANIPULATION (aarch64_default_breakpoint) aarch64_breakpoint;
 
 /* Extract from an array REGS containing the (raw) register state a
    function return value of type TYPE, and copy that, in virtual
@@ -2206,11 +2224,10 @@ value_of_aarch64_user_reg (struct frame_info *frame, const void *baton)
 /* Implement the "software_single_step" gdbarch method, needed to
    single step through atomic sequences on AArch64.  */
 
-static int
+static VEC (CORE_ADDR) *
 aarch64_software_single_step (struct frame_info *frame)
 {
   struct gdbarch *gdbarch = get_frame_arch (frame);
-  struct address_space *aspace = get_frame_address_space (frame);
   enum bfd_endian byte_order_for_code = gdbarch_byte_order_for_code (gdbarch);
   const int insn_size = 4;
   const int atomic_sequence_length = 16; /* Instruction sequence length.  */
@@ -2225,13 +2242,14 @@ aarch64_software_single_step (struct frame_info *frame)
   int bc_insn_count = 0; /* Conditional branch instruction count.  */
   int last_breakpoint = 0; /* Defaults to 0 (no breakpoints placed).  */
   aarch64_inst inst;
+  VEC (CORE_ADDR) *next_pcs = NULL;
 
   if (aarch64_decode_insn (insn, &inst, 1) != 0)
-    return 0;
+    return NULL;
 
   /* Look for a Load Exclusive instruction which begins the sequence.  */
   if (inst.opcode->iclass != ldstexcl || bit (insn, 22) == 0)
-    return 0;
+    return NULL;
 
   for (insn_count = 0; insn_count < atomic_sequence_length; ++insn_count)
     {
@@ -2240,14 +2258,14 @@ aarch64_software_single_step (struct frame_info *frame)
 					   byte_order_for_code);
 
       if (aarch64_decode_insn (insn, &inst, 1) != 0)
-	return 0;
+	return NULL;
       /* Check if the instruction is a conditional branch.  */
       if (inst.opcode->iclass == condbranch)
 	{
 	  gdb_assert (inst.operands[0].type == AARCH64_OPND_ADDR_PCREL19);
 
 	  if (bc_insn_count >= 1)
-	    return 0;
+	    return NULL;
 
 	  /* It is, so we'll try to set a breakpoint at the destination.  */
 	  breaks[1] = loc + inst.operands[0].imm.value;
@@ -2266,7 +2284,7 @@ aarch64_software_single_step (struct frame_info *frame)
 
   /* We didn't find a closing Store Exclusive instruction, fall back.  */
   if (!closing_insn)
-    return 0;
+    return NULL;
 
   /* Insert breakpoint after the end of the atomic sequence.  */
   breaks[0] = loc + insn_size;
@@ -2281,9 +2299,9 @@ aarch64_software_single_step (struct frame_info *frame)
   /* Insert the breakpoint at the end of the sequence, and one at the
      destination of the conditional branch, if it exists.  */
   for (index = 0; index <= last_breakpoint; index++)
-    insert_single_step_breakpoint (gdbarch, aspace, breaks[index]);
+    VEC_safe_push (CORE_ADDR, next_pcs, breaks[index]);
 
-  return 1;
+  return next_pcs;
 }
 
 struct displaced_step_closure
@@ -2736,7 +2754,10 @@ aarch64_gdbarch_init (struct gdbarch_info info, struct gdbarch_list *arches)
   set_gdbarch_inner_than (gdbarch, core_addr_lessthan);
 
   /* Breakpoint manipulation.  */
-  set_gdbarch_breakpoint_from_pc (gdbarch, aarch64_breakpoint_from_pc);
+  set_gdbarch_breakpoint_kind_from_pc (gdbarch,
+				       aarch64_breakpoint::kind_from_pc);
+  set_gdbarch_sw_breakpoint_from_kind (gdbarch,
+				       aarch64_breakpoint::bp_from_kind);
   set_gdbarch_have_nonsteppable_watchpoint (gdbarch, 1);
   set_gdbarch_software_single_step (gdbarch, aarch64_software_single_step);
 
@@ -2981,11 +3002,10 @@ aarch64_record_data_proc_reg (insn_decode_record *aarch64_insn_r)
 static unsigned int
 aarch64_record_data_proc_imm (insn_decode_record *aarch64_insn_r)
 {
-  uint8_t reg_rd, insn_bit28, insn_bit23, insn_bits24_27, setflags;
+  uint8_t reg_rd, insn_bit23, insn_bits24_27, setflags;
   uint32_t record_buf[4];
 
   reg_rd = bits (aarch64_insn_r->aarch64_insn, 0, 4);
-  insn_bit28 = bit (aarch64_insn_r->aarch64_insn, 28);
   insn_bit23 = bit (aarch64_insn_r->aarch64_insn, 23);
   insn_bits24_27 = bits (aarch64_insn_r->aarch64_insn, 24, 27);
 

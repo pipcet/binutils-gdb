@@ -36,6 +36,7 @@
 
 #include "elf/rx.h"
 #include "elf-bfd.h"
+#include <algorithm>
 
 /* Certain important register numbers.  */
 enum
@@ -897,7 +898,7 @@ rx_push_dummy_call (struct gdbarch *gdbarch, struct value *function,
 		      && arg_size <= 4 * (RX_R4_REGNUM - arg_reg + 1)
 		      && arg_size % 4 == 0)
 		    {
-		      int len = min (arg_size, 4);
+		      int len = std::min (arg_size, (ULONGEST) 4);
 
 		      if (write_pass)
 			regcache_cooked_write_unsigned (regcache, arg_reg,
@@ -960,7 +961,7 @@ rx_return_value (struct gdbarch *gdbarch,
 
       while (valtype_len > 0)
 	{
-	  int len = min (valtype_len, 4);
+	  int len = std::min (valtype_len, (ULONGEST) 4);
 
 	  regcache_cooked_read_unsigned (regcache, argreg, &u);
 	  store_unsigned_integer (readbuf + offset, len, byte_order, u);
@@ -978,7 +979,7 @@ rx_return_value (struct gdbarch *gdbarch,
 
       while (valtype_len > 0)
 	{
-	  int len = min (valtype_len, 4);
+	  int len = std::min (valtype_len, (ULONGEST) 4);
 
 	  u = extract_unsigned_integer (writebuf + offset, len, byte_order);
 	  regcache_cooked_write_unsigned (regcache, argreg, u);
@@ -991,14 +992,9 @@ rx_return_value (struct gdbarch *gdbarch,
   return RETURN_VALUE_REGISTER_CONVENTION;
 }
 
-/* Implement the "breakpoint_from_pc" gdbarch method.  */
-static const gdb_byte *
-rx_breakpoint_from_pc (struct gdbarch *gdbarch, CORE_ADDR *pcptr, int *lenptr)
-{
-  static gdb_byte breakpoint[] = { 0x00 };
-  *lenptr = sizeof breakpoint;
-  return breakpoint;
-}
+constexpr gdb_byte rx_break_insn[] = { 0x00 };
+
+typedef BP_MANIPULATION (rx_break_insn) rx_breakpoint;
 
 /* Implement the dwarf_reg_to_regnum" gdbarch method.  */
 
@@ -1096,7 +1092,8 @@ rx_gdbarch_init (struct gdbarch_info info, struct gdbarch_list *arches)
   set_gdbarch_sp_regnum (gdbarch, RX_SP_REGNUM);
   set_gdbarch_inner_than (gdbarch, core_addr_lessthan);
   set_gdbarch_decr_pc_after_break (gdbarch, 1);
-  set_gdbarch_breakpoint_from_pc (gdbarch, rx_breakpoint_from_pc);
+  set_gdbarch_breakpoint_kind_from_pc (gdbarch, rx_breakpoint::kind_from_pc);
+  set_gdbarch_sw_breakpoint_from_kind (gdbarch, rx_breakpoint::bp_from_kind);
   set_gdbarch_skip_prologue (gdbarch, rx_skip_prologue);
 
   set_gdbarch_print_insn (gdbarch, print_insn_rx);

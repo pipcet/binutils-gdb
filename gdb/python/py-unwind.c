@@ -116,12 +116,12 @@ pyuw_parse_register_id (struct gdbarch *gdbarch, PyObject *pyo_reg_id,
     return 0;
   if (gdbpy_is_string (pyo_reg_id))
     {
-      const char *reg_name = gdbpy_obj_to_string (pyo_reg_id);
+      gdb::unique_xmalloc_ptr<char> reg_name (gdbpy_obj_to_string (pyo_reg_id));
 
       if (reg_name == NULL)
         return 0;
-      *reg_num = user_reg_map_name_to_regnum (gdbarch, reg_name,
-                                              strlen (reg_name));
+      *reg_num = user_reg_map_name_to_regnum (gdbarch, reg_name.get (),
+                                              strlen (reg_name.get ()));
       return *reg_num >= 0;
     }
   else if (PyInt_Check (pyo_reg_id))
@@ -212,9 +212,7 @@ unwind_infopy_str (PyObject *self)
 
     get_user_print_options (&opts);
     fprintf_unfiltered (strfile, "\nSaved registers: (");
-    for (i = 0;
-         i < VEC_iterate (saved_reg, unwind_info->saved_regs, i, reg);
-         i++)
+    for (i = 0; VEC_iterate (saved_reg, unwind_info->saved_regs, i, reg); i++)
       {
         struct value *value = value_object_to_value (reg->value);
 
@@ -238,12 +236,9 @@ unwind_infopy_str (PyObject *self)
       }
     fprintf_unfiltered (strfile, ")");
   }
-  {
-    char *s = ui_file_xstrdup (strfile, NULL);
 
-    result = PyString_FromString (s);
-    xfree (s);
-  }
+  std::string s = ui_file_as_string (strfile);
+  result = PyString_FromString (s.c_str ());
   ui_file_delete (strfile);
   return result;
 }

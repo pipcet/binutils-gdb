@@ -30,6 +30,7 @@
 #include "symtab.h"
 #include "trad-frame.h"
 #include "value.h"
+#include <algorithm>
 
 #include "m88k-tdep.h"
 
@@ -96,16 +97,11 @@ m88k_addr_bits_remove (struct gdbarch *gdbarch, CORE_ADDR addr)
    encode a breakpoint instruction, store the length of the string in
    *LEN and optionally adjust *PC to point to the correct memory
    location for inserting the breakpoint.  */
-   
-static const gdb_byte *
-m88k_breakpoint_from_pc (struct gdbarch *gdbarch, CORE_ADDR *pc, int *len)
-{
-  /* tb 0,r0,511 */
-  static gdb_byte break_insn[] = { 0xf0, 0x00, 0xd1, 0xff };
 
-  *len = sizeof (break_insn);
-  return break_insn;
-}
+/* tb 0,r0,511 */
+constexpr gdb_byte m88k_break_insn[] = { 0xf0, 0x00, 0xd1, 0xff };
+
+typedef BP_MANIPULATION (m88k_break_insn) m88k_breakpoint;
 
 static CORE_ADDR
 m88k_unwind_pc (struct gdbarch *gdbarch, struct frame_info *next_frame)
@@ -558,7 +554,7 @@ m88k_analyze_prologue (struct gdbarch *gdbarch,
              prologue.  */
 	  if (cache->fp_offset != -1
 	      && cache->saved_regs[M88K_R1_REGNUM].addr != -1)
-	    return min (pc, end);
+	    return std::min (pc, end);
 	  break;
 
 	case M88K_PIA_NOTE_ST:
@@ -566,7 +562,7 @@ m88k_analyze_prologue (struct gdbarch *gdbarch,
 	  /* If no frame has been allocated, the stores aren't part of
              the prologue.  */
 	  if (cache->sp_offset == 0)
-	    return min (pc, end);
+	    return std::min (pc, end);
 
 	  /* Record location of saved registers.  */
 	  {
@@ -583,7 +579,7 @@ m88k_analyze_prologue (struct gdbarch *gdbarch,
 	  /* A second stack pointer adjustment isn't part of the
              prologue.  */
 	  if (cache->sp_offset != 0)
-	    return min (pc, end);
+	    return std::min (pc, end);
 
 	  /* Store stack pointer adjustment.  */
 	  cache->sp_offset = -SUBU_OFFSET (insn);
@@ -593,7 +589,7 @@ m88k_analyze_prologue (struct gdbarch *gdbarch,
 	  /* A second frame pointer assignment isn't part of the
              prologue.  */
 	  if (cache->fp_offset != -1)
-	    return min (pc, end);
+	    return std::min (pc, end);
 
 	  /* Record frame pointer assignment.  */
 	  cache->fp_offset = ADDU_OFFSET (insn);
@@ -604,12 +600,12 @@ m88k_analyze_prologue (struct gdbarch *gdbarch,
              the instruction in the delay slot might be.  Limit the
              prologue analysis to the delay slot and record the branch
              instruction as the end of the prologue.  */
-	  limit = min (limit, pc + 2 * M88K_INSN_SIZE);
+	  limit = std::min (limit, pc + 2 * M88K_INSN_SIZE);
 	  end = pc;
 	  break;
 
 	case M88K_PIA_NOTE_PROLOGUE_END:
-	  return min (pc, end);
+	  return std::min (pc, end);
 	}
 
       pc += M88K_INSN_SIZE;
@@ -856,7 +852,8 @@ m88k_gdbarch_init (struct gdbarch_info info, struct gdbarch_list *arches)
   set_gdbarch_return_value (gdbarch, m88k_return_value);
 
   set_gdbarch_addr_bits_remove (gdbarch, m88k_addr_bits_remove);
-  set_gdbarch_breakpoint_from_pc (gdbarch, m88k_breakpoint_from_pc);
+  set_gdbarch_breakpoint_kind_from_pc (gdbarch, m88k_breakpoint::kind_from_pc);
+  set_gdbarch_sw_breakpoint_from_kind (gdbarch, m88k_breakpoint::bp_from_kind);
   set_gdbarch_unwind_pc (gdbarch, m88k_unwind_pc);
   set_gdbarch_write_pc (gdbarch, m88k_write_pc);
 

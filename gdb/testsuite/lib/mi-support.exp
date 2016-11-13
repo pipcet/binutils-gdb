@@ -193,7 +193,7 @@ proc default_mi_gdb_start { args } {
     global timeout
     global gdb_spawn_id gdb_main_spawn_id inferior_spawn_id mi_spawn_id
     global MIFLAGS
-    global SEPARATE_MI_TTY
+    global FORCE_SEPARATE_MI_TTY
 
     if {[info exists FORCE_SEPARATE_MI_TTY]} {
 	set separate_mi_pty $FORCE_SEPARATE_MI_TTY
@@ -602,8 +602,9 @@ proc mi_gdb_target_load { } {
 	    }
 	}
     } elseif { [target_info protocol] == "sim" } {
+	set target_sim_options "[board_info target gdb,target_sim_options]"
 	# For the simulator, just connect to it directly.
-	send_gdb "47-target-select sim\n"
+	send_gdb "47-target-select sim $target_sim_options\n"
 	gdb_expect $loadtimeout {
 	    -re "47\\^connected.*$mi_gdb_prompt$" {
 	    }
@@ -1272,7 +1273,7 @@ proc mi_expect_interrupt { test } {
     if {$async} {
 	set prompt_re ""
     } else {
-	set prompt_re "$mi_gdb_prompt$"
+	set prompt_re "$mi_gdb_prompt"
     }
 
     set r_nonstop "reason=\"signal-received\",signal-name=\"0\",signal-meaning=\"Signal 0\""
@@ -1287,7 +1288,7 @@ proc mi_expect_interrupt { test } {
 	    pass "$test"
 	    return 0
 	}
-	-re ".*\r\n$mi_gdb_prompt$" {
+	-re ".*\r\n$mi_gdb_prompt" {
 	    verbose -log "got $expect_out(buffer)"
 	    fail "$test (unknown output after running)"
 	    return -1

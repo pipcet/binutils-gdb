@@ -26,6 +26,7 @@ case $targ in
  sh*-*-pe | \
  hppa*-*-hpux* | \
  ia64-*-hpux* | \
+ *-*-vxworks* | \
  null)
     echo "*** Configuration $targ is obsolete." >&2
     echo "*** Support has been REMOVED." >&2
@@ -81,6 +82,16 @@ am33_2.0*-*-linux*)
 	# Target: Matsushita mn10300 (AM33) running Linux
 	gdb_target_obs="mn10300-tdep.o mn10300-linux-tdep.o linux-tdep.o \
 			solib-svr4.o"
+	;;
+
+arc*-*-elf32)
+	# Target: baremetal ARC elf32 (newlib) target
+	gdb_target_obs="arc-newlib-tdep.o arc-tdep.o"
+	;;
+
+arc*-*-*)
+	# Target: Unidentified ARC target
+	gdb_target_obs="arc-tdep.o"
 	;;
 
 arm*-wince-pe | arm*-*-mingw32ce*)
@@ -668,9 +679,9 @@ x86_64-*-dicos*)
 	gdb_target_obs="amd64-tdep.o i386-tdep.o i387-tdep.o \
 			dicos-tdep.o i386-dicos-tdep.o amd64-dicos-tdep.o"
 	;;
-x86_64-*-elf* | x86_64-*-rtems*)
-	gdb_target_obs="amd64-tdep.o i386-tdep.o i387-tdep.o i386bsd-tdep.o"
-	 ;;
+x86_64-*-elf*)
+	gdb_target_obs="amd64-tdep.o i386-tdep.o i387-tdep.o"
+	;;
 x86_64-*-linux*)
 	# Target: GNU/Linux x86-64
 	gdb_target_obs="amd64-tdep.o amd64-linux-tdep.o i386-tdep.o \
@@ -701,6 +712,9 @@ x86_64-*-openbsd*)
 	gdb_target_obs="amd64-tdep.o amd64obsd-tdep.o i386-tdep.o \
 			i387-tdep.o i386bsd-tdep.o i386obsd-tdep.o \
 			obsd-tdep.o bsd-uthread.o solib-svr4.o"
+	;;
+x86_64-*-rtems*)
+	gdb_target_obs="amd64-tdep.o i386-tdep.o i387-tdep.o i386bsd-tdep.o"
 	;;
 xtensa*-*-linux*)	gdb_target=linux
 	# Target: GNU/Linux Xtensa

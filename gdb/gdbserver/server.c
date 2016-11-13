@@ -22,7 +22,7 @@
 #include "notif.h"
 #include "tdesc.h"
 #include "rsp-low.h"
-
+#include "signals-state-save-restore.h"
 #include <ctype.h>
 #include <unistd.h>
 #if HAVE_SIGNAL_H
@@ -193,6 +193,38 @@ vstop_notif_reply (struct notif_event *event, char *own_buf)
   prepare_resume_reply (own_buf, vstop->ptid, &vstop->status);
 }
 
+/* QUEUE_iterate callback helper for in_queued_stop_replies.  */
+
+static int
+in_queued_stop_replies_ptid (QUEUE (notif_event_p) *q,
+			     QUEUE_ITER (notif_event_p) *iter,
+			     struct notif_event *event,
+			     void *data)
+{
+  ptid_t filter_ptid = *(ptid_t *) data;
+  struct vstop_notif *vstop_event = (struct vstop_notif *) event;
+
+  if (ptid_match (vstop_event->ptid, filter_ptid))
+    return 0;
+
+  /* Don't resume fork children that GDB does not know about yet.  */
+  if ((vstop_event->status.kind == TARGET_WAITKIND_FORKED
+       || vstop_event->status.kind == TARGET_WAITKIND_VFORKED)
+      && ptid_match (vstop_event->status.value.related_pid, filter_ptid))
+    return 0;
+
+  return 1;
+}
+
+/* See server.h.  */
+
+int
+in_queued_stop_replies (ptid_t ptid)
+{
+  return !QUEUE_iterate (notif_event_p, notif_stop.queue,
+			 in_queued_stop_replies_ptid, &ptid);
+}
+
 struct notif_server notif_stop =
 {
   "vStopped", "Stop", NULL, vstop_notif_reply,
@@ -258,12 +290,7 @@ start_inferior (char **argv)
 
   if (wrapper_argv != NULL)
     {
-      struct thread_resume resume_info;
-
-      memset (&resume_info, 0, sizeof (resume_info));
-      resume_info.thread = pid_to_ptid (signal_pid);
-      resume_info.kind = resume_continue;
-      resume_info.sig = 0;
+      ptid_t ptid = pid_to_ptid (signal_pid);
 
       last_ptid = mywait (pid_to_ptid (signal_pid), &last_status, 0, 0);
 
@@ -271,7 +298,7 @@ start_inferior (char **argv)
 	{
 	  do
 	    {
-	      (*the_target->resume) (&resume_info, 1);
+	      target_continue_no_signal (ptid);
 
 	      last_ptid = mywait (pid_to_ptid (signal_pid), &last_status, 0, 0);
 	      if (last_status.kind != TARGET_WAITKIND_STOPPED)
@@ -290,16 +317,19 @@ start_inferior (char **argv)
      (assuming success).  */
   last_ptid = mywait (pid_to_ptid (signal_pid), &last_status, 0, 0);
 
-  target_post_create_inferior ();
-
+  /* At this point, the target process, if it exits, is stopped.  Do not call
+     the function target_post_create_inferior if the process has already
+     exited, as the target implementation of the routine may rely on the
+     process being live. */
   if (last_status.kind != TARGET_WAITKIND_EXITED
       && last_status.kind != TARGET_WAITKIND_SIGNALLED)
     {
+      target_post_create_inferior ();
       current_thread->last_resume_kind = resume_stop;
       current_thread->last_status = last_status;
     }
   else
-    mourn_inferior (find_process_pid (ptid_get_pid (last_ptid)));
+    target_mourn_inferior (last_ptid);
 
   return signal_pid;
 }
@@ -2781,7 +2811,7 @@ resume (struct thread_resume *actions, size_t num_actions)
 
       if (last_status.kind == TARGET_WAITKIND_EXITED
           || last_status.kind == TARGET_WAITKIND_SIGNALLED)
-        mourn_inferior (find_process_pid (ptid_get_pid (last_ptid)));
+        target_mourn_inferior (last_ptid);
     }
 }
 
@@ -2949,7 +2979,6 @@ handle_v_requests (char *own_buf, int packet_len, int *new_packet_len)
 
       if (startswith (own_buf, "vCont;"))
 	{
-	  require_running (own_buf);
 	  handle_v_cont (own_buf);
 	  return;
 	}
@@ -2958,12 +2987,15 @@ handle_v_requests (char *own_buf, int packet_len, int *new_packet_len)
 	{
 	  strcpy (own_buf, "vCont;c;C;t");
 
-	  if (target_supports_hardware_single_step () || !vCont_supported)
+	  if (target_supports_hardware_single_step ()
+	      || target_supports_software_single_step ()
+	      || !vCont_supported)
 	    {
-	      /* If target supports hardware single step, add actions s
-		 and S to the list of supported actions.  On the other
-		 hand, if GDB doesn't request the supported vCont actions
-		 in qSupported packet, add s and S to the list too.  */
+	      /* If target supports single step either by hardware or by
+		 software, add actions s and S to the list of supported
+		 actions.  On the other hand, if GDB doesn't request the
+		 supported vCont actions in qSupported packet, add s and
+		 S to the list too.  */
 	      own_buf = own_buf + strlen (own_buf);
 	      strcpy (own_buf, ";s;S");
 	    }
@@ -3608,6 +3640,8 @@ captured_main (int argc, char *argv[])
      opened by remote_prepare.  */
   notice_open_fds ();
 
+  save_original_signals_state ();
+
   /* We need to know whether the remote connection is stdio before
      starting the inferior.  Inferiors created in this scenario have
      stdin,stdout redirected.  So do this here before we call
@@ -3825,7 +3859,7 @@ main (int argc, char *argv[])
    after the last processed option.  */
 
 static void
-process_point_options (struct breakpoint *bp, char **packet)
+process_point_options (struct gdb_breakpoint *bp, char **packet)
 {
   char *dataptr = *packet;
   int persist;
@@ -3924,7 +3958,6 @@ process_serial_event (void)
 
       if ((tracing && disconnected_tracing) || any_persistent_commands ())
 	{
-	  struct thread_resume resume_info;
 	  struct process_info *process = find_process_pid (pid);
 
 	  if (process == NULL)
@@ -3960,10 +3993,7 @@ process_serial_event (void)
 	  process->gdb_detached = 1;
 
 	  /* Detaching implicitly resumes all threads.  */
-	  resume_info.thread = minus_one_ptid;
-	  resume_info.kind = resume_continue;
-	  resume_info.sig = 0;
-	  (*the_target->resume) (&resume_info, 1);
+	  target_continue_no_signal (minus_one_ptid);
 
 	  write_ok (own_buf);
 	  break; /* from switch/case */
@@ -4197,7 +4227,7 @@ process_serial_event (void)
 
 	if (insert)
 	  {
-	    struct breakpoint *bp;
+	    struct gdb_breakpoint *bp;
 
 	    bp = set_gdb_breakpoint (type, addr, kind, &res);
 	    if (bp != NULL)
@@ -4393,7 +4423,7 @@ handle_target_event (int err, gdb_client_data client_data)
 	  || last_status.kind == TARGET_WAITKIND_SIGNALLED)
 	{
 	  mark_breakpoints_out (process);
-	  mourn_inferior (process);
+	  target_mourn_inferior (last_ptid);
 	}
       else if (last_status.kind == TARGET_WAITKIND_THREAD_EXITED)
 	;
@@ -4423,7 +4453,7 @@ handle_target_event (int err, gdb_client_data client_data)
 	      /* A thread stopped with a signal, but gdb isn't
 		 connected to handle it.  Pass it down to the
 		 inferior, as if it wasn't being traced.  */
-	      struct thread_resume resume_info;
+	      enum gdb_signal signal;
 
 	      if (debug_threads)
 		debug_printf ("GDB not connected; forwarding event %d for"
@@ -4431,13 +4461,11 @@ handle_target_event (int err, gdb_client_data client_data)
 			      (int) last_status.kind,
 			      target_pid_to_str (last_ptid));
 
-	      resume_info.thread = last_ptid;
-	      resume_info.kind = resume_continue;
 	      if (last_status.kind == TARGET_WAITKIND_STOPPED)
-		resume_info.sig = gdb_signal_to_host (last_status.value.sig);
+		signal = last_status.value.sig;
 	      else
-		resume_info.sig = 0;
-	      (*the_target->resume) (&resume_info, 1);
+		signal = GDB_SIGNAL_0;
+	      target_continue (last_ptid, signal);
 	    }
 	}
       else

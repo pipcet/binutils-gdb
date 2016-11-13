@@ -401,7 +401,7 @@ aarch64_stopped_by_watchpoint (void)
 /* Fetch the thread-local storage pointer for libthread_db.  */
 
 ps_err_e
-ps_get_thread_area (const struct ps_prochandle *ph,
+ps_get_thread_area (struct ps_prochandle *ph,
 		    lwpid_t lwpid, int idx, void **base)
 {
   return aarch64_ps_get_thread_area (ph, lwpid, idx, base,
@@ -1536,7 +1536,7 @@ append_insns (CORE_ADDR *to, size_t len, const uint32_t *buf)
 {
   size_t byte_len = len * sizeof (uint32_t);
 #if (__BYTE_ORDER == __BIG_ENDIAN)
-  uint32_t *le_buf = xmalloc (byte_len);
+  uint32_t *le_buf = (uint32_t *) xmalloc (byte_len);
   size_t i;
 
   for (i = 0; i < len; i++)

@@ -498,9 +498,8 @@ explicit_location_lex_one (const char **inp,
 	{
 	  /* Special case: C++ operator,.  */
 	  if (language->la_language == language_cplus
-	      && strncmp (*inp, "operator", 8)
-	      && (*inp)[9] == ',')
-	    (*inp) += 9;
+	      && strncmp (*inp, "operator", 8) == 0)
+	    (*inp) += 8;
 	  ++(*inp);
 	}
     }
@@ -525,7 +524,7 @@ string_to_explicit_location (const char **argp,
      character is an explicit location.  "-p" is reserved, though,
      for probe locations.  */
   if (argp == NULL
-      || *argp == '\0'
+      || *argp == NULL
       || *argp[0] != '-'
       || !isalpha ((*argp)[1])
       || ((*argp)[0] == '-' && (*argp)[1] == 'p'))

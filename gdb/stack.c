@@ -51,6 +51,7 @@
 #include "safe-ctype.h"
 #include "symfile.h"
 #include "extension.h"
+#include "observer.h"
 
 /* The possible choices of "set print frame-arguments", and the value
    of this setting.  */
@@ -139,6 +140,18 @@ frame_show_address (struct frame_info *frame,
     }
 
   return get_frame_pc (frame) != sal.pc;
+}
+
+/* See frame.h.  */
+
+void
+print_stack_frame_to_uiout (struct ui_out *uiout, struct frame_info *frame,
+			    int print_level, enum print_what print_what,
+			    int set_current_sal)
+{
+  scoped_restore save_uiout = make_scoped_restore (&current_uiout, uiout);
+
+  print_stack_frame (frame, print_level, print_what, set_current_sal);
 }
 
 /* Show or print a stack frame FRAME briefly.  The output is formatted
@@ -1101,7 +1114,8 @@ find_frame_funname (struct frame_info *frame, char **funname,
 	}
       else
 	{
-	  *funname = xstrdup (SYMBOL_PRINT_NAME (func));
+	  const char *print_name = SYMBOL_PRINT_NAME (func);
+
 	  *funlang = SYMBOL_LANGUAGE (func);
 	  if (funcp)
 	    *funcp = func;
@@ -1112,14 +1126,17 @@ find_frame_funname (struct frame_info *frame, char **funname,
 		 stored in the symbol table, but we stored a version
 		 with DMGL_PARAMS turned on, and here we don't want to
 		 display parameters.  So remove the parameters.  */
-	      char *func_only = cp_remove_params (*funname);
+	      char *func_only = cp_remove_params (print_name);
 
 	      if (func_only)
-		{
-		  xfree (*funname);
-		  *funname = func_only;
-		}
+		*funname = func_only;
 	    }
+
+	  /* If we didn't hit the C++ case above, set *funname here.
+	     This approach is taken to avoid having to install a
+	     cleanup in case cp_remove_params can throw.  */
+	  if (*funname == NULL)
+	    *funname = xstrdup (print_name);
 	}
     }
   else
@@ -1273,8 +1290,8 @@ print_frame (struct frame_info *frame, int print_level,
 
 /* Read a frame specification in whatever the appropriate format is from
    FRAME_EXP.  Call error() if the specification is in any way invalid (so
-   this function never returns NULL).  When SEPECTED_P is non-NULL set its
-   target to indicate that the default selected frame was used.  */
+   this function never returns NULL).  When SELECTED_FRAME_P is non-NULL
+   set its target to indicate that the default selected frame was used.  */
 
 static struct frame_info *
 parse_frame_specification (const char *frame_exp, int *selected_frame_p)
@@ -1508,7 +1525,7 @@ frame_info (char *addr_exp, int from_tty)
   printf_filtered ("saved %s = ", pc_regname);
 
   if (!frame_id_p (frame_unwind_caller_id (fi)))
-    val_print_unavailable (gdb_stdout);
+    val_print_not_saved (gdb_stdout);
   else
     {
       TRY
@@ -2298,7 +2315,11 @@ find_relative_frame (struct frame_info *frame, int *level_offset_ptr)
 void
 select_frame_command (char *level_exp, int from_tty)
 {
+  struct frame_info *prev_frame = get_selected_frame_if_set ();
+
   select_frame (parse_frame_specification (level_exp, NULL));
+  if (get_selected_frame_if_set () != prev_frame)
+    observer_notify_user_selected_context_changed (USER_SELECTED_FRAME);
 }
 
 /* The "frame" command.  With no argument, print the selected frame
@@ -2308,8 +2329,13 @@ select_frame_command (char *level_exp, int from_tty)
 static void
 frame_command (char *level_exp, int from_tty)
 {
-  select_frame_command (level_exp, from_tty);
-  print_stack_frame (get_selected_frame (NULL), 1, SRC_AND_LOC, 1);
+  struct frame_info *prev_frame = get_selected_frame_if_set ();
+
+  select_frame (parse_frame_specification (level_exp, NULL));
+  if (get_selected_frame_if_set () != prev_frame)
+    observer_notify_user_selected_context_changed (USER_SELECTED_FRAME);
+  else
+    print_selected_thread_frame (current_uiout, USER_SELECTED_FRAME);
 }
 
 /* Select the frame up one or COUNT_EXP stack levels from the
@@ -2340,7 +2366,7 @@ static void
 up_command (char *count_exp, int from_tty)
 {
   up_silently_base (count_exp);
-  print_stack_frame (get_selected_frame (NULL), 1, SRC_AND_LOC, 1);
+  observer_notify_user_selected_context_changed (USER_SELECTED_FRAME);
 }
 
 /* Select the frame down one or COUNT_EXP stack levels from the previously
@@ -2379,9 +2405,8 @@ static void
 down_command (char *count_exp, int from_tty)
 {
   down_silently_base (count_exp);
-  print_stack_frame (get_selected_frame (NULL), 1, SRC_AND_LOC, 1);
+  observer_notify_user_selected_context_changed (USER_SELECTED_FRAME);
 }
-
 
 void
 return_command (char *retval_exp, int from_tty)
@@ -2408,13 +2433,12 @@ return_command (char *retval_exp, int from_tty)
      message.  */
   if (retval_exp)
     {
-      struct expression *retval_expr = parse_expression (retval_exp);
-      struct cleanup *old_chain = make_cleanup (xfree, retval_expr);
+      expression_up retval_expr = parse_expression (retval_exp);
       struct type *return_type = NULL;
 
       /* Compute the return value.  Should the computation fail, this
          call throws an error.  */
-      return_value = evaluate_expression (retval_expr);
+      return_value = evaluate_expression (retval_expr.get ());
 
       /* Cast return value to the return type of the function.  Should
          the cast fail, this call throws an error.  */
@@ -2429,7 +2453,6 @@ return_command (char *retval_exp, int from_tty)
 		     "Please use an explicit cast of the value to return."));
 	  return_type = value_type (return_value);
 	}
-      do_cleanups (old_chain);
       return_type = check_typedef (return_type);
       return_value = value_cast (return_type, return_value);
 
@@ -2612,10 +2635,11 @@ a command file or a user-defined command."));
 
   add_com_alias ("f", "frame", class_stack, 1);
 
-  add_com ("select-frame", class_stack, select_frame_command, _("\
+  add_com_suppress_notification ("select-frame", class_stack, select_frame_command, _("\
 Select a stack frame without printing anything.\n\
 An argument specifies the frame to select.\n\
-It can be a stack frame number or the address of the frame.\n"));
+It can be a stack frame number or the address of the frame.\n"),
+		 &cli_suppress_notification.user_selected_context);
 
   add_com ("backtrace", class_stack, backtrace_command, _("\
 Print backtrace of all stack frames, or innermost COUNT frames.\n\

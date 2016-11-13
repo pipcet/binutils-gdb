@@ -976,17 +976,7 @@ record_full_resume (struct target_ops *ops, ptid_t ptid, int step,
                   record_full_resume_step = 1;
                 }
               else
-                {
-                  /* This is a continue.
-                     Try to insert a soft single step breakpoint.  */
-                  if (!gdbarch_software_single_step (gdbarch,
-                                                     get_current_frame ()))
-                    {
-                      /* This system don't want use soft single step.
-                         Use hard sigle step.  */
-                      step = 1;
-                    }
-                }
+		step = !insert_single_step_breakpoints (gdbarch);
             }
         }
 
@@ -1000,6 +990,15 @@ record_full_resume (struct target_ops *ops, ptid_t ptid, int step,
      let's register it with the event loop.  */
   if (target_can_async_p ())
     target_async (1);
+}
+
+/* "to_commit_resume" method for process record target.  */
+
+static void
+record_full_commit_resume (struct target_ops *ops)
+{
+  if (!RECORD_FULL_IS_REPLAY)
+    ops->beneath->to_commit_resume (ops->beneath);
 }
 
 static int record_full_get_sig = 0;
@@ -1159,9 +1158,9 @@ record_full_wait_1 (struct target_ops *ops,
 			     If insert success, set step to 0.  */
 			  set_executing (inferior_ptid, 0);
 			  reinit_frame_cache ();
-			  if (gdbarch_software_single_step (gdbarch,
-                                                            get_current_frame ()))
-			    step = 0;
+
+			  step = !insert_single_step_breakpoints (gdbarch);
+
 			  set_executing (inferior_ptid, 1);
 			}
 
@@ -1172,6 +1171,7 @@ record_full_wait_1 (struct target_ops *ops,
 					    "target beneath\n");
 		      ops->beneath->to_resume (ops->beneath, ptid, step,
 					       GDB_SIGNAL_0);
+		      ops->beneath->to_commit_resume (ops->beneath);
 		      continue;
 		    }
 		}
@@ -1650,7 +1650,7 @@ record_full_insert_breakpoint (struct target_ops *ops,
 	 really need to install regular breakpoints in the inferior.
 	 However, we do have to insert software single-step
 	 breakpoints, in case the target can't hardware step.  To keep
-	 things single, we always insert.  */
+	 things simple, we always insert.  */
       struct cleanup *old_cleanups;
       int ret;
 
@@ -1662,16 +1662,6 @@ record_full_insert_breakpoint (struct target_ops *ops,
 	return ret;
 
       in_target_beneath = 1;
-    }
-  else
-    {
-      CORE_ADDR addr = bp_tgt->reqstd_address;
-      int bplen;
-
-      gdbarch_breakpoint_from_pc (gdbarch, &addr, &bplen);
-
-      bp_tgt->placed_address = addr;
-      bp_tgt->placed_size = bplen;
     }
 
   /* Use the existing entries if found in order to avoid duplication
@@ -1703,7 +1693,8 @@ record_full_insert_breakpoint (struct target_ops *ops,
 static int
 record_full_remove_breakpoint (struct target_ops *ops,
 			       struct gdbarch *gdbarch,
-			       struct bp_target_info *bp_tgt)
+			       struct bp_target_info *bp_tgt,
+			       enum remove_bp_reason reason)
 {
   struct record_full_breakpoint *bp;
   int ix;
@@ -1723,15 +1714,18 @@ record_full_remove_breakpoint (struct target_ops *ops,
 
 	      old_cleanups = record_full_gdb_operation_disable_set ();
 	      ret = ops->beneath->to_remove_breakpoint (ops->beneath, gdbarch,
-							bp_tgt);
+							bp_tgt, reason);
 	      do_cleanups (old_cleanups);
 
 	      if (ret != 0)
 		return ret;
 	    }
 
-	  VEC_unordered_remove (record_full_breakpoint_p,
-				record_full_breakpoints, ix);
+	  if (reason == REMOVE_BREAKPOINT)
+	    {
+	      VEC_unordered_remove (record_full_breakpoint_p,
+				    record_full_breakpoints, ix);
+	    }
 	  return 0;
 	}
     }
@@ -1971,6 +1965,7 @@ init_record_full_ops (void)
   record_full_ops.to_close = record_full_close;
   record_full_ops.to_async = record_full_async;
   record_full_ops.to_resume = record_full_resume;
+  record_full_ops.to_commit_resume = record_full_commit_resume;
   record_full_ops.to_wait = record_full_wait;
   record_full_ops.to_disconnect = record_disconnect;
   record_full_ops.to_detach = record_detach;
@@ -2190,7 +2185,8 @@ record_full_core_insert_breakpoint (struct target_ops *ops,
 static int
 record_full_core_remove_breakpoint (struct target_ops *ops,
 				    struct gdbarch *gdbarch,
-				    struct bp_target_info *bp_tgt)
+				    struct bp_target_info *bp_tgt,
+				    enum remove_bp_reason reason)
 {
   return 0;
 }

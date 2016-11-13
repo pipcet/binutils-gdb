@@ -40,6 +40,7 @@
 #include "tracepoint.h"
 #include "cp-abi.h"
 #include "user-regs.h"
+#include <algorithm>
 
 /* Prototypes for exported functions.  */
 
@@ -84,8 +85,8 @@ ranges_overlap (LONGEST offset1, LONGEST len1,
 {
   ULONGEST h, l;
 
-  l = max (offset1, offset2);
-  h = min (offset1 + len1, offset2 + len2);
+  l = std::max (offset1, offset2);
+  h = std::min (offset1 + len1, offset2 + len2);
   return (l < h);
 }
 
@@ -528,8 +529,8 @@ insert_into_bit_range_vector (VEC(range_s) **vectorp,
       if (ranges_overlap (bef->offset, bef->length, offset, length))
 	{
 	  /* #1 */
-	  ULONGEST l = min (bef->offset, offset);
-	  ULONGEST h = max (bef->offset + bef->length, offset + length);
+	  ULONGEST l = std::min (bef->offset, offset);
+	  ULONGEST h = std::max (bef->offset + bef->length, offset + length);
 
 	  bef->offset = l;
 	  bef->length = h - l;
@@ -572,8 +573,8 @@ insert_into_bit_range_vector (VEC(range_s) **vectorp,
 	  {
 	    ULONGEST l, h;
 
-	    l = min (t->offset, r->offset);
-	    h = max (t->offset + t->length, r->offset + r->length);
+	    l = std::min (t->offset, r->offset);
+	    h = std::max (t->offset + t->length, r->offset + r->length);
 
 	    t->offset = l;
 	    t->length = h - l;
@@ -780,11 +781,11 @@ find_first_range_overlap_and_match (struct ranges_and_idx *rp1,
       /* Get the unavailable windows intersected by the incoming
 	 ranges.  The first and last ranges that overlap the argument
 	 range may be wider than said incoming arguments ranges.  */
-      l1 = max (offset1, r1->offset);
-      h1 = min (offset1 + length, r1->offset + r1->length);
+      l1 = std::max (offset1, r1->offset);
+      h1 = std::min (offset1 + length, r1->offset + r1->length);
 
-      l2 = max (offset2, r2->offset);
-      h2 = min (offset2 + length, offset2 + r2->length);
+      l2 = std::max (offset2, r2->offset);
+      h2 = std::min (offset2 + length, offset2 + r2->length);
 
       /* Make them relative to the respective start offsets, so we can
 	 compare them for equality.  */
@@ -1297,8 +1298,9 @@ ranges_copy_adjusted (VEC (range_s) **dst_range, int dst_bit_offset,
     {
       ULONGEST h, l;
 
-      l = max (r->offset, src_bit_offset);
-      h = min (r->offset + r->length, src_bit_offset + bit_length);
+      l = std::max (r->offset, (LONGEST) src_bit_offset);
+      h = std::min (r->offset + r->length,
+		    (LONGEST) src_bit_offset + bit_length);
 
       if (l < h)
 	insert_into_bit_range_vector (dst_range,
@@ -2111,9 +2113,7 @@ init_if_undefined_command (char* args, int from_tty)
   struct internalvar* intvar;
 
   /* Parse the expression - this is taken from set_command().  */
-  struct expression *expr = parse_expression (args);
-  register struct cleanup *old_chain =
-    make_cleanup (free_current_contents, &expr);
+  expression_up expr = parse_expression (args);
 
   /* Validate the expression.
      Was the expression an assignment?
@@ -2131,9 +2131,7 @@ init_if_undefined_command (char* args, int from_tty)
   /* Only evaluate the expression if the lvalue is void.
      This may still fail if the expresssion is invalid.  */
   if (intvar->kind == INTERNALVAR_VOID)
-    evaluate_expression (expr);
-
-  do_cleanups (old_chain);
+    evaluate_expression (expr.get ());
 }
 
 
@@ -3430,17 +3428,24 @@ unpack_value_bitfield (struct value *dest_val,
   enum bfd_endian byte_order;
   int src_bit_offset;
   int dst_bit_offset;
-  LONGEST num;
   struct type *field_type = value_type (dest_val);
 
-  /* First, unpack and sign extend the bitfield as if it was wholly
-     available.  Invalid/unavailable bits are read as zero, but that's
-     OK, as they'll end up marked below.  */
   byte_order = gdbarch_byte_order (get_type_arch (field_type));
-  num = unpack_bits_as_long (field_type, valaddr + embedded_offset,
-			     bitpos, bitsize);
-  store_signed_integer (value_contents_raw (dest_val),
-			TYPE_LENGTH (field_type), byte_order, num);
+
+  /* First, unpack and sign extend the bitfield as if it was wholly
+     valid.  Optimized out/unavailable bits are read as zero, but
+     that's OK, as they'll end up marked below.  If the VAL is
+     wholly-invalid we may have skipped allocating its contents,
+     though.  See allocate_optimized_out_value.  */
+  if (valaddr != NULL)
+    {
+      LONGEST num;
+
+      num = unpack_bits_as_long (field_type, valaddr + embedded_offset,
+				 bitpos, bitsize);
+      store_signed_integer (value_contents_raw (dest_val),
+			    TYPE_LENGTH (field_type), byte_order, num);
+    }
 
   /* Now copy the optimized out / unavailability ranges to the right
      bits.  */

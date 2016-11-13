@@ -378,13 +378,9 @@ initialize_decoder_tree (void)
 static void __attribute__ ((format (printf, 2, 3)))
 indented_print (unsigned int indent, const char *format, ...)
 {
-  /* 80 number of spaces pluc a NULL terminator.  */
-  static const char spaces[81] =
-    "                                                                                ";
   va_list ap;
   va_start (ap, format);
-  assert (indent <= 80);
-  printf ("%s", &spaces[80 - indent]);
+  printf ("%*s", (int) indent, "");
   vprintf (format, ap);
   va_end (ap);
 }
@@ -691,8 +687,8 @@ opcode_node *
 find_alias_opcode (const aarch64_opcode *opcode)
 {
   int i;
-  /* Assume maximum of 16 disassemble preference candidates.  */
-  const int max_num_aliases = 16;
+  /* Assume maximum of 32 disassemble preference candidates.  */
+  const int max_num_aliases = 32;
   const aarch64_opcode *ent;
   const aarch64_opcode *preferred[max_num_aliases + 1];
   opcode_node head, **next;

@@ -18,7 +18,6 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 #include "defs.h"
-#include "dyn-string.h"
 #include <ctype.h>
 #include "gdb_wait.h"
 #include "event-top.h"
@@ -152,18 +151,6 @@ struct cleanup *
 make_cleanup_freeargv (char **arg)
 {
   return make_cleanup (do_freeargv, arg);
-}
-
-static void
-do_dyn_string_delete (void *arg)
-{
-  dyn_string_delete ((dyn_string_t) arg);
-}
-
-struct cleanup *
-make_cleanup_dyn_string_delete (dyn_string_t arg)
-{
-  return make_cleanup (do_dyn_string_delete, arg);
 }
 
 static void
@@ -332,64 +319,6 @@ make_cleanup_htab_delete (htab_t htab)
   return make_cleanup (do_htab_delete_cleanup, htab);
 }
 
-struct restore_ui_out_closure
-{
-  struct ui_out **variable;
-  struct ui_out *value;
-};
-
-static void
-do_restore_ui_out (void *p)
-{
-  struct restore_ui_out_closure *closure
-    = (struct restore_ui_out_closure *) p;
-
-  *(closure->variable) = closure->value;
-}
-
-/* Remember the current value of *VARIABLE and make it restored when
-   the cleanup is run.  */
-
-struct cleanup *
-make_cleanup_restore_ui_out (struct ui_out **variable)
-{
-  struct restore_ui_out_closure *c = XNEW (struct restore_ui_out_closure);
-
-  c->variable = variable;
-  c->value = *variable;
-
-  return make_cleanup_dtor (do_restore_ui_out, (void *) c, xfree);
-}
-
-struct restore_ui_file_closure
-{
-  struct ui_file **variable;
-  struct ui_file *value;
-};
-
-static void
-do_restore_ui_file (void *p)
-{
-  struct restore_ui_file_closure *closure
-    = (struct restore_ui_file_closure *) p;
-
-  *(closure->variable) = closure->value;
-}
-
-/* Remember the current value of *VARIABLE and make it restored when
-   the cleanup is run.  */
-
-struct cleanup *
-make_cleanup_restore_ui_file (struct ui_file **variable)
-{
-  struct restore_ui_file_closure *c = XNEW (struct restore_ui_file_closure);
-
-  c->variable = variable;
-  c->value = *variable;
-
-  return make_cleanup_dtor (do_restore_ui_file, (void *) c, xfree);
-}
-
 /* Helper for make_cleanup_value_free_to_mark.  */
 
 static void
@@ -551,10 +480,9 @@ verror (const char *string, va_list args)
 void
 error_stream (struct ui_file *stream)
 {
-  char *message = ui_file_xstrdup (stream, NULL);
+  std::string message = ui_file_as_string (stream);
 
-  make_cleanup (xfree, message);
-  error (("%s"), message);
+  error (("%s"), message.c_str ());
 }
 
 /* Emit a message and abort.  */
@@ -1209,6 +1137,33 @@ compile_rx_or_error (regex_t *pattern, const char *rx, const char *message)
   return make_regfree_cleanup (pattern);
 }
 
+/* A cleanup that simply calls ui_unregister_input_event_handler.  */
+
+static void
+ui_unregister_input_event_handler_cleanup (void *ui)
+{
+  ui_unregister_input_event_handler ((struct ui *) ui);
+}
+
+/* Set up to handle input.  */
+
+static struct cleanup *
+prepare_to_handle_input (void)
+{
+  struct cleanup *old_chain;
+
+  old_chain = make_cleanup_restore_target_terminal ();
+  target_terminal_ours ();
+
+  ui_register_input_event_handler (current_ui);
+  if (current_ui->prompt_state == PROMPT_BLOCKED)
+    make_cleanup (ui_unregister_input_event_handler_cleanup, current_ui);
+
+  make_cleanup_override_quit_handler (default_quit_handler);
+
+  return old_chain;
+}
+
 
 
 /* This function supports the query, nquery, and yquery functions.
@@ -1265,8 +1220,6 @@ defaulted_query (const char *ctlstr, const char defchar, va_list args)
   if (!confirm || server_command)
     return def_value;
 
-  old_chain = make_cleanup_restore_target_terminal ();
-
   /* If input isn't coming from the user directly, just say what
      question we're asking, and then answer the default automatically.  This
      way, important error messages don't get lost when talking to GDB
@@ -1274,6 +1227,8 @@ defaulted_query (const char *ctlstr, const char defchar, va_list args)
   if (current_ui->instream != current_ui->stdin_stream
       || !input_interactive_p (current_ui))
     {
+      old_chain = make_cleanup_restore_target_terminal ();
+
       target_terminal_ours_for_output ();
       wrap_here ("");
       vfprintf_filtered (gdb_stdout, ctlstr, args);
@@ -1291,6 +1246,7 @@ defaulted_query (const char *ctlstr, const char defchar, va_list args)
     {
       int res;
 
+      old_chain = make_cleanup_restore_target_terminal ();
       res = deprecated_query_hook (ctlstr, args);
       do_cleanups (old_chain);
       return res;
@@ -1298,7 +1254,7 @@ defaulted_query (const char *ctlstr, const char defchar, va_list args)
 
   /* Format the question outside of the loop, to avoid reusing args.  */
   question = xstrvprintf (ctlstr, args);
-  make_cleanup (xfree, question);
+  old_chain = make_cleanup (xfree, question);
   prompt = xstrprintf (_("%s%s(%s or %s) %s"),
 		      annotation_level > 1 ? "\n\032\032pre-query\n" : "",
 		      question, y_string, n_string,
@@ -1308,9 +1264,7 @@ defaulted_query (const char *ctlstr, const char defchar, va_list args)
   /* Used for calculating time spend waiting for user.  */
   gettimeofday (&prompt_started, NULL);
 
-  /* We'll need to handle input.  */
-  target_terminal_ours ();
-  make_cleanup_override_quit_handler (default_quit_handler);
+  prepare_to_handle_input ();
 
   while (1)
     {
@@ -1687,7 +1641,7 @@ static char *wrap_indent;
 static int wrap_column;
 
 
-/* Inialize the number of lines per page and chars per line.  */
+/* Initialize the number of lines per page and chars per line.  */
 
 void
 init_page_info (void)
@@ -1882,10 +1836,7 @@ prompt_for_continue (void)
      beyond the end of the screen.  */
   reinitialize_more_filter ();
 
-  /* We'll need to handle input.  */
-  make_cleanup_restore_target_terminal ();
-  target_terminal_ours ();
-  make_cleanup_override_quit_handler (default_quit_handler);
+  prepare_to_handle_input ();
 
   /* Call gdb_readline_wrapper, not readline, in order to keep an
      event loop running.  */
@@ -1921,7 +1872,7 @@ prompt_for_continue (void)
   do_cleanups (old_chain);
 }
 
-/* Initalize timer to keep track of how long we waited for the user.  */
+/* Initialize timer to keep track of how long we waited for the user.  */
 
 void
 reset_prompt_for_continue_wait_time (void)
@@ -3218,7 +3169,7 @@ producer_is_gcc (const char *producer, int *major, int *minor)
       if (minor == NULL)
 	minor = &min;
 
-      /* Skip any identifier after "GNU " - such as "C11" "C++" or "Java".
+      /* Skip any identifier after "GNU " - such as "C11" or "C++".
 	 A full producer string might look like:
 	 "GNU C 4.7.2"
 	 "GNU Fortran 4.8.2 20140120 (Red Hat 4.8.2-16) -mtune=generic ..."

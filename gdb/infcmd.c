@@ -151,7 +151,11 @@ void
 set_inferior_io_terminal (const char *terminal_name)
 {
   xfree (current_inferior ()->terminal);
-  current_inferior ()->terminal = terminal_name ? xstrdup (terminal_name) : 0;
+
+  if (terminal_name != NULL && *terminal_name != '\0')
+    current_inferior ()->terminal = xstrdup (terminal_name);
+  else
+    current_inferior ()->terminal = NULL;
 }
 
 const char *
@@ -1684,16 +1688,11 @@ print_return_value_1 (struct ui_out *uiout, struct return_value_info *rv)
     }
   else
     {
-      struct cleanup *oldchain;
-      char *type_name;
-
-      type_name = type_to_string (rv->type);
-      oldchain = make_cleanup (xfree, type_name);
+      std::string type_name = type_to_string (rv->type);
       ui_out_text (uiout, "Value returned has type: ");
-      ui_out_field_string (uiout, "return-type", type_name);
+      ui_out_field_string (uiout, "return-type", type_name.c_str ());
       ui_out_text (uiout, ".");
       ui_out_text (uiout, " Cannot determine contents\n");
-      do_cleanups (oldchain);
     }
 }
 
@@ -2316,7 +2315,6 @@ default_print_one_register_info (struct ui_file *file,
       opts.deref_ref = 1;
 
       val_print (regtype,
-		 value_contents_for_printing (val),
 		 value_embedded_offset (val), 0,
 		 file, 0, val, &opts, current_language);
 
@@ -2335,7 +2333,6 @@ default_print_one_register_info (struct ui_file *file,
       get_formatted_print_options (&opts, 'x');
       opts.deref_ref = 1;
       val_print (regtype,
-		 value_contents_for_printing (val),
 		 value_embedded_offset (val), 0,
 		 file, 0, val, &opts, current_language);
       /* If not a vector register, print it also according to its
@@ -2346,7 +2343,6 @@ default_print_one_register_info (struct ui_file *file,
 	  opts.deref_ref = 1;
 	  fprintf_filtered (file, "\t");
 	  val_print (regtype,
-		     value_contents_for_printing (val),
 		     value_embedded_offset (val), 0,
 		     file, 0, val, &opts, current_language);
 	}
@@ -2656,7 +2652,7 @@ setup_inferior (int from_tty)
   /* If no exec file is yet known, try to determine it from the
      process itself.  */
   if (get_exec_file (0) == NULL)
-    exec_file_locate_attach (ptid_get_pid (inferior_ptid), from_tty);
+    exec_file_locate_attach (ptid_get_pid (inferior_ptid), 1, from_tty);
   else
     {
       reopen_exec_file ();
@@ -2998,6 +2994,13 @@ detach_command (char *args, int from_tty)
 
   target_detach (args, from_tty);
 
+  /* The current inferior process was just detached successfully.  Get
+     rid of breakpoints that no longer make sense.  Note we don't do
+     this within target_detach because that is also used when
+     following child forks, and in that case we will want to transfer
+     breakpoints to the child, not delete them.  */
+  breakpoint_init_inferior (inf_exited);
+
   /* If the solist is global across inferiors, don't clear it when we
      detach from a single inferior.  */
   if (!gdbarch_has_global_solist (target_gdbarch ()))
@@ -3217,14 +3220,16 @@ _initialize_infcmd (void)
   const char *cmd_name;
 
   /* Add the filename of the terminal connected to inferior I/O.  */
-  add_setshow_filename_cmd ("inferior-tty", class_run,
-			    &inferior_io_terminal_scratch, _("\
+  add_setshow_optional_filename_cmd ("inferior-tty", class_run,
+				     &inferior_io_terminal_scratch, _("\
 Set terminal for future runs of program being debugged."), _("\
 Show terminal for future runs of program being debugged."), _("\
-Usage: set inferior-tty /dev/pts/1"),
-			    set_inferior_tty_command,
-			    show_inferior_tty_command,
-			    &setlist, &showlist);
+Usage: set inferior-tty [TTY]\n\n\
+If TTY is omitted, the default behavior of using the same terminal as GDB\n\
+is restored."),
+				     set_inferior_tty_command,
+				     show_inferior_tty_command,
+				     &setlist, &showlist);
   add_com_alias ("tty", "set inferior-tty", class_alias, 0);
 
   cmd_name = "args";

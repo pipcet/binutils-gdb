@@ -38,8 +38,9 @@ AC_CONFIG_AUX_DIR(..)
 AC_CANONICAL_SYSTEM
 AC_ARG_PROGRAM
 
-# See if we are building with C++, and substitute COMPILER.
-GDB_AC_BUILD_WITH_CXX
+# We require a C++11 compiler.  Check if one is available, and if
+# necessary, set CXX_DIALECT to some -std=xxx switch.
+AX_CXX_COMPILE_STDCXX(11, , mandatory)
 
 # Dependency checking.
 ZW_CREATE_DEPDIR
@@ -1544,12 +1545,6 @@ if test "${target}" = "${host}"; then
       AC_DEFINE(NEW_PROC_API, 1,
       [Define if you want to use new multi-fd /proc interface.])
       ;;
-  mips-sgi-irix5*)
-      # Work around <sys/proc.h> needing _KMEMUSER problem on IRIX 5.
-      AC_DEFINE([_KMEMUSER], 1,
-      [Define to 1 so <sys/proc.h> gets a definition of anon_hdl.  Works
-       around a <sys/proc.h> problem on IRIX 5.])
-      ;;
   esac
 fi
 
@@ -2309,7 +2304,7 @@ else
 			struct bt_ctf_event *event = NULL;
 			const struct bt_definition *scope;
 
-			pos.type = BT_SEEK_BEGIN;
+			pos->type = BT_SEEK_BEGIN;
 			bt_iter_set_pos (bt_ctf_get_iter (NULL), pos);
 			scope = bt_ctf_get_top_level_scope (event,
 			      				   BT_STREAM_EVENT_HEADER);
@@ -2343,6 +2338,15 @@ if test "${nativefile}" != ""; then
     AC_DEFINE_UNQUOTED(GDB_NM_FILE, "${GDB_NM_FILE}", [nativefile])
 fi
 AC_SUBST(GDB_NM_FILE)
+
+dnl Add dependency for xsltproc if building with maintainer-mode enabled.
+AC_PATH_PROGS(XSLTPROC, xsltproc, missing)
+if test "x$USE_MAINTAINER_MODE" = xyes; then
+  if test "${XSLTPROC}" = missing; then
+    AC_ERROR(unable to find xsltproc.  maintainer-mode requires xsltproc.)
+  fi
+fi
+AC_SUBST(XSLTPROC)
 
 AC_LINK_FILES($files, $links)
 

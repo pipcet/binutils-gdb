@@ -45,6 +45,7 @@
 #include "target-debug.h"
 #include "top.h"
 #include "event-top.h"
+#include <algorithm>
 
 static void target_info (char *, int);
 
@@ -486,15 +487,9 @@ target_terminal_inferior (void)
   if (ui->prompt_state != PROMPT_BLOCKED)
     return;
 
-  /* Always delete the current UI's input file handler, regardless of
-     terminal_state, because terminal_state is only valid for the main
-     UI.  */
-  delete_file_handler (ui->input_fd);
-
   /* Since we always run the inferior in the main console (unless "set
      inferior-tty" is in effect), when some UI other than the main one
      calls target_terminal_inferior/target_terminal_inferior, then we
-     only register/unregister the UI's input from the event loop, but
      leave the main UI's terminal settings as is.  */
   if (ui != main_ui)
     return;
@@ -519,11 +514,6 @@ void
 target_terminal_ours (void)
 {
   struct ui *ui = current_ui;
-
-  /* Always add the current UI's input file handler, regardless of
-     terminal_state, because terminal_state is only valid for the main
-     UI.  */
-  add_file_handler (ui->input_fd, stdin_event_handler, ui);
 
   /* See target_terminal_inferior.  */
   if (ui != main_ui)
@@ -1301,8 +1291,9 @@ memory_xfer_partial (struct target_ops *ops, enum target_object object,
 	 by memory_xfer_partial_1.  We will continually malloc
 	 and free a copy of the entire write request for breakpoint
 	 shadow handling even though we only end up writing a small
-	 subset of it.  Cap writes to 4KB to mitigate this.  */
-      len = min (4096, len);
+	 subset of it.  Cap writes to a limit specified by the target
+	 to mitigate this.  */
+      len = std::min (ops->to_get_memory_xfer_limit (ops), len);
 
       buf = (gdb_byte *) xmalloc (len);
       old_chain = make_cleanup (xfree, buf);
@@ -1825,15 +1816,15 @@ read_whatever_is_readable (struct target_ops *ops,
 void
 free_memory_read_result_vector (void *x)
 {
-  VEC(memory_read_result_s) *v = (VEC(memory_read_result_s) *) x;
+  VEC(memory_read_result_s) **v = (VEC(memory_read_result_s) **) x;
   memory_read_result_s *current;
   int ix;
 
-  for (ix = 0; VEC_iterate (memory_read_result_s, v, ix, current); ++ix)
+  for (ix = 0; VEC_iterate (memory_read_result_s, *v, ix, current); ++ix)
     {
       xfree (current->data);
     }
-  VEC_free (memory_read_result_s, v);
+  VEC_free (memory_read_result_s, *v);
 }
 
 VEC(memory_read_result_s) *
@@ -1842,6 +1833,8 @@ read_memory_robust (struct target_ops *ops,
 {
   VEC(memory_read_result_s) *result = 0;
   int unit_size = gdbarch_addressable_memory_unit_size (target_gdbarch ());
+  struct cleanup *cleanup = make_cleanup (free_memory_read_result_vector,
+					  &result);
 
   LONGEST xfered_total = 0;
   while (xfered_total < len)
@@ -1866,8 +1859,9 @@ read_memory_robust (struct target_ops *ops,
 	}
       else
 	{
-	  LONGEST to_read = min (len - xfered_total, region_len);
+	  LONGEST to_read = std::min (len - xfered_total, region_len);
 	  gdb_byte *buffer = (gdb_byte *) xmalloc (to_read * unit_size);
+	  struct cleanup *inner_cleanup = make_cleanup (xfree, buffer);
 
 	  LONGEST xfered_partial =
 	      target_read (ops, TARGET_OBJECT_MEMORY, NULL,
@@ -1878,7 +1872,7 @@ read_memory_robust (struct target_ops *ops,
 	    {
 	      /* Got an error reading full chunk.  See if maybe we can read
 		 some subrange.  */
-	      xfree (buffer);
+	      do_cleanups (inner_cleanup);
 	      read_whatever_is_readable (ops, offset + xfered_total,
 					 offset + xfered_total + to_read,
 					 unit_size, &result);
@@ -1887,6 +1881,8 @@ read_memory_robust (struct target_ops *ops,
 	  else
 	    {
 	      struct memory_read_result r;
+
+	      discard_cleanups (inner_cleanup);
 	      r.data = buffer;
 	      r.begin = offset + xfered_total;
 	      r.end = r.begin + xfered_partial;
@@ -1896,6 +1892,8 @@ read_memory_robust (struct target_ops *ops,
 	  QUIT;
 	}
     }
+
+  discard_cleanups (cleanup);
   return result;
 }
 
@@ -2116,7 +2114,8 @@ target_insert_breakpoint (struct gdbarch *gdbarch,
 
 int
 target_remove_breakpoint (struct gdbarch *gdbarch,
-			  struct bp_target_info *bp_tgt)
+			  struct bp_target_info *bp_tgt,
+			  enum remove_bp_reason reason)
 {
   /* This is kind of a weird case to handle, but the permission might
      have been changed after breakpoints were inserted - in which case
@@ -2129,7 +2128,7 @@ target_remove_breakpoint (struct gdbarch *gdbarch,
     }
 
   return current_target.to_remove_breakpoint (&current_target,
-					      gdbarch, bp_tgt);
+					      gdbarch, bp_tgt, reason);
 }
 
 static void
@@ -2285,6 +2284,8 @@ target_disconnect (const char *args, int from_tty)
   current_target.to_disconnect (&current_target, args, from_tty);
 }
 
+/* See target/target.h.  */
+
 ptid_t
 target_wait (ptid_t ptid, struct target_waitstatus *status, int options)
 {
@@ -2326,6 +2327,34 @@ target_resume (ptid_t ptid, int step, enum gdb_signal signal)
      running state is set at a higher level.  */
   set_executing (ptid, 1);
   clear_inline_frame_state (ptid);
+}
+
+/* If true, target_commit_resume is a nop.  */
+static int defer_target_commit_resume;
+
+/* See target.h.  */
+
+void
+target_commit_resume (void)
+{
+  struct target_ops *t;
+
+  if (defer_target_commit_resume)
+    return;
+
+  current_target.to_commit_resume (&current_target);
+}
+
+/* See target.h.  */
+
+struct cleanup *
+make_cleanup_defer_target_commit_resume (void)
+{
+  struct cleanup *old_chain;
+
+  old_chain = make_cleanup_restore_integer (&defer_target_commit_resume);
+  defer_target_commit_resume = 1;
+  return old_chain;
 }
 
 void
@@ -2376,8 +2405,9 @@ default_mourn_inferior (struct target_ops *self)
 }
 
 void
-target_mourn_inferior (void)
+target_mourn_inferior (ptid_t ptid)
 {
+  gdb_assert (ptid_equal (ptid, inferior_ptid));
   current_target.to_mourn_inferior (&current_target);
 
   /* We no longer need to keep handles on any of the object files.
@@ -2445,7 +2475,8 @@ simple_search_memory (struct target_ops *ops,
   while (search_space_len >= pattern_len)
     {
       gdb_byte *found_ptr;
-      unsigned nr_search_bytes = min (search_space_len, search_buf_size);
+      unsigned nr_search_bytes
+	= std::min (search_space_len, (ULONGEST) search_buf_size);
 
       found_ptr = (gdb_byte *) memmem (search_buf, nr_search_bytes,
 				       pattern, pattern_len);
@@ -2478,7 +2509,8 @@ simple_search_memory (struct target_ops *ops,
 	  gdb_assert (keep_len == pattern_len - 1);
 	  memcpy (search_buf, search_buf + chunk_size, keep_len);
 
-	  nr_to_read = min (search_space_len - keep_len, chunk_size);
+	  nr_to_read = std::min (search_space_len - keep_len,
+				 (ULONGEST) chunk_size);
 
 	  if (target_read (ops, TARGET_OBJECT_MEMORY, NULL,
 			   search_buf + keep_len, read_addr,
@@ -2723,6 +2755,14 @@ target_supports_disable_randomization (void)
   return 0;
 }
 
+/* See target/target.h.  */
+
+int
+target_supports_multi_process (void)
+{
+  return (*current_target.to_supports_multi_process) (&current_target);
+}
+
 char *
 target_get_osdata (const char *type)
 {
@@ -2850,7 +2890,7 @@ static void
 release_fileio_fd (int fd, fileio_fh_t *fh)
 {
   fh->fd = -1;
-  lowest_closed_fd = min (lowest_closed_fd, fd);
+  lowest_closed_fd = std::min (lowest_closed_fd, fd);
 }
 
 /* Return a pointer to the fileio_fhandle_t corresponding to FD.  */
@@ -3244,6 +3284,28 @@ find_target_at (enum strata stratum)
 }
 
 
+
+/* See target.h  */
+
+void
+target_announce_detach (int from_tty)
+{
+  pid_t pid;
+  char *exec_file;
+
+  if (!from_tty)
+    return;
+
+  exec_file = get_exec_file (0);
+  if (exec_file == NULL)
+    exec_file = "";
+
+  pid = ptid_get_pid (inferior_ptid);
+  printf_unfiltered (_("Detaching from program: %s, %s\n"), exec_file,
+		     target_pid_to_str (pid_to_ptid (pid)));
+  gdb_flush (gdb_stdout);
+}
+
 /* The inferior process has died.  Long live the inferior!  */
 
 void
@@ -3429,6 +3491,14 @@ target_continue_no_signal (ptid_t ptid)
   target_resume (ptid, 0, GDB_SIGNAL_0);
 }
 
+/* See target/target.h.  */
+
+void
+target_continue (ptid_t ptid, enum gdb_signal signal)
+{
+  target_resume (ptid, 0, signal);
+}
+
 /* Concatenate ELEM to LIST, a comma separate list, and return the
    result.  The LIST incoming argument is released.  */
 
@@ -3552,7 +3622,7 @@ simple_verify_memory (struct target_ops *ops,
       ULONGEST xfered_len;
       enum target_xfer_status status;
       gdb_byte buf[1024];
-      ULONGEST howmuch = min (sizeof (buf), size - total_xfered);
+      ULONGEST howmuch = std::min<ULONGEST> (sizeof (buf), size - total_xfered);
 
       status = target_xfer_partial (ops, TARGET_OBJECT_MEMORY, NULL,
 				    buf, NULL, lma + total_xfered, howmuch,

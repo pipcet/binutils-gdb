@@ -21,6 +21,7 @@
 
 #include "defs.h"
 #include "record.h"
+#include "record-btrace.h"
 #include "gdbthread.h"
 #include "target.h"
 #include "gdbcmd.h"
@@ -38,6 +39,7 @@
 #include "event-loop.h"
 #include "inf-loop.h"
 #include "vec.h"
+#include <algorithm>
 
 /* The target_ops of record-btrace.  */
 static struct target_ops record_btrace_ops;
@@ -199,6 +201,26 @@ record_btrace_handle_async_inferior_event (gdb_client_data data)
   inferior_event_handler (INF_REG_EVENT, NULL);
 }
 
+/* See record-btrace.h.  */
+
+void
+record_btrace_push_target (void)
+{
+  const char *format;
+
+  record_btrace_auto_enable ();
+
+  push_target (&record_btrace_ops);
+
+  record_btrace_async_inferior_event_handler
+    = create_async_event_handler (record_btrace_handle_async_inferior_event,
+				  NULL);
+  record_btrace_generating_corefile = 0;
+
+  format = btrace_format_short_string (record_btrace_conf.format);
+  observer_notify_record_changed (current_inferior (), 1, "btrace", format);
+}
+
 /* The to_open method of target record-btrace.  */
 
 static void
@@ -206,7 +228,6 @@ record_btrace_open (const char *args, int from_tty)
 {
   struct cleanup *disable_chain;
   struct thread_info *tp;
-  const char *format;
 
   DEBUG ("open");
 
@@ -226,17 +247,7 @@ record_btrace_open (const char *args, int from_tty)
 	make_cleanup (record_btrace_disable_callback, tp);
       }
 
-  record_btrace_auto_enable ();
-
-  push_target (&record_btrace_ops);
-
-  record_btrace_async_inferior_event_handler
-    = create_async_event_handler (record_btrace_handle_async_inferior_event,
-				  NULL);
-  record_btrace_generating_corefile = 0;
-
-  format = btrace_format_short_string (record_btrace_conf.format);
-  observer_notify_record_changed (current_inferior (), 1, "btrace", format);
+  record_btrace_push_target ();
 
   discard_cleanups (disable_chain);
 }
@@ -255,6 +266,21 @@ record_btrace_stop_recording (struct target_ops *self)
   ALL_NON_EXITED_THREADS (tp)
     if (tp->btrace.target != NULL)
       btrace_disable (tp);
+}
+
+/* The to_disconnect method of target record-btrace.  */
+
+static void
+record_btrace_disconnect (struct target_ops *self, const char *args,
+			  int from_tty)
+{
+  struct target_ops *beneath = self->beneath;
+
+  /* Do not stop recording, just clean up GDB side.  */
+  unpush_target (self);
+
+  /* Forward disconnect.  */
+  beneath->to_disconnect (beneath, args, from_tty);
 }
 
 /* The to_close method of target record-btrace.  */
@@ -978,8 +1004,8 @@ btrace_compute_src_line_range (const struct btrace_function *bfun,
       if (sal.symtab != symtab || sal.line == 0)
 	continue;
 
-      begin = min (begin, sal.line);
-      end = max (end, sal.line);
+      begin = std::min (begin, sal.line);
+      end = std::max (end, sal.line);
     }
 
  out:
@@ -1355,7 +1381,7 @@ record_btrace_xfer_partial (struct target_ops *ops, enum target_object object,
 		     & SEC_READONLY) != 0)
 		  {
 		    /* Truncate the request to fit into this section.  */
-		    len = min (len, section->endaddr - offset);
+		    len = std::min (len, section->endaddr - offset);
 		    break;
 		  }
 	      }
@@ -1408,7 +1434,8 @@ record_btrace_insert_breakpoint (struct target_ops *ops,
 static int
 record_btrace_remove_breakpoint (struct target_ops *ops,
 				 struct gdbarch *gdbarch,
-				 struct bp_target_info *bp_tgt)
+				 struct bp_target_info *bp_tgt,
+				 enum remove_bp_reason reason)
 {
   const char *old;
   int ret;
@@ -1421,7 +1448,8 @@ record_btrace_remove_breakpoint (struct target_ops *ops,
   ret = 0;
   TRY
     {
-      ret = ops->beneath->to_remove_breakpoint (ops->beneath, gdbarch, bp_tgt);
+      ret = ops->beneath->to_remove_breakpoint (ops->beneath, gdbarch, bp_tgt,
+						reason);
     }
   CATCH (except, RETURN_MASK_ALL)
     {
@@ -2122,6 +2150,16 @@ record_btrace_resume (struct target_ops *ops, ptid_t ptid, int step,
     }
 }
 
+/* The to_commit_resume method of target record-btrace.  */
+
+static void
+record_btrace_commit_resume (struct target_ops *ops)
+{
+  if ((execution_direction != EXEC_REVERSE)
+      && !record_btrace_is_replaying (ops, minus_one_ptid))
+    ops->beneath->to_commit_resume (ops->beneath);
+}
+
 /* Cancel resuming TP.  */
 
 static void
@@ -2262,7 +2300,7 @@ record_btrace_replay_at_breakpoint (struct thread_info *tp)
 static struct target_waitstatus
 record_btrace_single_step_forward (struct thread_info *tp)
 {
-  struct btrace_insn_iterator *replay, end;
+  struct btrace_insn_iterator *replay, end, start;
   struct btrace_thread_info *btinfo;
 
   btinfo = &tp->btrace;
@@ -2276,7 +2314,9 @@ record_btrace_single_step_forward (struct thread_info *tp)
   if (record_btrace_replay_at_breakpoint (tp))
     return btrace_step_stopped ();
 
-  /* Skip gaps during replay.  */
+  /* Skip gaps during replay.  If we end up at a gap (at the end of the trace),
+     jump back to the instruction at which we started.  */
+  start = *replay;
   do
     {
       unsigned int steps;
@@ -2285,7 +2325,10 @@ record_btrace_single_step_forward (struct thread_info *tp)
 	 of the execution history.  */
       steps = btrace_insn_next (replay, 1);
       if (steps == 0)
-	return btrace_step_no_history ();
+	{
+	  *replay = start;
+	  return btrace_step_no_history ();
+	}
     }
   while (btrace_insn_get (replay) == NULL);
 
@@ -2306,7 +2349,7 @@ record_btrace_single_step_forward (struct thread_info *tp)
 static struct target_waitstatus
 record_btrace_single_step_backward (struct thread_info *tp)
 {
-  struct btrace_insn_iterator *replay;
+  struct btrace_insn_iterator *replay, start;
   struct btrace_thread_info *btinfo;
 
   btinfo = &tp->btrace;
@@ -2317,14 +2360,19 @@ record_btrace_single_step_backward (struct thread_info *tp)
     replay = record_btrace_start_replaying (tp);
 
   /* If we can't step any further, we reached the end of the history.
-     Skip gaps during replay.  */
+     Skip gaps during replay.  If we end up at a gap (at the beginning of
+     the trace), jump back to the instruction at which we started.  */
+  start = *replay;
   do
     {
       unsigned int steps;
 
       steps = btrace_insn_prev (replay, 1);
       if (steps == 0)
-	return btrace_step_no_history ();
+	{
+	  *replay = start;
+	  return btrace_step_no_history ();
+	}
     }
   while (btrace_insn_get (replay) == NULL);
 
@@ -2734,6 +2782,17 @@ record_btrace_goto_begin (struct target_ops *self)
   tp = require_btrace_thread ();
 
   btrace_insn_begin (&begin, &tp->btrace);
+
+  /* Skip gaps at the beginning of the trace.  */
+  while (btrace_insn_get (&begin) == NULL)
+    {
+      unsigned int steps;
+
+      steps = btrace_insn_next (&begin, 1);
+      if (steps == 0)
+	error (_("No trace."));
+    }
+
   record_btrace_set_replay (tp, &begin);
 }
 
@@ -2824,7 +2883,7 @@ init_record_btrace_ops (void)
   ops->to_close = record_btrace_close;
   ops->to_async = record_btrace_async;
   ops->to_detach = record_detach;
-  ops->to_disconnect = record_disconnect;
+  ops->to_disconnect = record_btrace_disconnect;
   ops->to_mourn_inferior = record_mourn_inferior;
   ops->to_kill = record_kill;
   ops->to_stop_recording = record_btrace_stop_recording;
@@ -2847,6 +2906,7 @@ init_record_btrace_ops (void)
   ops->to_get_unwinder = &record_btrace_to_get_unwinder;
   ops->to_get_tailcall_unwinder = &record_btrace_to_get_tailcall_unwinder;
   ops->to_resume = record_btrace_resume;
+  ops->to_commit_resume = record_btrace_commit_resume;
   ops->to_wait = record_btrace_wait;
   ops->to_stop = record_btrace_stop;
   ops->to_update_thread_list = record_btrace_update_thread_list;

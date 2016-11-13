@@ -447,48 +447,6 @@ struct ui *main_ui;
 struct ui *current_ui;
 struct ui *ui_list;
 
-/* See top.h.  */
-
-void
-restore_ui_cleanup (void *data)
-{
-  current_ui = (struct ui *) data;
-}
-
-/* See top.h.  */
-
-void
-switch_thru_all_uis_init (struct switch_thru_all_uis *state)
-{
-  state->iter = ui_list;
-  state->old_chain = make_cleanup (restore_ui_cleanup, current_ui);
-}
-
-/* See top.h.  */
-
-int
-switch_thru_all_uis_cond (struct switch_thru_all_uis *state)
-{
-  if (state->iter != NULL)
-    {
-      current_ui = state->iter;
-      return 1;
-    }
-  else
-    {
-      do_cleanups (state->old_chain);
-      return 0;
-    }
-}
-
-/* See top.h.  */
-
-void
-switch_thru_all_uis_next (struct switch_thru_all_uis *state)
-{
-  state->iter = state->iter->next;
-}
-
 /* Get a pointer to the current UI's line buffer.  This is used to
    construct a whole line of input from partial input.  */
 
@@ -550,6 +508,22 @@ stdin_event_handler (int error, gdb_client_data client_data)
     }
 }
 
+/* See top.h.  */
+
+void
+ui_register_input_event_handler (struct ui *ui)
+{
+  add_file_handler (ui->input_fd, stdin_event_handler, ui);
+}
+
+/* See top.h.  */
+
+void
+ui_unregister_input_event_handler (struct ui *ui)
+{
+  delete_file_handler (ui->input_fd);
+}
+
 /* Re-enable stdin after the end of an execution command in
    synchronous mode, or after an error from the target, and we aborted
    the exec operation.  */
@@ -562,6 +536,7 @@ async_enable_stdin (void)
   if (ui->prompt_state == PROMPT_BLOCKED)
     {
       target_terminal_ours ();
+      ui_register_input_event_handler (ui);
       ui->prompt_state = PROMPT_NEEDED;
     }
 }
@@ -575,6 +550,7 @@ async_disable_stdin (void)
   struct ui *ui = current_ui;
 
   ui->prompt_state = PROMPT_BLOCKED;
+  delete_file_handler (ui->input_fd);
 }
 
 
@@ -586,13 +562,12 @@ void
 command_handler (char *command)
 {
   struct ui *ui = current_ui;
-  struct cleanup *stat_chain;
   char *c;
 
   if (ui->instream == ui->stdin_stream)
     reinitialize_more_filter ();
 
-  stat_chain = make_command_stats_cleanup (1);
+  scoped_command_stats stat_reporter (true);
 
   /* Do not execute commented lines.  */
   for (c = command; *c == ' ' || *c == '\t'; c++)
@@ -604,8 +579,6 @@ command_handler (char *command)
       /* Do any commands attached to breakpoint we stopped at.  */
       bpstat_do_actions ();
     }
-
-  do_cleanups (stat_chain);
 }
 
 /* Append RL, an input line returned by readline or one of its
@@ -1284,7 +1257,7 @@ gdb_setup_readline (int editing)
      Another source is going to be the target program (inferior), but
      that must be registered only when it actually exists (I.e. after
      we say 'run' or after we connect to a remote target.  */
-  add_file_handler (ui->input_fd, stdin_event_handler, ui);
+  ui_register_input_event_handler (ui);
 }
 
 /* Disable command input through the standard CLI channels.  Used in

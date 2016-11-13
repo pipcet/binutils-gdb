@@ -32,7 +32,7 @@
 #include "solib.h"
 #include "filestuff.h"
 #include "top.h"
-
+#include "signals-state-save-restore.h"
 #include <signal.h>
 
 /* This just gets used as a default if we can't find SHELL.  */
@@ -366,6 +366,8 @@ fork_inferior (char *exec_file_arg, char *allargs, char **env,
         saying "not parent".  Sorry; you'll have to use print
         statements!  */
 
+      restore_original_signals_state ();
+
       /* There is no execlpe call, so we have to set the environment
          for our child in the global variable.  If we've vforked, this
          clobbers the parent, but environ is restored a few lines down
@@ -480,7 +482,7 @@ startup_inferior (int ntraps)
 
 	  case TARGET_WAITKIND_SIGNALLED:
 	    target_terminal_ours ();
-	    target_mourn_inferior ();
+	    target_mourn_inferior (event_ptid);
 	    error (_("During startup program terminated with signal %s, %s."),
 		   gdb_signal_to_name (ws.value.sig),
 		   gdb_signal_to_string (ws.value.sig));
@@ -488,7 +490,7 @@ startup_inferior (int ntraps)
 
 	  case TARGET_WAITKIND_EXITED:
 	    target_terminal_ours ();
-	    target_mourn_inferior ();
+	    target_mourn_inferior (event_ptid);
 	    if (ws.value.integer)
 	      error (_("During startup program exited with code %d."),
 		     ws.value.integer);
@@ -512,7 +514,7 @@ startup_inferior (int ntraps)
       if (resume_signal != GDB_SIGNAL_TRAP)
 	{
 	  /* Let shell child handle its own signals in its own way.  */
-	  target_resume (resume_ptid, 0, resume_signal);
+	  target_continue (resume_ptid, resume_signal);
 	}
       else
 	{
@@ -538,7 +540,7 @@ startup_inferior (int ntraps)
 	    break;
 
 	  /* Just make it go on.  */
-	  target_resume (resume_ptid, 0, GDB_SIGNAL_0);
+	  target_continue_no_signal (resume_ptid);
 	}
     }
 

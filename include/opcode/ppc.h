@@ -214,6 +214,9 @@ extern const int vle_num_opcodes;
 /* Opcode is supported by Vector-Scalar (VSX) Unit from ISA 2.08.  */
 #define PPC_OPCODE_VSX3       0x40000000000ull
 
+  /* Opcode is supported by e200z4.  */
+#define PPC_OPCODE_E200Z4     0x80000000000ull
+
 /* A macro to extract the major opcode from an instruction.  */
 #define PPC_OP(i) (((i) >> 26) & 0x3f)
 
@@ -404,6 +407,10 @@ extern const unsigned int num_powerpc_operands;
    is omitted, then the value it should use for the operand is stored
    in the SHIFT field of the immediatly following operand field.  */
 #define PPC_OPERAND_OPTIONAL_VALUE (0x400000)
+
+/* This flag is only used with PPC_OPERAND_OPTIONAL.  The operand is
+   only optional when generating 32-bit code.  */
+#define PPC_OPERAND_OPTIONAL32 (0x800000)
 
 /* The POWER and PowerPC assemblers use a few macros.  We keep them
    with the operands table for simplicity.  The macro table is an

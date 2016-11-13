@@ -390,7 +390,7 @@ eh_test: eh_test_a.o eh_test_b.o  gcctestdir/ld
 
 check_SCRIPTS += eh_test_2.sh
 check_DATA += eh_test_2.sects
-MOSTLYCLEANFILES += eh_test_2.sects
+MOSTLYCLEANFILES += eh_test_2 eh_test_2.sects
 eh_test_r.o: eh_test_a.o eh_test_b.o gcctestdir/ld
 	gcctestdir/ld -r -o $@ eh_test_a.o eh_test_b.o
 eh_test_2: eh_test_r.o gcctestdir/ld
@@ -1131,6 +1131,12 @@ x86_64_overflow_pc32.err: x86_64_overflow_pc32.o gcctestdir/ld
 	  exit 1; \
 	fi
 
+check_PROGRAMS += pr17704a_test
+pr17704a_test.o: pr17704a_test.s
+	$(TEST_AS) --64  -o $@ $<
+pr17704a_test: pr17704a_test.o gcctestdir/ld
+	gcctestdir/ld --icf=all -o $@ $<
+
 check_SCRIPTS += x32_overflow_pc32.sh
 check_DATA += x32_overflow_pc32.err
 MOSTLYCLEANFILES += x32_overflow_pc32.err
@@ -1146,6 +1152,59 @@ x32_overflow_pc32.err: x32_overflow_pc32.o gcctestdir/ld
 	fi
 
 endif DEFAULT_TARGET_X86_64
+
+if DEFAULT_TARGET_X86_64_OR_X32
+
+check_PROGRAMS += pr20216a_test
+pr20216a_test_SOURCES = pr20216_main.c pr20216_def.c
+pr20216a_test_DEPENDENCIES = pr20216_gd.o pr20216_ld.o gcctestdir/ld gcctestdir/as
+pr20216a_test_CFLAGS = -Bgcctestdir/ -fPIE
+pr20216a_test_LDFLAGS = -Bgcctestdir/ -Wl,-R,.
+pr20216a_test_LDADD = pr20216_gd.o pr20216_ld.o
+
+check_PROGRAMS += pr20216b_test
+pr20216b_test_SOURCES = pr20216_main.c pr20216_def.c
+pr20216b_test_DEPENDENCIES = pr20216_gd.o pr20216_ld.o gcctestdir/ld gcctestdir/as
+pr20216b_test_CFLAGS = -Bgcctestdir/ -fPIE
+pr20216b_test_LDFLAGS = -pie -Bgcctestdir/ -Wl,-R,.
+pr20216b_test_LDADD = pr20216_gd.o pr20216_ld.o
+
+check_PROGRAMS += pr20216c_test
+pr20216c_test_SOURCES = pr20216_main.c pr20216_def.c
+pr20216c_test_DEPENDENCIES = pr20216_gd.o pr20216_ld.o gcctestdir/ld gcctestdir/as
+pr20216c_test_CFLAGS = -Bgcctestdir/ -fPIE
+pr20216c_test_LDFLAGS = -static -Bgcctestdir/ -Wl,-R,.
+pr20216c_test_LDADD = pr20216_gd.o pr20216_ld.o
+
+check_PROGRAMS += pr20216d_test
+pr20216d_test_SOURCES = pr20216_main.c pr20216_def.c
+pr20216d_test_DEPENDENCIES = pr20216a.so gcctestdir/ld gcctestdir/as
+pr20216d_test_CFLAGS = -Bgcctestdir/ -fPIE
+pr20216d_test_LDFLAGS = -Bgcctestdir/ -Wl,-R,.
+pr20216d_test_LDADD = pr20216a.so
+
+check_PROGRAMS += pr20216e_test
+pr20216e_test_SOURCES = pr20216_main.c
+pr20216e_test_DEPENDENCIES = pr20216_gd.o pr20216_ld.o pr20216b.so gcctestdir/ld gcctestdir/as
+pr20216e_test_CFLAGS = -Bgcctestdir/ -fPIE
+pr20216e_test_LDFLAGS = -Bgcctestdir/ -Wl,-R,.
+pr20216e_test_LDADD = pr20216_gd.o pr20216_ld.o pr20216b.so
+
+MOSTLYCLEANFILES += pr20216a.so pr20216b.so
+
+pr20216a.so: pr20216_gd.o pr20216_ld.o gcctestdir/ld
+	$(LINK) -Bgcctestdir/ -shared pr20216_gd.o pr20216_ld.o
+
+pr20216b.so: pr20216_def.o gcctestdir/ld
+	$(LINK) -Bgcctestdir/ -shared pr20216_def.o
+
+pr20216_gd.o: pr20216_gd.S gcctestdir/as
+	$(COMPILE) -Bgcctestdir/ -c -o $@ $<
+
+pr20216_ld.o: pr20216_ld.S gcctestdir/as
+	$(COMPILE) -Bgcctestdir/ -c -o $@ $<
+
+endif DEFAULT_TARGET_X86_64_OR_X32
 
 if DEFAULT_TARGET_I386
 
@@ -1200,6 +1259,55 @@ i386_mov_to_lea7.stdout: i386_mov_to_lea7
 	$(TEST_OBJDUMP) -dw $< > $@
 i386_mov_to_lea8.stdout: i386_mov_to_lea8
 	$(TEST_OBJDUMP) -dw $< > $@
+
+check_PROGRAMS += pr20308a_test
+pr20308a_test_SOURCES = pr20308_main.c pr20308_def.c
+pr20308a_test_DEPENDENCIES = pr20308_gd.o pr20308_ld.o gcctestdir/ld gcctestdir/as
+pr20308a_test_CFLAGS = -Bgcctestdir/ -fPIE
+pr20308a_test_LDFLAGS = -Bgcctestdir/ -Wl,-R,.
+pr20308a_test_LDADD = pr20308_gd.o pr20308_ld.o
+
+check_PROGRAMS += pr20308b_test
+pr20308b_test_SOURCES = pr20308_main.c pr20308_def.c
+pr20308b_test_DEPENDENCIES = pr20308_gd.o pr20308_ld.o gcctestdir/ld gcctestdir/as
+pr20308b_test_CFLAGS = -Bgcctestdir/ -fPIE
+pr20308b_test_LDFLAGS = -pie -Bgcctestdir/ -Wl,-R,.
+pr20308b_test_LDADD = pr20308_gd.o pr20308_ld.o
+
+check_PROGRAMS += pr20308c_test
+pr20308c_test_SOURCES = pr20308_main.c pr20308_def.c
+pr20308c_test_DEPENDENCIES = pr20308_gd.o pr20308_ld.o gcctestdir/ld gcctestdir/as
+pr20308c_test_CFLAGS = -Bgcctestdir/ -fPIE
+pr20308c_test_LDFLAGS = -static -Bgcctestdir/ -Wl,-R,.
+pr20308c_test_LDADD = pr20308_gd.o pr20308_ld.o
+
+check_PROGRAMS += pr20308d_test
+pr20308d_test_SOURCES = pr20308_main.c pr20308_def.c
+pr20308d_test_DEPENDENCIES = pr20308a.so gcctestdir/ld gcctestdir/as
+pr20308d_test_CFLAGS = -Bgcctestdir/ -fPIE
+pr20308d_test_LDFLAGS = -Bgcctestdir/ -Wl,-R,.
+pr20308d_test_LDADD = pr20308a.so
+
+check_PROGRAMS += pr20308e_test
+pr20308e_test_SOURCES = pr20308_main.c
+pr20308e_test_DEPENDENCIES = pr20308_gd.o pr20308_ld.o pr20308b.so gcctestdir/ld gcctestdir/as
+pr20308e_test_CFLAGS = -Bgcctestdir/ -fPIE
+pr20308e_test_LDFLAGS = -Bgcctestdir/ -Wl,-R,.
+pr20308e_test_LDADD = pr20308_gd.o pr20308_ld.o pr20308b.so
+
+MOSTLYCLEANFILES += pr20308a.so pr20308b.so
+
+pr20308a.so: pr20308_gd.o pr20308_ld.o gcctestdir/ld
+	$(LINK) -Bgcctestdir/ -shared pr20308_gd.o pr20308_ld.o
+
+pr20308b.so: pr20308_def.o gcctestdir/ld
+	$(LINK) -Bgcctestdir/ -shared pr20308_def.o
+
+pr20308_gd.o: pr20308_gd.S gcctestdir/as
+	$(COMPILE) -Bgcctestdir/ -c -o $@ $<
+
+pr20308_ld.o: pr20308_ld.S gcctestdir/as
+	$(COMPILE) -Bgcctestdir/ -c -o $@ $<
 
 endif DEFAULT_TARGET_I386
 
@@ -2628,7 +2736,7 @@ MOSTLYCLEANFILES += memory_test.stdout memory_test memory_test.o
 memory_test.o: memory_test.s
 	$(COMPILE) -o $@ -c $<
 memory_test: memory_test.o gcctestdir/ld $(srcdir)/memory_test.t
-	$(LINK) -Bgcctestdir/ -nostartfiles -nostdlib -z max-page-size=0x1000 -z common-page-size=0x1000 -Wl,-T,$(srcdir)/memory_test.t -o $@ memory_test.o
+	$(LINK) -Bgcctestdir/ -nostartfiles -nostdlib -Wl,-z,max-page-size=0x1000 -Wl,-z,common-page-size=0x1000 -Wl,-T,$(srcdir)/memory_test.t -o $@ memory_test.o
 memory_test.stdout: memory_test
 	$(TEST_READELF) -lWS  $< > $@
 
@@ -2643,7 +2751,7 @@ memory_test_inc_2.t: $(srcdir)/memory_test_inc_2.t.src
 memory_test_inc_3.t: $(srcdir)/memory_test_inc_3.t.src
 	cp $< $@
 memory_test_2: memory_test.o gcctestdir/ld $(srcdir)/memory_test.t memory_test_inc_1.t memory_test_inc_2.t memory_test_inc_3.t
-	$(LINK) -Bgcctestdir/ -nostartfiles -nostdlib -z max-page-size=0x1000 -z common-page-size=0x1000 -Wl,-T,$(srcdir)/memory_test.t -o $@ memory_test.o
+	$(LINK) -Bgcctestdir/ -nostartfiles -nostdlib -Wl,-z,max-page-size=0x1000 -Wl,-z,common-page-size=0x1000 -Wl,-T,$(srcdir)/memory_test.t -o $@ memory_test.o
 
 if HAVE_PUBNAMES
 
@@ -3502,6 +3610,52 @@ arm_farcall_thumb_arm_5t.o: arm_farcall_thumb_arm.s
 
 MOSTLYCLEANFILES += arm_farcall_thumb_arm arm_farcall_thumb_arm_5t
 
+# Check handling of --target1-abs, --target1-rel and --target2 options
+
+check_SCRIPTS += arm_target1_abs.sh arm_target1_rel.sh \
+		 arm_target2_rel.sh arm_target2_abs.sh arm_target2_got_rel.sh
+check_DATA += arm_target1_abs.stdout arm_target1_rel.stdout \
+	      arm_target2_rel.stdout arm_target2_abs.stdout arm_target2_got_rel.stdout
+
+arm_target1_abs.stdout: arm_target1_abs
+	$(TEST_OBJDUMP) -s $< > $@
+
+arm_target1_abs: arm_target1.o ../ld-new
+	../ld-new --target1-abs --section-start .text=0x8000 -o $@ $<
+
+arm_target1_rel.stdout: arm_target1_rel
+	$(TEST_OBJDUMP) -s $< > $@
+
+arm_target1_rel: arm_target1.o ../ld-new
+	../ld-new --target1-rel --section-start .text=0x8000 -o $@ $<
+
+arm_target1.o: arm_target1.s
+	$(TEST_AS) -o $@ $<
+
+arm_target2_rel.stdout: arm_target2_rel
+	$(TEST_OBJDUMP) -s $< > $@
+
+arm_target2_rel: arm_target2.o ../ld-new
+	../ld-new --target2=rel --section-start .text=0x8000 -o $@ $<
+
+arm_target2_abs.stdout: arm_target2_abs
+	$(TEST_OBJDUMP) -s $< > $@
+
+arm_target2_abs: arm_target2.o ../ld-new
+	../ld-new --target2=abs --section-start .text=0x8000 -o $@ $<
+
+arm_target2_got_rel.stdout: arm_target2_got_rel
+	$(TEST_OBJDUMP) -s $< > $@
+
+arm_target2_got_rel: arm_target2.o ../ld-new
+	../ld-new --target2=got-rel --section-start .text=0x8000 --section-start .got=0x9000 -o $@ $<
+
+arm_target2.o: arm_target2.s
+	$(TEST_AS) -o $@ $<
+
+MOSTLYCLEANFILES += arm_target1_abs arm_target1_rel \
+		    arm_target2_rel arm_target2_abs arm_target2_got_rel
+
 endif DEFAULT_TARGET_ARM
 
 if DEFAULT_TARGET_AARCH64
@@ -3516,6 +3670,19 @@ aarch64_reloc_none.stdout: aarch64_reloc_none
 	$(TEST_NM) $< > $@
 
 MOSTLYCLEANFILES += aarch64_reloc_none
+
+check_SCRIPTS += aarch64_relocs.sh
+check_DATA += aarch64_relocs.stdout
+aarch64_globals.o: aarch64_globals.s
+	$(TEST_AS) -o $@ $<
+aarch64_relocs.o: aarch64_relocs.s
+	$(TEST_AS) -o $@ $<
+aarch64_relocs: aarch64_relocs.o aarch64_globals.o ../ld-new
+	../ld-new -o $@ aarch64_relocs.o aarch64_globals.o -e0 --emit-relocs
+aarch64_relocs.stdout: aarch64_relocs
+	$(TEST_OBJDUMP) -dr $< > $@
+
+MOSTLYCLEANFILES += aarch64_relocs
 
 endif DEFAULT_TARGET_AARCH64
 

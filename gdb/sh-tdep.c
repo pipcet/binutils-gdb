@@ -52,6 +52,7 @@
 #include "dwarf2.h"
 /* registers numbers shared with the simulator.  */
 #include "gdb/sim-sh.h"
+#include <algorithm>
 
 /* List of "set sh ..." and "show sh ..." commands.  */
 static struct cmd_list_element *setshcmdlist = NULL;
@@ -417,11 +418,20 @@ sh_sh4al_dsp_register_name (struct gdbarch *gdbarch, int reg_nr)
   return register_names[reg_nr];
 }
 
-static const unsigned char *
-sh_breakpoint_from_pc (struct gdbarch *gdbarch, CORE_ADDR *pcptr, int *lenptr)
+/* Implement the breakpoint_kind_from_pc gdbarch method.  */
+
+static int
+sh_breakpoint_kind_from_pc (struct gdbarch *gdbarch, CORE_ADDR *pcptr)
 {
-  /* 0xc3c3 is trapa #c3, and it works in big and little endian modes.  */
-  static unsigned char breakpoint[] = { 0xc3, 0xc3 };
+  return 2;
+}
+
+/* Implement the sw_breakpoint_from_kind gdbarch method.  */
+
+static const gdb_byte *
+sh_sw_breakpoint_from_kind (struct gdbarch *gdbarch, int kind, int *size)
+{
+  *size = kind;
 
   /* For remote stub targets, trapa #20 is used.  */
   if (strcmp (target_shortname, "remote") == 0)
@@ -430,19 +440,18 @@ sh_breakpoint_from_pc (struct gdbarch *gdbarch, CORE_ADDR *pcptr, int *lenptr)
       static unsigned char little_remote_breakpoint[] = { 0x20, 0xc3 };
 
       if (gdbarch_byte_order (gdbarch) == BFD_ENDIAN_BIG)
-	{
-	  *lenptr = sizeof (big_remote_breakpoint);
-	  return big_remote_breakpoint;
-	}
+	return big_remote_breakpoint;
       else
-	{
-	  *lenptr = sizeof (little_remote_breakpoint);
-	  return little_remote_breakpoint;
-	}
+	return little_remote_breakpoint;
     }
+  else
+    {
+      /* 0xc3c3 is trapa #c3, and it works in big and little endian
+	 modes.  */
+      static unsigned char breakpoint[] = { 0xc3, 0xc3 };
 
-  *lenptr = sizeof (breakpoint);
-  return breakpoint;
+      return breakpoint;
+    }
 }
 
 /* Prologue looks like
@@ -654,7 +663,7 @@ sh_analyze_prologue (struct gdbarch *gdbarch,
 	{
 	  pc += 2;
 	  /* Don't go any further than six more instructions.  */
-	  limit_pc = min (limit_pc, pc + (2 * 6));
+	  limit_pc = std::min (limit_pc, pc + (2 * 6));
 
 	  cache->uses_fp = 1;
 	  /* At this point, only allow argument register moves to other
@@ -728,7 +737,7 @@ sh_skip_prologue (struct gdbarch *gdbarch, CORE_ADDR pc)
     {
       post_prologue_pc = skip_prologue_using_sal (gdbarch, func_addr);
       if (post_prologue_pc != 0)
-        return max (pc, post_prologue_pc);
+        return std::max (pc, post_prologue_pc);
     }
 
   /* Can't determine prologue from the symbol table, need to examine
@@ -745,7 +754,7 @@ sh_skip_prologue (struct gdbarch *gdbarch, CORE_ADDR pc)
   /* Do not allow limit_pc to be past the function end, if we know
      where that end is...  */
   if (func_end_addr != 0)
-    limit_pc = min (limit_pc, func_end_addr);
+    limit_pc = std::min (limit_pc, func_end_addr);
 
   cache.sp_offset = -4;
   post_prologue_pc = sh_analyze_prologue (gdbarch, pc, limit_pc, &cache, 0);
@@ -2273,7 +2282,8 @@ sh_gdbarch_init (struct gdbarch_info info, struct gdbarch_list *arches)
   set_gdbarch_register_type (gdbarch, sh_default_register_type);
   set_gdbarch_register_reggroup_p (gdbarch, sh_register_reggroup_p);
 
-  set_gdbarch_breakpoint_from_pc (gdbarch, sh_breakpoint_from_pc);
+  set_gdbarch_breakpoint_kind_from_pc (gdbarch, sh_breakpoint_kind_from_pc);
+  set_gdbarch_sw_breakpoint_from_kind (gdbarch, sh_sw_breakpoint_from_kind);
 
   set_gdbarch_print_insn (gdbarch, print_insn_sh);
   set_gdbarch_register_sim_regno (gdbarch, legacy_register_sim_regno);

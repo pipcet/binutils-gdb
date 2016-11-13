@@ -672,6 +672,13 @@ extern struct value *value_of_register (int regnum, struct frame_info *frame);
 
 struct value *value_of_register_lazy (struct frame_info *frame, int regnum);
 
+/* Return the symbol's reading requirement.  */
+
+extern enum symbol_needs_kind symbol_read_needs (struct symbol *);
+
+/* Return true if the symbol needs a frame.  This is a wrapper for
+   symbol_read_needs that simply checks for SYMBOL_NEEDS_FRAME.  */
+
 extern int symbol_read_needs_frame (struct symbol *);
 
 extern struct value *read_var_value (struct symbol *var,
@@ -985,7 +992,7 @@ extern void modify_field (struct type *type, gdb_byte *addr,
 extern void type_print (struct type *type, const char *varstring,
 			struct ui_file *stream, int show);
 
-extern char *type_to_string (struct type *type);
+extern std::string type_to_string (struct type *type);
 
 extern gdb_byte *baseclass_addr (struct type *type, int index,
 				 gdb_byte *valaddr,
@@ -1009,10 +1016,10 @@ extern void value_print_array_elements (struct value *val,
 
 extern struct value *value_release_to_mark (const struct value *mark);
 
-extern void val_print (struct type *type, const gdb_byte *valaddr,
+extern void val_print (struct type *type,
 		       LONGEST embedded_offset, CORE_ADDR address,
 		       struct ui_file *stream, int recurse,
-		       const struct value *val,
+		       struct value *val,
 		       const struct value_print_options *options,
 		       const struct language_defn *language);
 

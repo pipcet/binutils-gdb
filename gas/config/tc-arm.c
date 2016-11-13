@@ -685,9 +685,11 @@ struct asm_opcode
 #define T2_SUBS_PC_LR	0xf3de8f00
 
 #define DATA_OP_SHIFT	21
+#define SBIT_SHIFT	20
 
 #define T2_OPCODE_MASK	0xfe1fffff
 #define T2_DATA_OP_SHIFT 21
+#define T2_SBIT_SHIFT	 20
 
 #define A_COND_MASK         0xf0000000
 #define A_PUSH_POP_OP_MASK  0x0fff0000
@@ -1276,6 +1278,7 @@ arm_reg_alt_syntax (char **ccp, char *start, struct reg_entry *reg,
 	if (*ccp != start && processor <= 15)
 	  return processor;
       }
+      /* Fall through.  */
 
     case REG_TYPE_MMXWC:
       /* WC includes WCG.  ??? I'm not sure this is true for all
@@ -7426,6 +7429,21 @@ encode_arm_vfp_reg (int reg, enum vfp_reg_pos pos)
 static void
 encode_arm_shift (int i)
 {
+  /* register-shifted register.  */
+  if (inst.operands[i].immisreg)
+    {
+      int index;
+      for (index = 0; index <= i; ++index)
+	{
+	  gas_assert (inst.operands[index].present);
+	  if (inst.operands[index].isreg && inst.operands[index].reg == REG_PC)
+	    as_warn (UNPRED_REG ("r15"));
+	}
+
+      if (inst.operands[i].imm == REG_PC)
+	as_warn (UNPRED_REG ("r15"));
+    }
+
   if (inst.operands[i].shift_kind == SHIFT_RRX)
     inst.instruction |= SHIFT_ROR << 5;
   else
@@ -8689,6 +8707,14 @@ do_co_reg2c (void)
     {
       constraint (Rd == REG_PC, BAD_PC);
       constraint (Rn == REG_PC, BAD_PC);
+    }
+
+  /* Only check the MRRC{2} variants.  */
+  if ((inst.instruction & 0x0FF00000) == 0x0C500000)
+    {
+       /* If Rd == Rn, error that the operation is
+	  unpredictable (example MRRC p3,#1,r1,r1,c4).  */
+       constraint (Rd == Rn, BAD_OVERLAP);
     }
 
   inst.instruction |= inst.operands[0].reg << 8;
@@ -14390,6 +14416,11 @@ static void
 do_vfp_nsyn_push (void)
 {
   nsyn_insert_sp ();
+
+  constraint (inst.operands[1].imm < 1 || inst.operands[1].imm > 16,
+	      _("register list must contain at least 1 and at most 16 "
+		"registers"));
+
   if (inst.operands[1].issingle)
     do_vfp_nsyn_opcode ("fstmdbs");
   else
@@ -14400,6 +14431,11 @@ static void
 do_vfp_nsyn_pop (void)
 {
   nsyn_insert_sp ();
+
+  constraint (inst.operands[1].imm < 1 || inst.operands[1].imm > 16,
+	      _("register list must contain at least 1 and at most 16 "
+		"registers"));
+
   if (inst.operands[1].issingle)
     do_vfp_nsyn_opcode ("fldmias");
   else
@@ -17755,7 +17791,7 @@ opcode_lookup (char **str)
 	case OT_odd_infix_unc:
 	  if (!unified_syntax)
 	    return 0;
-	  /* else fall through */
+	  /* Fall through.  */
 
 	case OT_csuffix:
 	case OT_csuffixF:
@@ -18234,6 +18270,13 @@ t32_insn_ok (arm_feature_set arch, const struct asm_opcode *opcode)
      of variant T3 of B.W is checked in do_t_branch.  */
   if (ARM_CPU_HAS_FEATURE (arch, arm_ext_v8m)
       && opcode->tencode == do_t_branch)
+    return TRUE;
+
+  /* MOV accepts T1/T3 encodings under Baseline, T3 encoding is 32bit.  */
+  if (ARM_CPU_HAS_FEATURE (arch, arm_ext_v8m)
+      && opcode->tencode == do_t_mov_cmp
+      /* Make sure CMP instruction is not affected.  */
+      && opcode->aencode == do_mov)
     return TRUE;
 
   /* Wide instruction variants of all instructions with narrow *and* wide
@@ -18780,24 +18823,32 @@ static const struct asm_psr psrs[] =
 /* Table of V7M psr names.  */
 static const struct asm_psr v7m_psrs[] =
 {
-  {"apsr",	  0 }, {"APSR",		0 },
-  {"iapsr",	  1 }, {"IAPSR",	1 },
-  {"eapsr",	  2 }, {"EAPSR",	2 },
-  {"psr",	  3 }, {"PSR",		3 },
-  {"xpsr",	  3 }, {"XPSR",		3 }, {"xPSR",	  3 },
-  {"ipsr",	  5 }, {"IPSR",		5 },
-  {"epsr",	  6 }, {"EPSR",		6 },
-  {"iepsr",	  7 }, {"IEPSR",	7 },
-  {"msp",	  8 }, {"MSP",		8 }, {"msp_s",     8 }, {"MSP_S",     8 },
-  {"psp",	  9 }, {"PSP",		9 }, {"psp_s",     9 }, {"PSP_S",     9 },
-  {"primask",	  16}, {"PRIMASK",	16},
-  {"basepri",	  17}, {"BASEPRI",	17},
-  {"basepri_max", 18}, {"BASEPRI_MAX",	18},
-  {"basepri_max", 18}, {"BASEPRI_MASK",	18}, /* Typo, preserved for backwards compatibility.  */
-  {"faultmask",	  19}, {"FAULTMASK",	19},
-  {"control",	  20}, {"CONTROL",	20},
-  {"msp_ns",	0x88}, {"MSP_NS",     0x88},
-  {"psp_ns",	0x89}, {"PSP_NS",     0x89}
+  {"apsr",	   0x0 }, {"APSR",	   0x0 },
+  {"iapsr",	   0x1 }, {"IAPSR",	   0x1 },
+  {"eapsr",	   0x2 }, {"EAPSR",	   0x2 },
+  {"psr",	   0x3 }, {"PSR",	   0x3 },
+  {"xpsr",	   0x3 }, {"XPSR",	   0x3 }, {"xPSR",	  3 },
+  {"ipsr",	   0x5 }, {"IPSR",	   0x5 },
+  {"epsr",	   0x6 }, {"EPSR",	   0x6 },
+  {"iepsr",	   0x7 }, {"IEPSR",	   0x7 },
+  {"msp",	   0x8 }, {"MSP",	   0x8 },
+  {"psp",	   0x9 }, {"PSP",	   0x9 },
+  {"msplim",	   0xa }, {"MSPLIM",	   0xa },
+  {"psplim",	   0xb }, {"PSPLIM",	   0xb },
+  {"primask",	   0x10}, {"PRIMASK",	   0x10},
+  {"basepri",	   0x11}, {"BASEPRI",	   0x11},
+  {"basepri_max",  0x12}, {"BASEPRI_MAX",  0x12},
+  {"faultmask",	   0x13}, {"FAULTMASK",	   0x13},
+  {"control",	   0x14}, {"CONTROL",	   0x14},
+  {"msp_ns",	   0x88}, {"MSP_NS",	   0x88},
+  {"psp_ns",	   0x89}, {"PSP_NS",	   0x89},
+  {"msplim_ns",	   0x8a}, {"MSPLIM_NS",	   0x8a},
+  {"psplim_ns",	   0x8b}, {"PSPLIM_NS",	   0x8b},
+  {"primask_ns",   0x90}, {"PRIMASK_NS",   0x90},
+  {"basepri_ns",   0x91}, {"BASEPRI_NS",   0x91},
+  {"faultmask_ns", 0x93}, {"FAULTMASK_NS", 0x93},
+  {"control_ns",   0x94}, {"CONTROL_NS",   0x94},
+  {"sp_ns",	   0x98}, {"SP_NS",	   0x98 }
 };
 
 /* Table of all shift-in-operand names.	 */
@@ -22731,6 +22782,23 @@ md_apply_fix (fixS *	fixP,
 	     changing the opcode.  */
 	  if (newimm == (unsigned int) FAIL)
 	    newimm = negate_data_op (&temp, value);
+	  /* MOV accepts both ARM modified immediate (A1 encoding) and
+	     UINT16 (A2 encoding) when possible, MOVW only accepts UINT16.
+	     When disassembling, MOV is preferred when there is no encoding
+	     overlap.  */
+	  if (newimm == (unsigned int) FAIL
+	      && ((temp >> DATA_OP_SHIFT) & 0xf) == OPCODE_MOV
+	      && ARM_CPU_HAS_FEATURE (cpu_variant, arm_ext_v6t2)
+	      && !((temp >> SBIT_SHIFT) & 0x1)
+	      && value >= 0 && value <= 0xffff)
+	    {
+	      /* Clear bits[23:20] to change encoding from A1 to A2.  */
+	      temp &= 0xff0fffff;
+	      /* Encoding high 4bits imm.  Code below will encode the remaining
+		 low 12bits.  */
+	      temp |= (value & 0x0000f000) << 4;
+	      newimm = value & 0x00000fff;
+	    }
 	}
 
       if (newimm == (unsigned int) FAIL)
@@ -22816,6 +22884,7 @@ md_apply_fix (fixS *	fixP,
     case BFD_RELOC_ARM_OFFSET_IMM:
       if (!fixP->fx_done && seg->use_rela_p)
 	value = 0;
+      /* Fall through.  */
 
     case BFD_RELOC_ARM_LITERAL:
       sign = value > 0;
@@ -23046,32 +23115,59 @@ md_apply_fix (fixS *	fixP,
       newval |= md_chars_to_number (buf+2, THUMB_SIZE);
 
       newimm = FAIL;
-      if (fixP->fx_r_type == BFD_RELOC_ARM_T32_IMMEDIATE
+      if ((fixP->fx_r_type == BFD_RELOC_ARM_T32_IMMEDIATE
+	   /* ARMv8-M Baseline MOV will reach here, but it doesn't support
+	      Thumb2 modified immediate encoding (T2).  */
+	   && ARM_CPU_HAS_FEATURE (cpu_variant, arm_ext_v6t2))
 	  || fixP->fx_r_type == BFD_RELOC_ARM_T32_ADD_IMM)
 	{
 	  newimm = encode_thumb32_immediate (value);
 	  if (newimm == (unsigned int) FAIL)
 	    newimm = thumb32_negate_data_op (&newval, value);
 	}
-      if (fixP->fx_r_type != BFD_RELOC_ARM_T32_IMMEDIATE
-	  && newimm == (unsigned int) FAIL)
+      if (newimm == (unsigned int) FAIL)
 	{
-	  /* Turn add/sum into addw/subw.  */
-	  if (fixP->fx_r_type == BFD_RELOC_ARM_T32_ADD_IMM)
-	    newval = (newval & 0xfeffffff) | 0x02000000;
-	  /* No flat 12-bit imm encoding for addsw/subsw.  */
-	  if ((newval & 0x00100000) == 0)
+	  if (fixP->fx_r_type != BFD_RELOC_ARM_T32_IMMEDIATE)
 	    {
-	      /* 12 bit immediate for addw/subw.  */
-	      if (value < 0)
+	      /* Turn add/sum into addw/subw.  */
+	      if (fixP->fx_r_type == BFD_RELOC_ARM_T32_ADD_IMM)
+		newval = (newval & 0xfeffffff) | 0x02000000;
+	      /* No flat 12-bit imm encoding for addsw/subsw.  */
+	      if ((newval & 0x00100000) == 0)
 		{
-		  value = -value;
-		  newval ^= 0x00a00000;
+		  /* 12 bit immediate for addw/subw.  */
+		  if (value < 0)
+		    {
+		      value = -value;
+		      newval ^= 0x00a00000;
+		    }
+		  if (value > 0xfff)
+		    newimm = (unsigned int) FAIL;
+		  else
+		    newimm = value;
 		}
-	      if (value > 0xfff)
-		newimm = (unsigned int) FAIL;
-	      else
-		newimm = value;
+	    }
+	  else
+	    {
+	      /* MOV accepts both Thumb2 modified immediate (T2 encoding) and
+		 UINT16 (T3 encoding), MOVW only accepts UINT16.  When
+		 disassembling, MOV is preferred when there is no encoding
+		 overlap.
+		 NOTE: MOV is using ORR opcode under Thumb 2 mode.  */
+	      if (((newval >> T2_DATA_OP_SHIFT) & 0xf) == T2_OPCODE_ORR
+		  && ARM_CPU_HAS_FEATURE (cpu_variant, arm_ext_v6t2_v8m)
+		  && !((newval >> T2_SBIT_SHIFT) & 0x1)
+		  && value >= 0 && value <=0xffff)
+		{
+		  /* Toggle bit[25] to change encoding from T2 to T3.  */
+		  newval ^= 1 << 25;
+		  /* Clear bits[19:16].  */
+		  newval &= 0xfff0ffff;
+		  /* Encoding high 4bits imm.  Code below will encode the
+		     remaining low 12bits.  */
+		  newval |= (value & 0x0000f000) << 4;
+		  newimm = value & 0x00000fff;
+		}
 	    }
 	}
 
@@ -23174,6 +23270,7 @@ md_apply_fix (fixS *	fixP,
 	  newval = md_chars_to_number (buf, INSN_SIZE);
 	  fixP->fx_done = 0;
 	}
+      /* Fall through.  */
 
     case BFD_RELOC_ARM_PLT32:
 #endif
@@ -24066,6 +24163,7 @@ tc_gen_reloc (asection *section, fixS *fixp)
 	  code = BFD_RELOC_8_PCREL;
 	  break;
 	}
+      /* Fall through.  */
 
     case BFD_RELOC_16:
       if (fixp->fx_pcrel)
@@ -24073,6 +24171,7 @@ tc_gen_reloc (asection *section, fixS *fixp)
 	  code = BFD_RELOC_16_PCREL;
 	  break;
 	}
+      /* Fall through.  */
 
     case BFD_RELOC_32:
       if (fixp->fx_pcrel)
@@ -24080,6 +24179,7 @@ tc_gen_reloc (asection *section, fixS *fixp)
 	  code = BFD_RELOC_32_PCREL;
 	  break;
 	}
+      /* Fall through.  */
 
     case BFD_RELOC_ARM_MOVW:
       if (fixp->fx_pcrel)
@@ -24087,6 +24187,7 @@ tc_gen_reloc (asection *section, fixS *fixp)
 	  code = BFD_RELOC_ARM_MOVW_PCREL;
 	  break;
 	}
+      /* Fall through.  */
 
     case BFD_RELOC_ARM_MOVT:
       if (fixp->fx_pcrel)
@@ -24094,6 +24195,7 @@ tc_gen_reloc (asection *section, fixS *fixp)
 	  code = BFD_RELOC_ARM_MOVT_PCREL;
 	  break;
 	}
+      /* Fall through.  */
 
     case BFD_RELOC_ARM_THUMB_MOVW:
       if (fixp->fx_pcrel)
@@ -24101,6 +24203,7 @@ tc_gen_reloc (asection *section, fixS *fixp)
 	  code = BFD_RELOC_ARM_THUMB_MOVW_PCREL;
 	  break;
 	}
+      /* Fall through.  */
 
     case BFD_RELOC_ARM_THUMB_MOVT:
       if (fixp->fx_pcrel)
@@ -24108,6 +24211,7 @@ tc_gen_reloc (asection *section, fixS *fixp)
 	  code = BFD_RELOC_ARM_THUMB_MOVT_PCREL;
 	  break;
 	}
+      /* Fall through.  */
 
     case BFD_RELOC_NONE:
     case BFD_RELOC_ARM_PCREL_BRANCH:
@@ -25332,17 +25436,17 @@ static const struct arm_cpu_option_table arm_cpus[] =
 								  "Cortex-A15"),
   ARM_CPU_OPT ("cortex-a17",	ARM_ARCH_V7VE,   FPU_ARCH_NEON_VFP_V4,
 								  "Cortex-A17"),
-  ARM_CPU_OPT ("cortex-a32",    ARM_ARCH_V8A,    FPU_ARCH_CRYPTO_NEON_VFP_ARMV8,
+  ARM_CPU_OPT ("cortex-a32",    ARM_ARCH_V8A_CRC, FPU_ARCH_CRYPTO_NEON_VFP_ARMV8,
 								  "Cortex-A32"),
-  ARM_CPU_OPT ("cortex-a35",    ARM_ARCH_V8A,    FPU_ARCH_CRYPTO_NEON_VFP_ARMV8,
+  ARM_CPU_OPT ("cortex-a35",    ARM_ARCH_V8A_CRC, FPU_ARCH_CRYPTO_NEON_VFP_ARMV8,
 								  "Cortex-A35"),
-  ARM_CPU_OPT ("cortex-a53",    ARM_ARCH_V8A,    FPU_ARCH_CRYPTO_NEON_VFP_ARMV8,
+  ARM_CPU_OPT ("cortex-a53",    ARM_ARCH_V8A_CRC, FPU_ARCH_CRYPTO_NEON_VFP_ARMV8,
 								  "Cortex-A53"),
-  ARM_CPU_OPT ("cortex-a57",    ARM_ARCH_V8A,    FPU_ARCH_CRYPTO_NEON_VFP_ARMV8,
+  ARM_CPU_OPT ("cortex-a57",    ARM_ARCH_V8A_CRC, FPU_ARCH_CRYPTO_NEON_VFP_ARMV8,
 								  "Cortex-A57"),
-  ARM_CPU_OPT ("cortex-a72",    ARM_ARCH_V8A,    FPU_ARCH_CRYPTO_NEON_VFP_ARMV8,
+  ARM_CPU_OPT ("cortex-a72",    ARM_ARCH_V8A_CRC, FPU_ARCH_CRYPTO_NEON_VFP_ARMV8,
 								  "Cortex-A72"),
-  ARM_CPU_OPT ("cortex-a73",    ARM_ARCH_V8A,    FPU_ARCH_CRYPTO_NEON_VFP_ARMV8,
+  ARM_CPU_OPT ("cortex-a73",    ARM_ARCH_V8A_CRC, FPU_ARCH_CRYPTO_NEON_VFP_ARMV8,
 								  "Cortex-A73"),
   ARM_CPU_OPT ("cortex-r4",	ARM_ARCH_V7R,	 FPU_NONE,	  "Cortex-R4"),
   ARM_CPU_OPT ("cortex-r4f",	ARM_ARCH_V7R,	 FPU_ARCH_VFP_V3D16,
@@ -25355,16 +25459,23 @@ static const struct arm_cpu_option_table arm_cpus[] =
   ARM_CPU_OPT ("cortex-r8",	ARM_ARCH_V7R_IDIV,
 						 FPU_ARCH_VFP_V3D16,
 								  "Cortex-R8"),
+  ARM_CPU_OPT ("cortex-m33",	ARM_ARCH_V8M_MAIN_DSP,
+						 FPU_NONE,	  "Cortex-M33"),
+  ARM_CPU_OPT ("cortex-m23",	ARM_ARCH_V8M_BASE,
+						 FPU_NONE,	  "Cortex-M23"),
   ARM_CPU_OPT ("cortex-m7",	ARM_ARCH_V7EM,	 FPU_NONE,	  "Cortex-M7"),
   ARM_CPU_OPT ("cortex-m4",	ARM_ARCH_V7EM,	 FPU_NONE,	  "Cortex-M4"),
   ARM_CPU_OPT ("cortex-m3",	ARM_ARCH_V7M,	 FPU_NONE,	  "Cortex-M3"),
   ARM_CPU_OPT ("cortex-m1",	ARM_ARCH_V6SM,	 FPU_NONE,	  "Cortex-M1"),
   ARM_CPU_OPT ("cortex-m0",	ARM_ARCH_V6SM,	 FPU_NONE,	  "Cortex-M0"),
   ARM_CPU_OPT ("cortex-m0plus",	ARM_ARCH_V6SM,	 FPU_NONE,	  "Cortex-M0+"),
-  ARM_CPU_OPT ("exynos-m1",	ARM_ARCH_V8A,	 FPU_ARCH_CRYPTO_NEON_VFP_ARMV8,
+  ARM_CPU_OPT ("exynos-m1",	ARM_ARCH_V8A_CRC, FPU_ARCH_CRYPTO_NEON_VFP_ARMV8,
 								  "Samsung " \
 								  "Exynos M1"),
-  ARM_CPU_OPT ("qdf24xx",	ARM_ARCH_V8A,	 FPU_ARCH_CRYPTO_NEON_VFP_ARMV8,
+  ARM_CPU_OPT ("falkor",	ARM_ARCH_V8A_CRC, FPU_ARCH_CRYPTO_NEON_VFP_ARMV8,
+								  "Qualcomm "
+								  "Falkor"),
+  ARM_CPU_OPT ("qdf24xx",	ARM_ARCH_V8A_CRC, FPU_ARCH_CRYPTO_NEON_VFP_ARMV8,
 								  "Qualcomm "
 								  "QDF24XX"),
 
@@ -25389,7 +25500,7 @@ static const struct arm_cpu_option_table arm_cpus[] =
   /* APM X-Gene family.  */
   ARM_CPU_OPT ("xgene1",        ARM_ARCH_V8A,    FPU_ARCH_CRYPTO_NEON_VFP_ARMV8,
 	                                                          "APM X-Gene 1"),
-  ARM_CPU_OPT ("xgene2",        ARM_ARCH_V8A,    FPU_ARCH_CRYPTO_NEON_VFP_ARMV8,
+  ARM_CPU_OPT ("xgene2",        ARM_ARCH_V8A_CRC, FPU_ARCH_CRYPTO_NEON_VFP_ARMV8,
 	                                                          "APM X-Gene 2"),
 
   { NULL, 0, ARM_ARCH_NONE, ARM_ARCH_NONE, NULL }

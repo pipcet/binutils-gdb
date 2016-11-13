@@ -37,6 +37,7 @@
 
 #include "sparc-tdep.h"
 #include "sparc-ravenscar-thread.h"
+#include <algorithm>
 
 struct regset;
 
@@ -561,7 +562,7 @@ sparc32_store_arguments (struct regcache *regcache, int nargs,
     }
 
   /* Always allocate at least six words.  */
-  sp -= max (6, num_elements) * 4;
+  sp -= std::max (6, num_elements) * 4;
 
   /* The psABI says that "Software convention requires space for the
      struct/union return value pointer, even if the word is unused."  */
@@ -640,15 +641,9 @@ sparc32_push_dummy_call (struct gdbarch *gdbarch, struct value *function,
    encode a breakpoint instruction, store the length of the string in
    *LEN and optionally adjust *PC to point to the correct memory
    location for inserting the breakpoint.  */
-   
-static const gdb_byte *
-sparc_breakpoint_from_pc (struct gdbarch *gdbarch, CORE_ADDR *pc, int *len)
-{
-  static const gdb_byte break_insn[] = { 0x91, 0xd0, 0x20, 0x01 };
+constexpr gdb_byte sparc_break_insn[] = { 0x91, 0xd0, 0x20, 0x01 };
 
-  *len = sizeof (break_insn);
-  return break_insn;
-}
+typedef BP_MANIPULATION (sparc_break_insn) sparc_breakpoint;
 
 
 /* Allocate and initialize a frame cache.  */
@@ -1604,7 +1599,7 @@ sparc_step_trap (struct frame_info *frame, unsigned long insn)
   return 0;
 }
 
-static int
+static VEC (CORE_ADDR) *
 sparc_software_single_step (struct frame_info *frame)
 {
   struct gdbarch *arch = get_frame_arch (frame);
@@ -1613,6 +1608,7 @@ sparc_software_single_step (struct frame_info *frame)
   CORE_ADDR npc, nnpc;
 
   CORE_ADDR pc, orig_npc;
+  VEC (CORE_ADDR) *next_pcs = NULL;
 
   pc = get_frame_register_unsigned (frame, tdep->pc_regnum);
   orig_npc = npc = get_frame_register_unsigned (frame, tdep->npc_regnum);
@@ -1620,10 +1616,10 @@ sparc_software_single_step (struct frame_info *frame)
   /* Analyze the instruction at PC.  */
   nnpc = sparc_analyze_control_transfer (frame, pc, &npc);
   if (npc != 0)
-    insert_single_step_breakpoint (arch, aspace, npc);
+    VEC_safe_push (CORE_ADDR, next_pcs, npc);
 
   if (nnpc != 0)
-    insert_single_step_breakpoint (arch, aspace, nnpc);
+    VEC_safe_push (CORE_ADDR, next_pcs, nnpc);
 
   /* Assert that we have set at least one breakpoint, and that
      they're not set at the same spot - unless we're going
@@ -1631,7 +1627,7 @@ sparc_software_single_step (struct frame_info *frame)
   gdb_assert (npc != 0 || nnpc != 0 || orig_npc == 0);
   gdb_assert (nnpc != npc || orig_npc == 0);
 
-  return 1;
+  return next_pcs;
 }
 
 static void
@@ -1708,7 +1704,10 @@ sparc32_gdbarch_init (struct gdbarch_info info, struct gdbarch_list *arches)
   /* Stack grows downward.  */
   set_gdbarch_inner_than (gdbarch, core_addr_lessthan);
 
-  set_gdbarch_breakpoint_from_pc (gdbarch, sparc_breakpoint_from_pc);
+  set_gdbarch_breakpoint_kind_from_pc (gdbarch,
+				       sparc_breakpoint::kind_from_pc);
+  set_gdbarch_sw_breakpoint_from_kind (gdbarch,
+				       sparc_breakpoint::bp_from_kind);
 
   set_gdbarch_frame_args_skip (gdbarch, 8);
 

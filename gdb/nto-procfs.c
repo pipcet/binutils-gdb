@@ -516,7 +516,7 @@ procfs_meminfo (char *args, int from_tty)
       return;
     }
 
-  num = min (num, num_mapinfos);
+  num = std::min (num, num_mapinfos);
 
   /* Run through the list of mapinfos, and store the data and text info
      so we can print it at the bottom of the loop.  */
@@ -726,7 +726,7 @@ interrupt_query (void)
   if (query (_("Interrupted while waiting for the program.\n\
 Give up (and stop debugging it)? ")))
     {
-      target_mourn_inferior ();
+      target_mourn_inferior (inferior_ptid);
       quit ();
     }
 }
@@ -939,7 +939,7 @@ procfs_xfer_partial (struct target_ops *ops, enum target_object object,
 	  tempread = nto_read_auxv_from_initial_stack (initial_stack, tempbuf,
 						       sizeof_tempbuf,
 						       sizeof (auxv_t));
-	  tempread = min (tempread, len) - offset;
+	  tempread = std::min (tempread, len) - offset;
 	  memcpy (readbuf, tempbuf + offset, tempread);
 	  *xfered_len = tempread;
 	  return tempread ? TARGET_XFER_OK : TARGET_XFER_EOF;
@@ -962,15 +962,8 @@ procfs_detach (struct target_ops *ops, const char *args, int from_tty)
   int siggnal = 0;
   int pid;
 
-  if (from_tty)
-    {
-      char *exec_file = get_exec_file (0);
-      if (exec_file == 0)
-	exec_file = "";
-      printf_unfiltered ("Detaching from program: %s %s\n",
-			 exec_file, target_pid_to_str (inferior_ptid));
-      gdb_flush (gdb_stdout);
-    }
+  target_announce_detach ();
+
   if (args)
     siggnal = atoi (args);
 
@@ -1011,7 +1004,8 @@ procfs_insert_breakpoint (struct target_ops *ops, struct gdbarch *gdbarch,
 
 static int
 procfs_remove_breakpoint (struct target_ops *ops, struct gdbarch *gdbarch,
-			  struct bp_target_info *bp_tgt)
+			  struct bp_target_info *bp_tgt,
+			  enum remove_bp_reason reason)
 {
   return procfs_breakpoint (bp_tgt->placed_address, _DEBUG_BREAK_EXEC, -1);
 }
@@ -1306,7 +1300,7 @@ procfs_interrupt (struct target_ops *self, ptid_t ptid)
 static void
 procfs_kill_inferior (struct target_ops *ops)
 {
-  target_mourn_inferior ();
+  target_mourn_inferior (inferior_ptid);
 }
 
 /* Fill buf with regset and return devctl cmd to do the setting.  Return

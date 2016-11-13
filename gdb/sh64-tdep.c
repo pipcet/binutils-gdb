@@ -45,6 +45,7 @@
 #include "gdb/sim-sh.h"
 #include "language.h"
 #include "sh64-tdep.h"
+#include <algorithm>
 
 /* Information that is dependent on the processor variant.  */
 enum sh_abi
@@ -252,11 +253,24 @@ pc_is_isa32 (bfd_vma memaddr)
     return 0;
 }
 
-static const unsigned char *
-sh64_breakpoint_from_pc (struct gdbarch *gdbarch,
-			 CORE_ADDR *pcptr, int *lenptr)
+static int
+sh64_breakpoint_kind_from_pc (struct gdbarch *gdbarch, CORE_ADDR *pcptr)
 {
-  /* The BRK instruction for shmedia is 
+  if (pc_is_isa32 (*pcptr))
+    {
+      *pcptr = UNMAKE_ISA32_ADDR (*pcptr);
+      return 4;
+    }
+  else
+    return 2;
+}
+
+static const gdb_byte *
+sh64_sw_breakpoint_from_kind (struct gdbarch *gdbarch, int kind, int *size)
+{
+  *size = kind;
+
+  /* The BRK instruction for shmedia is
      01101111 11110101 11111111 11110000
      which translates in big endian mode to 0x6f, 0xf5, 0xff, 0xf0
      and in little endian mode to 0xf0, 0xff, 0xf5, 0x6f */
@@ -266,41 +280,29 @@ sh64_breakpoint_from_pc (struct gdbarch *gdbarch,
      which translates in big endian mode to 0x0, 0x3b
      and in little endian mode to 0x3b, 0x0 */
 
-  if (gdbarch_byte_order (gdbarch) == BFD_ENDIAN_BIG)
+  if (kind == 4)
     {
-      if (pc_is_isa32 (*pcptr))
-	{
-	  static unsigned char big_breakpoint_media[] = {
-	    0x6f, 0xf5, 0xff, 0xf0
-	  };
-	  *pcptr = UNMAKE_ISA32_ADDR (*pcptr);
-	  *lenptr = sizeof (big_breakpoint_media);
-	  return big_breakpoint_media;
-	}
+      static unsigned char big_breakpoint_media[] = {
+	0x6f, 0xf5, 0xff, 0xf0
+      };
+      static unsigned char little_breakpoint_media[] = {
+	0xf0, 0xff, 0xf5, 0x6f
+      };
+
+      if (gdbarch_byte_order (gdbarch) == BFD_ENDIAN_BIG)
+	return big_breakpoint_media;
       else
-	{
-	  static unsigned char big_breakpoint_compact[] = {0x0, 0x3b};
-	  *lenptr = sizeof (big_breakpoint_compact);
-	  return big_breakpoint_compact;
-	}
+	return little_breakpoint_media;
     }
   else
     {
-      if (pc_is_isa32 (*pcptr))
-	{
-	  static unsigned char little_breakpoint_media[] = {
-	    0xf0, 0xff, 0xf5, 0x6f
-	  };
-	  *pcptr = UNMAKE_ISA32_ADDR (*pcptr);
-	  *lenptr = sizeof (little_breakpoint_media);
-	  return little_breakpoint_media;
-	}
+      static unsigned char big_breakpoint_compact[] = {0x0, 0x3b};
+      static unsigned char little_breakpoint_compact[] = {0x3b, 0x0};
+
+      if (gdbarch_byte_order (gdbarch) == BFD_ENDIAN_BIG)
+	return big_breakpoint_compact;
       else
-	{
-	  static unsigned char little_breakpoint_compact[] = {0x3b, 0x0};
-	  *lenptr = sizeof (little_breakpoint_compact);
-	  return little_breakpoint_compact;
-	}
+	return little_breakpoint_compact;
     }
 }
 
@@ -685,7 +687,7 @@ sh64_skip_prologue (struct gdbarch *gdbarch, CORE_ADDR pc)
   /* If after_prologue returned a useful address, then use it.  Else
      fall back on the instruction skipping code.  */
   if (post_prologue_pc != 0)
-    return max (pc, post_prologue_pc);
+    return std::max (pc, post_prologue_pc);
   else
     return sh64_skip_prologue_hard_way (gdbarch, pc);
 }
@@ -901,8 +903,11 @@ sh64_analyze_prologue (struct gdbarch *gdbarch,
 	    }
 
 	  else if (IS_MOV_R14 (insn))
-	    cache->saved_regs[MEDIA_FP_REGNUM] =
-	      cache->sp_offset - ((((insn & 0xf) ^ 0x8) - 0x8) << 2);
+	    {
+	      cache->saved_regs[MEDIA_FP_REGNUM] =
+		cache->sp_offset - ((((insn & 0xf) ^ 0x8) - 0x8) << 2);
+	      cache->uses_fp = 1;
+	    }
 
 	  else if (IS_MOV_R0 (insn))
 	    {
@@ -931,6 +936,7 @@ sh64_analyze_prologue (struct gdbarch *gdbarch,
 	      /* Store R14 at r0_val-4 from SP.  Decrement r0 by 4.  */
 	      cache->saved_regs[MEDIA_FP_REGNUM] = cache->sp_offset
 	      					   - (r0_val - 4);
+	      cache->uses_fp = 1;
 	      r0_val -= 4;
 	    }
 
@@ -957,22 +963,25 @@ sh64_analyze_prologue (struct gdbarch *gdbarch,
 						 9) << 2);
 
 	  else if (IS_STQ_R14_R15 (insn))
-	    cache->saved_regs[MEDIA_FP_REGNUM]
-	      = cache->sp_offset - (sign_extend ((insn & 0xffc00) >> 10,
-						 9) << 3);
+	    {
+	      cache->saved_regs[MEDIA_FP_REGNUM]
+		= cache->sp_offset - (sign_extend ((insn & 0xffc00) >> 10,
+						   9) << 3);
+	      cache->uses_fp = 1;
+	    }
 
 	  else if (IS_STL_R14_R15 (insn))
-	    cache->saved_regs[MEDIA_FP_REGNUM]
-	      = cache->sp_offset - (sign_extend ((insn & 0xffc00) >> 10,
-						 9) << 2);
+	    {
+	      cache->saved_regs[MEDIA_FP_REGNUM]
+		= cache->sp_offset - (sign_extend ((insn & 0xffc00) >> 10,
+						   9) << 2);
+	      cache->uses_fp = 1;
+	    }
 
 	  else if (IS_MOV_SP_FP_MEDIA (insn))
 	    break;
 	}
     }
-
-  if (cache->saved_regs[MEDIA_FP_REGNUM] >= 0)
-    cache->uses_fp = 1;
 }
 
 static CORE_ADDR
@@ -2021,15 +2030,16 @@ static void
 sh64_do_register (struct gdbarch *gdbarch, struct ui_file *file,
 		  struct frame_info *frame, int regnum)
 {
-  unsigned char raw_buffer[MAX_REGISTER_SIZE];
   struct value_print_options opts;
+  struct value *val;
 
   fputs_filtered (gdbarch_register_name (gdbarch, regnum), file);
   print_spaces_filtered (15 - strlen (gdbarch_register_name
 				      (gdbarch, regnum)), file);
 
   /* Get the data in raw format.  */
-  if (!deprecated_frame_register_read (frame, regnum, raw_buffer))
+  val = get_frame_register_value (frame, regnum);
+  if (value_optimized_out (val) || !value_entirely_available (val))
     {
       fprintf_filtered (file, "*value not available*\n");
       return;
@@ -2037,13 +2047,15 @@ sh64_do_register (struct gdbarch *gdbarch, struct ui_file *file,
 
   get_formatted_print_options (&opts, 'x');
   opts.deref_ref = 1;
-  val_print (register_type (gdbarch, regnum), raw_buffer, 0, 0,
-	     file, 0, NULL, &opts, current_language);
+  val_print (register_type (gdbarch, regnum),
+	     0, 0,
+	     file, 0, val, &opts, current_language);
   fprintf_filtered (file, "\t");
   get_formatted_print_options (&opts, 0);
   opts.deref_ref = 1;
-  val_print (register_type (gdbarch, regnum), raw_buffer, 0, 0,
-	     file, 0, NULL, &opts, current_language);
+  val_print (register_type (gdbarch, regnum),
+	     0, 0,
+	     file, 0, val, &opts, current_language);
   fprintf_filtered (file, "\n");
 }
 
@@ -2402,7 +2414,8 @@ sh64_gdbarch_init (struct gdbarch_info info, struct gdbarch_list *arches)
   set_gdbarch_pseudo_register_read (gdbarch, sh64_pseudo_register_read);
   set_gdbarch_pseudo_register_write (gdbarch, sh64_pseudo_register_write);
 
-  set_gdbarch_breakpoint_from_pc (gdbarch, sh64_breakpoint_from_pc);
+  set_gdbarch_breakpoint_kind_from_pc (gdbarch, sh64_breakpoint_kind_from_pc);
+  set_gdbarch_sw_breakpoint_from_kind (gdbarch, sh64_sw_breakpoint_from_kind);
 
   set_gdbarch_print_insn (gdbarch, print_insn_sh);
   set_gdbarch_register_sim_regno (gdbarch, legacy_register_sim_regno);

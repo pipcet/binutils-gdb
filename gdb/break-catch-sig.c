@@ -28,7 +28,8 @@
 #include "valprint.h"
 #include "cli/cli-utils.h"
 #include "completer.h"
-#include "gdb_obstack.h"
+
+#include <string>
 
 #define INTERNAL_SIGNAL(x) ((x) == GDB_SIGNAL_TRAP || (x) == GDB_SIGNAL_INT)
 
@@ -137,7 +138,8 @@ signal_catchpoint_insert_location (struct bp_location *bl)
    catchpoints.  */
 
 static int
-signal_catchpoint_remove_location (struct bp_location *bl)
+signal_catchpoint_remove_location (struct bp_location *bl,
+				   enum remove_bp_reason reason)
 {
   struct signal_catchpoint *c = (struct signal_catchpoint *) bl->owner;
   int i;
@@ -264,11 +266,7 @@ signal_catchpoint_print_one (struct breakpoint *b,
     {
       int i;
       gdb_signal_type iter;
-      struct obstack text;
-      struct cleanup *cleanup;
-
-      obstack_init (&text);
-      cleanup = make_cleanup_obstack_free (&text);
+      std::string text;
 
       for (i = 0;
            VEC_iterate (gdb_signal_type, c->signals_to_be_caught, i, iter);
@@ -277,12 +275,10 @@ signal_catchpoint_print_one (struct breakpoint *b,
 	  const char *name = signal_to_name_or_int (iter);
 
 	  if (i > 0)
-	    obstack_grow (&text, " ", 1);
-	  obstack_grow (&text, name, strlen (name));
+	    text += " ";
+	  text += name;
         }
-      obstack_grow (&text, "", 1);
-      ui_out_field_string (uiout, "what", (const char *) obstack_base (&text));
-      do_cleanups (cleanup);
+      ui_out_field_string (uiout, "what", text.c_str ());
     }
   else
     ui_out_field_string (uiout, "what",
@@ -375,7 +371,7 @@ create_signal_catchpoint (int tempflag, VEC (gdb_signal_type) *filter,
   struct signal_catchpoint *c;
   struct gdbarch *gdbarch = get_current_arch ();
 
-  c = XNEW (struct signal_catchpoint);
+  c = new signal_catchpoint ();
   init_catchpoint (&c->base, gdbarch, tempflag, NULL, &signal_catchpoint_ops);
   c->signals_to_be_caught = filter;
   c->catch_all = catch_all;

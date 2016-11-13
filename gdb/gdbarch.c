@@ -176,6 +176,7 @@ struct gdbarch
   const struct floatformat ** double_format;
   int long_double_bit;
   const struct floatformat ** long_double_format;
+  gdbarch_floatformat_for_type_ftype *floatformat_for_type;
   int ptr_bit;
   int addr_bit;
   int dwarf2_addr_size;
@@ -229,7 +230,9 @@ struct gdbarch
   gdbarch_skip_entrypoint_ftype *skip_entrypoint;
   gdbarch_inner_than_ftype *inner_than;
   gdbarch_breakpoint_from_pc_ftype *breakpoint_from_pc;
-  gdbarch_remote_breakpoint_from_pc_ftype *remote_breakpoint_from_pc;
+  gdbarch_breakpoint_kind_from_pc_ftype *breakpoint_kind_from_pc;
+  gdbarch_sw_breakpoint_from_kind_ftype *sw_breakpoint_from_kind;
+  gdbarch_breakpoint_kind_from_current_state_ftype *breakpoint_kind_from_current_state;
   gdbarch_adjust_breakpoint_address_ftype *adjust_breakpoint_address;
   gdbarch_memory_insert_breakpoint_ftype *memory_insert_breakpoint;
   gdbarch_memory_remove_breakpoint_ftype *memory_remove_breakpoint;
@@ -376,6 +379,7 @@ gdbarch_alloc (const struct gdbarch_info *info,
   gdbarch->float_bit = 4*TARGET_CHAR_BIT;
   gdbarch->double_bit = 8*TARGET_CHAR_BIT;
   gdbarch->long_double_bit = 8*TARGET_CHAR_BIT;
+  gdbarch->floatformat_for_type = default_floatformat_for_type;
   gdbarch->ptr_bit = gdbarch->int_bit;
   gdbarch->char_signed = -1;
   gdbarch->virtual_frame_pointer = legacy_virtual_frame_pointer;
@@ -401,7 +405,9 @@ gdbarch_alloc (const struct gdbarch_info *info,
   gdbarch->pointer_to_address = unsigned_pointer_to_address;
   gdbarch->address_to_pointer = unsigned_address_to_pointer;
   gdbarch->return_in_first_hidden_param_p = default_return_in_first_hidden_param_p;
-  gdbarch->remote_breakpoint_from_pc = default_remote_breakpoint_from_pc;
+  gdbarch->breakpoint_from_pc = default_breakpoint_from_pc;
+  gdbarch->sw_breakpoint_from_kind = NULL;
+  gdbarch->breakpoint_kind_from_current_state = default_breakpoint_kind_from_current_state;
   gdbarch->memory_insert_breakpoint = default_memory_insert_breakpoint;
   gdbarch->memory_remove_breakpoint = default_memory_remove_breakpoint;
   gdbarch->remote_register_number = default_remote_register_number;
@@ -494,7 +500,6 @@ verify_gdbarch (struct gdbarch *gdbarch)
   struct ui_file *log;
   struct cleanup *cleanups;
   long length;
-  char *buf;
 
   log = mem_fileopen ();
   cleanups = make_cleanup_ui_file_delete (log);
@@ -522,6 +527,7 @@ verify_gdbarch (struct gdbarch *gdbarch)
   /* Skip verify of long_double_bit, invalid_p == 0 */
   if (gdbarch->long_double_format == 0)
     gdbarch->long_double_format = floatformats_ieee_double;
+  /* Skip verify of floatformat_for_type, invalid_p == 0 */
   /* Skip verify of ptr_bit, invalid_p == 0 */
   if (gdbarch->addr_bit == 0)
     gdbarch->addr_bit = gdbarch_ptr_bit (gdbarch);
@@ -578,9 +584,11 @@ verify_gdbarch (struct gdbarch *gdbarch)
   /* Skip verify of skip_entrypoint, has predicate.  */
   if (gdbarch->inner_than == 0)
     fprintf_unfiltered (log, "\n\tinner_than");
-  if (gdbarch->breakpoint_from_pc == 0)
-    fprintf_unfiltered (log, "\n\tbreakpoint_from_pc");
-  /* Skip verify of remote_breakpoint_from_pc, invalid_p == 0 */
+  /* Skip verify of breakpoint_from_pc, invalid_p == 0 */
+  if (gdbarch->breakpoint_kind_from_pc == 0)
+    fprintf_unfiltered (log, "\n\tbreakpoint_kind_from_pc");
+  /* Skip verify of sw_breakpoint_from_kind, invalid_p == 0 */
+  /* Skip verify of breakpoint_kind_from_current_state, invalid_p == 0 */
   /* Skip verify of adjust_breakpoint_address, has predicate.  */
   /* Skip verify of memory_insert_breakpoint, invalid_p == 0 */
   /* Skip verify of memory_remove_breakpoint, invalid_p == 0 */
@@ -688,12 +696,11 @@ verify_gdbarch (struct gdbarch *gdbarch)
   /* Skip verify of gcc_target_options, invalid_p == 0 */
   /* Skip verify of gnu_triplet_regexp, invalid_p == 0 */
   /* Skip verify of addressable_memory_unit_size, invalid_p == 0 */
-  buf = ui_file_xstrdup (log, &length);
-  make_cleanup (xfree, buf);
-  if (length > 0)
+  std::string buf = ui_file_as_string (log);
+  if (!buf.empty ())
     internal_error (__FILE__, __LINE__,
                     _("verify_gdbarch: the following are invalid ...%s"),
-                    buf);
+                    buf.c_str ());
   do_cleanups (cleanups);
 }
 
@@ -789,6 +796,12 @@ gdbarch_dump (struct gdbarch *gdbarch, struct ui_file *file)
   fprintf_unfiltered (file,
                       "gdbarch_dump: breakpoint_from_pc = <%s>\n",
                       host_address_to_string (gdbarch->breakpoint_from_pc));
+  fprintf_unfiltered (file,
+                      "gdbarch_dump: breakpoint_kind_from_current_state = <%s>\n",
+                      host_address_to_string (gdbarch->breakpoint_kind_from_current_state));
+  fprintf_unfiltered (file,
+                      "gdbarch_dump: breakpoint_kind_from_pc = <%s>\n",
+                      host_address_to_string (gdbarch->breakpoint_kind_from_pc));
   fprintf_unfiltered (file,
                       "gdbarch_dump: byte_order = %s\n",
                       plongest (gdbarch->byte_order));
@@ -972,6 +985,9 @@ gdbarch_dump (struct gdbarch *gdbarch, struct ui_file *file)
   fprintf_unfiltered (file,
                       "gdbarch_dump: float_format = %s\n",
                       pformat (gdbarch->float_format));
+  fprintf_unfiltered (file,
+                      "gdbarch_dump: floatformat_for_type = <%s>\n",
+                      host_address_to_string (gdbarch->floatformat_for_type));
   fprintf_unfiltered (file,
                       "gdbarch_dump: fp0_regnum = %s\n",
                       plongest (gdbarch->fp0_regnum));
@@ -1276,9 +1292,6 @@ gdbarch_dump (struct gdbarch *gdbarch, struct ui_file *file)
                       "gdbarch_dump: relocate_instruction = <%s>\n",
                       host_address_to_string (gdbarch->relocate_instruction));
   fprintf_unfiltered (file,
-                      "gdbarch_dump: remote_breakpoint_from_pc = <%s>\n",
-                      host_address_to_string (gdbarch->remote_breakpoint_from_pc));
-  fprintf_unfiltered (file,
                       "gdbarch_dump: remote_register_number = <%s>\n",
                       host_address_to_string (gdbarch->remote_register_number));
   fprintf_unfiltered (file,
@@ -1392,6 +1405,9 @@ gdbarch_dump (struct gdbarch *gdbarch, struct ui_file *file)
   fprintf_unfiltered (file,
                       "gdbarch_dump: static_transform_name = <%s>\n",
                       host_address_to_string (gdbarch->static_transform_name));
+  fprintf_unfiltered (file,
+                      "gdbarch_dump: sw_breakpoint_from_kind = <%s>\n",
+                      host_address_to_string (gdbarch->sw_breakpoint_from_kind));
   fprintf_unfiltered (file,
                       "gdbarch_dump: syscalls_info = %s\n",
                       host_address_to_string (gdbarch->syscalls_info));
@@ -1727,6 +1743,23 @@ set_gdbarch_long_double_format (struct gdbarch *gdbarch,
                                 const struct floatformat ** long_double_format)
 {
   gdbarch->long_double_format = long_double_format;
+}
+
+const struct floatformat **
+gdbarch_floatformat_for_type (struct gdbarch *gdbarch, const char *name, int length)
+{
+  gdb_assert (gdbarch != NULL);
+  gdb_assert (gdbarch->floatformat_for_type != NULL);
+  if (gdbarch_debug >= 2)
+    fprintf_unfiltered (gdb_stdlog, "gdbarch_floatformat_for_type called\n");
+  return gdbarch->floatformat_for_type (gdbarch, name, length);
+}
+
+void
+set_gdbarch_floatformat_for_type (struct gdbarch *gdbarch,
+                                  gdbarch_floatformat_for_type_ftype floatformat_for_type)
+{
+  gdbarch->floatformat_for_type = floatformat_for_type;
 }
 
 int
@@ -2759,21 +2792,55 @@ set_gdbarch_breakpoint_from_pc (struct gdbarch *gdbarch,
   gdbarch->breakpoint_from_pc = breakpoint_from_pc;
 }
 
-void
-gdbarch_remote_breakpoint_from_pc (struct gdbarch *gdbarch, CORE_ADDR *pcptr, int *kindptr)
+int
+gdbarch_breakpoint_kind_from_pc (struct gdbarch *gdbarch, CORE_ADDR *pcptr)
 {
   gdb_assert (gdbarch != NULL);
-  gdb_assert (gdbarch->remote_breakpoint_from_pc != NULL);
+  gdb_assert (gdbarch->breakpoint_kind_from_pc != NULL);
   if (gdbarch_debug >= 2)
-    fprintf_unfiltered (gdb_stdlog, "gdbarch_remote_breakpoint_from_pc called\n");
-  gdbarch->remote_breakpoint_from_pc (gdbarch, pcptr, kindptr);
+    fprintf_unfiltered (gdb_stdlog, "gdbarch_breakpoint_kind_from_pc called\n");
+  return gdbarch->breakpoint_kind_from_pc (gdbarch, pcptr);
 }
 
 void
-set_gdbarch_remote_breakpoint_from_pc (struct gdbarch *gdbarch,
-                                       gdbarch_remote_breakpoint_from_pc_ftype remote_breakpoint_from_pc)
+set_gdbarch_breakpoint_kind_from_pc (struct gdbarch *gdbarch,
+                                     gdbarch_breakpoint_kind_from_pc_ftype breakpoint_kind_from_pc)
 {
-  gdbarch->remote_breakpoint_from_pc = remote_breakpoint_from_pc;
+  gdbarch->breakpoint_kind_from_pc = breakpoint_kind_from_pc;
+}
+
+const gdb_byte *
+gdbarch_sw_breakpoint_from_kind (struct gdbarch *gdbarch, int kind, int *size)
+{
+  gdb_assert (gdbarch != NULL);
+  gdb_assert (gdbarch->sw_breakpoint_from_kind != NULL);
+  if (gdbarch_debug >= 2)
+    fprintf_unfiltered (gdb_stdlog, "gdbarch_sw_breakpoint_from_kind called\n");
+  return gdbarch->sw_breakpoint_from_kind (gdbarch, kind, size);
+}
+
+void
+set_gdbarch_sw_breakpoint_from_kind (struct gdbarch *gdbarch,
+                                     gdbarch_sw_breakpoint_from_kind_ftype sw_breakpoint_from_kind)
+{
+  gdbarch->sw_breakpoint_from_kind = sw_breakpoint_from_kind;
+}
+
+int
+gdbarch_breakpoint_kind_from_current_state (struct gdbarch *gdbarch, struct regcache *regcache, CORE_ADDR *pcptr)
+{
+  gdb_assert (gdbarch != NULL);
+  gdb_assert (gdbarch->breakpoint_kind_from_current_state != NULL);
+  if (gdbarch_debug >= 2)
+    fprintf_unfiltered (gdb_stdlog, "gdbarch_breakpoint_kind_from_current_state called\n");
+  return gdbarch->breakpoint_kind_from_current_state (gdbarch, regcache, pcptr);
+}
+
+void
+set_gdbarch_breakpoint_kind_from_current_state (struct gdbarch *gdbarch,
+                                                gdbarch_breakpoint_kind_from_current_state_ftype breakpoint_kind_from_current_state)
+{
+  gdbarch->breakpoint_kind_from_current_state = breakpoint_kind_from_current_state;
 }
 
 int
@@ -3096,7 +3163,7 @@ gdbarch_software_single_step_p (struct gdbarch *gdbarch)
   return gdbarch->software_single_step != NULL;
 }
 
-int
+VEC (CORE_ADDR) *
 gdbarch_software_single_step (struct gdbarch *gdbarch, struct frame_info *frame)
 {
   gdb_assert (gdbarch != NULL);

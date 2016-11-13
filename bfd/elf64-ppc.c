@@ -687,7 +687,7 @@ static reloc_howto_type ppc64_elf_howto_raw[] = {
 	 TRUE,			/* pc_relative */
 	 0,			/* bitpos */
 	 complain_overflow_signed, /* complain_on_overflow */
-	 bfd_elf_generic_reloc,	/* special_function */
+	 ppc64_elf_unhandled_reloc, /* special_function */
 	 "R_PPC64_PLTREL32",	/* name */
 	 FALSE,			/* partial_inplace */
 	 0,			/* src_mask */
@@ -2490,8 +2490,9 @@ ppc64_elf_info_to_howto (bfd *abfd ATTRIBUTE_UNUSED, arelent *cache_ptr,
   type = ELF64_R_TYPE (dst->r_info);
   if (type >= ARRAY_SIZE (ppc64_elf_howto_table))
     {
-      (*_bfd_error_handler) (_("%B: invalid relocation type %d"),
-			     abfd, (int) type);
+      /* xgettext:c-format */
+      _bfd_error_handler (_("%B: invalid relocation type %d"),
+			  abfd, (int) type);
       type = R_PPC64_NONE;
     }
   cache_ptr->howto = ppc64_elf_howto_table[type];
@@ -3085,6 +3086,7 @@ get_opd_info (asection * sec)
 
 /* Parameters for the qsort hook.  */
 static bfd_boolean synthetic_relocatable;
+static asection *synthetic_opd;
 
 /* qsort comparison function for ppc64_elf_get_synthetic_symtab.  */
 
@@ -3101,12 +3103,15 @@ compare_symbols (const void *ap, const void *bp)
     return 1;
 
   /* then .opd symbols.  */
-  if (strcmp (a->section->name, ".opd") == 0
-      && strcmp (b->section->name, ".opd") != 0)
-    return -1;
-  if (strcmp (a->section->name, ".opd") != 0
-      && strcmp (b->section->name, ".opd") == 0)
-    return 1;
+  if (synthetic_opd != NULL)
+    {
+      if (strcmp (a->section->name, ".opd") == 0
+	  && strcmp (b->section->name, ".opd") != 0)
+	return -1;
+      if (strcmp (a->section->name, ".opd") != 0
+	  && strcmp (b->section->name, ".opd") == 0)
+	return 1;
+    }
 
   /* then other code symbols.  */
   if ((a->section->flags & (SEC_CODE | SEC_ALLOC | SEC_THREAD_LOCAL))
@@ -3265,6 +3270,7 @@ ppc64_elf_get_synthetic_symtab (bfd *abfd,
     memcpy (syms, static_syms, (symcount + 1) * sizeof (*syms));
 
   synthetic_relocatable = relocatable;
+  synthetic_opd = opd;
   qsort (syms, symcount, sizeof (*syms), compare_symbols);
 
   if (!relocatable && symcount > 1)
@@ -3281,7 +3287,11 @@ ppc64_elf_get_synthetic_symtab (bfd *abfd,
     }
 
   i = 0;
-  if (strcmp (syms[i]->section->name, ".opd") == 0)
+  /* Note that here and in compare_symbols we can't compare opd and
+     sym->section directly.  With separate debug info files, the
+     symbols will be extracted from the debug file while abfd passed
+     to this function is the real binary.  */
+  if (opd != NULL && strcmp (syms[i]->section->name, ".opd") == 0)
     ++i;
   codesecsym = i;
 
@@ -3297,9 +3307,10 @@ ppc64_elf_get_synthetic_symtab (bfd *abfd,
       break;
   secsymend = i;
 
-  for (; i < symcount; ++i)
-    if (strcmp (syms[i]->section->name, ".opd") != 0)
-      break;
+  if (opd != NULL)
+    for (; i < symcount; ++i)
+      if (strcmp (syms[i]->section->name, ".opd") != 0)
+	break;
   opdsymend = i;
 
   for (; i < symcount; ++i)
@@ -3950,6 +3961,9 @@ struct ppc_link_hash_entry
   /* Track dynamic relocs copied for this symbol.  */
   struct elf_dyn_relocs *dyn_relocs;
 
+  /* Chain of aliases referring to a weakdef.  */
+  struct ppc_link_hash_entry *weakref;
+
   /* Link between function code and descriptor symbols.  */
   struct ppc_link_hash_entry *oh;
 
@@ -4505,6 +4519,8 @@ ppc_get_stub_entry (const asection *input_section,
      more than one stub used to reach say, printf, and we need to
      distinguish between them.  */
   group = htab->sec_info[input_section->id].u.group;
+  if (group == NULL)
+    return NULL;
 
   if (h != NULL && h->u.stub_cache != NULL
       && h->u.stub_cache->h == h
@@ -4573,6 +4589,7 @@ ppc_add_stub (const char *stub_name,
 				     TRUE, FALSE);
   if (stub_entry == NULL)
     {
+      /* xgettext:c-format */
       info->callbacks->einfo (_("%P: %B: cannot create stub entry %s\n"),
 			      section->owner, stub_name);
       return NULL;
@@ -4736,6 +4753,45 @@ ppc64_elf_copy_indirect_symbol (struct bfd_link_info *info,
   edir->elf.needs_plt |= eind->elf.needs_plt;
   edir->elf.pointer_equality_needed |= eind->elf.pointer_equality_needed;
 
+  /* If we were called to copy over info for a weak sym, don't copy
+     dyn_relocs, plt/got info, or dynindx.  We used to copy dyn_relocs
+     in order to simplify readonly_dynrelocs and save a field in the
+     symbol hash entry, but that means dyn_relocs can't be used in any
+     tests about a specific symbol, or affect other symbol flags which
+     are then tested.
+     Chain weakdefs so we can get from the weakdef back to an alias.
+     The list is circular so that we don't need to use u.weakdef as
+     well as this list to look at all aliases.  */
+  if (eind->elf.root.type != bfd_link_hash_indirect)
+    {
+      struct ppc_link_hash_entry *cur, *add, *next;
+
+      add = eind;
+      do
+	{
+	  cur = edir->weakref;
+	  if (cur != NULL)
+	    {
+	      do
+		{
+		  /* We can be called twice for the same symbols.
+		     Don't make multiple loops.  */
+		  if (cur == add)
+		    return;
+		  cur = cur->weakref;
+		} while (cur != edir);
+	    }
+	  next = add->weakref;
+	  if (cur != add)
+	    {
+	      add->weakref = edir->weakref != NULL ? edir->weakref : edir;
+	      edir->weakref = add;
+	    }
+	  add = next;
+	} while (add != NULL && add != eind);
+      return;
+    }
+
   /* Copy over any dynamic relocs we may have on the indirect sym.  */
   if (eind->dyn_relocs != NULL)
     {
@@ -4767,16 +4823,6 @@ ppc64_elf_copy_indirect_symbol (struct bfd_link_info *info,
       edir->dyn_relocs = eind->dyn_relocs;
       eind->dyn_relocs = NULL;
     }
-
-  /* If we were called to copy over info for a weak sym, that's all.
-     You might think dyn_relocs need not be copied over;  After all,
-     both syms will be dynamic or both non-dynamic so we're just
-     moving reloc accounting around.  However, ELIMINATE_COPY_RELOCS
-     code in ppc64_elf_adjust_dynamic_symbol needs to check for
-     dyn_relocs in read-only sections, and it does so on what is the
-     DIR sym here.  */
-  if (eind->elf.root.type != bfd_link_hash_indirect)
-    return;
 
   /* Copy over got entries that we may have already seen to the
      symbol which just became indirect.  */
@@ -5079,8 +5125,9 @@ ppc64_elf_before_check_relocs (bfd *ibfd, struct bfd_link_info *info)
     {
       if (abiversion (ibfd) == 0)
 	set_abiversion (ibfd, 1);
-      else if (abiversion (ibfd) == 2)
+      else if (abiversion (ibfd) >= 2)
 	{
+	  /* xgettext:c-format */
 	  info->callbacks->einfo (_("%P: %B .opd not allowed in ABI"
 				    " version %d\n"),
 				  ibfd, abiversion (ibfd));
@@ -5427,7 +5474,7 @@ ppc64_elf_check_relocs (bfd *abfd, struct bfd_link_info *info,
 	  tls_type = TLS_TLS | TLS_DTPREL;
 	dogottls:
 	  sec->has_tls_reloc = 1;
-	  /* Fall thru */
+	  /* Fall through */
 
 	case R_PPC64_GOT16:
 	case R_PPC64_GOT16_DS:
@@ -5515,6 +5562,7 @@ ppc64_elf_check_relocs (bfd *abfd, struct bfd_link_info *info,
 	      /* It does not make sense to have a procedure linkage
 		 table entry for a non-ifunc local symbol.  */
 	      info->callbacks->einfo
+		/* xgettext:c-format */
 		(_("%P: %H: %s reloc against local symbol\n"),
 		 abfd, sec, rel->r_offset,
 		 ppc64_elf_howto_table[r_type]->name);
@@ -5562,6 +5610,7 @@ ppc64_elf_check_relocs (bfd *abfd, struct bfd_link_info *info,
 	    {
 	      if (!ppc64_elf_howto_table[R_PPC64_ADDR32])
 		ppc_howto_init ();
+	      /* xgettext:c-format */
 	      info->callbacks->einfo (_("%P: %H: %s reloc unsupported "
 					"in shared libraries and PIEs.\n"),
 				      abfd, sec, rel->r_offset,
@@ -5575,6 +5624,7 @@ ppc64_elf_check_relocs (bfd *abfd, struct bfd_link_info *info,
 	case R_PPC64_TOC16_DS:
 	  htab->do_multi_toc = 1;
 	  ppc64_elf_tdata (abfd)->has_small_toc_reloc = 1;
+	  /* Fall through.  */
 	case R_PPC64_TOC16_LO:
 	case R_PPC64_TOC16_HI:
 	case R_PPC64_TOC16_HA:
@@ -5954,8 +6004,9 @@ ppc64_elf_check_relocs (bfd *abfd, struct bfd_link_info *info,
    object file when linking.  */
 
 static bfd_boolean
-ppc64_elf_merge_private_bfd_data (bfd *ibfd, bfd *obfd)
+ppc64_elf_merge_private_bfd_data (bfd *ibfd, struct bfd_link_info *info)
 {
+  bfd *obfd = info->output_bfd;
   unsigned long iflags, oflags;
 
   if ((ibfd->flags & BFD_LINKER_CREATED) != 0)
@@ -5964,7 +6015,7 @@ ppc64_elf_merge_private_bfd_data (bfd *ibfd, bfd *obfd)
   if (!is_ppc64_elf (ibfd) || !is_ppc64_elf (obfd))
     return TRUE;
 
-  if (!_bfd_generic_verify_endian_match (ibfd, obfd))
+  if (!_bfd_generic_verify_endian_match (ibfd, info))
     return FALSE;
 
   iflags = elf_elfheader (ibfd)->e_flags;
@@ -5972,22 +6023,26 @@ ppc64_elf_merge_private_bfd_data (bfd *ibfd, bfd *obfd)
 
   if (iflags & ~EF_PPC64_ABI)
     {
-      (*_bfd_error_handler)
+      _bfd_error_handler
+	/* xgettext:c-format */
 	(_("%B uses unknown e_flags 0x%lx"), ibfd, iflags);
       bfd_set_error (bfd_error_bad_value);
       return FALSE;
     }
   else if (iflags != oflags && iflags != 0)
     {
-      (*_bfd_error_handler)
+      _bfd_error_handler
+	/* xgettext:c-format */
 	(_("%B: ABI version %ld is not compatible with ABI version %ld output"),
 	 ibfd, iflags, oflags);
       bfd_set_error (bfd_error_bad_value);
       return FALSE;
     }
 
+  _bfd_elf_ppc_merge_fp_attributes (ibfd, info);
+
   /* Merge Tag_compatibility attributes and any common GNU ones.  */
-  _bfd_elf_merge_object_attributes (ibfd, obfd);
+  _bfd_elf_merge_object_attributes (ibfd, info);
 
   return TRUE;
 }
@@ -6002,7 +6057,6 @@ ppc64_elf_print_private_bfd_data (bfd *abfd, void *ptr)
     {
       FILE *file = ptr;
 
-      /* xgettext:c-format */
       fprintf (file, _("private flags = 0x%lx:"),
 	       elf_elfheader (abfd)->e_flags);
 
@@ -7100,7 +7154,8 @@ ppc64_elf_func_desc_adjust (bfd *obfd ATTRIBUTE_UNUSED,
   return TRUE;
 }
 
-/* Return true if we have dynamic relocs that apply to read-only sections.  */
+/* Return true if we have dynamic relocs against H that apply to
+   read-only sections.  */
 
 static bfd_boolean
 readonly_dynrelocs (struct elf_link_hash_entry *h)
@@ -7116,6 +7171,58 @@ readonly_dynrelocs (struct elf_link_hash_entry *h)
       if (s != NULL && (s->flags & SEC_READONLY) != 0)
 	return TRUE;
     }
+  return FALSE;
+}
+
+/* Return true if we have dynamic relocs against H or any of its weak
+   aliases, that apply to read-only sections.  */
+
+static bfd_boolean
+alias_readonly_dynrelocs (struct elf_link_hash_entry *h)
+{
+  struct ppc_link_hash_entry *eh;
+
+  eh = (struct ppc_link_hash_entry *) h;
+  do
+    {
+      if (readonly_dynrelocs (&eh->elf))
+	return TRUE;
+      eh = eh->weakref;
+    } while (eh != NULL && &eh->elf != h);
+
+  return FALSE;
+}
+
+/* Return whether EH has pc-relative dynamic relocs.  */
+
+static bfd_boolean
+pc_dynrelocs (struct ppc_link_hash_entry *eh)
+{
+  struct elf_dyn_relocs *p;
+
+  for (p = eh->dyn_relocs; p != NULL; p = p->next)
+    if (p->pc_count != 0)
+      return TRUE;
+  return FALSE;
+}
+
+/* Return true if a global entry stub will be created for H.  Valid
+   for ELFv2 before plt entries have been allocated.  */
+
+static bfd_boolean
+global_entry_stub (struct elf_link_hash_entry *h)
+{
+  struct plt_entry *pent;
+
+  if (!h->pointer_equality_needed
+      || h->def_regular)
+    return FALSE;
+
+  for (pent = h->plt.plist; pent != NULL; pent = pent->next)
+    if (pent->plt.refcount > 0
+	&& pent->addend == 0)
+      return TRUE;
+
   return FALSE;
 }
 
@@ -7158,34 +7265,24 @@ ppc64_elf_adjust_dynamic_symbol (struct bfd_link_info *info,
 	  h->needs_plt = 0;
 	  h->pointer_equality_needed = 0;
 	}
-      else if (abiversion (info->output_bfd) == 2)
+      else if (abiversion (info->output_bfd) >= 2)
 	{
 	  /* Taking a function's address in a read/write section
 	     doesn't require us to define the function symbol in the
 	     executable on a global entry stub.  A dynamic reloc can
-	     be used instead.  */
-	  if (h->pointer_equality_needed
-	      && h->type != STT_GNU_IFUNC
-	      && !readonly_dynrelocs (h))
+	     be used instead.  The reason we prefer a few more dynamic
+	     relocs is that calling via a global entry stub costs a
+	     few more instructions, and pointer_equality_needed causes
+	     extra work in ld.so when resolving these symbols.  */
+	  if (global_entry_stub (h)
+	      && !alias_readonly_dynrelocs (h))
 	    {
 	      h->pointer_equality_needed = 0;
+	      /* After adjust_dynamic_symbol, non_got_ref set in
+		 the non-pic case means that dyn_relocs for this
+		 symbol should be discarded.  */
 	      h->non_got_ref = 0;
 	    }
-
-	  /* After adjust_dynamic_symbol, non_got_ref set in the
-	     non-shared case means that we have allocated space in
-	     .dynbss for the symbol and thus dyn_relocs for this
-	     symbol should be discarded.
-	     If we get here we know we are making a PLT entry for this
-	     symbol, and in an executable we'd normally resolve
-	     relocations against this symbol to the PLT entry.  Allow
-	     dynamic relocs if the reference is weak, and the dynamic
-	     relocs will not cause text relocation.  */
-	  else if (!h->ref_regular_nonweak
-		   && h->non_got_ref
-		   && h->type != STT_GNU_IFUNC
-		   && !readonly_dynrelocs (h))
-	    h->non_got_ref = 0;
 
 	  /* If making a plt entry, then we don't need copy relocs.  */
 	  return TRUE;
@@ -7221,29 +7318,20 @@ ppc64_elf_adjust_dynamic_symbol (struct bfd_link_info *info,
     return TRUE;
 
   /* Don't generate a copy reloc for symbols defined in the executable.  */
-  if (!h->def_dynamic || !h->ref_regular || h->def_regular)
-    return TRUE;
+  if (!h->def_dynamic || !h->ref_regular || h->def_regular
 
-  /* If -z nocopyreloc was given, don't generate them either.  */
-  if (info->nocopyreloc)
-    {
-      h->non_got_ref = 0;
-      return TRUE;
-    }
+      /* If -z nocopyreloc was given, don't generate them either.  */
+      || info->nocopyreloc
 
-  /* If we didn't find any dynamic relocs in read-only sections, then
-     we'll be keeping the dynamic relocs and avoiding the copy reloc.  */
-  if (ELIMINATE_COPY_RELOCS && !readonly_dynrelocs (h))
-    {
-      h->non_got_ref = 0;
-      return TRUE;
-    }
+      /* If we didn't find any dynamic relocs in read-only sections, then
+	 we'll be keeping the dynamic relocs and avoiding the copy reloc.  */
+      || (ELIMINATE_COPY_RELOCS && !alias_readonly_dynrelocs (h))
 
-  /* Protected variables do not work with .dynbss.  The copy in
-     .dynbss won't be used by the shared library with the protected
-     definition for the variable.  Text relocations are preferable
-     to an incorrect program.  */
-  if (h->protected_def)
+      /* Protected variables do not work with .dynbss.  The copy in
+	 .dynbss won't be used by the shared library with the protected
+	 definition for the variable.  Text relocations are preferable
+	 to an incorrect program.  */
+      || h->protected_def)
     {
       h->non_got_ref = 0;
       return TRUE;
@@ -7519,7 +7607,7 @@ tocsave_find (struct ppc_link_hash_table *htab,
     return NULL;
   if (ent.sec == NULL || ent.sec->output_section == NULL)
     {
-      (*_bfd_error_handler)
+      _bfd_error_handler
 	(_("%B: undefined symbol on R_PPC64_TOCSAVE relocation"));
       return NULL;
     }
@@ -7749,6 +7837,7 @@ dec_dynrel_count (bfd_vma r_info,
 	}
     }
 
+  /* xgettext:c-format */
   info->callbacks->einfo (_("%P: dynreloc miscount for %B, section %A\n"),
 			  sec->owner, sec);
   bfd_set_error (bfd_error_bad_value);
@@ -7837,7 +7926,7 @@ ppc64_elf_edit_opd (struct bfd_link_info *info)
 		 something silly in .opd with the assembler.  No .opd
 		 optimization for them!  */
 	    broken_opd:
-	      (*_bfd_error_handler)
+	      _bfd_error_handler
 		(_("%B: .opd is not a regular array of opd entries"), ibfd);
 	      broken = TRUE;
 	      break;
@@ -7846,7 +7935,8 @@ ppc64_elf_edit_opd (struct bfd_link_info *info)
 	  if ((r_type = ELF64_R_TYPE (rel->r_info)) != R_PPC64_ADDR64
 	      || (r_type = ELF64_R_TYPE ((rel + 1)->r_info)) != R_PPC64_TOC)
 	    {
-	      (*_bfd_error_handler)
+	      _bfd_error_handler
+		/* xgettext:c-format */
 		(_("%B: unexpected reloc type %u in .opd section"),
 		 ibfd, r_type);
 	      broken = TRUE;
@@ -7867,7 +7957,8 @@ ppc64_elf_edit_opd (struct bfd_link_info *info)
 		sym_name = bfd_elf_sym_name (ibfd, symtab_hdr, sym,
 					     sym_sec);
 
-	      (*_bfd_error_handler)
+	      _bfd_error_handler
+		/* xgettext:c-format */
 		(_("%B: undefined sym `%s' in .opd section"),
 		 ibfd, sym_name);
 	      broken = TRUE;
@@ -8444,7 +8535,7 @@ ppc64_elf_tls_optimize (struct bfd_link_info *info)
 		    case R_PPC64_GOT_TLSLD16_LO:
 		      expecting_tls_get_addr = 1;
 		      found_tls_get_addr_arg = 1;
-		      /* Fall thru */
+		      /* Fall through.  */
 
 		    case R_PPC64_GOT_TLSLD16_HI:
 		    case R_PPC64_GOT_TLSLD16_HA:
@@ -8464,7 +8555,7 @@ ppc64_elf_tls_optimize (struct bfd_link_info *info)
 		    case R_PPC64_GOT_TLSGD16_LO:
 		      expecting_tls_get_addr = 1;
 		      found_tls_get_addr_arg = 1;
-		      /* Fall thru */
+		      /* Fall through. */
 
 		    case R_PPC64_GOT_TLSGD16_HI:
 		    case R_PPC64_GOT_TLSGD16_HA:
@@ -8495,7 +8586,7 @@ ppc64_elf_tls_optimize (struct bfd_link_info *info)
 		    case R_PPC64_TLSGD:
 		    case R_PPC64_TLSLD:
 		      found_tls_get_addr_arg = 1;
-		      /* Fall thru */
+		      /* Fall through.  */
 
 		    case R_PPC64_TLS:
 		    case R_PPC64_TOC16:
@@ -8627,6 +8718,7 @@ ppc64_elf_tls_optimize (struct bfd_link_info *info)
 			 could just mark this symbol to exclude it
 			 from tls optimization but it's safer to skip
 			 the entire optimization.  */
+		      /* xgettext:c-format */
 		      info->callbacks->minfo (_("%H arg lost __tls_get_addr, "
 						"TLS optimization disabled\n"),
 					      ibfd, sec, rel->r_offset);
@@ -8771,7 +8863,7 @@ adjust_toc_syms (struct elf_link_hash_entry *h, void *inf)
 
       if ((toc_inf->skip[i] & (ref_from_discarded | can_optimize)) != 0)
 	{
-	  (*_bfd_error_handler)
+	  _bfd_error_handler
 	    (_("%s defined on removed toc entry"), eh->elf.root.root.string);
 	  do
 	    ++i;
@@ -9125,6 +9217,7 @@ ppc64_elf_edit_toc (struct bfd_link_info *info)
 			  ppc64_elf_tdata (ibfd)->unexpected_toc_insn = 1;
 			  sprintf (str, "%#08x", insn);
 			  info->callbacks->einfo
+			    /* xgettext:c-format */
 			    (_("%P: %H: toc optimization is not supported for"
 			       " %s instruction.\n"),
 			     ibfd, sec, rel->r_offset & ~3, str);
@@ -9188,7 +9281,7 @@ ppc64_elf_edit_toc (struct bfd_link_info *info)
 			    }
 			  if ((opc & (0x3f << 2)) == (58u << 2))
 			    break;
-			  /* Fall thru */
+			  /* Fall through.  */
 
 			default:
 			  /* Wrong sort of reloc, or not a ld.  We may
@@ -9353,6 +9446,7 @@ ppc64_elf_edit_toc (struct bfd_link_info *info)
 			  if (!ppc64_elf_howto_table[R_PPC64_ADDR32])
 			    ppc_howto_init ();
 			  info->callbacks->einfo
+			    /* xgettext:c-format */
 			    (_("%P: %H: %s references "
 			       "optimized away TOC entry\n"),
 			     ibfd, sec, rel->r_offset,
@@ -9395,7 +9489,7 @@ ppc64_elf_edit_toc (struct bfd_link_info *info)
 		  if ((skip[i] & (ref_from_discarded | can_optimize)) != 0)
 		    {
 		      if (local_toc_syms)
-			(*_bfd_error_handler)
+			_bfd_error_handler
 			  (_("%s defined on removed toc entry"),
 			   bfd_elf_sym_name (ibfd, symtab_hdr, sym, NULL));
 		      do
@@ -9545,7 +9639,6 @@ allocate_dynrelocs (struct elf_link_hash_entry *h, void *inf)
   struct ppc_link_hash_table *htab;
   asection *s;
   struct ppc_link_hash_entry *eh;
-  struct elf_dyn_relocs *p;
   struct got_entry **pgent, *gent;
 
   if (h->root.type == bfd_link_hash_indirect)
@@ -9625,10 +9718,14 @@ allocate_dynrelocs (struct elf_link_hash_entry *h, void *inf)
 	allocate_got (h, info, gent);
       }
 
-  if (eh->dyn_relocs != NULL
-      && (htab->elf.dynamic_sections_created
-	  || h->type == STT_GNU_IFUNC))
+  if (!htab->elf.dynamic_sections_created
+      && h->type != STT_GNU_IFUNC)
+    eh->dyn_relocs = NULL;
+
+  if (eh->dyn_relocs != NULL)
     {
+      struct elf_dyn_relocs *p, **pp;
+
       /* In the shared -Bsymbolic case, discard space allocated for
 	 dynamic pc-relative relocs against symbols which turn out to
 	 be defined in regular objects.  For the normal shared case,
@@ -9646,8 +9743,6 @@ allocate_dynrelocs (struct elf_link_hash_entry *h, void *inf)
 	     avoid writing weird assembly.  */
 	  if (SYMBOL_CALLS_LOCAL (info, h))
 	    {
-	      struct elf_dyn_relocs **pp;
-
 	      for (pp = &eh->dyn_relocs; (p = *pp) != NULL; )
 		{
 		  p->count -= p->pc_count;
@@ -9679,36 +9774,47 @@ allocate_dynrelocs (struct elf_link_hash_entry *h, void *inf)
 	}
       else if (h->type == STT_GNU_IFUNC)
 	{
-	  if (!h->non_got_ref)
+	  /* A plt entry is always created when making direct calls to
+	     an ifunc, even when building a static executable, but
+	     that doesn't cover all cases.  We may have only an ifunc
+	     initialised function pointer for a given ifunc symbol.
+
+	     For ELFv2, dynamic relocations are not required when
+	     generating a global entry PLT stub.  */
+	  if (abiversion (info->output_bfd) >= 2)
+	    {
+	      if (global_entry_stub (h))
+		eh->dyn_relocs = NULL;
+	    }
+
+	  /* For ELFv1 we have function descriptors.  Descriptors need
+	     to be treated like PLT entries and thus have dynamic
+	     relocations.  One exception is when the function
+	     descriptor is copied into .dynbss (which should only
+	     happen with ancient versions of gcc).  */
+	  else if (h->needs_copy)
 	    eh->dyn_relocs = NULL;
 	}
       else if (ELIMINATE_COPY_RELOCS)
 	{
-	  /* For the non-shared case, discard space for relocs against
+	  /* For the non-pic case, discard space for relocs against
 	     symbols which turn out to need copy relocs or are not
 	     dynamic.  */
 
-	  if (!h->non_got_ref
-	      && !h->def_regular)
-	    {
-	      /* Make sure this symbol is output as a dynamic symbol.
-		 Undefined weak syms won't yet be marked as dynamic.  */
-	      if (h->dynindx == -1
-		  && !h->forced_local)
-		{
-		  if (! bfd_elf_link_record_dynamic_symbol (info, h))
-		    return FALSE;
-		}
+	  /* First make sure this symbol is output as a dynamic symbol.
+	     Undefined weak syms won't yet be marked as dynamic.  */
+	  if (h->root.type == bfd_link_hash_undefweak
+	      && !h->non_got_ref
+	      && !h->def_regular
+	      && h->dynindx == -1
+	      && !h->forced_local
+	      && !bfd_elf_link_record_dynamic_symbol (info, h))
+	    return FALSE;
 
-	      /* If that succeeded, we know we'll be keeping all the
-		 relocs.  */
-	      if (h->dynindx != -1)
-		goto keep;
-	    }
-
-	  eh->dyn_relocs = NULL;
-
-	keep: ;
+	  if (h->non_got_ref
+	      || h->def_regular
+	      || h->dynindx == -1)
+	    eh->dyn_relocs = NULL;
 	}
 
       /* Finally, allocate space.  */
@@ -9825,6 +9931,7 @@ size_global_entry_stubs (struct elf_link_hash_entry *h, void *inf)
 	   need to define the symbol in the executable on a call stub.
 	   This is to avoid text relocations.  */
 	s->size = (s->size + 15) & -16;
+	h->root.type = bfd_link_hash_defined;
 	h->root.u.def.section = s;
 	h->root.u.def.value = s->size;
 	s->size += 16;
@@ -11029,6 +11136,7 @@ ppc_build_one_stub (struct bfd_hash_entry *gen_entry, void *in_arg)
       if (off + 0x80008000 > 0xffffffff || (off & 7) != 0)
 	{
 	  info->callbacks->einfo
+	    /* xgettext:c-format */
 	    (_("%P: linkage table error against `%T'\n"),
 	     stub_entry->h != NULL
 	     ? stub_entry->h->elf.root.root.string
@@ -11968,7 +12076,6 @@ group_sections (struct bfd_link_info *info,
 {
   struct ppc_link_hash_table *htab;
   asection *osec;
-  bfd_size_type stub14_group_size;
   bfd_boolean suppress_size_errors;
 
   htab = ppc_hash_table (info);
@@ -11976,20 +12083,13 @@ group_sections (struct bfd_link_info *info,
     return FALSE;
 
   suppress_size_errors = FALSE;
-  stub14_group_size = stub_group_size >> 10;
   if (stub_group_size == 1)
     {
       /* Default values.  */
       if (stubs_always_before_branch)
-	{
-	  stub_group_size = 0x1e00000;
-	  stub14_group_size = 0x7800;
-	}
+	stub_group_size = 0x1e00000;
       else
-	{
-	  stub_group_size = 0x1c00000;
-	  stub14_group_size = 0x7000;
-	}
+	stub_group_size = 0x1c00000;
       suppress_size_errors = TRUE;
     }
 
@@ -12009,35 +12109,39 @@ group_sections (struct bfd_link_info *info,
 	  bfd_boolean big_sec;
 	  bfd_vma curr_toc;
 	  struct map_stub *group;
+	  bfd_size_type group_size;
 
 	  curr = tail;
 	  total = tail->size;
-	  big_sec = total > (ppc64_elf_section_data (tail) != NULL
-			     && ppc64_elf_section_data (tail)->has_14bit_branch
-			     ? stub14_group_size : stub_group_size);
+	  group_size = (ppc64_elf_section_data (tail) != NULL
+			&& ppc64_elf_section_data (tail)->has_14bit_branch
+			? stub_group_size >> 10 : stub_group_size);
+
+	  big_sec = total > group_size;
 	  if (big_sec && !suppress_size_errors)
-	    (*_bfd_error_handler) (_("%B section %A exceeds stub group size"),
-				     tail->owner, tail);
+	    /* xgettext:c-format */
+	    _bfd_error_handler (_("%B section %A exceeds stub group size"),
+				tail->owner, tail);
 	  curr_toc = htab->sec_info[tail->id].toc_off;
 
 	  while ((prev = htab->sec_info[curr->id].u.list) != NULL
 		 && ((total += curr->output_offset - prev->output_offset)
 		     < (ppc64_elf_section_data (prev) != NULL
 			&& ppc64_elf_section_data (prev)->has_14bit_branch
-			? stub14_group_size : stub_group_size))
+			? (group_size = stub_group_size >> 10) : group_size))
 		 && htab->sec_info[prev->id].toc_off == curr_toc)
 	    curr = prev;
 
 	  /* OK, the size from the start of CURR to the end is less
-	     than stub_group_size and thus can be handled by one stub
+	     than group_size and thus can be handled by one stub
 	     section.  (or the tail section is itself larger than
-	     stub_group_size, in which case we may be toast.)  We
-	     should really be keeping track of the total size of stubs
-	     added here, as stubs contribute to the final output
-	     section size.  That's a little tricky, and this way will
-	     only break if stubs added make the total size more than
-	     2^25, ie. for the default stub_group_size, if stubs total
-	     more than 2097152 bytes, or nearly 75000 plt call stubs.  */
+	     group_size, in which case we may be toast.)  We should
+	     really be keeping track of the total size of stubs added
+	     here, as stubs contribute to the final output section
+	     size.  That's a little tricky, and this way will only
+	     break if stubs added make the total size more than 2^25,
+	     ie. for the default stub_group_size, if stubs total more
+	     than 2097152 bytes, or nearly 75000 plt call stubs.  */
 	  group = bfd_alloc (curr->owner, sizeof (*group));
 	  if (group == NULL)
 	    return FALSE;
@@ -12054,7 +12158,7 @@ group_sections (struct bfd_link_info *info,
 	    }
 	  while (tail != curr && (tail = prev) != NULL);
 
-	  /* But wait, there's more!  Input sections up to stub_group_size
+	  /* But wait, there's more!  Input sections up to group_size
 	     bytes before the stub section can be handled by it too.
 	     Don't do this if we have a really large section after the
 	     stubs, as adding more stubs increases the chance that
@@ -12066,7 +12170,7 @@ group_sections (struct bfd_link_info *info,
 		     && ((total += tail->output_offset - prev->output_offset)
 			 < (ppc64_elf_section_data (prev) != NULL
 			    && ppc64_elf_section_data (prev)->has_14bit_branch
-			    ? stub14_group_size : stub_group_size))
+			    ? (group_size = stub_group_size >> 10) : group_size))
 		     && htab->sec_info[prev->id].toc_off == curr_toc)
 		{
 		  tail = prev;
@@ -13470,7 +13574,9 @@ ppc64_elf_relocate_section (bfd *output_bfd,
 	  else
 	    info->callbacks->einfo
 	      (!IS_PPC64_TLS_RELOC (r_type)
+	       /* xgettext:c-format */
 	       ? _("%P: %H: %s used with TLS symbol `%T'\n")
+	       /* xgettext:c-format */
 	       : _("%P: %H: %s used with non-TLS symbol `%T'\n"),
 	       input_bfd, input_section, rel->r_offset,
 	       ppc64_elf_howto_table[r_type]->name,
@@ -13985,18 +14091,18 @@ ppc64_elf_relocate_section (bfd *output_bfd,
 	case R_PPC64_ADDR14_BRTAKEN:
 	case R_PPC64_REL14_BRTAKEN:
 	  insn = 0x01 << 21; /* 'y' or 't' bit, lowest bit of BO field.  */
-	  /* Fall thru.  */
+	  /* Fall through.  */
 
 	  /* Branch not taken prediction relocations.  */
 	case R_PPC64_ADDR14_BRNTAKEN:
 	case R_PPC64_REL14_BRNTAKEN:
 	  insn |= bfd_get_32 (output_bfd,
 			      contents + rel->r_offset) & ~(0x01 << 21);
-	  /* Fall thru.  */
+	  /* Fall through.  */
 
 	case R_PPC64_REL14:
 	  max_br_offset = 1 << 15;
-	  /* Fall thru.  */
+	  /* Fall through.  */
 
 	case R_PPC64_REL24:
 	  /* Calls to functions with a different TOC, such as calls to
@@ -14100,11 +14206,13 @@ ppc64_elf_relocate_section (bfd *output_bfd,
 		  if (stub_entry->stub_type == ppc_stub_plt_call
 		      || stub_entry->stub_type == ppc_stub_plt_call_r2save)
 		    info->callbacks->einfo
+		      /* xgettext:c-format */
 		      (_("%P: %H: call to `%T' lacks nop, can't restore toc; "
 			 "recompile with -fPIC\n"),
 		       input_bfd, input_section, rel->r_offset, sym_name);
 		  else
 		    info->callbacks->einfo
+		      /* xgettext:c-format */
 		      (_("%P: %H: call to `%T' lacks nop, can't restore toc; "
 			 "(-mcmodel=small toc adjust stub)\n"),
 		       input_bfd, input_section, rel->r_offset, sym_name);
@@ -14232,6 +14340,7 @@ ppc64_elf_relocate_section (bfd *output_bfd,
 	{
 	default:
 	  info->callbacks->einfo
+	    /* xgettext:c-format */
 	    (_("%P: %B: unknown relocation type %d for `%T'\n"),
 	     input_bfd, (int) r_type, sym_name);
 
@@ -14642,7 +14751,7 @@ ppc64_elf_relocate_section (bfd *output_bfd,
 	case R_PPC64_DTPREL64:
 	  if (htab->elf.tls_sec != NULL)
 	    addend -= htab->elf.tls_sec->vma + DTP_OFFSET;
-	  /* Fall thru */
+	  /* Fall through.  */
 
 	  /* Relocations that may need to be propagated if this is a
 	     dynamic object.  */
@@ -14677,22 +14786,12 @@ ppc64_elf_relocate_section (bfd *output_bfd,
 	  if (NO_OPD_RELOCS && is_opd)
 	    break;
 
-	  if ((bfd_link_pic (info)
-	       && (h == NULL
-		   || ELF_ST_VISIBILITY (h->elf.other) == STV_DEFAULT
-		   || h->elf.root.type != bfd_link_hash_undefweak)
-	       && (must_be_dyn_reloc (info, r_type)
-		   || !SYMBOL_CALLS_LOCAL (info, &h->elf)))
-	      || (ELIMINATE_COPY_RELOCS
-		  && !bfd_link_pic (info)
-		  && h != NULL
-		  && h->elf.dynindx != -1
-		  && !h->elf.non_got_ref
-		  && !h->elf.def_regular)
-	      || (!bfd_link_pic (info)
-		  && (h != NULL
-		      ? h->elf.type == STT_GNU_IFUNC
-		      : ELF_ST_TYPE (sym->st_info) == STT_GNU_IFUNC)))
+	  if (bfd_link_pic (info)
+	      ? ((h != NULL && pc_dynrelocs (h))
+		 || must_be_dyn_reloc (info, r_type))
+	      : (h != NULL
+		 ? h->dyn_relocs != NULL
+		 : ELF_ST_TYPE (sym->st_info) == STT_GNU_IFUNC))
 	    {
 	      bfd_boolean skip, relocate;
 	      asection *sreloc;
@@ -14784,6 +14883,7 @@ ppc64_elf_relocate_section (bfd *output_bfd,
 			  : ELF_ST_TYPE (sym->st_info) == STT_GNU_IFUNC)
 			{
 			  info->callbacks->einfo
+			    /* xgettext:c-format */
 			    (_("%P: %H: %s for indirect "
 			       "function `%T' unsupported\n"),
 			     input_bfd, input_section, rel->r_offset,
@@ -14891,6 +14991,7 @@ ppc64_elf_relocate_section (bfd *output_bfd,
 	  /* These ones haven't been implemented yet.  */
 
 	  info->callbacks->einfo
+	    /* xgettext:c-format */
 	    (_("%P: %B: %s is not supported for `%T'\n"),
 	     input_bfd,
 	     ppc64_elf_howto_table[r_type]->name, sym_name);
@@ -14995,7 +15096,7 @@ ppc64_elf_relocate_section (bfd *output_bfd,
 	     alone (it will be set to zero elsewhere in the link).  */
 	  if (sec == NULL)
 	    break;
-	  /* Fall thru */
+	  /* Fall through.  */
 
 	case R_PPC64_GOT16_HA:
 	case R_PPC64_PLTGOT16_HA:
@@ -15045,6 +15146,7 @@ ppc64_elf_relocate_section (bfd *output_bfd,
 	    {
 	      relocation ^= relocation & mask;
 	      info->callbacks->einfo
+		/* xgettext:c-format */
 		(_("%P: %H: error: %s not a multiple of %u\n"),
 		 input_bfd, input_section, rel->r_offset,
 		 howto->name,
@@ -15066,6 +15168,7 @@ ppc64_elf_relocate_section (bfd *output_bfd,
 				      rel->r_offset) != (bfd_vma) -1)
 	{
 	  info->callbacks->einfo
+	    /* xgettext:c-format */
 	    (_("%P: %H: unresolvable %s against `%T'\n"),
 	     input_bfd, input_section, rel->r_offset,
 	     howto->name,
@@ -15162,6 +15265,7 @@ ppc64_elf_relocate_section (bfd *output_bfd,
 	  else
 	    {
 	      info->callbacks->einfo
+		/* xgettext:c-format */
 		(_("%P: %H: %s against `%T': error %d\n"),
 		 input_bfd, input_section, rel->r_offset,
 		 reloc_name, sym_name, (int) r);

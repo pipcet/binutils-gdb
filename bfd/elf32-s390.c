@@ -25,6 +25,7 @@
 #include "libbfd.h"
 #include "elf-bfd.h"
 #include "elf/s390.h"
+#include <stdarg.h>
 
 static bfd_reloc_status_type
 s390_tls_reloc (bfd *, arelent *, asymbol *, void *,
@@ -341,8 +342,9 @@ elf_s390_info_to_howto (bfd *abfd ATTRIBUTE_UNUSED,
     default:
       if (r_type >= sizeof (elf_howto_table) / sizeof (elf_howto_table[0]))
 	{
-	  (*_bfd_error_handler) (_("%B: invalid relocation type %d"),
-				 abfd, (int) r_type);
+	  /* xgettext:c-format */
+	  _bfd_error_handler (_("%B: invalid relocation type %d"),
+			      abfd, (int) r_type);
 	  r_type = R_390_NONE;
 	}
       cache_ptr->howto = &elf_howto_table[r_type];
@@ -1001,8 +1003,9 @@ elf_s390_check_relocs (bfd *abfd,
 
       if (r_symndx >= NUM_SHDR_ENTRIES (symtab_hdr))
 	{
-	  (*_bfd_error_handler) (_("%B: bad symbol index: %d"),
-				 abfd, r_symndx);
+	  /* xgettext:c-format */
+	  _bfd_error_handler (_("%B: bad symbol index: %d"),
+			      abfd, r_symndx);
 	  return FALSE;
 	}
 
@@ -1123,6 +1126,7 @@ elf_s390_check_relocs (bfd *abfd,
 	case R_390_GOTOFF32:
 	  if (h == NULL || !s390_is_ifunc_symbol_p (h) || !h->def_regular)
 	    break;
+	  /* Fall through.  */
 
 	case R_390_PLT12DBL:
 	case R_390_PLT16DBL:
@@ -1230,7 +1234,8 @@ elf_s390_check_relocs (bfd *abfd,
 	    {
 	      if (old_tls_type == GOT_NORMAL || tls_type == GOT_NORMAL)
 		{
-		  (*_bfd_error_handler)
+		  _bfd_error_handler
+		    /* xgettext:c-format */
 		    (_("%B: `%s' accessed both as normal and thread local symbol"),
 		     abfd, h->root.root.string);
 		  return FALSE;
@@ -1917,7 +1922,7 @@ allocate_dynrelocs (struct elf_link_hash_entry *h, void * inf)
 	h->got.offset = (bfd_vma) -1;
     }
   else if (h->got.refcount > 0)
-   {
+    {
       asection *s;
       bfd_boolean dyn;
       int tls_type = elf_s390_hash_entry(h)->tls_type;
@@ -2342,7 +2347,8 @@ invalid_tls_insn (bfd *input_bfd,
   reloc_howto_type *howto;
 
   howto = elf_howto_table + ELF32_R_TYPE (rel->r_info);
-  (*_bfd_error_handler)
+  _bfd_error_handler
+    /* xgettext:c-format */
     (_("%B(%A+0x%lx): invalid instruction for TLS relocation %s"),
      input_bfd,
      input_section,
@@ -2801,6 +2807,7 @@ elf_s390_relocate_section (bfd *output_bfd,
 			    + h ->plt.offset);
 	      goto do_relocation;
 	    }
+	  /* Fall through.  */
 
 	case R_390_8:
 	case R_390_16:
@@ -3391,7 +3398,8 @@ elf_s390_relocate_section (bfd *output_bfd,
 	       && h->def_dynamic)
 	  && _bfd_elf_section_offset (output_bfd, info, input_section,
 				      rel->r_offset) != (bfd_vma) -1)
-	(*_bfd_error_handler)
+	_bfd_error_handler
+	  /* xgettext:c-format */
 	  (_("%B(%A+0x%lx): unresolvable %s relocation against symbol `%s'"),
 	   input_bfd,
 	   input_section,
@@ -3447,7 +3455,8 @@ elf_s390_relocate_section (bfd *output_bfd,
 	       (bfd_vma) 0, input_bfd, input_section, rel->r_offset);
 	  else
 	    {
-	      (*_bfd_error_handler)
+	      _bfd_error_handler
+		/* xgettext:c-format */
 		(_("%B(%A+0x%lx): reloc against `%s': error %d"),
 		 input_bfd, input_section,
 		 (long) rel->r_offset, name, (int) r);
@@ -3497,8 +3506,8 @@ elf_s390_finish_ifunc_symbol (bfd *output_bfd,
   /* S390 uses halfwords for relative branch calc!  */
   relative_offset = - (plt->output_offset +
 		       (PLT_ENTRY_SIZE * iplt_index) + 18) / 2;
-/* If offset is > 32768, branch to a previous branch
-   390 can only handle +-64 K jumps.  */
+  /* If offset is > 32768, branch to a previous branch
+     390 can only handle +-64 K jumps.  */
   if ( -32768 > (int) relative_offset )
     relative_offset
       = -(unsigned) (((65536 / PLT_ENTRY_SIZE - 1) * PLT_ENTRY_SIZE) / 2);
@@ -3810,7 +3819,7 @@ elf_s390_finish_dynamic_symbol (bfd *output_bfd,
 	    }
 	}
       else if (bfd_link_pic (info)
-	  && SYMBOL_REFERENCES_LOCAL (info, h))
+	       && SYMBOL_REFERENCES_LOCAL (info, h))
 	{
 	  /* If this is a static link, or it is a -Bsymbolic link and
 	     the symbol is defined locally or was forced to be local
@@ -3982,7 +3991,7 @@ elf_s390_finish_dynamic_sections (bfd *output_bfd,
 			  htab->elf.sgotplt->output_section->vma
 			  + htab->elf.sgotplt->output_offset,
 			  htab->elf.splt->contents + 24);
-	   }
+	    }
 	  elf_section_data (htab->elf.splt->output_section)
 	    ->this_hdr.sh_entsize = 4;
 	}
@@ -4039,6 +4048,8 @@ elf_s390_finish_dynamic_sections (bfd *output_bfd,
     }
   return TRUE;
 }
+
+/* Support for core dump NOTE sections.  */
 
 static bfd_boolean
 elf_s390_grok_prstatus (bfd * abfd, Elf_Internal_Note * note)
@@ -4048,20 +4059,20 @@ elf_s390_grok_prstatus (bfd * abfd, Elf_Internal_Note * note)
 
   switch (note->descsz)
     {
-      default:
-	return FALSE;
+    default:
+      return FALSE;
 
-      case 224:		/* S/390 Linux.  */
-	/* pr_cursig */
-	elf_tdata (abfd)->core->signal = bfd_get_16 (abfd, note->descdata + 12);
+    case 224:			/* S/390 Linux.  */
+      /* pr_cursig */
+      elf_tdata (abfd)->core->signal = bfd_get_16 (abfd, note->descdata + 12);
 
-	/* pr_pid */
-	elf_tdata (abfd)->core->lwpid = bfd_get_32 (abfd, note->descdata + 24);
+      /* pr_pid */
+      elf_tdata (abfd)->core->lwpid = bfd_get_32 (abfd, note->descdata + 24);
 
-	/* pr_reg */
-	offset = 72;
-	size = 144;
-	break;
+      /* pr_reg */
+      offset = 72;
+      size = 144;
+      break;
     }
 
   /* Make a ".reg/999" section.  */
@@ -4069,6 +4080,89 @@ elf_s390_grok_prstatus (bfd * abfd, Elf_Internal_Note * note)
 					  size, note->descpos + offset);
 }
 
+static bfd_boolean
+elf_s390_grok_psinfo (bfd *abfd, Elf_Internal_Note *note)
+{
+  switch (note->descsz)
+    {
+    default:
+      return FALSE;
+
+    case 124:			/* sizeof(struct elf_prpsinfo) on s390 */
+      elf_tdata (abfd)->core->pid
+	= bfd_get_32 (abfd, note->descdata + 12);
+      elf_tdata (abfd)->core->program
+	= _bfd_elfcore_strndup (abfd, note->descdata + 28, 16);
+      elf_tdata (abfd)->core->command
+	= _bfd_elfcore_strndup (abfd, note->descdata + 44, 80);
+      break;
+    }
+
+  /* Note that for some reason, a spurious space is tacked
+     onto the end of the args in some (at least one anyway)
+     implementations, so strip it off if it exists.  */
+
+  {
+    char *command = elf_tdata (abfd)->core->command;
+    int n = strlen (command);
+
+    if (0 < n && command[n - 1] == ' ')
+      command[n - 1] = '\0';
+  }
+
+  return TRUE;
+}
+
+static char *
+elf_s390_write_core_note (bfd *abfd, char *buf, int *bufsiz,
+			  int note_type, ...)
+{
+  va_list ap;
+
+  switch (note_type)
+    {
+    default:
+      return NULL;
+
+    case NT_PRPSINFO:
+      {
+	char data[124] = { 0 };
+	const char *fname, *psargs;
+
+	va_start (ap, note_type);
+	fname = va_arg (ap, const char *);
+	psargs = va_arg (ap, const char *);
+	va_end (ap);
+
+	strncpy (data + 28, fname, 16);
+	strncpy (data + 44, psargs, 80);
+	return elfcore_write_note (abfd, buf, bufsiz, "CORE", note_type,
+				   &data, sizeof (data));
+      }
+
+    case NT_PRSTATUS:
+      {
+	char data[224] = { 0 };
+	long pid;
+	int cursig;
+	const void *gregs;
+
+	va_start (ap, note_type);
+	pid = va_arg (ap, long);
+	cursig = va_arg (ap, int);
+	gregs = va_arg (ap, const void *);
+	va_end (ap);
+
+	bfd_put_16 (abfd, cursig, data + 12);
+	bfd_put_32 (abfd, pid, data + 24);
+	memcpy (data + 72, gregs, 144);
+	return elfcore_write_note (abfd, buf, bufsiz, "CORE", note_type,
+				   &data, sizeof (data));
+      }
+    }
+  /* NOTREACHED */
+}
+
 /* Return address for Ith PLT stub in section PLT, for relocation REL
    or (bfd_vma) -1 if it should not be included.  */
 
@@ -4083,12 +4177,14 @@ elf_s390_plt_sym_val (bfd_vma i, const asection *plt,
    object file when linking.  */
 
 static bfd_boolean
-elf32_s390_merge_private_bfd_data (bfd *ibfd, bfd *obfd)
+elf32_s390_merge_private_bfd_data (bfd *ibfd, struct bfd_link_info *info)
 {
+  bfd *obfd = info->output_bfd;
+
   if (!is_s390_elf (ibfd) || !is_s390_elf (obfd))
     return TRUE;
 
-  if (!elf_s390_merge_obj_attributes (ibfd, obfd))
+  if (!elf_s390_merge_obj_attributes (ibfd, info))
     return FALSE;
 
   elf_elfheader (obfd)->e_flags |= elf_elfheader (ibfd)->e_flags;
@@ -4134,6 +4230,8 @@ elf32_s390_merge_private_bfd_data (bfd *ibfd, bfd *obfd)
 #define elf_backend_size_dynamic_sections     elf_s390_size_dynamic_sections
 #define elf_backend_init_index_section	      _bfd_elf_init_1_index_section
 #define elf_backend_grok_prstatus	      elf_s390_grok_prstatus
+#define elf_backend_grok_psinfo		      elf_s390_grok_psinfo
+#define elf_backend_write_core_note	      elf_s390_write_core_note
 #define elf_backend_plt_sym_val		      elf_s390_plt_sym_val
 #define elf_backend_add_symbol_hook           elf_s390_add_symbol_hook
 #define elf_backend_sort_relocs_p             elf_s390_elf_sort_relocs_p

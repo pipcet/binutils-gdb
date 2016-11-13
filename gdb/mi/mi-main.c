@@ -53,6 +53,7 @@
 #include "linespec.h"
 #include "extension.h"
 #include "gdbcmd.h"
+#include "observer.h"
 
 #include <ctype.h>
 #include "gdb_sys_time.h"
@@ -300,7 +301,7 @@ exec_continue (char **argv, int argc)
     }
   else
     {
-      struct cleanup *back_to = make_cleanup_restore_integer (&sched_multi);
+      scoped_restore save_multi = make_scoped_restore (&sched_multi);
 
       if (current_context->all)
 	{
@@ -315,7 +316,6 @@ exec_continue (char **argv, int argc)
 	     same.  */
 	  continue_1 (1);
 	}
-      do_cleanups (back_to);
     }
 }
 
@@ -564,16 +564,28 @@ mi_cmd_thread_select (char *command, char **argv, int argc)
 {
   enum gdb_rc rc;
   char *mi_error_message;
+  ptid_t previous_ptid = inferior_ptid;
 
   if (argc != 1)
     error (_("-thread-select: USAGE: threadnum."));
 
   rc = gdb_thread_select (current_uiout, argv[0], &mi_error_message);
 
+  /* If thread switch did not succeed don't notify or print.  */
   if (rc == GDB_RC_FAIL)
     {
       make_cleanup (xfree, mi_error_message);
       error ("%s", mi_error_message);
+    }
+
+  print_selected_thread_frame (current_uiout,
+			       USER_SELECTED_THREAD | USER_SELECTED_FRAME);
+
+  /* Notify if the thread has effectively changed.  */
+  if (!ptid_equal (inferior_ptid, previous_ptid))
+    {
+      observer_notify_user_selected_context_changed (USER_SELECTED_THREAD
+						     | USER_SELECTED_FRAME);
     }
 }
 
@@ -1278,7 +1290,6 @@ output_register (struct frame_info *frame, int regnum, int format,
   get_formatted_print_options (&opts, format);
   opts.deref_ref = 1;
   val_print (value_type (val),
-	     value_contents_for_printing (val),
 	     value_embedded_offset (val), 0,
 	     stb, 0, val, &opts, current_language);
   ui_out_field_stream (uiout, "value", stb);
@@ -1350,7 +1361,6 @@ mi_cmd_data_write_register_values (char *command, char **argv, int argc)
 void
 mi_cmd_data_evaluate_expression (char *command, char **argv, int argc)
 {
-  struct expression *expr;
   struct cleanup *old_chain;
   struct value *val;
   struct ui_file *stb;
@@ -1364,11 +1374,9 @@ mi_cmd_data_evaluate_expression (char *command, char **argv, int argc)
     error (_("-data-evaluate-expression: "
 	     "Usage: -data-evaluate-expression expression"));
 
-  expr = parse_expression (argv[0]);
+  expression_up expr = parse_expression (argv[0]);
 
-  make_cleanup (free_current_contents, &expr);
-
-  val = evaluate_expression (expr);
+  val = evaluate_expression (expr.get ());
 
   /* Print the result of the expression evaluation.  */
   get_user_print_options (&opts);
@@ -1404,7 +1412,6 @@ mi_cmd_data_read_memory (char *command, char **argv, int argc)
 {
   struct gdbarch *gdbarch = get_current_arch ();
   struct ui_out *uiout = current_uiout;
-  struct cleanup *cleanups = make_cleanup (null_cleanup, NULL);
   CORE_ADDR addr;
   long total_bytes, nr_cols, nr_rows;
   char word_format;
@@ -1412,7 +1419,6 @@ mi_cmd_data_read_memory (char *command, char **argv, int argc)
   long word_size;
   char word_asize;
   char aschar;
-  gdb_byte *mbuf;
   int nr_bytes;
   long offset = 0;
   int oind = 0;
@@ -1497,13 +1503,13 @@ mi_cmd_data_read_memory (char *command, char **argv, int argc)
 
   /* Create a buffer and read it in.  */
   total_bytes = word_size * nr_rows * nr_cols;
-  mbuf = XCNEWVEC (gdb_byte, total_bytes);
-  make_cleanup (xfree, mbuf);
+
+  gdb::unique_ptr<gdb_byte[]> mbuf (new gdb_byte[total_bytes]);
 
   /* Dispatch memory reads to the topmost target, not the flattened
      current_target.  */
   nr_bytes = target_read (current_target.beneath,
-			  TARGET_OBJECT_MEMORY, NULL, mbuf,
+			  TARGET_OBJECT_MEMORY, NULL, mbuf.get (),
 			  addr, total_bytes);
   if (nr_bytes <= 0)
     error (_("Unable to read memory."));
@@ -1557,7 +1563,7 @@ mi_cmd_data_read_memory (char *command, char **argv, int argc)
 	    else
 	      {
 		ui_file_rewind (stream);
-		print_scalar_formatted (mbuf + col_byte, word_type, &opts,
+		print_scalar_formatted (&mbuf[col_byte], word_type, &opts,
 					word_asize, stream);
 		ui_out_field_stream (uiout, NULL, stream);
 	      }
@@ -1584,7 +1590,6 @@ mi_cmd_data_read_memory (char *command, char **argv, int argc)
       }
     do_cleanups (cleanup_stream);
   }
-  do_cleanups (cleanups);
 }
 
 void
@@ -1636,7 +1641,7 @@ mi_cmd_data_read_memory_bytes (char *command, char **argv, int argc)
 
   result = read_memory_robust (current_target.beneath, addr, length);
 
-  cleanups = make_cleanup (free_memory_read_result_vector, result);
+  cleanups = make_cleanup (free_memory_read_result_vector, &result);
 
   if (VEC_length (memory_read_result_s, result) == 0)
     error (_("Unable to read memory."));
@@ -2097,6 +2102,34 @@ mi_print_exception (const char *token, struct gdb_exception exception)
   fputs_unfiltered ("\n", mi->raw_stdout);
 }
 
+/* Determine whether the parsed command already notifies the
+   user_selected_context_changed observer.  */
+
+static int
+command_notifies_uscc_observer (struct mi_parse *command)
+{
+  if (command->op == CLI_COMMAND)
+    {
+      /* CLI commands "thread" and "inferior" already send it.  */
+      return (strncmp (command->command, "thread ", 7) == 0
+	      || strncmp (command->command, "inferior ", 9) == 0);
+    }
+  else /* MI_COMMAND */
+    {
+      if (strcmp (command->command, "interpreter-exec") == 0
+	  && command->argc > 1)
+	{
+	  /* "thread" and "inferior" again, but through -interpreter-exec.  */
+	  return (strncmp (command->argv[1], "thread ", 7) == 0
+		  || strncmp (command->argv[1], "inferior ", 9) == 0);
+	}
+
+      else
+	/* -thread-select already sends it.  */
+	return strcmp (command->command, "thread-select") == 0;
+    }
+}
+
 void
 mi_execute_command (const char *cmd, int from_tty)
 {
@@ -2124,8 +2157,15 @@ mi_execute_command (const char *cmd, int from_tty)
   if (command != NULL)
     {
       ptid_t previous_ptid = inferior_ptid;
+      struct cleanup *cleanup = make_cleanup (null_cleanup, NULL);
 
       command->token = token;
+
+      if (command->cmd != NULL && command->cmd->suppress_notification != NULL)
+        {
+          make_cleanup_restore_integer (command->cmd->suppress_notification);
+          *command->cmd->suppress_notification = 1;
+        }
 
       if (do_timings)
 	{
@@ -2139,6 +2179,13 @@ mi_execute_command (const char *cmd, int from_tty)
 	}
       CATCH (result, RETURN_MASK_ALL)
 	{
+	  /* Like in start_event_loop, enable input and force display
+	     of the prompt.  Otherwise, any command that calls
+	     async_disable_stdin, and then throws, will leave input
+	     disabled.  */
+	  async_enable_stdin ();
+	  current_ui->prompt_state = PROMPT_NEEDED;
+
 	  /* The command execution failed and error() was called
 	     somewhere.  */
 	  mi_print_exception (command->token, result);
@@ -2154,10 +2201,9 @@ mi_execute_command (const char *cmd, int from_tty)
 	  /* Don't try report anything if there are no threads --
 	     the program is dead.  */
 	  && thread_count () != 0
-	  /* -thread-select explicitly changes thread. If frontend uses that
-	     internally, we don't want to emit =thread-selected, since
-	     =thread-selected is supposed to indicate user's intentions.  */
-	  && strcmp (command->command, "thread-select") != 0)
+	  /* If the command already reports the thread change, no need to do it
+	     again.  */
+	  && !command_notifies_uscc_observer (command))
 	{
 	  struct mi_interp *mi
 	    = (struct mi_interp *) top_level_interpreter_data ();
@@ -2178,22 +2224,14 @@ mi_execute_command (const char *cmd, int from_tty)
 
 	  if (report_change)
 	    {
-	      struct thread_info *ti = inferior_thread ();
-	      struct cleanup *old_chain;
-
-	      old_chain = make_cleanup_restore_target_terminal ();
-	      target_terminal_ours_for_output ();
-
-	      fprintf_unfiltered (mi->event_channel,
-				  "thread-selected,id=\"%d\"",
-				  ti->global_num);
-	      gdb_flush (mi->event_channel);
-
-	      do_cleanups (old_chain);
+		observer_notify_user_selected_context_changed
+		  (USER_SELECTED_THREAD | USER_SELECTED_FRAME);
 	    }
 	}
 
       mi_parse_free (command);
+
+      do_cleanups (cleanup);
     }
 }
 
@@ -2269,12 +2307,6 @@ mi_cmd_execute (struct mi_parse *parse)
     }
 
   current_context = parse;
-
-  if (parse->cmd->suppress_notification != NULL)
-    {
-      make_cleanup_restore_integer (parse->cmd->suppress_notification);
-      *parse->cmd->suppress_notification = 1;
-    }
 
   if (parse->cmd->argv_func != NULL)
     {
@@ -2659,6 +2691,11 @@ mi_cmd_trace_save (char *command, char **argv, int argc)
 	  break;
 	}
     }
+
+  if (argc - oind != 1)
+    error (_("Exactly one argument required "
+	     "(file in which to save trace data)"));
+
   filename = argv[oind];
 
   if (generate_ctf)
@@ -2700,9 +2737,8 @@ mi_cmd_ada_task_info (char *command, char **argv, int argc)
 /* Print EXPRESSION according to VALUES.  */
 
 static void
-print_variable_or_computed (char *expression, enum print_values values)
+print_variable_or_computed (const char *expression, enum print_values values)
 {
-  struct expression *expr;
   struct cleanup *old_chain;
   struct value *val;
   struct ui_file *stb;
@@ -2712,14 +2748,12 @@ print_variable_or_computed (char *expression, enum print_values values)
   stb = mem_fileopen ();
   old_chain = make_cleanup_ui_file_delete (stb);
 
-  expr = parse_expression (expression);
-
-  make_cleanup (free_current_contents, &expr);
+  expression_up expr = parse_expression (expression);
 
   if (values == PRINT_SIMPLE_VALUES)
-    val = evaluate_type (expr);
+    val = evaluate_type (expr.get ());
   else
-    val = evaluate_expression (expr);
+    val = evaluate_expression (expr.get ());
 
   if (values != PRINT_NO_VALUES)
     make_cleanup_ui_out_tuple_begin_end (uiout, NULL);
@@ -2829,8 +2863,7 @@ mi_cmd_trace_frame_collected (char *command, char **argv, int argc)
   old_chain = make_cleanup_restore_current_thread ();
   select_frame (get_current_frame ());
 
-  encode_actions_and_make_cleanup (tloc, &tracepoint_list,
-				   &stepping_list);
+  encode_actions (tloc, &tracepoint_list, &stepping_list);
 
   if (stepping_frame)
     clist = &stepping_list;
@@ -2842,13 +2875,19 @@ mi_cmd_trace_frame_collected (char *command, char **argv, int argc)
   /* Explicitly wholly collected variables.  */
   {
     struct cleanup *list_cleanup;
-    char *p;
     int i;
 
     list_cleanup = make_cleanup_ui_out_list_begin_end (uiout,
 						       "explicit-variables");
-    for (i = 0; VEC_iterate (char_ptr, clist->wholly_collected, i, p); i++)
-      print_variable_or_computed (p, var_print_values);
+
+    const std::vector<std::string> &wholly_collected
+      = clist->wholly_collected ();
+    for (size_t i = 0; i < wholly_collected.size (); i++)
+      {
+	const std::string &str = wholly_collected[i];
+	print_variable_or_computed (str.c_str (), var_print_values);
+      }
+
     do_cleanups (list_cleanup);
   }
 
@@ -2861,8 +2900,14 @@ mi_cmd_trace_frame_collected (char *command, char **argv, int argc)
     list_cleanup
       = make_cleanup_ui_out_list_begin_end (uiout,
 					    "computed-expressions");
-    for (i = 0; VEC_iterate (char_ptr, clist->computed, i, p); i++)
-      print_variable_or_computed (p, comp_print_values);
+
+    const std::vector<std::string> &computed = clist->computed ();
+    for (size_t i = 0; i < computed.size (); i++)
+      {
+	const std::string &str = computed[i];
+	print_variable_or_computed (str.c_str (), comp_print_values);
+      }
+
     do_cleanups (list_cleanup);
   }
 

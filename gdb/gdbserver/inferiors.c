@@ -248,6 +248,51 @@ find_inferior (struct inferior_list *list,
   return NULL;
 }
 
+/* Find the random inferior_list_entry E in LIST for which FUNC (E, ARG)
+   returns non-zero.  If no entry is found then return NULL.  */
+
+struct inferior_list_entry *
+find_inferior_in_random (struct inferior_list *list,
+			 int (*func) (struct inferior_list_entry *, void *),
+			 void *arg)
+{
+  struct inferior_list_entry *inf = list->head;
+  int count = 0;
+  int random_selector;
+
+  /* First count how many interesting entries we have.  */
+  while (inf != NULL)
+    {
+      struct inferior_list_entry *next;
+
+      next = inf->next;
+      if ((*func) (inf, arg))
+	count++;
+      inf = next;
+    }
+
+  if (count == 0)
+    return NULL;
+
+  /* Now randomly pick an entry out of those.  */
+  random_selector = (int)
+    ((count * (double) rand ()) / (RAND_MAX + 1.0));
+
+  inf = list->head;
+  while (inf != NULL)
+    {
+      struct inferior_list_entry *next;
+
+      next = inf->next;
+      if ((*func) (inf, arg) && (random_selector-- == 0))
+	return inf;
+      inf = next;
+    }
+
+  gdb_assert_not_reached ("failed to find an inferior in random.");
+  return NULL;
+}
+
 struct inferior_list_entry *
 find_inferior_id (struct inferior_list *list, ptid_t id)
 {
@@ -399,7 +444,7 @@ have_attached_inferiors_p (void)
 }
 
 struct process_info *
-get_thread_process (struct thread_info *thread)
+get_thread_process (const struct thread_info *thread)
 {
   int pid = ptid_get_pid (thread->entry.id);
   return find_process_pid (pid);
@@ -410,4 +455,16 @@ current_process (void)
 {
   gdb_assert (current_thread != NULL);
   return get_thread_process (current_thread);
+}
+
+static void
+do_restore_current_thread_cleanup (void *arg)
+{
+  current_thread = (struct thread_info *) arg;
+}
+
+struct cleanup *
+make_cleanup_restore_current_thread (void)
+{
+  return make_cleanup (do_restore_current_thread_cleanup, current_thread);
 }

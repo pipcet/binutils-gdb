@@ -413,7 +413,7 @@ static reloc_howto_type ppc_elf_howto_raw[] = {
 	 FALSE,			/* pc_relative */
 	 0,			/* bitpos */
 	 complain_overflow_signed, /* complain_on_overflow */
-	 bfd_elf_generic_reloc,	/* special_function */
+	 ppc_elf_unhandled_reloc, /* special_function */
 	 "R_PPC_GOT16",		/* name */
 	 FALSE,			/* partial_inplace */
 	 0,			/* src_mask */
@@ -429,7 +429,7 @@ static reloc_howto_type ppc_elf_howto_raw[] = {
 	 FALSE,			/* pc_relative */
 	 0,			/* bitpos */
 	 complain_overflow_dont, /* complain_on_overflow */
-	 bfd_elf_generic_reloc,	/* special_function */
+	 ppc_elf_unhandled_reloc, /* special_function */
 	 "R_PPC_GOT16_LO",	/* name */
 	 FALSE,			/* partial_inplace */
 	 0,			/* src_mask */
@@ -445,7 +445,7 @@ static reloc_howto_type ppc_elf_howto_raw[] = {
 	 FALSE,			/* pc_relative */
 	 0,			/* bitpos */
 	 complain_overflow_dont, /* complain_on_overflow */
-	 bfd_elf_generic_reloc,	/* special_function */
+	 ppc_elf_unhandled_reloc, /* special_function */
 	 "R_PPC_GOT16_HI",	/* name */
 	 FALSE,			/* partial_inplace */
 	 0,			/* src_mask */
@@ -461,7 +461,7 @@ static reloc_howto_type ppc_elf_howto_raw[] = {
 	 FALSE,			/* pc_relative */
 	 0,			/* bitpos */
 	 complain_overflow_dont, /* complain_on_overflow */
-	 ppc_elf_addr16_ha_reloc, /* special_function */
+	 ppc_elf_unhandled_reloc, /* special_function */
 	 "R_PPC_GOT16_HA",	/* name */
 	 FALSE,			/* partial_inplace */
 	 0,			/* src_mask */
@@ -476,8 +476,8 @@ static reloc_howto_type ppc_elf_howto_raw[] = {
 	 26,			/* bitsize */
 	 TRUE,			/* pc_relative */
 	 0,			/* bitpos */
-	 complain_overflow_signed,  /* complain_on_overflow */
-	 bfd_elf_generic_reloc,	/* special_function */
+	 complain_overflow_signed, /* complain_on_overflow */
+	 ppc_elf_unhandled_reloc, /* special_function */
 	 "R_PPC_PLTREL24",	/* name */
 	 FALSE,			/* partial_inplace */
 	 0,			/* src_mask */
@@ -496,7 +496,7 @@ static reloc_howto_type ppc_elf_howto_raw[] = {
 	 FALSE,			/* pc_relative */
 	 0,			/* bitpos */
 	 complain_overflow_dont, /* complain_on_overflow */
-	 bfd_elf_generic_reloc,	 /* special_function */
+	 ppc_elf_unhandled_reloc, /* special_function */
 	 "R_PPC_COPY",		/* name */
 	 FALSE,			/* partial_inplace */
 	 0,			/* src_mask */
@@ -512,7 +512,7 @@ static reloc_howto_type ppc_elf_howto_raw[] = {
 	 FALSE,			/* pc_relative */
 	 0,			/* bitpos */
 	 complain_overflow_dont, /* complain_on_overflow */
-	 bfd_elf_generic_reloc,	 /* special_function */
+	 ppc_elf_unhandled_reloc, /* special_function */
 	 "R_PPC_GLOB_DAT",	/* name */
 	 FALSE,			/* partial_inplace */
 	 0,			/* src_mask */
@@ -527,7 +527,7 @@ static reloc_howto_type ppc_elf_howto_raw[] = {
 	 FALSE,			/* pc_relative */
 	 0,			/* bitpos */
 	 complain_overflow_dont, /* complain_on_overflow */
-	 bfd_elf_generic_reloc,	 /* special_function */
+	 ppc_elf_unhandled_reloc, /* special_function */
 	 "R_PPC_JMP_SLOT",	/* name */
 	 FALSE,			/* partial_inplace */
 	 0,			/* src_mask */
@@ -622,7 +622,7 @@ static reloc_howto_type ppc_elf_howto_raw[] = {
 	 FALSE,			/* pc_relative */
 	 0,			/* bitpos */
 	 complain_overflow_dont, /* complain_on_overflow */
-	 bfd_elf_generic_reloc,	/* special_function */
+	 ppc_elf_unhandled_reloc, /* special_function */
 	 "R_PPC_PLT32",		/* name */
 	 FALSE,			/* partial_inplace */
 	 0,			/* src_mask */
@@ -638,7 +638,7 @@ static reloc_howto_type ppc_elf_howto_raw[] = {
 	 TRUE,			/* pc_relative */
 	 0,			/* bitpos */
 	 complain_overflow_dont, /* complain_on_overflow */
-	 bfd_elf_generic_reloc,	/* special_function */
+	 ppc_elf_unhandled_reloc, /* special_function */
 	 "R_PPC_PLTREL32",	/* name */
 	 FALSE,			/* partial_inplace */
 	 0,			/* src_mask */
@@ -654,7 +654,7 @@ static reloc_howto_type ppc_elf_howto_raw[] = {
 	 FALSE,			/* pc_relative */
 	 0,			/* bitpos */
 	 complain_overflow_dont, /* complain_on_overflow */
-	 bfd_elf_generic_reloc,	/* special_function */
+	 ppc_elf_unhandled_reloc, /* special_function */
 	 "R_PPC_PLT16_LO",	/* name */
 	 FALSE,			/* partial_inplace */
 	 0,			/* src_mask */
@@ -670,7 +670,7 @@ static reloc_howto_type ppc_elf_howto_raw[] = {
 	 FALSE,			/* pc_relative */
 	 0,			/* bitpos */
 	 complain_overflow_dont, /* complain_on_overflow */
-	 bfd_elf_generic_reloc,	/* special_function */
+	 ppc_elf_unhandled_reloc, /* special_function */
 	 "R_PPC_PLT16_HI",	/* name */
 	 FALSE,			/* partial_inplace */
 	 0,			/* src_mask */
@@ -686,7 +686,7 @@ static reloc_howto_type ppc_elf_howto_raw[] = {
 	 FALSE,			/* pc_relative */
 	 0,			/* bitpos */
 	 complain_overflow_dont, /* complain_on_overflow */
-	 ppc_elf_addr16_ha_reloc, /* special_function */
+	 ppc_elf_unhandled_reloc, /* special_function */
 	 "R_PPC_PLT16_HA",	/* name */
 	 FALSE,			/* partial_inplace */
 	 0,			/* src_mask */
@@ -702,7 +702,7 @@ static reloc_howto_type ppc_elf_howto_raw[] = {
 	 FALSE,			/* pc_relative */
 	 0,			/* bitpos */
 	 complain_overflow_signed, /* complain_on_overflow */
-	 bfd_elf_generic_reloc,	/* special_function */
+	 ppc_elf_unhandled_reloc, /* special_function */
 	 "R_PPC_SDAREL16",	/* name */
 	 FALSE,			/* partial_inplace */
 	 0,			/* src_mask */
@@ -717,7 +717,7 @@ static reloc_howto_type ppc_elf_howto_raw[] = {
 	 FALSE,			/* pc_relative */
 	 0,			/* bitpos */
 	 complain_overflow_signed, /* complain_on_overflow */
-	 bfd_elf_generic_reloc,	/* special_function */
+	 ppc_elf_unhandled_reloc, /* special_function */
 	 "R_PPC_SECTOFF",	/* name */
 	 FALSE,			/* partial_inplace */
 	 0,			/* src_mask */
@@ -732,7 +732,7 @@ static reloc_howto_type ppc_elf_howto_raw[] = {
 	 FALSE,			/* pc_relative */
 	 0,			/* bitpos */
 	 complain_overflow_dont, /* complain_on_overflow */
-	 bfd_elf_generic_reloc,	/* special_function */
+	 ppc_elf_unhandled_reloc, /* special_function */
 	 "R_PPC_SECTOFF_LO",	/* name */
 	 FALSE,			/* partial_inplace */
 	 0,			/* src_mask */
@@ -747,7 +747,7 @@ static reloc_howto_type ppc_elf_howto_raw[] = {
 	 FALSE,			/* pc_relative */
 	 0,			/* bitpos */
 	 complain_overflow_dont, /* complain_on_overflow */
-	 bfd_elf_generic_reloc,	/* special_function */
+	 ppc_elf_unhandled_reloc, /* special_function */
 	 "R_PPC_SECTOFF_HI",	/* name */
 	 FALSE,			/* partial_inplace */
 	 0,			/* src_mask */
@@ -762,7 +762,7 @@ static reloc_howto_type ppc_elf_howto_raw[] = {
 	 FALSE,			/* pc_relative */
 	 0,			/* bitpos */
 	 complain_overflow_dont, /* complain_on_overflow */
-	 ppc_elf_addr16_ha_reloc, /* special_function */
+	 ppc_elf_unhandled_reloc, /* special_function */
 	 "R_PPC_SECTOFF_HA",	/* name */
 	 FALSE,			/* partial_inplace */
 	 0,			/* src_mask */
@@ -1238,7 +1238,7 @@ static reloc_howto_type ppc_elf_howto_raw[] = {
 	 FALSE,			/* pc_relative */
 	 0,			/* bitpos */
 	 complain_overflow_dont, /* complain_on_overflow */
-	 bfd_elf_generic_reloc,	/* special_function */
+	 ppc_elf_unhandled_reloc, /* special_function */
 	 "R_PPC_EMB_NADDR32",	/* name */
 	 FALSE,			/* partial_inplace */
 	 0,			/* src_mask */
@@ -1253,7 +1253,7 @@ static reloc_howto_type ppc_elf_howto_raw[] = {
 	 FALSE,			/* pc_relative */
 	 0,			/* bitpos */
 	 complain_overflow_signed, /* complain_on_overflow */
-	 bfd_elf_generic_reloc,	/* special_function */
+	 ppc_elf_unhandled_reloc, /* special_function */
 	 "R_PPC_EMB_NADDR16",	/* name */
 	 FALSE,			/* partial_inplace */
 	 0,			/* src_mask */
@@ -1268,7 +1268,7 @@ static reloc_howto_type ppc_elf_howto_raw[] = {
 	 FALSE,			/* pc_relative */
 	 0,			/* bitpos */
 	 complain_overflow_dont,/* complain_on_overflow */
-	 bfd_elf_generic_reloc,	/* special_function */
+	 ppc_elf_unhandled_reloc, /* special_function */
 	 "R_PPC_EMB_ADDR16_LO",	/* name */
 	 FALSE,			/* partial_inplace */
 	 0,			/* src_mask */
@@ -1283,7 +1283,7 @@ static reloc_howto_type ppc_elf_howto_raw[] = {
 	 FALSE,			/* pc_relative */
 	 0,			/* bitpos */
 	 complain_overflow_dont, /* complain_on_overflow */
-	 bfd_elf_generic_reloc,	/* special_function */
+	 ppc_elf_unhandled_reloc, /* special_function */
 	 "R_PPC_EMB_NADDR16_HI", /* name */
 	 FALSE,			/* partial_inplace */
 	 0,			/* src_mask */
@@ -1300,7 +1300,7 @@ static reloc_howto_type ppc_elf_howto_raw[] = {
 	 FALSE,			/* pc_relative */
 	 0,			/* bitpos */
 	 complain_overflow_dont, /* complain_on_overflow */
-	 ppc_elf_addr16_ha_reloc, /* special_function */
+	 ppc_elf_unhandled_reloc, /* special_function */
 	 "R_PPC_EMB_NADDR16_HA", /* name */
 	 FALSE,			/* partial_inplace */
 	 0,			/* src_mask */
@@ -1317,7 +1317,7 @@ static reloc_howto_type ppc_elf_howto_raw[] = {
 	 FALSE,			/* pc_relative */
 	 0,			/* bitpos */
 	 complain_overflow_signed, /* complain_on_overflow */
-	 bfd_elf_generic_reloc,	/* special_function */
+	 ppc_elf_unhandled_reloc, /* special_function */
 	 "R_PPC_EMB_SDAI16",	/* name */
 	 FALSE,			/* partial_inplace */
 	 0,			/* src_mask */
@@ -1334,7 +1334,7 @@ static reloc_howto_type ppc_elf_howto_raw[] = {
 	 FALSE,			/* pc_relative */
 	 0,			/* bitpos */
 	 complain_overflow_signed, /* complain_on_overflow */
-	 bfd_elf_generic_reloc,	/* special_function */
+	 ppc_elf_unhandled_reloc, /* special_function */
 	 "R_PPC_EMB_SDA2I16",	/* name */
 	 FALSE,			/* partial_inplace */
 	 0,			/* src_mask */
@@ -1350,7 +1350,7 @@ static reloc_howto_type ppc_elf_howto_raw[] = {
 	 FALSE,			/* pc_relative */
 	 0,			/* bitpos */
 	 complain_overflow_signed, /* complain_on_overflow */
-	 bfd_elf_generic_reloc,	/* special_function */
+	 ppc_elf_unhandled_reloc, /* special_function */
 	 "R_PPC_EMB_SDA2REL",	/* name */
 	 FALSE,			/* partial_inplace */
 	 0,			/* src_mask */
@@ -1367,7 +1367,7 @@ static reloc_howto_type ppc_elf_howto_raw[] = {
 	 FALSE,			/* pc_relative */
 	 0,			/* bitpos */
 	 complain_overflow_signed, /* complain_on_overflow */
-	 bfd_elf_generic_reloc,	/* special_function */
+	 ppc_elf_unhandled_reloc, /* special_function */
 	 "R_PPC_EMB_SDA21",	/* name */
 	 FALSE,			/* partial_inplace */
 	 0,			/* src_mask */
@@ -1391,7 +1391,7 @@ static reloc_howto_type ppc_elf_howto_raw[] = {
 	 FALSE,			/* pc_relative */
 	 0,			/* bitpos */
 	 complain_overflow_signed, /* complain_on_overflow */
-	 bfd_elf_generic_reloc,	/* special_function */
+	 ppc_elf_unhandled_reloc, /* special_function */
 	 "R_PPC_EMB_RELSDA",	/* name */
 	 FALSE,			/* partial_inplace */
 	 0,			/* src_mask */
@@ -1425,7 +1425,7 @@ static reloc_howto_type ppc_elf_howto_raw[] = {
 	 "R_PPC_VLE_REL15",	/* name */
 	 FALSE,			/* partial_inplace */
 	 0,			/* src_mask */
-	 0xfe,			/* dst_mask */
+	 0xfffe,		/* dst_mask */
 	 TRUE),			/* pcrel_offset */
 
   /* A relative 24 bit branch.  */
@@ -1451,7 +1451,7 @@ static reloc_howto_type ppc_elf_howto_raw[] = {
 	 FALSE,			/* pc_relative */
 	 0,			/* bitpos */
 	 complain_overflow_dont, /* complain_on_overflow */
-	 bfd_elf_generic_reloc,	 /* special_function */
+	 ppc_elf_unhandled_reloc, /* special_function */
 	 "R_PPC_VLE_LO16A",	/* name */
 	 FALSE,			/* partial_inplace */
 	 0,			/* src_mask */
@@ -1466,8 +1466,8 @@ static reloc_howto_type ppc_elf_howto_raw[] = {
 	 FALSE,			/* pc_relative */
 	 0,			/* bitpos */
 	 complain_overflow_dont, /* complain_on_overflow */
-	 bfd_elf_generic_reloc,	 /* special_function */
-	 "R_PPC_VLE_LO16D",		/* name */
+	 ppc_elf_unhandled_reloc, /* special_function */
+	 "R_PPC_VLE_LO16D",	/* name */
 	 FALSE,			/* partial_inplace */
 	 0,			/* src_mask */
 	 0x1f07ff,		/* dst_mask */
@@ -1481,8 +1481,8 @@ static reloc_howto_type ppc_elf_howto_raw[] = {
 	 FALSE,			/* pc_relative */
 	 0,			/* bitpos */
 	 complain_overflow_dont, /* complain_on_overflow */
-	 bfd_elf_generic_reloc,	 /* special_function */
-	 "R_PPC_VLE_HI16A",		/* name */
+	 ppc_elf_unhandled_reloc, /* special_function */
+	 "R_PPC_VLE_HI16A",	/* name */
 	 FALSE,			/* partial_inplace */
 	 0,			/* src_mask */
 	 0x1f007ff,		/* dst_mask */
@@ -1496,8 +1496,8 @@ static reloc_howto_type ppc_elf_howto_raw[] = {
 	 FALSE,			/* pc_relative */
 	 0,			/* bitpos */
 	 complain_overflow_dont, /* complain_on_overflow */
-	 bfd_elf_generic_reloc,	 /* special_function */
-	 "R_PPC_VLE_HI16D",		/* name */
+	 ppc_elf_unhandled_reloc, /* special_function */
+	 "R_PPC_VLE_HI16D",	/* name */
 	 FALSE,			/* partial_inplace */
 	 0,			/* src_mask */
 	 0x1f07ff,		/* dst_mask */
@@ -1511,8 +1511,8 @@ static reloc_howto_type ppc_elf_howto_raw[] = {
 	 FALSE,			/* pc_relative */
 	 0,			/* bitpos */
 	 complain_overflow_dont, /* complain_on_overflow */
-	 bfd_elf_generic_reloc,	 /* special_function */
-	 "R_PPC_VLE_HA16A",		/* name */
+	 ppc_elf_unhandled_reloc, /* special_function */
+	 "R_PPC_VLE_HA16A",	/* name */
 	 FALSE,			/* partial_inplace */
 	 0,			/* src_mask */
 	 0x1f007ff,		/* dst_mask */
@@ -1526,8 +1526,8 @@ static reloc_howto_type ppc_elf_howto_raw[] = {
 	 FALSE,			/* pc_relative */
 	 0,			/* bitpos */
 	 complain_overflow_dont, /* complain_on_overflow */
-	 bfd_elf_generic_reloc,	 /* special_function */
-	 "R_PPC_VLE_HA16D",		/* name */
+	 ppc_elf_unhandled_reloc, /* special_function */
+	 "R_PPC_VLE_HA16D",	/* name */
 	 FALSE,			/* partial_inplace */
 	 0,			/* src_mask */
 	 0x1f07ff,		/* dst_mask */
@@ -1543,8 +1543,8 @@ static reloc_howto_type ppc_elf_howto_raw[] = {
 	 FALSE,			/* pc_relative */
 	 0,			/* bitpos */
 	 complain_overflow_signed, /* complain_on_overflow */
-	 bfd_elf_generic_reloc,	/* special_function */
-	 "R_PPC_VLE_SDA21",		/* name */
+	 ppc_elf_unhandled_reloc, /* special_function */
+	 "R_PPC_VLE_SDA21",	/* name */
 	 FALSE,			/* partial_inplace */
 	 0,			/* src_mask */
 	 0xffff,		/* dst_mask */
@@ -1558,7 +1558,7 @@ static reloc_howto_type ppc_elf_howto_raw[] = {
 	 FALSE,			/* pc_relative */
 	 0,			/* bitpos */
 	 complain_overflow_dont, /* complain_on_overflow */
-	 bfd_elf_generic_reloc,	/* special_function */
+	 ppc_elf_unhandled_reloc, /* special_function */
 	 "R_PPC_VLE_SDA21_LO",	/* name */
 	 FALSE,			/* partial_inplace */
 	 0,			/* src_mask */
@@ -1572,9 +1572,9 @@ static reloc_howto_type ppc_elf_howto_raw[] = {
 	 16,			/* bitsize */
 	 FALSE,			/* pc_relative */
 	 0,			/* bitpos */
-	 complain_overflow_dont,	/* complain_on_overflow */
-	 bfd_elf_generic_reloc,	 /* special_function */
-	 "R_PPC_VLE_SDAREL_LO16A",	/* name */
+	 complain_overflow_dont, /* complain_on_overflow */
+	 ppc_elf_unhandled_reloc, /* special_function */
+	 "R_PPC_VLE_SDAREL_LO16A", /* name */
 	 FALSE,			/* partial_inplace */
 	 0,			/* src_mask */
 	 0x1f007ff,		/* dst_mask */
@@ -1587,69 +1587,69 @@ static reloc_howto_type ppc_elf_howto_raw[] = {
 	 16,			/* bitsize */
 	 FALSE,			/* pc_relative */
 	 0,			/* bitpos */
-	 complain_overflow_dont,	/* complain_on_overflow */
-	 bfd_elf_generic_reloc,	 /* special_function */
-	 "R_PPC_VLE_SDAREL_LO16D",		/* name */
+	 complain_overflow_dont, /* complain_on_overflow */
+	 ppc_elf_unhandled_reloc, /* special_function */
+	 "R_PPC_VLE_SDAREL_LO16D", /* name */
 	 FALSE,			/* partial_inplace */
 	 0,			/* src_mask */
 	 0x1f07ff,		/* dst_mask */
 	 FALSE),		/* pcrel_offset */
 
   /* Bits 16-31 relative to _SDA_BASE_ in split16a format.  */
-  HOWTO (R_PPC_VLE_SDAREL_HI16A,	/* type */
+  HOWTO (R_PPC_VLE_SDAREL_HI16A, /* type */
 	 16,			/* rightshift */
 	 2,			/* size (0 = byte, 1 = short, 2 = long) */
 	 16,			/* bitsize */
 	 FALSE,			/* pc_relative */
 	 0,			/* bitpos */
-	 complain_overflow_dont,	/* complain_on_overflow */
-	 bfd_elf_generic_reloc,	 /* special_function */
-	 "R_PPC_VLE_SDAREL_HI16A",	/* name */
+	 complain_overflow_dont, /* complain_on_overflow */
+	 ppc_elf_unhandled_reloc, /* special_function */
+	 "R_PPC_VLE_SDAREL_HI16A", /* name */
 	 FALSE,			/* partial_inplace */
 	 0,			/* src_mask */
 	 0x1f007ff,		/* dst_mask */
 	 FALSE),		/* pcrel_offset */
 
   /* Bits 16-31 relative to _SDA_BASE_ in split16d format.  */
-  HOWTO (R_PPC_VLE_SDAREL_HI16D,	/* type */
+  HOWTO (R_PPC_VLE_SDAREL_HI16D, /* type */
 	 16,			/* rightshift */
 	 2,			/* size (0 = byte, 1 = short, 2 = long) */
 	 16,			/* bitsize */
 	 FALSE,			/* pc_relative */
 	 0,			/* bitpos */
-	 complain_overflow_dont,	/* complain_on_overflow */
-	 bfd_elf_generic_reloc,	 /* special_function */
-	 "R_PPC_VLE_SDAREL_HI16D",	/* name */
+	 complain_overflow_dont, /* complain_on_overflow */
+	 ppc_elf_unhandled_reloc, /* special_function */
+	 "R_PPC_VLE_SDAREL_HI16D", /* name */
 	 FALSE,			/* partial_inplace */
 	 0,			/* src_mask */
 	 0x1f07ff,		/* dst_mask */
 	 FALSE),		/* pcrel_offset */
 
   /* Bits 16-31 (HA) relative to _SDA_BASE split16a format.  */
-  HOWTO (R_PPC_VLE_SDAREL_HA16A,	/* type */
+  HOWTO (R_PPC_VLE_SDAREL_HA16A, /* type */
 	 16,			/* rightshift */
 	 2,			/* size (0 = byte, 1 = short, 2 = long) */
 	 16,			/* bitsize */
 	 FALSE,			/* pc_relative */
 	 0,			/* bitpos */
-	 complain_overflow_dont,	/* complain_on_overflow */
-	 bfd_elf_generic_reloc,	 /* special_function */
-	 "R_PPC_VLE_SDAREL_HA16A",	/* name */
+	 complain_overflow_dont, /* complain_on_overflow */
+	 ppc_elf_unhandled_reloc, /* special_function */
+	 "R_PPC_VLE_SDAREL_HA16A", /* name */
 	 FALSE,			/* partial_inplace */
 	 0,			/* src_mask */
 	 0x1f007ff,		/* dst_mask */
 	 FALSE),		/* pcrel_offset */
 
   /* Bits 16-31 (HA) relative to _SDA_BASE split16d format.  */
-  HOWTO (R_PPC_VLE_SDAREL_HA16D,	/* type */
+  HOWTO (R_PPC_VLE_SDAREL_HA16D, /* type */
 	 16,			/* rightshift */
 	 2,			/* size (0 = byte, 1 = short, 2 = long) */
 	 16,			/* bitsize */
 	 FALSE,			/* pc_relative */
 	 0,			/* bitpos */
-	 complain_overflow_dont,	/* complain_on_overflow */
-	 bfd_elf_generic_reloc,	 /* special_function */
-	 "R_PPC_VLE_SDAREL_HA16D",	/* name */
+	 complain_overflow_dont, /* complain_on_overflow */
+	 ppc_elf_unhandled_reloc, /* special_function */
+	 "R_PPC_VLE_SDAREL_HA16D", /* name */
 	 FALSE,			/* partial_inplace */
 	 0,			/* src_mask */
 	 0x1f07ff,		/* dst_mask */
@@ -1662,7 +1662,7 @@ static reloc_howto_type ppc_elf_howto_raw[] = {
 	 FALSE,			/* pc_relative */
 	 0,			/* bitpos */
 	 complain_overflow_dont, /* complain_on_overflow */
-	 bfd_elf_generic_reloc,	 /* special_function */
+	 ppc_elf_unhandled_reloc, /* special_function */
 	 "R_PPC_IRELATIVE",	/* name */
 	 FALSE,			/* partial_inplace */
 	 0,			/* src_mask */
@@ -1783,7 +1783,7 @@ static reloc_howto_type ppc_elf_howto_raw[] = {
 	 FALSE,			/* pc_relative */
 	 0,			/* bitpos */
 	 complain_overflow_signed, /* complain_on_overflow */
-	 bfd_elf_generic_reloc,	/* special_function */
+	 ppc_elf_unhandled_reloc, /* special_function */
 	 "R_PPC_TOC16",		/* name */
 	 FALSE,			/* partial_inplace */
 	 0,			/* src_mask */
@@ -2041,8 +2041,9 @@ ppc_elf_info_to_howto (bfd *abfd ATTRIBUTE_UNUSED,
   r_type = ELF32_R_TYPE (dst->r_info);
   if (r_type >= R_PPC_max)
     {
-      (*_bfd_error_handler) (_("%B: unrecognised PPC reloc number: %d"),
-			     abfd, r_type);
+      /* xgettext:c-format */
+      _bfd_error_handler (_("%B: unrecognised PPC reloc number: %d"),
+			  abfd, r_type);
       bfd_set_error (bfd_error_bad_value);
       r_type = R_PPC_NONE;
     }
@@ -2052,8 +2053,9 @@ ppc_elf_info_to_howto (bfd *abfd ATTRIBUTE_UNUSED,
      ELF32_R_TYPE (dst->r_info) is necessarily a valid relocation.  */
   if (!cache_ptr->howto)
     {
-      (*_bfd_error_handler) (_("%B: invalid relocation type %d"),
-                             abfd, r_type);
+      /* xgettext:c-format */
+      _bfd_error_handler (_("%B: invalid relocation type %d"),
+			  abfd, r_type);
       bfd_set_error (bfd_error_bad_value);
 
       cache_ptr->howto = ppc_elf_howto_table[R_PPC_NONE];
@@ -2246,6 +2248,7 @@ _bfd_elf_ppc_set_arch (bfd *abfd)
 		case PPC_APUINFO_BRLOCK:
 		  if (mach != bfd_mach_ppc_vle)
 		    mach = bfd_mach_ppc_e500;
+		  break;
 
 		case PPC_APUINFO_VLE:
 		  mach = bfd_mach_ppc_vle;
@@ -2443,18 +2446,6 @@ ppc_elf_lookup_section_flags (char *flag_name)
   return 0;
 }
 
-/* Add the VLE flag if required.  */
-
-bfd_boolean
-ppc_elf_section_processing (bfd *abfd, Elf_Internal_Shdr *shdr)
-{
-  if (bfd_get_mach (abfd) == bfd_mach_ppc_vle
-      && (shdr->sh_flags & SHF_EXECINSTR) != 0)
-    shdr->sh_flags |= SHF_PPC_VLE;
-
-  return TRUE;
-}
-
 /* Return address for Ith PLT stub in section PLT, for relocation REL
    or (bfd_vma) -1 if it should not be included.  */
 
@@ -2534,10 +2525,7 @@ bfd_boolean
 ppc_elf_modify_segment_map (bfd *abfd,
 			    struct bfd_link_info *info ATTRIBUTE_UNUSED)
 {
-  struct elf_segment_map *m, *n;
-  bfd_size_type amt;
-  unsigned int j, k;
-  bfd_boolean sect0_vle, sectj_vle;
+  struct elf_segment_map *m;
 
   /* At this point in the link, output sections have already been sorted by
      LMA and assigned to segments.  All that is left to do is to ensure
@@ -2547,25 +2535,59 @@ ppc_elf_modify_segment_map (bfd *abfd,
 
   for (m = elf_seg_map (abfd); m != NULL; m = m->next)
     {
-      if (m->count == 0)
+      struct elf_segment_map *n;
+      bfd_size_type amt;
+      unsigned int j, k;
+      unsigned int p_flags;
+
+      if (m->p_type != PT_LOAD || m->count == 0)
 	continue;
 
-      sect0_vle = (elf_section_flags (m->sections[0]) & SHF_PPC_VLE) != 0;
-      for (j = 1; j < m->count; ++j)
+      for (p_flags = PF_R, j = 0; j != m->count; ++j)
 	{
-	  sectj_vle = (elf_section_flags (m->sections[j]) & SHF_PPC_VLE) != 0;
+	  if ((m->sections[j]->flags & SEC_READONLY) == 0)
+	    p_flags |= PF_W;
+	  if ((m->sections[j]->flags & SEC_CODE) != 0)
+	    {
+	      p_flags |= PF_X;
+	      if ((elf_section_flags (m->sections[j]) & SHF_PPC_VLE) != 0)
+		p_flags |= PF_PPC_VLE;
+	      break;
+	    }
+	}
+      if (j != m->count)
+	while (++j != m->count)
+	  {
+	    unsigned int p_flags1 = PF_R;
 
-	  if (sectj_vle != sect0_vle)
-	    break;
-        }
-      if (j >= m->count)
+	    if ((m->sections[j]->flags & SEC_READONLY) == 0)
+	      p_flags1 |= PF_W;
+	    if ((m->sections[j]->flags & SEC_CODE) != 0)
+	      {
+		p_flags1 |= PF_X;
+		if ((elf_section_flags (m->sections[j]) & SHF_PPC_VLE) != 0)
+		  p_flags1 |= PF_PPC_VLE;
+		if (((p_flags1 ^ p_flags) & PF_PPC_VLE) != 0)
+		  break;
+	      }
+	    p_flags |= p_flags1;
+	  }
+      /* If we're splitting a segment which originally contained rw
+	 sections then those sections might now only be in one of the
+	 two parts.  So always set p_flags if splitting, even if we
+	 are being called for objcopy with p_flags_valid set.  */
+      if (j != m->count || !m->p_flags_valid)
+	{
+	  m->p_flags_valid = 1;
+	  m->p_flags = p_flags;
+	}
+      if (j == m->count)
 	continue;
 
-      /* sections 0..j-1 stay in this (current) segment,
+      /* Sections 0..j-1 stay in this (current) segment,
 	 the remainder are put in a new segment.
 	 The scan resumes with the new segment.  */
 
-      /* Fix the new segment.  */
       amt = sizeof (struct elf_segment_map);
       amt += (m->count - j - 1) * sizeof (asection *);
       n = (struct elf_segment_map *) bfd_zalloc (abfd, amt);
@@ -2573,20 +2595,13 @@ ppc_elf_modify_segment_map (bfd *abfd,
         return FALSE;
 
       n->p_type = PT_LOAD;
-      n->p_flags = PF_X | PF_R;
-      if (sectj_vle)
-        n->p_flags |= PF_PPC_VLE;
       n->count = m->count - j;
       for (k = 0; k < n->count; ++k)
-        {
-          n->sections[k] = m->sections[j+k];
-          m->sections[j+k] = NULL;
-	}
+	n->sections[k] = m->sections[j + k];
+      m->count = j;
+      m->p_size_valid = 0;
       n->next = m->next;
       m->next = n;
-
-      /* Fix the current segment  */
-      m->count = j;
     }
 
   return TRUE;
@@ -2745,6 +2760,7 @@ ppc_elf_begin_write_processing (bfd *abfd, struct bfd_link_info *link_info)
       if (asec == NULL)
 	continue;
 
+      /* xgettext:c-format */
       error_message = _("corrupt %s section in %B");
       length = asec->size;
       if (length < 20)
@@ -2764,6 +2780,7 @@ ppc_elf_begin_write_processing (bfd *abfd, struct bfd_link_info *link_info)
       if (bfd_seek (ibfd, asec->filepos, SEEK_SET) != 0
 	  || (bfd_bread (buffer, length, ibfd) != length))
 	{
+	  /* xgettext:c-format */
 	  error_message = _("unable to read in %s section from %B");
 	  goto fail;
 	}
@@ -2805,6 +2822,7 @@ ppc_elf_begin_write_processing (bfd *abfd, struct bfd_link_info *link_info)
       if (asec && ! bfd_set_section_size (abfd, asec, 20 + num_entries * 4))
 	{
 	  ibfd = abfd;
+	  /* xgettext:c-format */
 	  error_message = _("warning: unable to set size of %s section in %B");
 	}
     }
@@ -2814,7 +2832,7 @@ ppc_elf_begin_write_processing (bfd *abfd, struct bfd_link_info *link_info)
     free (buffer);
 
   if (error_message)
-    (*_bfd_error_handler) (error_message, ibfd, APUINFO_SECTION_NAME);
+    _bfd_error_handler (error_message, ibfd, APUINFO_SECTION_NAME);
 }
 
 /* Prevent the output section from accumulating the input sections'
@@ -2854,7 +2872,7 @@ ppc_elf_final_write_processing (bfd *abfd, bfd_boolean linker ATTRIBUTE_UNUSED)
   buffer = bfd_malloc (length);
   if (buffer == NULL)
     {
-      (*_bfd_error_handler)
+      _bfd_error_handler
 	(_("failed to allocate space for new APUinfo section."));
       return;
     }
@@ -2874,10 +2892,10 @@ ppc_elf_final_write_processing (bfd *abfd, bfd_boolean linker ATTRIBUTE_UNUSED)
     }
 
   if (length != asec->size)
-    (*_bfd_error_handler) (_("failed to compute new APUinfo section."));
+    _bfd_error_handler (_("failed to compute new APUinfo section."));
 
   if (! bfd_set_section_contents (abfd, asec, buffer, (file_ptr) 0, length))
-    (*_bfd_error_handler) (_("failed to install new APUinfo section."));
+    _bfd_error_handler (_("failed to install new APUinfo section."));
 
   free (buffer);
 
@@ -3365,7 +3383,8 @@ static struct bfd_link_hash_table *
 ppc_elf_link_hash_table_create (bfd *abfd)
 {
   struct ppc_elf_link_hash_table *ret;
-  static struct ppc_elf_params default_params = { PLT_OLD, 0, 1, 0, 0, 12, 0 };
+  static struct ppc_elf_params default_params
+    = { PLT_OLD, 0, 1, 0, 0, 12, 0, 0 };
 
   ret = bfd_zmalloc (sizeof (struct ppc_elf_link_hash_table));
   if (ret == NULL)
@@ -3411,6 +3430,7 @@ ppc_elf_link_params (struct bfd_link_info *info, struct ppc_elf_params *params)
 
   if (htab)
     htab->params = params;
+  params->pagesize_p2 = bfd_log2 (params->pagesize);
 }
 
 /* Create .got and the related sections.  */
@@ -3946,13 +3966,15 @@ is_branch_reloc (enum elf_ppc_reloc_type r_type)
 	  || r_type == R_PPC_ADDR24
 	  || r_type == R_PPC_ADDR14
 	  || r_type == R_PPC_ADDR14_BRTAKEN
-	  || r_type == R_PPC_ADDR14_BRNTAKEN);
+	  || r_type == R_PPC_ADDR14_BRNTAKEN
+	  || r_type == R_PPC_VLE_REL24);
 }
 
 static void
 bad_shared_reloc (bfd *abfd, enum elf_ppc_reloc_type r_type)
 {
-  (*_bfd_error_handler)
+  _bfd_error_handler
+    /* xgettext:c-format */
     (_("%B: relocation %s cannot be used when making a shared object"),
      abfd,
      ppc_elf_howto_table[r_type]->name);
@@ -4144,7 +4166,7 @@ ppc_elf_check_relocs (bfd *abfd,
 	  tls_type = TLS_TLS | TLS_DTPREL;
 	dogottls:
 	  sec->has_tls_reloc = 1;
-	  /* Fall thru */
+	  /* Fall through.  */
 
 	  /* GOT16 relocations */
 	case R_PPC_GOT16:
@@ -4216,7 +4238,7 @@ ppc_elf_check_relocs (bfd *abfd,
 
 	case R_PPC_SDAREL16:
 	  htab->sdata[0].sym->ref_regular = 1;
-	  /* Fall thru */
+	  /* Fall through.  */
 
 	case R_PPC_VLE_SDAREL_LO16A:
 	case R_PPC_VLE_SDAREL_LO16D:
@@ -4306,6 +4328,7 @@ ppc_elf_check_relocs (bfd *abfd,
 		  /* It does not make sense to have a procedure linkage
 		     table entry for a non-ifunc local symbol.  */
 		  info->callbacks->einfo
+		    /* xgettext:c-format */
 		    (_("%P: %H: %s reloc against local symbol\n"),
 		     abfd, sec, rel->r_offset,
 		     ppc_elf_howto_table[r_type]->name);
@@ -4387,15 +4410,6 @@ ppc_elf_check_relocs (bfd *abfd,
 	    }
 	  if (h != NULL && h->type == STT_GNU_IFUNC)
 	    {
-	      if (bfd_link_pic (info))
-		{
-		  info->callbacks->einfo
-		    (_("%P: %H: @local call to ifunc %s\n"),
-		     abfd, sec, rel->r_offset,
-		     h->root.root.string);
-		  bfd_set_error (bfd_error_bad_value);
-		  return FALSE;
-		}
 	      h->needs_plt = 1;
 	      if (!update_plt_info (abfd, &h->plt.plist, NULL, 0))
 		return FALSE;
@@ -4646,68 +4660,98 @@ ppc_elf_check_relocs (bfd *abfd,
   return TRUE;
 }
 
-
-/* Merge object attributes from IBFD into OBFD.  Raise an error if
-   there are conflicting attributes.  */
-static bfd_boolean
-ppc_elf_merge_obj_attributes (bfd *ibfd, bfd *obfd)
+/* Warn for conflicting Tag_GNU_Power_ABI_FP attributes between IBFD
+   and OBFD, and merge non-conflicting ones.  */
+void
+_bfd_elf_ppc_merge_fp_attributes (bfd *ibfd, struct bfd_link_info *info)
 {
+  bfd *obfd = info->output_bfd;
   obj_attribute *in_attr, *in_attrs;
   obj_attribute *out_attr, *out_attrs;
-
-  if (!elf_known_obj_attributes_proc (obfd)[0].i)
-    {
-      /* This is the first object.  Copy the attributes.  */
-      _bfd_elf_copy_obj_attributes (ibfd, obfd);
-
-      /* Use the Tag_null value to indicate the attributes have been
-	 initialized.  */
-      elf_known_obj_attributes_proc (obfd)[0].i = 1;
-
-      return TRUE;
-    }
 
   in_attrs = elf_known_obj_attributes (ibfd)[OBJ_ATTR_GNU];
   out_attrs = elf_known_obj_attributes (obfd)[OBJ_ATTR_GNU];
 
-  /* Check for conflicting Tag_GNU_Power_ABI_FP attributes and merge
-     non-conflicting ones.  */
   in_attr = &in_attrs[Tag_GNU_Power_ABI_FP];
   out_attr = &out_attrs[Tag_GNU_Power_ABI_FP];
+
   if (in_attr->i != out_attr->i)
     {
-      out_attr->type = 1;
-      if (out_attr->i == 0)
-	out_attr->i = in_attr->i;
-      else if (in_attr->i == 0)
+      int in_fp = in_attr->i & 3;
+      int out_fp = out_attr->i & 3;
+
+      if (in_fp == 0)
 	;
-      else if (out_attr->i == 1 && in_attr->i == 2)
+      else if (out_fp == 0)
+	{
+	  out_attr->type = 1;
+	  out_attr->i ^= in_fp;
+	}
+      else if (out_fp != 2 && in_fp == 2)
 	_bfd_error_handler
+	  /* xgettext:c-format */
 	  (_("Warning: %B uses hard float, %B uses soft float"), obfd, ibfd);
-      else if (out_attr->i == 1 && in_attr->i == 3)
+      else if (out_fp == 2 && in_fp != 2)
 	_bfd_error_handler
-	  (_("Warning: %B uses double-precision hard float, %B uses single-precision hard float"),
-	  obfd, ibfd);
-      else if (out_attr->i == 3 && in_attr->i == 1)
-	_bfd_error_handler
-	  (_("Warning: %B uses double-precision hard float, %B uses single-precision hard float"),
-	  ibfd, obfd);
-      else if (out_attr->i == 3 && in_attr->i == 2)
-	_bfd_error_handler
-	  (_("Warning: %B uses soft float, %B uses single-precision hard float"),
-	  ibfd, obfd);
-      else if (out_attr->i == 2 && (in_attr->i == 1 || in_attr->i == 3))
-	_bfd_error_handler
+	  /* xgettext:c-format */
 	  (_("Warning: %B uses hard float, %B uses soft float"), ibfd, obfd);
-      else if (in_attr->i > 3)
+      else if (out_fp == 1 && in_fp == 3)
 	_bfd_error_handler
-	  (_("Warning: %B uses unknown floating point ABI %d"), ibfd,
-	   in_attr->i);
-      else
+	  /* xgettext:c-format */
+	  (_("Warning: %B uses double-precision hard float, "
+	     "%B uses single-precision hard float"), obfd, ibfd);
+      else if (out_fp == 3 && in_fp == 1)
 	_bfd_error_handler
-	  (_("Warning: %B uses unknown floating point ABI %d"), obfd,
-	   out_attr->i);
+	  /* xgettext:c-format */
+	  (_("Warning: %B uses double-precision hard float, "
+	     "%B uses single-precision hard float"), ibfd, obfd);
+
+      in_fp = in_attr->i & 0xc;
+      out_fp = out_attr->i & 0xc;
+      if (in_fp == 0)
+	;
+      else if (out_fp == 0)
+	{
+	  out_attr->type = 1;
+	  out_attr->i ^= in_fp;
+	}
+      else if (out_fp != 2 * 4 && in_fp == 2 * 4)
+	_bfd_error_handler
+	  /* xgettext:c-format */
+	  (_("Warning: %B uses 64-bit long double, "
+	     "%B uses 128-bit long double"), ibfd, obfd);
+      else if (in_fp != 2 * 4 && out_fp == 2 * 4)
+	_bfd_error_handler
+	  /* xgettext:c-format */
+	  (_("Warning: %B uses 64-bit long double, "
+	     "%B uses 128-bit long double"), obfd, ibfd);
+      else if (out_fp == 1 * 4 && in_fp == 3 * 4)
+	_bfd_error_handler
+	  /* xgettext:c-format */
+	  (_("Warning: %B uses IBM long double, "
+	     "%B uses IEEE long double"), ibfd, obfd);
+      else if (out_fp == 3 * 4 && in_fp == 1 * 4)
+	_bfd_error_handler
+	  /* xgettext:c-format */
+	  (_("Warning: %B uses IBM long double, "
+	     "%B uses IEEE long double"), obfd, ibfd);
     }
+}
+
+/* Merge object attributes from IBFD into OBFD.  Warn if
+   there are conflicting attributes.  */
+static bfd_boolean
+ppc_elf_merge_obj_attributes (bfd *ibfd, struct bfd_link_info *info)
+{
+  bfd *obfd;
+  obj_attribute *in_attr, *in_attrs;
+  obj_attribute *out_attr, *out_attrs;
+
+  _bfd_elf_ppc_merge_fp_attributes (ibfd, info);
+
+  obfd = info->output_bfd;
+  in_attrs = elf_known_obj_attributes (ibfd)[OBJ_ATTR_GNU];
+  out_attrs = elf_known_obj_attributes (obfd)[OBJ_ATTR_GNU];
 
   /* Check for conflicting Tag_GNU_Power_ABI_Vector attributes and
      merge non-conflicting ones.  */
@@ -4715,48 +4759,38 @@ ppc_elf_merge_obj_attributes (bfd *ibfd, bfd *obfd)
   out_attr = &out_attrs[Tag_GNU_Power_ABI_Vector];
   if (in_attr->i != out_attr->i)
     {
-      const char *in_abi = NULL, *out_abi = NULL;
+      int in_vec = in_attr->i & 3;
+      int out_vec = out_attr->i & 3;
 
-      switch (in_attr->i)
-	{
-	case 1: in_abi = "generic"; break;
-	case 2: in_abi = "AltiVec"; break;
-	case 3: in_abi = "SPE"; break;
-	}
-
-      switch (out_attr->i)
-	{
-	case 1: out_abi = "generic"; break;
-	case 2: out_abi = "AltiVec"; break;
-	case 3: out_abi = "SPE"; break;
-	}
-
-      out_attr->type = 1;
-      if (out_attr->i == 0)
-	out_attr->i = in_attr->i;
-      else if (in_attr->i == 0)
+      if (in_vec == 0)
 	;
+      else if (out_vec == 0)
+	{
+	  out_attr->type = 1;
+	  out_attr->i = in_vec;
+	}
       /* For now, allow generic to transition to AltiVec or SPE
 	 without a warning.  If GCC marked files with their stack
 	 alignment and used don't-care markings for files which are
 	 not affected by the vector ABI, we could warn about this
 	 case too.  */
-      else if (out_attr->i == 1)
-	out_attr->i = in_attr->i;
-      else if (in_attr->i == 1)
+      else if (in_vec == 1)
 	;
-      else if (in_abi == NULL)
+      else if (out_vec == 1)
+	{
+	  out_attr->type = 1;
+	  out_attr->i = in_vec;
+	}
+      else if (out_vec < in_vec)
 	_bfd_error_handler
-	  (_("Warning: %B uses unknown vector ABI %d"), ibfd,
-	   in_attr->i);
-      else if (out_abi == NULL)
+	  /* xgettext:c-format */
+	  (_("Warning: %B uses AltiVec vector ABI, %B uses SPE vector ABI"),
+	   obfd, ibfd);
+      else if (out_vec > in_vec)
 	_bfd_error_handler
-	  (_("Warning: %B uses unknown vector ABI %d"), obfd,
-	   in_attr->i);
-      else
-	_bfd_error_handler
-	  (_("Warning: %B uses vector ABI \"%s\", %B uses \"%s\""),
-	   ibfd, obfd, in_abi, out_abi);
+	  /* xgettext:c-format */
+	  (_("Warning: %B uses AltiVec vector ABI, %B uses SPE vector ABI"),
+	   ibfd, obfd);
     }
 
   /* Check for conflicting Tag_GNU_Power_ABI_Struct_Return attributes
@@ -4765,29 +4799,30 @@ ppc_elf_merge_obj_attributes (bfd *ibfd, bfd *obfd)
   out_attr = &out_attrs[Tag_GNU_Power_ABI_Struct_Return];
   if (in_attr->i != out_attr->i)
     {
-      out_attr->type = 1;
-      if (out_attr->i == 0)
-       out_attr->i = in_attr->i;
-      else if (in_attr->i == 0)
+      int in_struct = in_attr->i & 3;
+      int out_struct = out_attr->i & 3;
+
+      if (in_struct == 0 || in_struct == 3)
        ;
-      else if (out_attr->i == 1 && in_attr->i == 2)
-       _bfd_error_handler
-         (_("Warning: %B uses r3/r4 for small structure returns, %B uses memory"), obfd, ibfd);
-      else if (out_attr->i == 2 && in_attr->i == 1)
-       _bfd_error_handler
-         (_("Warning: %B uses r3/r4 for small structure returns, %B uses memory"), ibfd, obfd);
-      else if (in_attr->i > 2)
-       _bfd_error_handler
-         (_("Warning: %B uses unknown small structure return convention %d"), ibfd,
-          in_attr->i);
-      else
-       _bfd_error_handler
-         (_("Warning: %B uses unknown small structure return convention %d"), obfd,
-          out_attr->i);
+      else if (out_struct == 0)
+	{
+	  out_attr->type = 1;
+	  out_attr->i = in_struct;
+	}
+      else if (out_struct < in_struct)
+	_bfd_error_handler
+	  /* xgettext:c-format */
+	  (_("Warning: %B uses r3/r4 for small structure returns, "
+	     "%B uses memory"), obfd, ibfd);
+      else if (out_struct > in_struct)
+	_bfd_error_handler
+	  /* xgettext:c-format */
+	  (_("Warning: %B uses r3/r4 for small structure returns, "
+	     "%B uses memory"), ibfd, obfd);
     }
 
   /* Merge Tag_compatibility attributes and any common GNU ones.  */
-  _bfd_elf_merge_object_attributes (ibfd, obfd);
+  _bfd_elf_merge_object_attributes (ibfd, info);
 
   return TRUE;
 }
@@ -4796,8 +4831,9 @@ ppc_elf_merge_obj_attributes (bfd *ibfd, bfd *obfd)
    object file when linking.  */
 
 static bfd_boolean
-ppc_elf_merge_private_bfd_data (bfd *ibfd, bfd *obfd)
+ppc_elf_merge_private_bfd_data (bfd *ibfd, struct bfd_link_info *info)
 {
+  bfd *obfd = info->output_bfd;
   flagword old_flags;
   flagword new_flags;
   bfd_boolean error;
@@ -4806,10 +4842,10 @@ ppc_elf_merge_private_bfd_data (bfd *ibfd, bfd *obfd)
     return TRUE;
 
   /* Check if we have the same endianness.  */
-  if (! _bfd_generic_verify_endian_match (ibfd, obfd))
+  if (! _bfd_generic_verify_endian_match (ibfd, info))
     return FALSE;
 
-  if (!ppc_elf_merge_obj_attributes (ibfd, obfd))
+  if (!ppc_elf_merge_obj_attributes (ibfd, info))
     return FALSE;
 
   new_flags = elf_elfheader (ibfd)->e_flags;
@@ -4835,7 +4871,7 @@ ppc_elf_merge_private_bfd_data (bfd *ibfd, bfd *obfd)
 	  && (old_flags & (EF_PPC_RELOCATABLE | EF_PPC_RELOCATABLE_LIB)) == 0)
 	{
 	  error = TRUE;
-	  (*_bfd_error_handler)
+	  _bfd_error_handler
 	    (_("%B: compiled with -mrelocatable and linked with "
 	       "modules compiled normally"), ibfd);
 	}
@@ -4843,7 +4879,7 @@ ppc_elf_merge_private_bfd_data (bfd *ibfd, bfd *obfd)
 	       && (old_flags & EF_PPC_RELOCATABLE) != 0)
 	{
 	  error = TRUE;
-	  (*_bfd_error_handler)
+	  _bfd_error_handler
 	    (_("%B: compiled normally and linked with "
 	       "modules compiled with -mrelocatable"), ibfd);
 	}
@@ -4870,7 +4906,8 @@ ppc_elf_merge_private_bfd_data (bfd *ibfd, bfd *obfd)
       if (new_flags != old_flags)
 	{
 	  error = TRUE;
-	  (*_bfd_error_handler)
+	  _bfd_error_handler
+	    /* xgettext:c-format */
 	    (_("%B: uses different e_flags (0x%lx) fields "
 	       "than previous modules (0x%lx)"),
 	     ibfd, (long) new_flags, (long) old_flags);
@@ -4897,6 +4934,7 @@ ppc_elf_vle_split16 (bfd *output_bfd, bfd_byte *loc,
   insn = bfd_get_32 (output_bfd, loc);
   top5 = value & 0xf800;
   top5 = top5 << (split16_format == split16a_type ? 9 : 5);
+  insn &= (split16_format == split16a_type ? ~0x1f007ff : ~0x1f07ff);
   insn |= top5;
   insn |= value & 0x7ff;
   bfd_put_32 (output_bfd, insn, loc);
@@ -5153,7 +5191,7 @@ ppc_elf_gc_sweep_hook (bfd *abfd,
 	case R_PPC_REL32:
 	  if (h == NULL || h == htab->elf.hgot)
 	    break;
-	  /* Fall thru */
+	  /* Fall through.  */
 
 	case R_PPC_ADDR32:
 	case R_PPC_ADDR24:
@@ -5168,6 +5206,7 @@ ppc_elf_gc_sweep_hook (bfd *abfd,
 	case R_PPC_UADDR16:
 	  if (bfd_link_pic (info))
 	    break;
+	  /* Fall through.  */
 
 	case R_PPC_PLT32:
 	case R_PPC_PLTREL24:
@@ -5395,7 +5434,7 @@ ppc_elf_tls_optimize (bfd *obfd ATTRIBUTE_UNUSED,
 		    case R_PPC_GOT_TLSLD16:
 		    case R_PPC_GOT_TLSLD16_LO:
 		      expecting_tls_get_addr = 1;
-		      /* Fall thru */
+		      /* Fall through.  */
 
 		    case R_PPC_GOT_TLSLD16_HI:
 		    case R_PPC_GOT_TLSLD16_HA:
@@ -5413,7 +5452,7 @@ ppc_elf_tls_optimize (bfd *obfd ATTRIBUTE_UNUSED,
 		    case R_PPC_GOT_TLSGD16:
 		    case R_PPC_GOT_TLSGD16_LO:
 		      expecting_tls_get_addr = 1;
-		      /* Fall thru */
+		      /* Fall through.  */
 
 		    case R_PPC_GOT_TLSGD16_HI:
 		    case R_PPC_GOT_TLSGD16_HA:
@@ -6500,7 +6539,9 @@ ppc_elf_size_dynamic_sections (bfd *output_bfd,
       && htab->elf.dynamic_sections_created)
     {
       htab->glink_pltresolve = htab->glink->size;
-      /* Space for the branch table.  */
+      /* Space for the branch table.  ??? We don't need entries for
+	 non-dynamic symbols in this table.  This case can arise with
+	 static ifuncs or forced local ifuncs.  */
       htab->glink->size += htab->glink->size / (GLINK_ENTRY_SIZE / 4) - 4;
       /* Pad out to align the start of PLTresolve.  */
       htab->glink->size += -htab->glink->size & (htab->params->ppc476_workaround
@@ -8138,7 +8179,7 @@ ppc_elf_relocate_section (bfd *output_bfd,
 	case R_PPC_ADDR14_BRTAKEN:
 	case R_PPC_REL14_BRTAKEN:
 	  branch_bit = BRANCH_PREDICT_BIT;
-	  /* Fall thru */
+	  /* Fall through.  */
 
 	  /* Branch not taken prediction relocations.  */
 	case R_PPC_ADDR14_BRNTAKEN:
@@ -8232,6 +8273,7 @@ ppc_elf_relocate_section (bfd *output_bfd,
 		}
 	      else
 		info->callbacks->einfo
+		  /* xgettext:c-format */
 		  (_("%P: %H: error: %s with unexpected instruction %x\n"),
 		   input_bfd, input_section, rel->r_offset,
 		   "R_PPC_ADDR16_HA", insn);
@@ -8266,6 +8308,7 @@ ppc_elf_relocate_section (bfd *output_bfd,
 		}
 	      else
 		info->callbacks->einfo
+		  /* xgettext:c-format */
 		  (_("%P: %H: error: %s with unexpected instruction %x\n"),
 		   input_bfd, input_section, rel->r_offset,
 		   "R_PPC_ADDR16_LO", insn);
@@ -8304,6 +8347,27 @@ ppc_elf_relocate_section (bfd *output_bfd,
 	    }
 	  if (ent != NULL)
 	    {
+	      if (bfd_link_pic (info)
+		  && ent->sec != got2
+		  && htab->plt_type != PLT_NEW
+		  && (!htab->elf.dynamic_sections_created
+		      || h == NULL
+		      || h->dynindx == -1))
+		{
+		  /* Uh oh, we are going to create a pic glink stub
+		     for an ifunc (here for h == NULL and later in
+		     finish_dynamic_symbol for h != NULL), and
+		     apparently are using code compiled with
+		     -mbss-plt.  The difficulty is that -mbss-plt code
+		     gives no indication via a magic PLTREL24 addend
+		     whether r30 is equal to _GLOBAL_OFFSET_TABLE_ or
+		     is pointing into a .got2 section (and how far
+		     into .got2).  */
+		    info->callbacks->einfo
+		      /* xgettext:c-format */
+		      (_("%X%P: %H: unsupported bss-plt -fPIC ifunc %s\n"),
+		       input_bfd, input_section, rel->r_offset, sym_name);
+		}
 	      if (h == NULL && (ent->plt.offset & 1) == 0)
 		{
 		  Elf_Internal_Rela rela;
@@ -8353,6 +8417,7 @@ ppc_elf_relocate_section (bfd *output_bfd,
 	{
 	default:
 	  info->callbacks->einfo
+	    /* xgettext:c-format */
 	    (_("%P: %B: unknown relocation type %d for symbol %s\n"),
 	     input_bfd, (int) r_type, sym_name);
 
@@ -8631,6 +8696,7 @@ ppc_elf_relocate_section (bfd *output_bfd,
 	       got at entry m+n bears little relation to the entry m.  */
 	    if (addend != 0)
 	      info->callbacks->einfo
+		/* xgettext:c-format */
 		(_("%P: %H: non-zero addend on %s reloc against `%s'\n"),
 		 input_bfd, input_section, rel->r_offset,
 		 howto->name,
@@ -8651,6 +8717,21 @@ ppc_elf_relocate_section (bfd *output_bfd,
 						    rel->r_offset,
 						    TRUE);
 	      goto copy_reloc;
+	    }
+	  if (h != NULL && h->type == STT_GNU_IFUNC && bfd_link_pic (info))
+	    {
+	      /* @local on an ifunc does not really make sense since
+		 the ifunc resolver can take you anywhere.  More
+		 seriously, calls to ifuncs must go through a plt call
+		 stub, and for pic the plt call stubs uses r30 to
+		 access the PLT.  The problem is that a call that is
+		 local won't have the +32k reloc addend trick marking
+		 -fPIC code, so the linker won't know whether r30 is
+		 _GLOBAL_OFFSET_TABLE_ or pointing into a .got2 section.  */
+	      /* xgettext:c-format */
+	      info->callbacks->einfo (_("%X%P: %H: @local call to ifunc %s\n"),
+				      input_bfd, input_section, rel->r_offset,
+				      h->root.root.string);
 	    }
 	  break;
 
@@ -8837,6 +8918,7 @@ ppc_elf_relocate_section (bfd *output_bfd,
 			     So we'll segfault when trying to run the
 			     indirection function to resolve the reloc.  */
 			  info->callbacks->einfo
+			    /* xgettext:c-format */
 			    (_("%P: %H: relocation %s for indirect "
 			       "function %s unsupported\n"),
 			     input_bfd, input_section, rel->r_offset,
@@ -8928,7 +9010,7 @@ ppc_elf_relocate_section (bfd *output_bfd,
 			      + htab->plt->output_offset
 			      + ent->plt.offset);
 	    }
-	  /* Fall thru */
+	  /* Fall through.  */
 
 	case R_PPC_RELAX:
 	  {
@@ -9095,6 +9177,7 @@ ppc_elf_relocate_section (bfd *output_bfd,
 		  || strcmp (name, ".sbss") == 0))
 	      {
 		info->callbacks->einfo
+		  /* xgettext:c-format */
 		  (_("%P: %B: the target (%s) of a %s relocation is "
 		     "in the wrong output section (%s)\n"),
 		   input_bfd,
@@ -9125,6 +9208,7 @@ ppc_elf_relocate_section (bfd *output_bfd,
 		  || strcmp (name, ".sbss2") == 0))
 	      {
 		info->callbacks->einfo
+		  /* xgettext:c-format */
 		  (_("%P: %B: the target (%s) of a %s relocation is "
 		     "in the wrong output section (%s)\n"),
 		   input_bfd,
@@ -9209,6 +9293,7 @@ ppc_elf_relocate_section (bfd *output_bfd,
 	    else
 	      {
 		info->callbacks->einfo
+		  /* xgettext:c-format */
 		  (_("%P: %B: the target (%s) of a %s relocation is "
 		     "in the wrong output section (%s)\n"),
 		   input_bfd,
@@ -9302,7 +9387,8 @@ ppc_elf_relocate_section (bfd *output_bfd,
 	      }
 	    else
 	      {
-		(*_bfd_error_handler)
+		_bfd_error_handler
+		  /* xgettext:c-format */
 		  (_("%B: the target (%s) of a %s relocation is "
 		     "in the wrong output section (%s)"),
 		   input_bfd,
@@ -9400,6 +9486,7 @@ ppc_elf_relocate_section (bfd *output_bfd,
 	case R_PPC_EMB_RELST_HA:
 	case R_PPC_EMB_BIT_FLD:
 	  info->callbacks->einfo
+	    /* xgettext:c-format */
 	    (_("%P: %B: relocation %s is not yet supported for symbol %s\n"),
 	     input_bfd,
 	     howto->name,
@@ -9430,7 +9517,7 @@ ppc_elf_relocate_section (bfd *output_bfd,
 	     alone (it will be set to zero elsewhere in the link).  */
 	  if (sec == NULL)
 	    break;
-	  /* Fall thru */
+	  /* Fall through.  */
 
 	case R_PPC_PLT16_HA:
 	case R_PPC_GOT16_HA:
@@ -9484,6 +9571,7 @@ ppc_elf_relocate_section (bfd *output_bfd,
 	      {
 		relocation ^= lobit;
 		info->callbacks->einfo
+		  /* xgettext:c-format */
 		  (_("%P: %H: error: %s against `%s' not a multiple of %u\n"),
 		   input_bfd, input_section, rel->r_offset,
 		   howto->name, sym_name, mask + 1);
@@ -9512,6 +9600,7 @@ ppc_elf_relocate_section (bfd *output_bfd,
 				      rel->r_offset) != (bfd_vma) -1)
 	{
 	  info->callbacks->einfo
+	    /* xgettext:c-format */
 	    (_("%P: %H: unresolvable %s relocation against symbol `%s'\n"),
 	     input_bfd, input_section, rel->r_offset,
 	     howto->name,
@@ -9592,6 +9681,7 @@ ppc_elf_relocate_section (bfd *output_bfd,
 	  else
 	    {
 	      info->callbacks->einfo
+		/* xgettext:c-format */
 		(_("%P: %H: %s reloc against `%s': error %d\n"),
 		 input_bfd, input_section, rel->r_offset,
 		 howto->name, sym_name, (int) r);
@@ -10397,6 +10487,7 @@ ppc_elf_finish_dynamic_sections (bfd *output_bfd,
 	}
       else
 	{
+	  /* xgettext:c-format */
 	  info->callbacks->einfo (_("%P: %s not defined in linker created %s\n"),
 				  htab->elf.hgot->root.root.string,
 				  (htab->sgotplt != NULL
@@ -10828,7 +10919,6 @@ ppc_elf_finish_dynamic_sections (bfd *output_bfd,
 #define elf_backend_action_discarded		ppc_elf_action_discarded
 #define elf_backend_init_index_section		_bfd_elf_init_1_index_section
 #define elf_backend_lookup_section_flags_hook	ppc_elf_lookup_section_flags
-#define elf_backend_section_processing		ppc_elf_section_processing
 
 #include "elf32-target.h"
 

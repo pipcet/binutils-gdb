@@ -2525,7 +2525,7 @@ ada_unpack_from_contents (const gdb_byte *src, int bit_offset, int bit_size,
       accumSize += HOST_CHAR_BIT - unusedLS;
       if (accumSize >= HOST_CHAR_BIT)
         {
-          unpacked[unpacked_idx] = accum & ~(~0L << HOST_CHAR_BIT);
+          unpacked[unpacked_idx] = accum & ~(~0UL << HOST_CHAR_BIT);
           accumSize -= HOST_CHAR_BIT;
           accum >>= HOST_CHAR_BIT;
           unpacked_bytes_left -= 1;
@@ -2539,7 +2539,7 @@ ada_unpack_from_contents (const gdb_byte *src, int bit_offset, int bit_size,
   while (unpacked_bytes_left > 0)
     {
       accum |= sign << accumSize;
-      unpacked[unpacked_idx] = accum & ~(~0L << HOST_CHAR_BIT);
+      unpacked[unpacked_idx] = accum & ~(~0UL << HOST_CHAR_BIT);
       accumSize -= HOST_CHAR_BIT;
       if (accumSize < 0)
 	accumSize = 0;
@@ -4454,17 +4454,10 @@ ada_read_renaming_var_value (struct symbol *renaming_sym,
 			     const struct block *block)
 {
   const char *sym_name;
-  struct expression *expr;
-  struct value *value;
-  struct cleanup *old_chain = NULL;
 
   sym_name = SYMBOL_LINKAGE_NAME (renaming_sym);
-  expr = parse_exp_1 (&sym_name, 0, block, 0);
-  old_chain = make_cleanup (free_current_contents, &expr);
-  value = evaluate_expression (expr);
-
-  do_cleanups (old_chain);
-  return value;
+  expression_up expr = parse_exp_1 (&sym_name, 0, block, 0);
+  return evaluate_expression (expr.get ());
 }
 
 
@@ -5878,28 +5871,21 @@ ada_iterate_over_symbols (const struct block *block,
 }
 
 /* If NAME is the name of an entity, return a string that should
-   be used to look that entity up in Ada units.  This string should
-   be deallocated after use using xfree.
+   be used to look that entity up in Ada units.
 
    NAME can have any form that the "break" or "print" commands might
    recognize.  In other words, it does not have to be the "natural"
    name, or the "encoded" name.  */
 
-char *
+std::string
 ada_name_for_lookup (const char *name)
 {
-  char *canon;
   int nlen = strlen (name);
 
   if (name[0] == '<' && name[nlen - 1] == '>')
-    {
-      canon = (char *) xmalloc (nlen - 1);
-      memcpy (canon, name + 1, nlen - 2);
-      canon[nlen - 2] = '\0';
-    }
+    return std::string (name + 1, nlen - 2);
   else
-    canon = xstrdup (ada_encode (ada_fold_name (name)));
-  return canon;
+    return ada_encode (ada_fold_name (name));
 }
 
 /* The result is as for ada_lookup_symbol_list with FULL_SEARCH set
@@ -7615,36 +7601,21 @@ ada_value_struct_elt (struct value *arg, char *name, int no_err)
 	     "a value that is not a record."));
 }
 
-/* Return a string representation of type TYPE.  Caller must free
-   result.  */
+/* Return a string representation of type TYPE.  */
 
-static char *
+static std::string
 type_as_string (struct type *type)
 {
   struct ui_file *tmp_stream = mem_fileopen ();
   struct cleanup *old_chain;
-  char *str;
 
   tmp_stream = mem_fileopen ();
   old_chain = make_cleanup_ui_file_delete (tmp_stream);
 
   type_print (type, "", tmp_stream, -1);
-  str = ui_file_xstrdup (tmp_stream, NULL);
+  std::string str = ui_file_as_string (tmp_stream);
 
   do_cleanups (old_chain);
-  return str;
-}
-
-/* Return a string representation of type TYPE, and install a cleanup
-   that releases it.  */
-
-static char *
-type_as_string_and_cleanup (struct type *type)
-{
-  char *str;
-
-  str = type_as_string (type);
-  make_cleanup (xfree, str);
   return str;
 }
 
@@ -7688,15 +7659,11 @@ ada_lookup_struct_elt_type (struct type *type, char *name, int refok,
       || (TYPE_CODE (type) != TYPE_CODE_STRUCT
           && TYPE_CODE (type) != TYPE_CODE_UNION))
     {
-      const char *type_str;
-
       if (noerr)
         return NULL;
 
-      type_str = (type != NULL
-		  ? type_as_string_and_cleanup (type)
-		  : _("(null)"));
-      error (_("Type %s is not a structure or union type"), type_str);
+      error (_("Type %s is not a structure or union type"),
+	     type != NULL ? type_as_string (type).c_str () : _("(null)"));
     }
 
   type = to_static_fixed_type (type);
@@ -7769,7 +7736,7 @@ BadName:
       const char *name_str = name != NULL ? name : _("<null>");
 
       error (_("Type %s has no component named %s"),
-	     type_as_string_and_cleanup (type), name_str);
+	     type_as_string (type).c_str (), name_str);
     }
 
   return NULL;
@@ -12308,7 +12275,7 @@ struct ada_catchpoint_location
   /* The condition that checks whether the exception that was raised
      is the specific exception the user specified on catchpoint
      creation.  */
-  struct expression *excep_cond_expr;
+  expression_up excep_cond_expr;
 };
 
 /* Implement the DTOR method in the bp_location_ops structure for all
@@ -12319,7 +12286,7 @@ ada_catchpoint_location_dtor (struct bp_location *bl)
 {
   struct ada_catchpoint_location *al = (struct ada_catchpoint_location *) bl;
 
-  xfree (al->excep_cond_expr);
+  al->excep_cond_expr.reset ();
 }
 
 /* The vtable to be used in Ada catchpoint locations.  */
@@ -12371,7 +12338,7 @@ create_excep_cond_exprs (struct ada_catchpoint *c)
     {
       struct ada_catchpoint_location *ada_loc
 	= (struct ada_catchpoint_location *) bl;
-      struct expression *exp = NULL;
+      expression_up exp;
 
       if (!bl->shlib_disabled)
 	{
@@ -12380,26 +12347,20 @@ create_excep_cond_exprs (struct ada_catchpoint *c)
 	  s = cond_string;
 	  TRY
 	    {
-	      exp = parse_exp_1 (&s, bl->address,
-				 block_for_pc (bl->address), 0);
+	      exp = gdb::move (parse_exp_1 (&s, bl->address,
+					    block_for_pc (bl->address),
+					    0));
 	    }
 	  CATCH (e, RETURN_MASK_ERROR)
 	    {
 	      warning (_("failed to reevaluate internal exception condition "
 			 "for catchpoint %d: %s"),
 		       c->base.number, e.message);
-	      /* There is a bug in GCC on sparc-solaris when building with
-		 optimization which causes EXP to change unexpectedly
-		 (http://gcc.gnu.org/bugzilla/show_bug.cgi?id=56982).
-		 The problem should be fixed starting with GCC 4.9.
-		 In the meantime, work around it by forcing EXP back
-		 to NULL.  */
-	      exp = NULL;
 	    }
 	  END_CATCH
 	}
 
-      ada_loc->excep_cond_expr = exp;
+      ada_loc->excep_cond_expr = gdb::move (exp);
     }
 
   do_cleanups (old_chain);
@@ -12427,7 +12388,7 @@ allocate_location_exception (enum ada_exception_catchpoint_kind ex,
 {
   struct ada_catchpoint_location *loc;
 
-  loc = XNEW (struct ada_catchpoint_location);
+  loc = new ada_catchpoint_location ();
   init_bp_location (&loc->base, &ada_catchpoint_location_ops, self);
   loc->excep_cond_expr = NULL;
   return &loc->base;
@@ -12479,7 +12440,7 @@ should_stop_exception (const struct bp_location *bl)
       struct value *mark;
 
       mark = value_mark ();
-      stop = value_true (evaluate_expression (ada_loc->excep_cond_expr));
+      stop = value_true (evaluate_expression (ada_loc->excep_cond_expr.get ()));
       value_free_to_mark (mark);
     }
   CATCH (ex, RETURN_MASK_ALL)
@@ -13143,7 +13104,7 @@ create_ada_exception_catchpoint (struct gdbarch *gdbarch,
   struct symtab_and_line sal
     = ada_exception_sal (ex_kind, excep_string, &addr_string, &ops);
 
-  c = XNEW (struct ada_catchpoint);
+  c = new ada_catchpoint ();
   init_ada_exception_breakpoint (&c->base, gdbarch, sal, addr_string,
 				 ops, tempflag, disabled, from_tty);
   c->excep_string = excep_string;
@@ -14004,16 +13965,16 @@ ada_language_arch_info (struct gdbarch *gdbarch,
     = arch_character_type (gdbarch, TARGET_CHAR_BIT, 0, "character");
   lai->primitive_type_vector [ada_primitive_type_float]
     = arch_float_type (gdbarch, gdbarch_float_bit (gdbarch),
-		       "float", NULL);
+		       "float", gdbarch_float_format (gdbarch));
   lai->primitive_type_vector [ada_primitive_type_double]
     = arch_float_type (gdbarch, gdbarch_double_bit (gdbarch),
-		       "long_float", NULL);
+		       "long_float", gdbarch_double_format (gdbarch));
   lai->primitive_type_vector [ada_primitive_type_long_long]
     = arch_integer_type (gdbarch, gdbarch_long_long_bit (gdbarch),
 			 0, "long_long_integer");
   lai->primitive_type_vector [ada_primitive_type_long_double]
-    = arch_float_type (gdbarch, gdbarch_double_bit (gdbarch),
-		       "long_long_float", NULL);
+    = arch_float_type (gdbarch, gdbarch_long_double_bit (gdbarch),
+		       "long_long_float", gdbarch_long_double_format (gdbarch));
   lai->primitive_type_vector [ada_primitive_type_natural]
     = arch_integer_type (gdbarch, gdbarch_int_bit (gdbarch),
 			 0, "natural");

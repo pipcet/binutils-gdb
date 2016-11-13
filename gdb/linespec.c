@@ -1328,7 +1328,6 @@ decode_line_2 (struct linespec_state *self,
   int i;
   struct cleanup *old_chain;
   VEC (const_char_ptr) *filters = NULL;
-  struct get_number_or_range_state state;
   struct decode_line_2_item *items;
   int items_count;
 
@@ -1409,12 +1408,10 @@ decode_line_2 (struct linespec_state *self,
   if (args == 0 || *args == 0)
     error_no_arg (_("one or more choice numbers"));
 
-  init_number_or_range (&state, args);
-  while (!state.finished)
+  number_or_range_parser parser (args);
+  while (!parser.finished ())
     {
-      int num;
-
-      num = get_number_or_range (&state);
+      int num = parser.get_number ();
 
       if (num == 0)
 	error (_("canceled"));
@@ -1519,10 +1516,9 @@ unexpected_linespec_error (linespec_parser *parser)
       || token.type == LSTOKEN_KEYWORD)
     {
       char *string;
-      struct cleanup *cleanup;
 
       string = copy_token_string (token);
-      cleanup = make_cleanup (xfree, string);
+      make_cleanup (xfree, string);
       throw_error (GENERIC_ERROR,
 		   _("malformed linespec error: unexpected %s, \"%s\""),
 		   token_type_strings[token.type], string);
@@ -3272,26 +3268,27 @@ find_linespec_symbols (struct linespec_state *state,
 		       VEC (symbolp) **symbols,
 		       VEC (bound_minimal_symbol_d) **minsyms)
 {
-  struct cleanup *cleanup;
-  char *canon;
+  demangle_result_storage demangle_storage;
+  std::string ada_lookup_storage;
   const char *lookup_name;
 
-  cleanup = demangle_for_lookup (name, state->language->la_language,
-				 &lookup_name);
   if (state->language->la_language == language_ada)
     {
       /* In Ada, the symbol lookups are performed using the encoded
          name rather than the demangled name.  */
-      lookup_name = ada_name_for_lookup (name);
-      make_cleanup (xfree, (void *) lookup_name);
+      ada_lookup_storage = ada_name_for_lookup (name);
+      lookup_name = ada_lookup_storage.c_str ();
+    }
+  else
+    {
+      lookup_name = demangle_for_lookup (name,
+					 state->language->la_language,
+					 demangle_storage);
     }
 
-  canon = cp_canonicalize_string_no_typedefs (lookup_name);
-  if (canon != NULL)
-    {
-      lookup_name = canon;
-      make_cleanup (xfree, canon);
-    }
+  std::string canon = cp_canonicalize_string_no_typedefs (lookup_name);
+  if (!canon.empty ())
+    lookup_name = canon.c_str ();
 
   /* It's important to not call expand_symtabs_matching unnecessarily
      as it can really slow things down (by unnecessarily expanding
@@ -3311,7 +3308,7 @@ find_linespec_symbols (struct linespec_state *state,
   if (VEC_empty (symbolp, *symbols)
       && VEC_empty (bound_minimal_symbol_d, *minsyms))
     {
-      char *klass, *method;
+      std::string klass, method;
       const char *last, *p, *scope_op;
       VEC (symbolp) *classes;
 
@@ -3319,12 +3316,6 @@ find_linespec_symbols (struct linespec_state *state,
 	 name into namespaces${SCOPE_OPERATOR}class_name and method_name.  */
       scope_op = "::";
       p = find_toplevel_string (lookup_name, scope_op);
-      if (p == NULL)
-	{
-	  /* No C++ scope operator.  Try Java.  */
-	  scope_op = ".";
-	  p = find_toplevel_string (lookup_name, scope_op);
-	}
 
       last = NULL;
       while (p != NULL)
@@ -3337,35 +3328,29 @@ find_linespec_symbols (struct linespec_state *state,
 	 we already attempted to lookup the entire name as a symbol
 	 and failed.  */
       if (last == NULL)
-	{
-	  do_cleanups (cleanup);
-	  return;
-	}
+	return;
 
       /* LOOKUP_NAME points to the class name.
 	 LAST points to the method name.  */
-      klass = XNEWVEC (char, last - lookup_name + 1);
-      make_cleanup (xfree, klass);
-      strncpy (klass, lookup_name, last - lookup_name);
-      klass[last - lookup_name] = '\0';
+      klass = std::string (lookup_name, last - lookup_name);
 
       /* Skip past the scope operator.  */
       last += strlen (scope_op);
-      method = XNEWVEC (char, strlen (last) + 1);
-      make_cleanup (xfree, method);
-      strcpy (method, last);
+      method = last;
 
       /* Find a list of classes named KLASS.  */
-      classes = lookup_prefix_sym (state, file_symtabs, klass);
-      make_cleanup (VEC_cleanup (symbolp), &classes);
+      classes = lookup_prefix_sym (state, file_symtabs, klass.c_str ());
+      struct cleanup *old_chain
+	= make_cleanup (VEC_cleanup (symbolp), &classes);
 
       if (!VEC_empty (symbolp, classes))
 	{
 	  /* Now locate a list of suitable methods named METHOD.  */
 	  TRY
 	    {
-	      find_method (state, file_symtabs, klass, method, classes,
-			   symbols, minsyms);
+	      find_method (state, file_symtabs,
+			   klass.c_str (), method.c_str (),
+			   classes, symbols, minsyms);
 	    }
 
 	  /* If successful, we're done.  If NOT_FOUND_ERROR
@@ -3377,9 +3362,9 @@ find_linespec_symbols (struct linespec_state *state,
 	    }
 	  END_CATCH
 	}
-    }
 
-  do_cleanups (cleanup);
+      do_cleanups (old_chain);
+    }
 }
 
 /* Return all labels named NAME in FUNCTION_SYMBOLS.  Return the

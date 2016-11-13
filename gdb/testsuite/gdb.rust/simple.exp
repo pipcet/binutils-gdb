@@ -33,6 +33,7 @@ if {![runto ${srcfile}:$line]} {
 
 gdb_test "print a" " = \\(\\)"
 gdb_test "ptype a" " = \\(\\)"
+gdb_test "print sizeof(a)" " = 0"
 
 gdb_test "print b" " = \\\[\\\]"
 gdb_test "ptype b" " = \\\[i32; 0\\\]"
@@ -41,6 +42,7 @@ gdb_test "print *(&b as *const \[i32; 0_0\])" " = \\\[\\\]"
 
 gdb_test "print c" " = 99"
 gdb_test "ptype c" " = i32"
+gdb_test "print sizeof(c)" " = 4"
 
 gdb_test "print c = 87" " = \\(\\)"
 gdb_test "print c" " = 87"
@@ -55,7 +57,10 @@ gdb_test "print *(&c as *mut i32)" " = 0"
 
 gdb_test "print j" " = simple::Unit"
 gdb_test "ptype j" " = struct simple::Unit"
+gdb_test "print j2" " = simple::Unit"
+gdb_test "ptype j2" " = struct simple::Unit"
 gdb_test "print simple::Unit" " = simple::Unit"
+gdb_test "print simple::Unit{}" " = simple::Unit"
 
 gdb_test "print g" " = \\(u8 \\(\\*\\)\\\[6\\\]\\) $hex b\"hi bob\""
 gdb_test "ptype g" " = u8 \\(\\*\\)\\\[6\\\]"
@@ -73,6 +78,7 @@ gdb_test "print w" " = \\\[1, 2, 3, 4\\\]"
 gdb_test "ptype w" " = \\\[i32; 4\\\]"
 gdb_test "print w\[2\]" " = 3"
 gdb_test "print w\[2\] @ 2" " = \\\[3, 4\\\]"
+gdb_test "print w_ptr\[2\]" " = 3"
 gdb_test "print fromslice" " = 3"
 gdb_test "print slice\[0\]" " = 3"
 gdb_test "print slice as &\[i32\]\[0\]" " = 3"
@@ -99,6 +105,11 @@ gdb_test_sequence "ptype z" "" {
 }
 gdb_test "print z.1" " = 8"
 
+gdb_test "print univariant" " = simple::Univariant::Foo{a: 1}"
+gdb_test "print univariant.a" " = 1"
+gdb_test "print univariant_anon" " = simple::UnivariantAnon::Foo\\(1\\)"
+gdb_test "print univariant_anon.0" " = 1"
+
 gdb_test_sequence "ptype simple::ByeBob" "" {
     " = struct simple::ByeBob \\("
     "  i32,"
@@ -118,7 +129,7 @@ gdb_test "print nosuchsymbol" \
 gdb_test "print e" " = simple::MoreComplicated::Two\\(73\\)"
 gdb_test "print e2" \
     " = simple::MoreComplicated::Four\\{this: true, is: 8, a: 109 'm', struct_: 100, variant: 10\\}"
-
+gdb_test "print sizeof(e)" " = 24"
 gdb_test_sequence "ptype e" "" {
     " = enum simple::MoreComplicated \\{"
     "  One,"
@@ -216,3 +227,10 @@ gdb_test "print (1,)" "Tuple expressions not supported yet"
 gdb_test "print (1)" " = 1"
 
 gdb_test "print 23..97.0" "Range expression with different types"
+
+gdb_test "print (*parametrized.next.val)" \
+    " = simple::ParametrizedStruct<i32> {next: simple::ParametrizedEnum<Box<simple::ParametrizedStruct<i32>>>::Empty, value: 1}"
+gdb_test "print parametrized.next.val" \
+    " = \\(simple::ParametrizedStruct<i32> \\*\\) $hex"
+gdb_test "print parametrized" \
+    " = simple::ParametrizedStruct<i32> \\{next: simple::ParametrizedEnum<Box<simple::ParametrizedStruct<i32>>>::Val\\{val: $hex\\}, value: 0\\}"

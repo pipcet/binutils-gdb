@@ -117,8 +117,7 @@ current_level (struct ui_out *uiout)
 /* Create a new level, of TYPE.  Return the new level's index.  */
 static int
 push_level (struct ui_out *uiout,
-	    enum ui_out_type type,
-	    const char *id)
+	    enum ui_out_type type)
 {
   struct ui_out_level *current;
 
@@ -315,7 +314,7 @@ specified after table_body."));
     verify_field (uiout, &fldno, &width, &align);
   }
 
-  new_level = push_level (uiout, type, id);
+  new_level = push_level (uiout, type);
 
   /* If the push puts us at the same level as a table row entry, we've
      got a new table row.  Put the header pointer back to the start.  */
@@ -426,16 +425,13 @@ ui_out_field_stream (struct ui_out *uiout,
 		     const char *fldname,
 		     struct ui_file *stream)
 {
-  long length;
-  char *buffer = ui_file_xstrdup (stream, &length);
-  struct cleanup *old_cleanup = make_cleanup (xfree, buffer);
+  std::string buffer = ui_file_as_string (stream);
 
-  if (length > 0)
-    ui_out_field_string (uiout, fldname, buffer);
+  if (!buffer.empty ())
+    ui_out_field_string (uiout, fldname, buffer.c_str ());
   else
     ui_out_field_skip (uiout, fldname);
   ui_file_rewind (stream);
-  do_cleanups (old_cleanup);
 }
 
 /* Used to omit a field.  */
@@ -902,7 +898,7 @@ ui_out_query_field (struct ui_out *uiout, int colno,
   return 0;
 }
 
-/* Initalize private members at startup.  */
+/* Initialize private members at startup.  */
 
 struct ui_out *
 ui_out_new (const struct ui_out_impl *impl, void *data,

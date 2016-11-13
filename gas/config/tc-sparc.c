@@ -90,9 +90,14 @@ static int warn_on_bump;
    architecture, issue a warning.  */
 static enum sparc_opcode_arch_val warn_after_architecture;
 
-/* Non-zero if as should generate error if an undeclared g[23] register
-   has been used in -64.  */
+/* Non-zero if the assembler should generate error if an undeclared
+   g[23] register has been used in -64.  */
 static int no_undeclared_regs;
+
+/* Non-zero if the assembler should generate a warning if an
+   unpredictable DCTI (delayed control transfer instruction) couple is
+   found.  */
+static int dcti_couples_detect;
 
 /* Non-zero if we should try to relax jumps and calls.  */
 static int sparc_relax;
@@ -484,6 +489,8 @@ struct option md_longopts[] = {
   {"relax", no_argument, NULL, OPTION_RELAX},
 #define OPTION_NO_RELAX (OPTION_MD_BASE + 15)
   {"no-relax", no_argument, NULL, OPTION_NO_RELAX},
+#define OPTION_DCTI_COUPLES_DETECT (OPTION_MD_BASE + 16)
+  {"dcti-couples-detect", no_argument, NULL, OPTION_DCTI_COUPLES_DETECT},
   {NULL, no_argument, NULL, 0}
 };
 
@@ -667,6 +674,10 @@ md_parse_option (int c, const char *arg)
       sparc_relax = 0;
       break;
 
+    case OPTION_DCTI_COUPLES_DETECT:
+      dcti_couples_detect = 1;
+      break;
+
     default:
       return 0;
     }
@@ -744,6 +755,7 @@ md_show_usage (FILE *stream)
 			appropriate .register directive (default)\n\
 -no-undeclared-regs	force error on application global register usage\n\
 			without appropriate .register directive\n\
+--dcti-couples-detect	warn when an unpredictable DCTI couple is found\n\
 -q			ignored\n\
 -Qy, -Qn		ignored\n\
 -s			ignored\n"));
@@ -883,7 +895,7 @@ struct pop_entry
   /* The name as it appears in assembler.  */
   const char *name;
   /* The reloc this pseudo-op translates to.  */
-  int reloc;
+  bfd_reloc_code_real_type reloc;
   /* Flags.  See F_POP_* above.  */
   int flags;
 };
@@ -926,8 +938,7 @@ struct pop_entry pop_table[] =
   { "tie_ldx",		BFD_RELOC_SPARC_TLS_IE_LDX, 	F_POP_POSTFIX },
   { "tie_ld",		BFD_RELOC_SPARC_TLS_IE_LD,	F_POP_POSTFIX },
   { "tie_add",		BFD_RELOC_SPARC_TLS_IE_ADD,	F_POP_POSTFIX },
-  { "gdop",	 	BFD_RELOC_SPARC_GOTDATA_OP,	F_POP_POSTFIX },
-  { NULL, 0, 0 },
+  { "gdop",	 	BFD_RELOC_SPARC_GOTDATA_OP,	F_POP_POSTFIX }
 };
 
 /* Table of %-names that can appear in a sparc assembly program.  This
@@ -962,7 +973,7 @@ struct perc_entry
   (((sizeof (priv_reg_table) / sizeof (priv_reg_table[0])) - 1)         \
    + ((sizeof (hpriv_reg_table) / sizeof (hpriv_reg_table[0])) - 1)     \
    + ((sizeof (v9a_asr_table) / sizeof (v9a_asr_table[0])) - 1)         \
-   + ((sizeof (pop_table) / sizeof (pop_table[0])) - 1) \
+   + ARRAY_SIZE (pop_table)						\
    + 1)
 
 struct perc_entry perc_table[NUM_PERC_ENTRIES];
@@ -1117,19 +1128,15 @@ md_begin (void)
       }
 
     /* Add %-pseudo-ops.  */
-    {
-      struct pop_entry *pop;
-
-      for (pop = pop_table; pop->name; pop++)
-        {
-          struct perc_entry *p = &perc_table[entry++];
-          p->type = (pop->flags & F_POP_POSTFIX
-                     ? perc_entry_post_pop : perc_entry_imm_pop);
-          p->name = pop->name;
-          p->len = strlen (pop->name);
-          p->pop = pop;
-        }
-    }
+    for (i = 0; i < ARRAY_SIZE (pop_table); i++)
+      {
+	struct perc_entry *p = &perc_table[entry++];
+	p->type = (pop_table[i].flags & F_POP_POSTFIX
+		   ? perc_entry_post_pop : perc_entry_imm_pop);
+	p->name = pop_table[i].name;
+	p->len = strlen (pop_table[i].name);
+	p->pop = &pop_table[i];
+      }
 
     /* Last entry is the centinel.  */
     perc_table[entry].type = perc_entry_none;
@@ -1575,16 +1582,38 @@ md_assemble (char *str)
   if (insn == NULL)
     return;
 
-  /* We warn about attempts to put a floating point branch in a delay slot,
-     unless the delay slot has been annulled.  */
+  /* Certain instructions may not appear on delay slots.  Check for
+     these situations.  */
   if (last_insn != NULL
-      && (insn->flags & F_FBR) != 0
-      && (last_insn->flags & F_DELAYED) != 0
-      /* ??? This test isn't completely accurate.  We assume anything with
-	 F_{UNBR,CONDBR,FBR} set is annullable.  */
-      && ((last_insn->flags & (F_UNBR | F_CONDBR | F_FBR)) == 0
-	  || (last_opcode & ANNUL) == 0))
-    as_warn (_("FP branch in delay slot"));
+      && (last_insn->flags & F_DELAYED) != 0)
+    {
+      /* Before SPARC V9 the effect of having a delayed branch
+         instruction in the delay slot of a conditional delayed branch
+         was undefined.
+
+         In SPARC V9 DCTI couples are well defined.
+
+         However, starting with the UltraSPARC Architecture 2005, DCTI
+         couples (of all kind) are deprecated and should not be used,
+         as they may be slow or behave differently to what the
+         programmer expects.  */
+      if (dcti_couples_detect
+          && (insn->flags & F_DELAYED) != 0
+          && ((max_architecture < SPARC_OPCODE_ARCH_V9
+               && (last_insn->flags & F_CONDBR) != 0)
+              || max_architecture >= SPARC_OPCODE_ARCH_V9C))
+        as_warn (_("unpredictable DCTI couple"));
+
+
+      /* We warn about attempts to put a floating point branch in a
+         delay slot, unless the delay slot has been annulled.  */
+      if ((insn->flags & F_FBR) != 0
+          /* ??? This test isn't completely accurate.  We assume anything with
+             F_{UNBR,CONDBR,FBR} set is annullable.  */
+          && ((last_insn->flags & (F_UNBR | F_CONDBR | F_FBR)) == 0
+              || (last_opcode & ANNUL) == 0))
+        as_warn (_("FP branch in delay slot"));
+    }
 
   /* SPARC before v9 requires a nop instruction between a floating
      point instruction and a floating point branch.  We insert one
@@ -3195,7 +3224,7 @@ sparc_ip (char *str, const struct sparc_opcode **pinsn)
 		  ++arch;
 		}
 
-	      as_bad (_("Architecture mismatch on \"%s\"."), str);
+	      as_bad (_("Architecture mismatch on \"%s %s\"."), str, argsStart);
 	      as_tsktsk (_(" (Requires %s; requested architecture is %s.)"),
 			 required_archs,
 			 sparc_opcode_archs[max_architecture].name);
@@ -4895,6 +4924,15 @@ cons_fix_new_sparc (fragS *frag,
       && now_seg->flags & SEC_ALLOC)
     r = BFD_RELOC_SPARC_REV32;
 
+#ifdef TE_SOLARIS
+  /* The Solaris linker does not allow R_SPARC_UA64
+     relocations for 32-bit executables.  */
+  if (!target_little_endian_data
+      && sparc_arch_size != 64
+      && r == BFD_RELOC_64)
+    r = BFD_RELOC_32;
+#endif
+
   if (sparc_cons_special_reloc)
     {
       if (*sparc_cons_special_reloc == 'd')
@@ -4925,7 +4963,14 @@ cons_fix_new_sparc (fragS *frag,
 	{
 	case 2: r = BFD_RELOC_SPARC_UA16; break;
 	case 4: r = BFD_RELOC_SPARC_UA32; break;
+#ifdef TE_SOLARIS
+        /* The Solaris linker does not allow R_SPARC_UA64
+	   relocations for 32-bit executables.  */
+        case 8: r = sparc_arch_size == 64 ?
+                    BFD_RELOC_SPARC_UA64 : BFD_RELOC_SPARC_UA32; break;
+#else
 	case 8: r = BFD_RELOC_SPARC_UA64; break;
+#endif
 	default: abort ();
 	}
    }

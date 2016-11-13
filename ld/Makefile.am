@@ -136,6 +136,10 @@ CXX_FOR_TARGET = ` \
     fi; \
   fi`
 
+# Strip out sanitization options as we want to test building binaries without any extra paraphernalia
+CFLAGS_FOR_TARGET = `echo $(CFLAGS) | sed -e 's/-fsanitize=address//g' -e 's/-fsanitize=undefined//g'`
+CXXFLAGS_FOR_TARGET = `echo $(CXXFLAGS) | sed -e 's/-fsanitize=address//g' -e 's/-fsanitize=undefined//g'`
+
 transform = s/^ld-new$$/$(installed_linker)/;@program_transform_name@
 bin_PROGRAMS = ld-new
 info_TEXINFOS = ld.texinfo
@@ -275,6 +279,7 @@ ALL_EMULATION_SOURCES = \
 	eelf32ppcsim.c \
 	eelf32ppcvxworks.c \
 	eelf32ppcwindiss.c \
+	eelf32lriscv.c \
 	eelf32rl78.c \
 	eelf32rx.c \
 	eelf32tilegx.c \
@@ -493,6 +498,7 @@ ALL_64_EMULATION_SOURCES = \
 	eelf64btsmip_fbsd.c \
 	eelf64hppa.c \
 	eelf64lppc.c \
+	eelf64lriscv.c \
 	eelf64ltsmip.c \
 	eelf64ltsmip_fbsd.c \
 	eelf64mmix.c \
@@ -1169,6 +1175,11 @@ eelf32lppcsim.c: $(srcdir)/emulparams/elf32lppcsim.sh \
   $(srcdir)/emultempl/ppc32elf.em ldemul-list.h \
   $(ELF_DEPS) $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
 
+eelf32lriscv.c: $(srcdir)/emulparams/elf32lriscv.sh \
+  $(srcdir)/emulparams/elf32lriscv-defs.sh $(ELF_DEPS) \
+  $(srcdir)/emultempl/riscvelf.em $(srcdir)/scripttempl/elf.sc \
+  ${GEN_DEPENDS}
+
 eelf32lsmip.c: $(srcdir)/emulparams/elf32lsmip.sh \
   $(srcdir)/emulparams/elf32lmip.sh $(srcdir)/emulparams/elf32bmip.sh \
   $(ELF_DEPS) $(srcdir)/emultempl/mipself.em $(srcdir)/scripttempl/elf.sc \
@@ -1314,7 +1325,7 @@ eelf32xstormy16.c: $(srcdir)/emulparams/elf32xstormy16.sh \
 
 eelf32xtensa.c: $(srcdir)/emulparams/elf32xtensa.sh $(ELF_DEPS) \
   $(srcdir)/emultempl/xtensaelf.em $(INCDIR)/xtensa-config.h \
-  $(BFDDIR)/elf-bfd.h $(BFDDIR)/libbfd.h $(INCDIR)/elf/xtensa.h \
+  $(BFDDIR)/elf-bfd.h $(INCDIR)/elf/xtensa.h \
   $(srcdir)/scripttempl/elfxtensa.sc ${GEN_DEPENDS}
 
 eelf_i386.c: $(srcdir)/emulparams/elf_i386.sh \
@@ -1720,19 +1731,19 @@ eshelf.c: $(srcdir)/emulparams/shelf.sh \
   $(ELF_DEPS) $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
 
 eshelf32.c: $(srcdir)/emulparams/shelf32.sh \
-  $(BFDDIR)/libbfd.h $(INCDIR)/libiberty.h \
+  $(INCDIR)/libiberty.h \
   $(srcdir)/emultempl/sh64elf.em $(INCDIR)/elf/sh.h $(BFDDIR)/elf-bfd.h \
   $(ELF_DEPS) $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
 
 eshelf32_linux.c: $(srcdir)/emulparams/shelf32_linux.sh \
   $(srcdir)/emulparams/shelf32.sh \
-  $(BFDDIR)/libbfd.h $(INCDIR)/libiberty.h \
+  $(INCDIR)/libiberty.h \
   $(srcdir)/emultempl/sh64elf.em $(INCDIR)/elf/sh.h $(BFDDIR)/elf-bfd.h \
   $(ELF_DEPS) $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
 
 eshelf32_nbsd.c: $(srcdir)/emulparams/shelf32_nbsd.sh \
   $(srcdir)/emulparams/shelf32.sh \
-  $(BFDDIR)/libbfd.h $(INCDIR)/libiberty.h \
+  $(INCDIR)/libiberty.h \
   $(srcdir)/emultempl/sh64elf.em $(INCDIR)/elf/sh.h $(BFDDIR)/elf-bfd.h \
   $(ELF_DEPS) $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
 
@@ -1766,19 +1777,19 @@ eshlelf.c: $(srcdir)/emulparams/shlelf.sh \
   $(ELF_DEPS) $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
 
 eshlelf32.c: $(srcdir)/emulparams/shlelf32.sh \
-  $(BFDDIR)/libbfd.h $(INCDIR)/libiberty.h $(srcdir)/emulparams/shelf32.sh \
+  $(INCDIR)/libiberty.h $(srcdir)/emulparams/shelf32.sh \
   $(srcdir)/emultempl/sh64elf.em $(INCDIR)/elf/sh.h $(BFDDIR)/elf-bfd.h \
   $(ELF_DEPS) $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
 
 eshlelf32_linux.c: $(srcdir)/emulparams/shlelf32_linux.sh \
   $(srcdir)/emulparams/shelf32_linux.sh $(srcdir)/emulparams/shelf32.sh \
-  $(BFDDIR)/libbfd.h $(INCDIR)/libiberty.h \
+  $(INCDIR)/libiberty.h \
   $(srcdir)/emultempl/sh64elf.em $(INCDIR)/elf/sh.h $(BFDDIR)/elf-bfd.h \
   $(ELF_DEPS) $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
 
 eshlelf32_nbsd.c: $(srcdir)/emulparams/shlelf32_nbsd.sh \
   $(srcdir)/emulparams/shelf32_nbsd.sh $(srcdir)/emulparams/shelf32.sh \
-  $(BFDDIR)/libbfd.h $(INCDIR)/libiberty.h \
+  $(INCDIR)/libiberty.h \
   $(srcdir)/emultempl/sh64elf.em $(INCDIR)/elf/sh.h $(BFDDIR)/elf-bfd.h \
   $(ELF_DEPS) $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
 
@@ -1963,6 +1974,12 @@ eelf64lppc.c: $(srcdir)/emulparams/elf64lppc.sh \
   ldemul-list.h \
   $(ELF_DEPS) $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
 
+eelf64lriscv.c: $(srcdir)/emulparams/elf64lriscv.sh \
+  $(srcdir)/emulparams/elf64lriscv-defs.sh \
+  $(srcdir)/emulparams/elf32lriscv-defs.sh $(ELF_DEPS) \
+  $(srcdir)/emultempl/riscvelf.em $(srcdir)/scripttempl/elf.sc \
+  ${GEN_DEPENDS}
+
 eelf64ltsmip.c: $(srcdir)/emulparams/elf64ltsmip.sh \
   $(srcdir)/emulparams/elf64btsmip.sh $(srcdir)/emulparams/elf64bmip-defs.sh \
   $(srcdir)/emulparams/elf32bmipn32-defs.sh $(ELF_DEPS) \
@@ -2093,8 +2110,8 @@ check-DEJAGNU: site.exp
 	runtest=$(RUNTEST); \
 	if $(SHELL) -c "$$runtest --version" > /dev/null 2>&1; then \
 	  $$runtest --tool $(DEJATOOL) --srcdir $${srcroot}/testsuite \
-		CC="$(CC_FOR_TARGET)" CFLAGS="$(CFLAGS)" \
-		CXX="$(CXX_FOR_TARGET)" CXXFLAGS="$(CXXFLAGS)" \
+		CC="$(CC_FOR_TARGET)" CFLAGS="$(CFLAGS_FOR_TARGET)" \
+		CXX="$(CXX_FOR_TARGET)" CXXFLAGS="$(CXXFLAGS_FOR_TARGET)" \
 		CC_FOR_HOST="$(CC)" CFLAGS_FOR_HOST="$(CFLAGS)" \
 		OFILES="$(OFILES)" BFDLIB="$(TESTBFDLIB)" \
 		LIBIBERTY="$(LIBIBERTY) $(LIBINTL)" LIBS="$(LIBS)" \

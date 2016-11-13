@@ -27,7 +27,6 @@
 #include "cgen.h"
 #include "elf/common.h"
 #include "elf/mt.h"
-#include "libbfd.h"
 
 /* Structure to hold all of the different components
    describing an individual instruction.  */
@@ -134,6 +133,7 @@ md_parse_option (int c ATTRIBUTE_UNUSED, const char * arg)
  	  mt_mach_bitmask = 1 << MACH_MS2;
  	  mt_arch = ms2;
  	}
+      break;
     case OPTION_NO_SCHED_REST:
       no_scheduling_restrictions = 1;
       break;

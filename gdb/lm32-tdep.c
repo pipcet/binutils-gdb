@@ -36,6 +36,7 @@
 #include "trad-frame.h"
 #include "reggroups.h"
 #include "opcodes/lm32-desc.h"
+#include <algorithm>
 
 /* Macros to extract fields from an instruction.  */
 #define LM32_OPCODE(insn)       ((insn >> 26) & 0x3f)
@@ -197,7 +198,7 @@ lm32_skip_prologue (struct gdbarch *gdbarch, CORE_ADDR pc)
       CORE_ADDR post_prologue_pc
 	= skip_prologue_using_sal (gdbarch, func_addr);
       if (post_prologue_pc != 0)
-	return max (pc, post_prologue_pc);
+	return std::max (pc, post_prologue_pc);
     }
 
   /* Can't determine prologue from the symbol table, need to examine
@@ -215,16 +216,10 @@ lm32_skip_prologue (struct gdbarch *gdbarch, CORE_ADDR pc)
 }
 
 /* Create a breakpoint instruction.  */
+constexpr gdb_byte lm32_break_insn[4] = { OP_RAISE << 2, 0, 0, 2 };
 
-static const gdb_byte *
-lm32_breakpoint_from_pc (struct gdbarch *gdbarch, CORE_ADDR *pcptr,
-			 int *lenptr)
-{
-  static const gdb_byte breakpoint[4] = { OP_RAISE << 2, 0, 0, 2 };
+typedef BP_MANIPULATION (lm32_break_insn) lm32_breakpoint;
 
-  *lenptr = sizeof (breakpoint);
-  return breakpoint;
-}
 
 /* Setup registers and stack for faking a call to a function in the 
    inferior.  */
@@ -562,7 +557,8 @@ lm32_gdbarch_init (struct gdbarch_info info, struct gdbarch_list *arches)
   frame_unwind_append_unwinder (gdbarch, &lm32_frame_unwind);
 
   /* Breakpoints.  */
-  set_gdbarch_breakpoint_from_pc (gdbarch, lm32_breakpoint_from_pc);
+  set_gdbarch_breakpoint_kind_from_pc (gdbarch, lm32_breakpoint::kind_from_pc);
+  set_gdbarch_sw_breakpoint_from_kind (gdbarch, lm32_breakpoint::bp_from_kind);
   set_gdbarch_have_nonsteppable_watchpoint (gdbarch, 1);
 
   /* Calling functions in the inferior.  */

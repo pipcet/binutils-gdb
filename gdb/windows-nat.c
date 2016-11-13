@@ -56,6 +56,7 @@
 #include "solist.h"
 #include "solib.h"
 #include "xml-support.h"
+#include "inttypes.h"
 
 #include "i386-tdep.h"
 #include "i387-tdep.h"
@@ -172,6 +173,19 @@ static int debug_registers_used;
 
 static int windows_initialization_done;
 #define DR6_CLEAR_VALUE 0xffff0ff0
+
+/* The exception thrown by a program to tell the debugger the name of
+   a thread.  The exception record contains an ID of a thread and a
+   name to give it.  This exception has no documented name, but MSDN
+   dubs it "MS_VC_EXCEPTION" in one code example.  */
+#define MS_VC_EXCEPTION 0x406d1388
+
+typedef enum
+{
+  HANDLE_EXCEPTION_UNHANDLED = 0,
+  HANDLE_EXCEPTION_HANDLED,
+  HANDLE_EXCEPTION_IGNORED
+} handle_exception_result;
 
 /* The string sent by cygwin when it processes a signal.
    FIXME: This should be in a cygwin include file.  */
@@ -395,7 +409,7 @@ windows_add_thread (ptid_t ptid, HANDLE h, void *tlb)
   return th;
 }
 
-/* Clear out any old thread list and reintialize it to a
+/* Clear out any old thread list and reinitialize it to a
    pristine state.  */
 static void
 windows_init_thread_list (void)
@@ -440,6 +454,7 @@ windows_delete_thread (ptid_t ptid, DWORD exit_code)
     {
       windows_thread_info *here = th->next;
       th->next = here->next;
+      xfree (here->name);
       xfree (here);
     }
 }
@@ -825,6 +840,25 @@ windows_clear_solib (void)
   solib_end = &solib_start;
 }
 
+static void
+signal_event_command (char *args, int from_tty)
+{
+  uintptr_t event_id = 0;
+  char *endargs = NULL;
+
+  if (args == NULL)
+    error (_("signal-event requires an argument (integer event id)"));
+
+  event_id = strtoumax (args, &endargs, 10);
+
+  if ((errno == ERANGE) || (event_id == 0) || (event_id > UINTPTR_MAX) ||
+      ((HANDLE) event_id == INVALID_HANDLE_VALUE))
+    error (_("Failed to convert `%s' to event id"), args);
+
+  SetEvent ((HANDLE) event_id);
+  CloseHandle ((HANDLE) event_id);
+}
+
 /* Handle DEBUG_STRING output from child process.
    Cygwin prepends its messages with a "cygwin:".  Interpret this as
    a Cygwin signal.  Otherwise just print the string as a warning.  */
@@ -1011,16 +1045,17 @@ display_selectors (char * args, int from_tty)
     host_address_to_string (\
       current_event.u.Exception.ExceptionRecord.ExceptionAddress))
 
-static int
+static handle_exception_result
 handle_exception (struct target_waitstatus *ourstatus)
 {
-  windows_thread_info *th;
-  DWORD code = current_event.u.Exception.ExceptionRecord.ExceptionCode;
+  EXCEPTION_RECORD *rec = &current_event.u.Exception.ExceptionRecord;
+  DWORD code = rec->ExceptionCode;
+  handle_exception_result result = HANDLE_EXCEPTION_HANDLED;
 
   ourstatus->kind = TARGET_WAITKIND_STOPPED;
 
   /* Record the context of the current thread.  */
-  th = thread_rec (current_event.dwThreadId, -1);
+  thread_rec (current_event.dwThreadId, -1);
 
   switch (code)
     {
@@ -1038,14 +1073,13 @@ handle_exception (struct target_waitstatus *ourstatus)
 	   cygwin-specific-signal.  So, ignore SEGVs if they show up
 	   within the text segment of the DLL itself.  */
 	const char *fn;
-	CORE_ADDR addr = (CORE_ADDR) (uintptr_t)
-	  current_event.u.Exception.ExceptionRecord.ExceptionAddress;
+	CORE_ADDR addr = (CORE_ADDR) (uintptr_t) rec->ExceptionAddress;
 
 	if ((!cygwin_exceptions && (addr >= cygwin_load_start
 				    && addr < cygwin_load_end))
 	    || (find_pc_partial_function (addr, &fn, NULL, NULL)
 		&& startswith (fn, "KERNEL32!IsBad")))
-	  return 0;
+	  return HANDLE_EXCEPTION_UNHANDLED;
       }
 #endif
       break;
@@ -1121,10 +1155,48 @@ handle_exception (struct target_waitstatus *ourstatus)
       DEBUG_EXCEPTION_SIMPLE ("EXCEPTION_NONCONTINUABLE_EXCEPTION");
       ourstatus->value.sig = GDB_SIGNAL_ILL;
       break;
+    case MS_VC_EXCEPTION:
+      if (rec->NumberParameters >= 3
+	  && (rec->ExceptionInformation[0] & 0xffffffff) == 0x1000)
+	{
+	  DWORD named_thread_id;
+	  windows_thread_info *named_thread;
+	  CORE_ADDR thread_name_target;
+
+	  DEBUG_EXCEPTION_SIMPLE ("MS_VC_EXCEPTION");
+
+	  thread_name_target = rec->ExceptionInformation[1];
+	  named_thread_id = (DWORD) (0xffffffff & rec->ExceptionInformation[2]);
+
+	  if (named_thread_id == (DWORD) -1)
+	    named_thread_id = current_event.dwThreadId;
+
+	  named_thread = thread_rec (named_thread_id, 0);
+	  if (named_thread != NULL)
+	    {
+	      int thread_name_len;
+	      char *thread_name;
+
+	      thread_name_len = target_read_string (thread_name_target,
+						    &thread_name, 1025, NULL);
+	      if (thread_name_len > 0)
+		{
+		  thread_name[thread_name_len - 1] = '\0';
+		  xfree (named_thread->name);
+		  named_thread->name = thread_name;
+		}
+	      else
+		xfree (thread_name);
+	    }
+	  ourstatus->value.sig = GDB_SIGNAL_TRAP;
+	  result = HANDLE_EXCEPTION_IGNORED;
+	  break;
+	}
+	/* treat improperly formed exception as unknown, fallthrough */
     default:
       /* Treat unhandled first chance exceptions specially.  */
       if (current_event.u.Exception.dwFirstChance)
-	return 0;
+	return HANDLE_EXCEPTION_UNHANDLED;
       printf_unfiltered ("gdb: unknown target exception 0x%08x at %s\n",
 	(unsigned) current_event.u.Exception.ExceptionRecord.ExceptionCode,
 	host_address_to_string (
@@ -1134,7 +1206,7 @@ handle_exception (struct target_waitstatus *ourstatus)
     }
   exception_count++;
   last_sig = ourstatus->value.sig;
-  return 1;
+  return result;
 }
 
 /* Resume thread specified by ID, or all artificially suspended
@@ -1445,7 +1517,7 @@ get_windows_debug_event (struct target_ops *ops,
       if (!windows_initialization_done)
 	{
 	  target_terminal_ours ();
-	  target_mourn_inferior ();
+	  target_mourn_inferior (inferior_ptid);
 	  error (_("During startup program exited with code 0x%x."),
 		 (unsigned int) current_event.u.ExitProcess.dwExitCode);
 	}
@@ -1491,10 +1563,19 @@ get_windows_debug_event (struct target_ops *ops,
 		     "EXCEPTION_DEBUG_EVENT"));
       if (saw_create != 1)
 	break;
-      if (handle_exception (ourstatus))
-	thread_id = current_event.dwThreadId;
-      else
-	continue_status = DBG_EXCEPTION_NOT_HANDLED;
+      switch (handle_exception (ourstatus))
+	{
+	case HANDLE_EXCEPTION_UNHANDLED:
+	default:
+	  continue_status = DBG_EXCEPTION_NOT_HANDLED;
+	  break;
+	case HANDLE_EXCEPTION_HANDLED:
+	  thread_id = current_event.dwThreadId;
+	  break;
+	case HANDLE_EXCEPTION_IGNORED:
+	  continue_status = DBG_CONTINUE;
+	  break;
+	}
       break;
 
     case OUTPUT_DEBUG_STRING_EVENT:	/* Message from the kernel.  */
@@ -2035,6 +2116,301 @@ clear_win32_environment (char **env)
 }
 #endif
 
+#ifndef __CYGWIN__
+
+/* Redirection of inferior I/O streams for native MS-Windows programs.
+   Unlike on Unix, where this is handled by invoking the inferior via
+   the shell, on MS-Windows we need to emulate the cmd.exe shell.
+
+   The official documentation of the cmd.exe redirection features is here:
+
+     http://www.microsoft.com/resources/documentation/windows/xp/all/proddocs/en-us/redirection.mspx
+
+   (That page talks about Windows XP, but there's no newer
+   documentation, so we assume later versions of cmd.exe didn't change
+   anything.)
+
+   Caveat: the documentation on that page seems to include a few lies.
+   For example, it describes strange constructs 1<&2 and 2<&1, which
+   seem to work only when 1>&2 resp. 2>&1 would make sense, and so I
+   think the cmd.exe parser of the redirection symbols simply doesn't
+   care about the < vs > distinction in these cases.  Therefore, the
+   supported features are explicitly documented below.
+
+   The emulation below aims at supporting all the valid use cases
+   supported by cmd.exe, which include:
+
+     < FILE    redirect standard input from FILE
+     0< FILE   redirect standard input from FILE
+     <&N       redirect standard input from file descriptor N
+     0<&N      redirect standard input from file descriptor N
+     > FILE    redirect standard output to FILE
+     >> FILE   append standard output to FILE
+     1>> FILE  append standard output to FILE
+     >&N       redirect standard output to file descriptor N
+     1>&N      redirect standard output to file descriptor N
+     >>&N      append standard output to file descriptor N
+     1>>&N     append standard output to file descriptor N
+     2> FILE   redirect standard error to FILE
+     2>> FILE  append standard error to FILE
+     2>&N      redirect standard error to file descriptor N
+     2>>&N     append standard error to file descriptor N
+
+     Note that using N > 2 in the above construct is supported, but
+     requires that the corresponding file descriptor be open by some
+     means elsewhere or outside GDB.  Also note that using ">&0" or
+     "<&2" will generally fail, because the file descriptor redirected
+     from is normally open in an incompatible mode (e.g., FD 0 is open
+     for reading only).  IOW, use of such tricks is not recommended;
+     you are on your own.
+
+     We do NOT support redirection of file descriptors above 2, as in
+     "3>SOME-FILE", because MinGW compiled programs don't (supporting
+     that needs special handling in the startup code that MinGW
+     doesn't have).  Pipes are also not supported.
+
+     As for invalid use cases, where the redirection contains some
+     error, the emulation below will detect that and produce some
+     error and/or failure.  But the behavior in those cases is not
+     bug-for-bug compatible with what cmd.exe does in those cases.
+     That's because what cmd.exe does then is not well defined, and
+     seems to be a side effect of the cmd.exe parsing of the command
+     line more than anything else.  For example, try redirecting to an
+     invalid file name, as in "> foo:bar".
+
+     There are also minor syntactic deviations from what cmd.exe does
+     in some corner cases.  For example, it doesn't support the likes
+     of "> &foo" to mean redirect to file named literally "&foo"; we
+     do support that here, because that, too, sounds like some issue
+     with the cmd.exe parser.  Another nicety is that we support
+     redirection targets that use file names with forward slashes,
+     something cmd.exe doesn't -- this comes in handy since GDB
+     file-name completion can be used when typing the command line for
+     the inferior.  */
+
+/* Support routines for redirecting standard handles of the inferior.  */
+
+/* Parse a single redirection spec, open/duplicate the specified
+   file/fd, and assign the appropriate value to one of the 3 standard
+   file descriptors. */
+static int
+redir_open (const char *redir_string, int *inp, int *out, int *err)
+{
+  int *fd, ref_fd = -2;
+  int mode;
+  const char *fname = redir_string + 1;
+  int rc = *redir_string;
+
+  switch (rc)
+    {
+    case '0':
+      fname++;
+      /* FALLTHROUGH */
+    case '<':
+      fd = inp;
+      mode = O_RDONLY;
+      break;
+    case '1': case '2':
+      fname++;
+      /* FALLTHROUGH */
+    case '>':
+      fd = (rc == '2') ? err : out;
+      mode = O_WRONLY | O_CREAT;
+      if (*fname == '>')
+	{
+	  fname++;
+	  mode |= O_APPEND;
+	}
+      else
+	mode |= O_TRUNC;
+      break;
+    default:
+      return -1;
+    }
+
+  if (*fname == '&' && '0' <= fname[1] && fname[1] <= '9')
+    {
+      /* A reference to a file descriptor.  */
+      char *fdtail;
+      ref_fd = (int) strtol (fname + 1, &fdtail, 10);
+      if (fdtail > fname + 1 && *fdtail == '\0')
+	{
+	  /* Don't allow redirection when open modes are incompatible.  */
+	  if ((ref_fd == 0 && (fd == out || fd == err))
+	      || ((ref_fd == 1 || ref_fd == 2) && fd == inp))
+	    {
+	      errno = EPERM;
+	      return -1;
+	    }
+	  if (ref_fd == 0)
+	    ref_fd = *inp;
+	  else if (ref_fd == 1)
+	    ref_fd = *out;
+	  else if (ref_fd == 2)
+	    ref_fd = *err;
+	}
+      else
+	{
+	  errno = EBADF;
+	  return -1;
+	}
+    }
+  else
+    fname++;	/* skip the separator space */
+  /* If the descriptor is already open, close it.  This allows
+     multiple specs of redirections for the same stream, which is
+     somewhat nonsensical, but still valid and supported by cmd.exe.
+     (But cmd.exe only opens a single file in this case, the one
+     specified by the last redirection spec on the command line.)  */
+  if (*fd >= 0)
+    _close (*fd);
+  if (ref_fd == -2)
+    {
+      *fd = _open (fname, mode, _S_IREAD | _S_IWRITE);
+      if (*fd < 0)
+	return -1;
+    }
+  else if (ref_fd == -1)
+    *fd = -1;	/* reset to default destination */
+  else
+    {
+      *fd = _dup (ref_fd);
+      if (*fd < 0)
+	return -1;
+    }
+  /* _open just sets a flag for O_APPEND, which won't be passed to the
+     inferior, so we need to actually move the file pointer.  */
+  if ((mode & O_APPEND) != 0)
+    _lseek (*fd, 0L, SEEK_END);
+  return 0;
+}
+
+/* Canonicalize a single redirection spec and set up the corresponding
+   file descriptor as specified.  */
+static int
+redir_set_redirection (const char *s, int *inp, int *out, int *err)
+{
+  char buf[__PMAX + 2 + 5]; /* extra space for quotes & redirection string */
+  char *d = buf;
+  const char *start = s;
+  int quote = 0;
+
+  *d++ = *s++;	/* copy the 1st character, < or > or a digit */
+  if ((*start == '>' || *start == '1' || *start == '2')
+      && *s == '>')
+    {
+      *d++ = *s++;
+      if (*s == '>' && *start != '>')
+	*d++ = *s++;
+    }
+  else if (*start == '0' && *s == '<')
+    *d++ = *s++;
+  /* cmd.exe recognizes "&N" only immediately after the redirection symbol.  */
+  if (*s != '&')
+    {
+      while (isspace (*s))  /* skip whitespace before file name */
+	s++;
+      *d++ = ' ';	    /* separate file name with a single space */
+    }
+
+  /* Copy the file name.  */
+  while (*s)
+    {
+      /* Remove quoting characters from the file name in buf[].  */
+      if (*s == '"')	/* could support '..' quoting here */
+	{
+	  if (!quote)
+	    quote = *s++;
+	  else if (*s == quote)
+	    {
+	      quote = 0;
+	      s++;
+	    }
+	  else
+	    *d++ = *s++;
+	}
+      else if (*s == '\\')
+	{
+	  if (s[1] == '"')	/* could support '..' here */
+	    s++;
+	  *d++ = *s++;
+	}
+      else if (isspace (*s) && !quote)
+	break;
+      else
+	*d++ = *s++;
+      if (d - buf >= sizeof (buf) - 1)
+	{
+	  errno = ENAMETOOLONG;
+	  return 0;
+	}
+    }
+  *d = '\0';
+
+  /* Windows doesn't allow redirection characters in file names, so we
+     can bail out early if they use them, or if there's no target file
+     name after the redirection symbol.  */
+  if (d[-1] == '>' || d[-1] == '<')
+    {
+      errno = ENOENT;
+      return 0;
+    }
+  if (redir_open (buf, inp, out, err) == 0)
+    return s - start;
+  return 0;
+}
+
+/* Parse the command line for redirection specs and prepare the file
+   descriptors for the 3 standard streams accordingly.  */
+static bool
+redirect_inferior_handles (const char *cmd_orig, char *cmd,
+			   int *inp, int *out, int *err)
+{
+  const char *s = cmd_orig;
+  char *d = cmd;
+  int quote = 0;
+  bool retval = false;
+
+  while (isspace (*s))
+    *d++ = *s++;
+
+  while (*s)
+    {
+      if (*s == '"')	/* could also support '..' quoting here */
+	{
+	  if (!quote)
+	    quote = *s;
+	  else if (*s == quote)
+	    quote = 0;
+	}
+      else if (*s == '\\')
+	{
+	  if (s[1] == '"')	/* escaped quote char */
+	    s++;
+	}
+      else if (!quote)
+	{
+	  /* Process a single redirection candidate.  */
+	  if (*s == '<' || *s == '>'
+	      || ((*s == '1' || *s == '2') && s[1] == '>')
+	      || (*s == '0' && s[1] == '<'))
+	    {
+	      int skip = redir_set_redirection (s, inp, out, err);
+
+	      if (skip <= 0)
+		return false;
+	      retval = true;
+	      s += skip;
+	    }
+	}
+      if (*s)
+	*d++ = *s++;
+    }
+  *d = '\0';
+  return retval;
+}
+#endif	/* !__CYGWIN__ */
+
 /* Start an inferior windows child process and sets inferior_ptid to its pid.
    EXEC_FILE is the file to run.
    ALLARGS is a string containing the arguments to the program.
@@ -2057,20 +2433,25 @@ windows_create_inferior (struct target_ops *ops, char *exec_file,
   size_t len;
   int tty;
   int ostdin, ostdout, ostderr;
-#else
+#else  /* !__CYGWIN__ */
   char real_path[__PMAX];
   char shell[__PMAX]; /* Path to shell */
   char *toexec;
-  char *args;
-  size_t args_len;
-  HANDLE tty;
+  char *args, *allargs_copy;
+  size_t args_len, allargs_len;
+  int fd_inp = -1, fd_out = -1, fd_err = -1;
+  HANDLE tty = INVALID_HANDLE_VALUE;
+  HANDLE inf_stdin = INVALID_HANDLE_VALUE;
+  HANDLE inf_stdout = INVALID_HANDLE_VALUE;
+  HANDLE inf_stderr = INVALID_HANDLE_VALUE;
+  bool redirected = false;
   char *w32env;
   char *temp;
   size_t envlen;
   int i;
   size_t envsize;
   char **env;
-#endif
+#endif	/* !__CYGWIN__ */
   PROCESS_INFORMATION pi;
   BOOL ret;
   DWORD flags = 0;
@@ -2102,7 +2483,7 @@ windows_create_inferior (struct target_ops *ops, char *exec_file,
 	error (_("Error starting executable: %d"), errno);
       cygallargs = (wchar_t *) alloca (len * sizeof (wchar_t));
       mbstowcs (cygallargs, allargs, len);
-#else
+#else  /* !__USEWIDE */
       cygallargs = allargs;
 #endif
     }
@@ -2118,12 +2499,12 @@ windows_create_inferior (struct target_ops *ops, char *exec_file,
 	    + mbstowcs (NULL, allargs, 0) + 2;
       cygallargs = (wchar_t *) alloca (len * sizeof (wchar_t));
       swprintf (cygallargs, len, L" -c 'exec %s %s'", exec_file, allargs);
-#else
+#else  /* !__USEWIDE */
       len = (sizeof (" -c 'exec  '") + strlen (exec_file)
 	     + strlen (allargs) + 2);
       cygallargs = (char *) alloca (len);
       xsnprintf (cygallargs, len, " -c 'exec %s %s'", exec_file, allargs);
-#endif
+#endif	/* __USEWIDE */
       toexec = shell;
       flags |= DEBUG_PROCESS;
     }
@@ -2134,12 +2515,12 @@ windows_create_inferior (struct target_ops *ops, char *exec_file,
   wcscpy (args, toexec);
   wcscat (args, L" ");
   wcscat (args, cygallargs);
-#else
+#else  /* !__USEWIDE */
   args = (cygwin_buf_t *) alloca (strlen (toexec) + strlen (cygallargs) + 2);
   strcpy (args, toexec);
   strcat (args, " ");
   strcat (args, cygallargs);
-#endif
+#endif	/* !__USEWIDE */
 
 #ifdef CW_CVT_ENV_TO_WINENV
   /* First try to create a direct Win32 copy of the POSIX environment. */
@@ -2148,7 +2529,7 @@ windows_create_inferior (struct target_ops *ops, char *exec_file,
     flags |= CREATE_UNICODE_ENVIRONMENT;
   else
     /* If that fails, fall back to old method tweaking GDB's environment. */
-#endif
+#endif	/* CW_CVT_ENV_TO_WINENV */
     {
       /* Reset all Win32 environment variables to avoid leftover on next run. */
       clear_win32_environment (environ);
@@ -2213,21 +2594,26 @@ windows_create_inferior (struct target_ops *ops, char *exec_file,
       close (ostdout);
       close (ostderr);
     }
-#else
-  toexec = exec_file;
-  /* Build the command line, a space-separated list of tokens where
-     the first token is the name of the module to be executed.
-     To avoid ambiguities introduced by spaces in the module name,
-     we quote it.  */
-  args_len = strlen (toexec) + 2 /* quotes */ + strlen (allargs) + 2;
-  args = (char *) alloca (args_len);
-  xsnprintf (args, args_len, "\"%s\" %s", toexec, allargs);
-
-  flags |= DEBUG_ONLY_THIS_PROCESS;
-
-  if (!inferior_io_terminal)
-    tty = INVALID_HANDLE_VALUE;
-  else
+#else  /* !__CYGWIN__ */
+  allargs_len = strlen (allargs);
+  allargs_copy = strcpy ((char *) alloca (allargs_len + 1), allargs);
+  if (strpbrk (allargs_copy, "<>") != NULL)
+    {
+      int e = errno;
+      errno = 0;
+      redirected =
+	redirect_inferior_handles (allargs, allargs_copy,
+				   &fd_inp, &fd_out, &fd_err);
+      if (errno)
+	warning (_("Error in redirection: %s."), strerror (errno));
+      else
+	errno = e;
+      allargs_len = strlen (allargs_copy);
+    }
+  /* If not all the standard streams are redirected by the command
+     line, use inferior_io_terminal for those which aren't.  */
+  if (inferior_io_terminal
+      && !(fd_inp >= 0 && fd_out >= 0 && fd_err >= 0))
     {
       SECURITY_ATTRIBUTES sa;
       sa.nLength = sizeof(sa);
@@ -2238,14 +2624,40 @@ windows_create_inferior (struct target_ops *ops, char *exec_file,
       if (tty == INVALID_HANDLE_VALUE)
 	warning (_("Warning: Failed to open TTY %s, error %#x."),
 		 inferior_io_terminal, (unsigned) GetLastError ());
-      else
-	{
-	  si.hStdInput = tty;
-	  si.hStdOutput = tty;
-	  si.hStdError = tty;
-	  si.dwFlags |= STARTF_USESTDHANDLES;
-	}
     }
+  if (redirected || tty != INVALID_HANDLE_VALUE)
+    {
+      if (fd_inp >= 0)
+	si.hStdInput = (HANDLE) _get_osfhandle (fd_inp);
+      else if (tty != INVALID_HANDLE_VALUE)
+	si.hStdInput = tty;
+      else
+	si.hStdInput = GetStdHandle (STD_INPUT_HANDLE);
+      if (fd_out >= 0)
+	si.hStdOutput = (HANDLE) _get_osfhandle (fd_out);
+      else if (tty != INVALID_HANDLE_VALUE)
+	si.hStdOutput = tty;
+      else
+	si.hStdOutput = GetStdHandle (STD_OUTPUT_HANDLE);
+      if (fd_err >= 0)
+	si.hStdError = (HANDLE) _get_osfhandle (fd_err);
+      else if (tty != INVALID_HANDLE_VALUE)
+	si.hStdError = tty;
+      else
+	si.hStdError = GetStdHandle (STD_ERROR_HANDLE);
+      si.dwFlags |= STARTF_USESTDHANDLES;
+    }
+
+  toexec = exec_file;
+  /* Build the command line, a space-separated list of tokens where
+     the first token is the name of the module to be executed.
+     To avoid ambiguities introduced by spaces in the module name,
+     we quote it.  */
+  args_len = strlen (toexec) + 2 /* quotes */ + allargs_len + 2;
+  args = (char *) alloca (args_len);
+  xsnprintf (args, args_len, "\"%s\" %s", toexec, allargs_copy);
+
+  flags |= DEBUG_ONLY_THIS_PROCESS;
 
   /* CreateProcess takes the environment list as a null terminated set of
      strings (i.e. two nulls terminate the list).  */
@@ -2285,7 +2697,13 @@ windows_create_inferior (struct target_ops *ops, char *exec_file,
 			&pi);
   if (tty != INVALID_HANDLE_VALUE)
     CloseHandle (tty);
-#endif
+  if (fd_inp >= 0)
+    _close (fd_inp);
+  if (fd_out >= 0)
+    _close (fd_out);
+  if (fd_err >= 0)
+    _close (fd_err);
+#endif	/* !__CYGWIN__ */
 
   if (!ret)
     error (_("Error creating process %s, (error %u)."),
@@ -2383,7 +2801,7 @@ windows_kill_inferior (struct target_ops *ops)
 	break;
     }
 
-  target_mourn_inferior ();	/* Or just windows_mourn_inferior?  */
+  target_mourn_inferior (inferior_ptid);	/* Or just windows_mourn_inferior?  */
 }
 
 static void
@@ -2495,6 +2913,14 @@ windows_get_ada_task_ptid (struct target_ops *self, long lwp, long thread)
   return ptid_build (ptid_get_pid (inferior_ptid), 0, lwp);
 }
 
+/* Implementation of the to_thread_name method.  */
+
+static const char *
+windows_thread_name (struct target_ops *self, struct thread_info *thr)
+{
+  return thread_rec (ptid_get_tid (thr->ptid), 0)->name;
+}
+
 static struct target_ops *
 windows_target (void)
 {
@@ -2519,6 +2945,7 @@ windows_target (void)
   t->to_pid_to_exec_file = windows_pid_to_exec_file;
   t->to_get_ada_task_ptid = windows_get_ada_task_ptid;
   t->to_get_tib_address = windows_get_tib_address;
+  t->to_thread_name = windows_thread_name;
 
   return t;
 }
@@ -2550,6 +2977,13 @@ _initialize_windows_nat (void)
 #ifdef __CYGWIN__
   cygwin_internal (CW_SET_DOS_FILE_WARNING, 0);
 #endif
+
+  add_com ("signal-event", class_run, signal_event_command, _("\
+Signal a crashed process with event ID, to allow its debugging.\n\
+This command is needed in support of setting up GDB as JIT debugger on \
+MS-Windows.  The command should be invoked from the GDB command line using \
+the '-ex' command-line option.  The ID of the event that blocks the \
+crashed process will be supplied by the Windows JIT debugging mechanism."));
 
 #ifdef __CYGWIN__
   add_setshow_boolean_cmd ("shell", class_support, &useshell, _("\

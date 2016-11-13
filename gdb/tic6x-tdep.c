@@ -48,6 +48,7 @@
 #include "tic6x-tdep.h"
 #include "language.h"
 #include "target-descriptions.h"
+#include <algorithm>
 
 #include "features/tic6x-c64xp.c"
 #include "features/tic6x-c64x.c"
@@ -308,7 +309,7 @@ tic6x_skip_prologue (struct gdbarch *gdbarch, CORE_ADDR start_pc)
       CORE_ADDR post_prologue_pc
 	= skip_prologue_using_sal (gdbarch, func_addr);
       if (post_prologue_pc != 0)
-	return max (start_pc, post_prologue_pc);
+	return std::max (start_pc, post_prologue_pc);
     }
 
   /* Can't determine prologue from the symbol table, need to examine
@@ -317,15 +318,22 @@ tic6x_skip_prologue (struct gdbarch *gdbarch, CORE_ADDR start_pc)
 				 NULL);
 }
 
-/* This is the implementation of gdbarch method breakpiont_from_pc.  */
+/* Implement the breakpoint_kind_from_pc gdbarch method.  */
+
+static int
+tic6x_breakpoint_kind_from_pc (struct gdbarch *gdbarch, CORE_ADDR *pcptr)
+{
+  return 4;
+}
+
+/* Implement the sw_breakpoint_from_kind gdbarch method.  */
 
 static const gdb_byte *
-tic6x_breakpoint_from_pc (struct gdbarch *gdbarch, CORE_ADDR *bp_addr,
-			  int *bp_size)
+tic6x_sw_breakpoint_from_kind (struct gdbarch *gdbarch, int kind, int *size)
 {
   struct gdbarch_tdep *tdep = gdbarch_tdep (gdbarch);
 
-  *bp_size = 4;
+  *size = kind;
 
   if (tdep == NULL || tdep->breakpoint == NULL)
     {
@@ -691,16 +699,15 @@ tic6x_get_next_pc (struct frame_info *frame, CORE_ADDR pc)
 
 /* This is the implementation of gdbarch method software_single_step.  */
 
-static int
+static VEC (CORE_ADDR) *
 tic6x_software_single_step (struct frame_info *frame)
 {
-  struct gdbarch *gdbarch = get_frame_arch (frame);
-  struct address_space *aspace = get_frame_address_space (frame);
   CORE_ADDR next_pc = tic6x_get_next_pc (frame, get_frame_pc (frame));
+  VEC (CORE_ADDR) *next_pcs = NULL;
 
-  insert_single_step_breakpoint (gdbarch, aspace, next_pc);
+  VEC_safe_push (CORE_ADDR, next_pcs, next_pc);
 
-  return 1;
+  return next_pcs;
 }
 
 /* This is the implementation of gdbarch method frame_align.  */
@@ -1294,7 +1301,10 @@ tic6x_gdbarch_init (struct gdbarch_info info, struct gdbarch_list *arches)
   set_gdbarch_inner_than (gdbarch, core_addr_lessthan);
 
   set_gdbarch_skip_prologue (gdbarch, tic6x_skip_prologue);
-  set_gdbarch_breakpoint_from_pc (gdbarch, tic6x_breakpoint_from_pc);
+  set_gdbarch_breakpoint_kind_from_pc (gdbarch,
+				       tic6x_breakpoint_kind_from_pc);
+  set_gdbarch_sw_breakpoint_from_kind (gdbarch,
+				       tic6x_sw_breakpoint_from_kind);
 
   set_gdbarch_unwind_pc (gdbarch, tic6x_unwind_pc);
   set_gdbarch_unwind_sp (gdbarch, tic6x_unwind_sp);

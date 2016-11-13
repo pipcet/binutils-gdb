@@ -319,11 +319,9 @@ static void
 python_interactive_command (char *arg, int from_tty)
 {
   struct ui *ui = current_ui;
-  struct cleanup *cleanup;
   int err;
 
-  cleanup = make_cleanup_restore_integer (&current_ui->async);
-  current_ui->async = 0;
+  scoped_restore save_async = make_scoped_restore (&current_ui->async, 0);
 
   arg = skip_spaces (arg);
 
@@ -351,8 +349,6 @@ python_interactive_command (char *arg, int from_tty)
       gdbpy_print_stack ();
       error (_("Error while executing Python code."));
     }
-
-  do_cleanups (cleanup);
 }
 
 /* A wrapper around PyRun_SimpleFile.  FILE is the Python script to run
@@ -467,8 +463,7 @@ python_command (char *arg, int from_tty)
 
   cleanup = ensure_python_env (get_current_arch (), current_language);
 
-  make_cleanup_restore_integer (&current_ui->async);
-  current_ui->async = 0;
+  scoped_restore save_async = make_scoped_restore (&current_ui->async, 0);
 
   arg = skip_spaces (arg);
   if (arg && *arg)
@@ -619,7 +614,6 @@ execute_gdb_command (PyObject *self, PyObject *args, PyObject *kw)
   PyObject *from_tty_obj = NULL, *to_string_obj = NULL;
   int from_tty, to_string;
   static char *keywords[] = {"command", "from_tty", "to_string", NULL };
-  char *result = NULL;
 
   if (! PyArg_ParseTupleAndKeywords (args, kw, "s|O!O!", keywords, &arg,
 				     &PyBool_Type, &from_tty_obj,
@@ -644,6 +638,8 @@ execute_gdb_command (PyObject *self, PyObject *args, PyObject *kw)
       to_string = cmp;
     }
 
+  std::string to_string_res;
+
   TRY
     {
       /* Copy the argument text in case the command modifies it.  */
@@ -651,10 +647,10 @@ execute_gdb_command (PyObject *self, PyObject *args, PyObject *kw)
       struct cleanup *cleanup = make_cleanup (xfree, copy);
       struct interp *interp;
 
-      make_cleanup_restore_integer (&current_ui->async);
-      current_ui->async = 0;
+      scoped_restore save_async = make_scoped_restore (&current_ui->async, 0);
 
-      make_cleanup_restore_ui_out (&current_uiout);
+      scoped_restore save_uiout = make_scoped_restore (&current_uiout);
+
       /* Use the console interpreter uiout to have the same print format
 	for console or MI.  */
       interp = interp_lookup (current_ui, "console");
@@ -662,13 +658,9 @@ execute_gdb_command (PyObject *self, PyObject *args, PyObject *kw)
 
       prevent_dont_repeat ();
       if (to_string)
-	result = execute_command_to_string (copy, from_tty);
+	to_string_res = execute_command_to_string (copy, from_tty);
       else
-	{
-	  result = NULL;
-	  execute_command (copy, from_tty);
-	}
-
+	execute_command (copy, from_tty);
       do_cleanups (cleanup);
     }
   CATCH (except, RETURN_MASK_ALL)
@@ -680,12 +672,8 @@ execute_gdb_command (PyObject *self, PyObject *args, PyObject *kw)
   /* Do any commands attached to breakpoint we stopped at.  */
   bpstat_do_actions ();
 
-  if (result)
-    {
-      PyObject *r = PyString_FromString (result);
-      xfree (result);
-      return r;
-    }
+  if (to_string)
+    return PyString_FromString (to_string_res.c_str ());
   Py_RETURN_NONE;
 }
 
@@ -739,7 +727,7 @@ gdbpy_decode_line (PyObject *self, PyObject *args)
 
   if (arg != NULL)
     {
-      location = new_linespec_location (&arg);
+      location = string_to_event_location_basic (&arg, python_language);
       make_cleanup_delete_event_location (location);
     }
 
@@ -885,6 +873,15 @@ gdbpy_find_pc_line (PyObject *self, PyObject *args)
   return result;
 }
 
+/* Implementation of gdb.invalidate_cached_frames.  */
+
+static PyObject *
+gdbpy_invalidate_cached_frames (PyObject *self, PyObject *args)
+{
+  reinit_frame_cache ();
+  Py_RETURN_NONE;
+}
+
 /* Read a file as Python code.
    This is the extension_language_script_ops.script_sourcer "method".
    FILE is the file to load.  FILENAME is name of the file FILE.
@@ -1023,7 +1020,7 @@ gdbpy_before_prompt_hook (const struct extension_language_defn *extlang,
 			  const char *current_gdb_prompt)
 {
   struct cleanup *cleanup;
-  char *prompt = NULL;
+  gdb::unique_xmalloc_ptr<char> prompt;
 
   if (!gdb_python_initialized)
     return EXT_LANG_RC_NOP;
@@ -1076,8 +1073,6 @@ gdbpy_before_prompt_hook (const struct extension_language_defn *extlang,
 
 	      if (prompt == NULL)
 		goto fail;
-	      else
-		make_cleanup (xfree, prompt);
 	    }
 	}
     }
@@ -1085,7 +1080,7 @@ gdbpy_before_prompt_hook (const struct extension_language_defn *extlang,
   /* If a prompt has been set, PROMPT will not be NULL.  If it is
      NULL, do not set the prompt.  */
   if (prompt != NULL)
-    set_prompt (prompt);
+    set_prompt (prompt.get ());
 
   do_cleanups (cleanup);
   return prompt != NULL ? EXT_LANG_RC_OK : EXT_LANG_RC_NOP;
@@ -1216,13 +1211,13 @@ gdbpy_print_stack (void)
   else
     {
       PyObject *ptype, *pvalue, *ptraceback;
-      char *msg = NULL, *type = NULL;
 
       PyErr_Fetch (&ptype, &pvalue, &ptraceback);
 
       /* Fetch the error message contained within ptype, pvalue.  */
-      msg = gdbpy_exception_to_string (ptype, pvalue);
-      type = gdbpy_obj_to_string (ptype);
+      gdb::unique_xmalloc_ptr<char>
+	msg (gdbpy_exception_to_string (ptype, pvalue));
+      gdb::unique_xmalloc_ptr<char> type (gdbpy_obj_to_string (ptype));
 
       TRY
 	{
@@ -1236,7 +1231,7 @@ gdbpy_print_stack (void)
 	    }
 	  else
 	    fprintf_filtered (gdb_stderr, "Python Exception %s %s: \n",
-			      type, msg);
+			      type.get (), msg.get ());
 	}
       CATCH (except, RETURN_MASK_ALL)
 	{
@@ -1246,7 +1241,6 @@ gdbpy_print_stack (void)
       Py_XDECREF (ptype);
       Py_XDECREF (pvalue);
       Py_XDECREF (ptraceback);
-      xfree (msg);
     }
 }
 
@@ -1451,7 +1445,7 @@ gdbpy_apply_type_printers (const struct extension_language_defn *extlang,
   PyObject *type_obj, *type_module = NULL, *func = NULL;
   PyObject *result_obj = NULL;
   PyObject *printers_obj = (PyObject *) ext_printers->py_type_printers;
-  char *result = NULL;
+  gdb::unique_xmalloc_ptr<char> result;
 
   if (printers_obj == NULL)
     return EXT_LANG_RC_NOP;
@@ -1504,8 +1498,11 @@ gdbpy_apply_type_printers (const struct extension_language_defn *extlang,
   Py_XDECREF (result_obj);
   do_cleanups (cleanups);
   if (result != NULL)
-    *prettied_type = result;
-  return result != NULL ? EXT_LANG_RC_OK : EXT_LANG_RC_ERROR;
+    {
+      *prettied_type = result.release ();
+      return EXT_LANG_RC_OK;
+    }
+  return EXT_LANG_RC_ERROR;
 }
 
 /* Free the result of start_type_printers.
@@ -2071,6 +2068,12 @@ Return the selected inferior object." },
   { "inferiors", gdbpy_inferiors, METH_NOARGS,
     "inferiors () -> (gdb.Inferior, ...).\n\
 Return a tuple containing all inferiors." },
+
+  { "invalidate_cached_frames", gdbpy_invalidate_cached_frames, METH_NOARGS,
+    "invalidate_cached_frames () -> None.\n\
+Invalidate any cached frame objects in gdb.\n\
+Intended for internal use only." },
+
   {NULL, NULL, 0, NULL}
 };
 

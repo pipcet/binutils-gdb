@@ -172,6 +172,7 @@ asmjs_breakpoint_from_pc (struct gdbarch *gdbarch, CORE_ADDR *pcptr, int *lenptr
   return NULL;
 }
 
+#if 0
 static void
 asmjs_remote_breakpoint_from_pc (struct gdbarch *gdbarch, CORE_ADDR *pcptr, int *lenptr)
 {
@@ -181,6 +182,7 @@ asmjs_remote_breakpoint_from_pc (struct gdbarch *gdbarch, CORE_ADDR *pcptr, int 
   }
   *lenptr = 4;
 }
+#endif
 
 /* we're abusing this to skip the non-breakpointable first PC value
  * in a function. */
@@ -209,6 +211,7 @@ asmjs_memory_insert_breakpoint (struct gdbarch *gdbarch ATTRIBUTE_UNUSED,
   unsigned char buf[4];
   int val;
 
+#if 0
   addr >>= 4;
 
   if ((addr & 0xff) == 0) {
@@ -220,7 +223,6 @@ asmjs_memory_insert_breakpoint (struct gdbarch *gdbarch ATTRIBUTE_UNUSED,
   if (bp_cur >= bp_max)
     error (_("Out of pseudo-software breakpoint slots."));
 
-#if 0
   buf[0] = addr;
   buf[1] = addr>>8;
   buf[2] = addr>>16;
@@ -471,15 +473,19 @@ asmjs_push_dummy_call (struct gdbarch *gdbarch, struct value *function,
     {
       int len;
       struct type *arg_type;
+#if 0
       struct type *target_type;
       enum type_code typecode;
+#endif
       const bfd_byte *val;
       int align;
 
       arg_type = check_typedef (value_type (args[argnum]));
       len = TYPE_LENGTH (arg_type);
+#if 0
       target_type = TYPE_TARGET_TYPE (arg_type);
       typecode = TYPE_CODE (arg_type);
+#endif
       val = value_contents (args[argnum]);
 
       align = asmjs_type_align (arg_type);
@@ -643,7 +649,7 @@ asmjs_gdbarch_init (struct gdbarch_info info, struct gdbarch_list *arches)
 
   /* Breakpoint manipulation.  */
   set_gdbarch_breakpoint_from_pc (gdbarch, asmjs_breakpoint_from_pc);
-  set_gdbarch_remote_breakpoint_from_pc (gdbarch, asmjs_remote_breakpoint_from_pc);
+  //set_gdbarch_remote_breakpoint_from_pc (gdbarch, asmjs_remote_breakpoint_from_pc);
   set_gdbarch_memory_insert_breakpoint (gdbarch, asmjs_memory_insert_breakpoint);
   set_gdbarch_memory_remove_breakpoint (gdbarch, asmjs_memory_remove_breakpoint);
   set_gdbarch_skip_entrypoint (gdbarch, asmjs_skip_entrypoint);

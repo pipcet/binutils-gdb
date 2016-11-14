@@ -30,6 +30,8 @@ SECTIONS
      . = ALIGN(., 16);
      *(.gnu.linkonce.d.*)
      . = ALIGN(., 16);
+     *(__libc_IO_vtables)
+     . = ALIGN(., 16);
      *(.rodata*)
      . = ALIGN(., 16);
      *(.jcr*)

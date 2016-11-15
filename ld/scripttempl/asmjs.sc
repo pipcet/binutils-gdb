@@ -150,7 +150,12 @@ SECTIONS
 
   .javascript.special.export : { *(.javascript.special.export*) }
   .javascript.special.define : { *(.javascript.special.define*) }
-  .javascript.special.fpswitch : { *(.javascript.special.fpswitch*) }
+  .javascript.special.fpswitch :
+  {
+    *(.javascript.special.fpswitch.text*)
+    *(.javascript.special.fpswitch__libc_freeres_fn*)
+    *(.javascript.special.fpswitch__libc_thread_freeres_fn*)
+  }
 EOF
 
 . $srcdir/scripttempl/DWARF.sc

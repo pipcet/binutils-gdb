@@ -172,6 +172,15 @@ asmjs_breakpoint_from_pc (struct gdbarch *gdbarch, CORE_ADDR *pcptr, int *lenptr
   return NULL;
 }
 
+static int
+asmjs_breakpoint_kind_from_pc (struct gdbarch *gdbarch, CORE_ADDR *pcptr)
+{
+  (void) gdbarch;
+  (void) pcptr;
+
+  return 0;
+}
+
 #if 0
 static void
 asmjs_remote_breakpoint_from_pc (struct gdbarch *gdbarch, CORE_ADDR *pcptr, int *lenptr)
@@ -649,6 +658,7 @@ asmjs_gdbarch_init (struct gdbarch_info info, struct gdbarch_list *arches)
 
   /* Breakpoint manipulation.  */
   set_gdbarch_breakpoint_from_pc (gdbarch, asmjs_breakpoint_from_pc);
+  set_gdbarch_breakpoint_kind_from_pc (gdbarch, asmjs_breakpoint_kind_from_pc);
   //set_gdbarch_remote_breakpoint_from_pc (gdbarch, asmjs_remote_breakpoint_from_pc);
   set_gdbarch_memory_insert_breakpoint (gdbarch, asmjs_memory_insert_breakpoint);
   set_gdbarch_memory_remove_breakpoint (gdbarch, asmjs_memory_remove_breakpoint);

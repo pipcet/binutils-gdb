@@ -341,6 +341,7 @@ static void wasm32_uleb128(char **line)
   input_line_pointer = t;
 }
 
+#if 0
 static void wasm32_uleb128_r32(char **line)
 {
   char *t = input_line_pointer;
@@ -376,6 +377,7 @@ static void wasm32_uleb128_r32(char **line)
   wasm32_put_long_uleb128();
   input_line_pointer = t;
 }
+#endif
 
 static void wasm32_u32(char **line)
 {
@@ -603,7 +605,7 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
       wasm32_put_uleb128(consumed);
       break;
     case wasm_call:
-      wasm32_uleb128_r32(&str);
+      wasm32_uleb128(&str);
       break;
     case wasm_call_indirect:
     case wasm_call_import:

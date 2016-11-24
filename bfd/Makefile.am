@@ -170,6 +170,7 @@ ALL_MACHINES = \
 	cpu-visium.lo \
 	cpu-w65.lo \
 	cpu-wasm.lo \
+	cpu-wasm32.lo \
 	cpu-wasm64.lo \
 	cpu-we32k.lo \
 	cpu-xc16x.lo \
@@ -260,6 +261,7 @@ ALL_MACHINES_CFILES = \
 	cpu-vax.c \
 	cpu-visium.c \
 	cpu-wasm.c \
+	cpu-wasm32.c \
 	cpu-wasm64.c \
 	cpu-w65.c \
 	cpu-we32k.c \

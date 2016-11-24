@@ -349,6 +349,7 @@ if test x${all_targets} = xfalse ; then
 	bfd_visium_arch)	ta="$ta visium-dis.lo visium-opc.lo" ;;
 	bfd_w65_arch)		ta="$ta w65-dis.lo" ;;
         bfd_wasm_arch)          ta="$ta wasm-dis.lo" ;;
+        bfd_wasm32_arch)          ta="$ta wasm32-dis.lo" ;;
         bfd_wasm64_arch)        ta="$ta wasm64-dis.lo" ;;
 	bfd_we32k_arch)		;;
 	bfd_xc16x_arch)		ta="$ta xc16x-asm.lo xc16x-desc.lo xc16x-dis.lo xc16x-ibld.lo xc16x-opc.lo" using_cgen=yes ;;

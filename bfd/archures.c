@@ -532,6 +532,8 @@ DESCRIPTION
 .#define bfd_mach_visium	1
 .  bfd_arch_wasm,
 .#define bfd_mach_wasm          1
+.  bfd_arch_wasm32,
+.#define bfd_mach_wasm32        1
 .  bfd_arch_wasm64,
 .#define bfd_mach_wasm64        1
 .  bfd_arch_last
@@ -659,6 +661,7 @@ extern const bfd_arch_info_type bfd_v850_rh850_arch;
 extern const bfd_arch_info_type bfd_vax_arch;
 extern const bfd_arch_info_type bfd_visium_arch;
 extern const bfd_arch_info_type bfd_wasm_arch;
+extern const bfd_arch_info_type bfd_wasm32_arch;
 extern const bfd_arch_info_type bfd_wasm64_arch;
 extern const bfd_arch_info_type bfd_w65_arch;
 extern const bfd_arch_info_type bfd_we32k_arch;
@@ -753,6 +756,7 @@ static const bfd_arch_info_type * const bfd_archures_list[] =
     &bfd_visium_arch,
     &bfd_w65_arch,
     &bfd_wasm_arch,
+    &bfd_wasm32_arch,
     &bfd_wasm64_arch,
     &bfd_we32k_arch,
     &bfd_xstormy16_arch,

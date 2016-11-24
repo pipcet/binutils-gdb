@@ -846,6 +846,7 @@ visium-*-elf)		targ_emul=elf32visium
 w65-*-*)		targ_emul=w65
 			;;
 wasm-*-*)		targ_emul=wasm ;;
+wasm32-*-*)		targ_emul=wasm32 ;;
 wasm64-*-*)		targ_emul=wasm64 ;;
 xc16x-*-elf)		targ_emul=elf32xc16x
                         targ_extra_emuls="elf32xc16xl elf32xc16xs"

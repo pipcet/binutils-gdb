@@ -201,6 +201,7 @@ tilepro*)	 targ_archs=bfd_tilepro_arch ;;
 v850*)		 targ_archs="bfd_v850_arch bfd_v850_rh850_arch" ;;
 visium*)	 targ_archs=bfd_visium_arch ;;
 wasm)		 targ_archs=bfd_wasm_arch ;;
+wasm32)		 targ_archs=bfd_wasm32_arch ;;
 wasm64)          targ_archs=bfd_wasm64_arch ;;
 x86_64*)	 targ_archs=bfd_i386_arch ;;
 xtensa*)	 targ_archs=bfd_xtensa_arch ;;
@@ -1803,6 +1804,10 @@ case "${targ}" in
 
   wasm-*-*)
     targ_defvec=wasm_elf32_vec
+    ;;
+
+  wasm32-*-*)
+    targ_defvec=wasm32_elf32_vec
     ;;
 
   wasm64-*-*)

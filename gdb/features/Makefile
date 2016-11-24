@@ -79,7 +79,7 @@ WHICH = aarch64 \
 	s390-tevx-linux64 s390x-tevx-linux64 \
 	tic6x-c64xp tic6x-c64x tic6x-c62x \
 	tic6x-c64xp-linux tic6x-c64x-linux tic6x-c62x-linux \
-	wasm wasm64
+	wasm wasm32 wasm64
 
 # Record which registers should be sent to GDB by default after stop.
 aarch64-expedite = x29,sp,pc

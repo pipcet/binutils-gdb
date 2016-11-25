@@ -172,16 +172,6 @@ wasm64_breakpoint_from_pc (struct gdbarch *gdbarch, CORE_ADDR *pcptr, int *lenpt
   return NULL;
 }
 
-static void
-wasm64_remote_breakpoint_from_pc (struct gdbarch *gdbarch, CORE_ADDR *pcptr, int *lenptr)
-{
-  (void) gdbarch;
-  (void) pcptr;
-  if ((*pcptr&0xfff) == 0x000) {
-  }
-  *lenptr = 4;
-}
-
 /* we're abusing this to skip the non-breakpointable first PC value
  * in a function. */
 static CORE_ADDR
@@ -215,7 +205,6 @@ wasm64_memory_insert_breakpoint (struct gdbarch *gdbarch ATTRIBUTE_UNUSED,
     addr++;
   }
   bp_tgt->placed_address = addr<<4;
-  bp_tgt->placed_size = 4;
 
   if (bp_cur >= bp_max)
     error (_("Out of pseudo-software breakpoint slots."));
@@ -471,15 +460,11 @@ wasm64_push_dummy_call (struct gdbarch *gdbarch, struct value *function,
     {
       int len;
       struct type *arg_type;
-      struct type *target_type;
-      enum type_code typecode;
       const bfd_byte *val;
       int align;
 
       arg_type = check_typedef (value_type (args[argnum]));
       len = TYPE_LENGTH (arg_type);
-      target_type = TYPE_TARGET_TYPE (arg_type);
-      typecode = TYPE_CODE (arg_type);
       val = value_contents (args[argnum]);
 
       align = wasm64_type_align (arg_type);
@@ -643,7 +628,6 @@ wasm64_gdbarch_init (struct gdbarch_info info, struct gdbarch_list *arches)
 
   /* Breakpoint manipulation.  */
   set_gdbarch_breakpoint_from_pc (gdbarch, wasm64_breakpoint_from_pc);
-  set_gdbarch_remote_breakpoint_from_pc (gdbarch, wasm64_remote_breakpoint_from_pc);
   set_gdbarch_memory_insert_breakpoint (gdbarch, wasm64_memory_insert_breakpoint);
   set_gdbarch_memory_remove_breakpoint (gdbarch, wasm64_memory_remove_breakpoint);
   set_gdbarch_skip_entrypoint (gdbarch, wasm64_skip_entrypoint);

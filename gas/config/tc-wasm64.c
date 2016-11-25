@@ -27,8 +27,8 @@
 #include "dw2gencfi.h"
 #include "elf/wasm64.h"
 
-enum wasm_clas { wasm_special, wasm_special1, wasm_break, wasm_break_if, wasm_break_table,
-                 wasm_return, wasm_call, wasm_call_import, wasm_call_indirect, wasm_get_local, wasm_set_local,
+enum wasm_clas { wasm_typed, wasm_special, wasm_special1, wasm_break, wasm_break_if, wasm_break_table,
+                 wasm_return, wasm_call, wasm_call_import, wasm_call_indirect, wasm_get_local, wasm_set_local, wasm_tee_local, wasm_drop,
 wasm_constant, wasm_constant_f32, wasm_constant_f64, wasm_unary, wasm_binary,
 wasm_conv, wasm_load, wasm_store, wasm_select, wasm_relational, wasm_eqz, wasm_signature };
 
@@ -433,16 +433,16 @@ static void wasm64_signature(char **line)
   while (*str != 'E') {
     switch (*str++) {
     case 'i':
-      FRAG_APPEND_1_CHAR(0x01);
+      FRAG_APPEND_1_CHAR(0x7f);
       break;
     case 'l':
-      FRAG_APPEND_1_CHAR(0x02);
+      FRAG_APPEND_1_CHAR(0x7e);
       break;
     case 'f':
-      FRAG_APPEND_1_CHAR(0x03);
+      FRAG_APPEND_1_CHAR(0x7d);
       break;
     case 'd':
-      FRAG_APPEND_1_CHAR(0x04);
+      FRAG_APPEND_1_CHAR(0x7c);
       break;
     default:
       as_bad (_("Unknown type"));
@@ -455,19 +455,19 @@ static void wasm64_signature(char **line)
     break;
   case 'i':
     FRAG_APPEND_1_CHAR(0x01);
-    FRAG_APPEND_1_CHAR(0x01);
+    FRAG_APPEND_1_CHAR(0x7f);
     break;
   case 'l':
     FRAG_APPEND_1_CHAR(0x01);
-    FRAG_APPEND_1_CHAR(0x02);
+    FRAG_APPEND_1_CHAR(0x7e);
     break;
   case 'f':
     FRAG_APPEND_1_CHAR(0x01);
-    FRAG_APPEND_1_CHAR(0x03);
+    FRAG_APPEND_1_CHAR(0x7d);
     break;
   case 'd':
     FRAG_APPEND_1_CHAR(0x01);
-    FRAG_APPEND_1_CHAR(0x04);
+    FRAG_APPEND_1_CHAR(0x7c);
     break;
   default:
     as_bad (_("Unknown type"));
@@ -524,11 +524,30 @@ wasm64_operands (struct wasm64_opcode_s *opcode, char **line)
 {
   char *str = *line;
   unsigned long consumed = 0;
+  unsigned long block_type = 0;
   FRAG_APPEND_1_CHAR (opcode->opcode);
   str = skip_space (str);
   if (str[0] == '[')
     {
       consumed = wasm64_get_constant(&str).X_add_number;
+      switch (str[0])
+        {
+        case 'i':
+          block_type = 0x7f;
+          break;
+        case 'l':
+          block_type = 0x7e;
+          break;
+        case 'f':
+          block_type = 0x7d;
+          break;
+        case 'd':
+          block_type = 0x7c;
+          break;
+        case ']':
+          block_type = 0x40;
+          break;
+        }
       str = skip_space (str);
       while (str[0] == ':' || (str[0] >= '0' && str[0] <= '9'))
         str++;
@@ -538,6 +557,10 @@ wasm64_operands (struct wasm64_opcode_s *opcode, char **line)
     }
   switch (opcode->clas)
     {
+    case wasm_typed:
+      FRAG_APPEND_1_CHAR (block_type);
+      break;
+    case wasm_drop:
     case wasm_special:
     case wasm_special1:
     case wasm_binary:
@@ -564,6 +587,7 @@ wasm64_operands (struct wasm64_opcode_s *opcode, char **line)
       break;
     case wasm_set_local:
     case wasm_get_local:
+    case wasm_tee_local:
       wasm64_uleb128(&str);
       break;
     case wasm_break:
@@ -575,7 +599,6 @@ wasm64_operands (struct wasm64_opcode_s *opcode, char **line)
       wasm64_put_uleb128(consumed);
       break;
     case wasm_call:
-      wasm64_put_uleb128(consumed);
       wasm64_uleb128_r32(&str);
       break;
     case wasm_call_indirect:

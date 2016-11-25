@@ -44,8 +44,8 @@
 
 
 
-enum wasm_clas { wasm_special, wasm_special1, wasm_break, wasm_break_if, wasm_break_table,
-                 wasm_return, wasm_call, wasm_call_import, wasm_call_indirect, wasm_get_local, wasm_set_local,
+enum wasm_clas { wasm_typed, wasm_special, wasm_special1, wasm_break, wasm_break_if, wasm_break_table,
+                 wasm_return, wasm_call, wasm_call_import, wasm_call_indirect, wasm_get_local, wasm_set_local, wasm_tee_local, wasm_drop,
 wasm_constant, wasm_constant_f32, wasm_constant_f64, wasm_unary, wasm_binary,
 wasm_conv, wasm_load, wasm_store, wasm_select, wasm_relational, wasm_eqz, wasm_signature };
 
@@ -195,6 +195,7 @@ print_insn_little_wasm64 (bfd_vma pc, struct disassemble_info *info)
   long depth = 0;
   long index = 0;
   long target_count = 0;
+  long block_type = 0;
   int len = 1;
   int i;
 
@@ -221,6 +222,28 @@ print_insn_little_wasm64 (bfd_vma pc, struct disassemble_info *info)
 
       switch (op->clas)
         {
+        case wasm_typed:
+          read_uleb128(&block_type, pc + len, info);
+          switch (block_type)
+            {
+            case 0x40:
+              prin (stream, "[]");
+              break;
+            case 0x7f:
+              prin (stream, "[i]");
+              break;
+            case 0x7e:
+              prin (stream, "[l]");
+              break;
+            case 0x7d:
+              prin (stream, "[f]");
+              break;
+            case 0x7c:
+              prin (stream, "[d]");
+              break;
+            }
+          argument_count = 0;
+          break;
         case wasm_special:
           prin (stream, "[0]");
           break;
@@ -240,6 +263,8 @@ print_insn_little_wasm64 (bfd_vma pc, struct disassemble_info *info)
         case wasm_conv:
         case wasm_load:
         case wasm_set_local:
+        case wasm_tee_local:
+        case wasm_drop:
           prin (stream, "[1]");
           break;
         case wasm_break_table:
@@ -281,6 +306,8 @@ print_insn_little_wasm64 (bfd_vma pc, struct disassemble_info *info)
         case wasm_unary:
         case wasm_conv:
         case wasm_relational:
+        case wasm_drop:
+        case wasm_typed:
           break;
         case wasm_select:
           break;
@@ -291,7 +318,7 @@ print_insn_little_wasm64 (bfd_vma pc, struct disassemble_info *info)
           for (i = 0; i < target_count + 1; i++)
             {
               long target = 0;
-              len += read_u32(&target, pc + len, info);
+              len += read_uleb128(&target, pc + len, info);
               prin (stream, " %ld", target);
             }
           break;
@@ -328,6 +355,7 @@ print_insn_little_wasm64 (bfd_vma pc, struct disassemble_info *info)
           break;
         case wasm_get_local:
         case wasm_set_local:
+        case wasm_tee_local:
           len += read_uleb128(&constant, pc + len, info);
           prin (stream, " %ld", constant);
           break;

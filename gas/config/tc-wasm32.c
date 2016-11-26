@@ -277,19 +277,6 @@ static expressionS wasm32_get_constant(char **line)
   return ex;
 }
 
-static void wasm32_put_uleb128(unsigned long value)
-{
-  unsigned char c;
-
-  do {
-    c = value & 0x7f;
-    value >>= 7;
-    if (value)
-      c |= 0x80;
-    FRAG_APPEND_1_CHAR (c);
-  } while (value);
-}
-
 static void wasm32_put_long_uleb128(int bits)
 {
   unsigned char c;
@@ -595,6 +582,7 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
     case wasm_tee_local:
       wasm32_uleb128(&str, 32);
       break;
+    case wasm_fakebreak:
     case wasm_break:
     case wasm_break_if:
       wasm32_uleb128(&str, 32);
@@ -629,7 +617,6 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
           pstr  = skip_space (pstr);
         } while (pstr[0]);
 
-        wasm32_put_uleb128(count, 32);
         count++;
         while (count--)
           {

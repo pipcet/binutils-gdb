@@ -235,9 +235,6 @@ wasm32_elf32_leb128_reloc (bfd *abfd ATTRIBUTE_UNUSED,
      Include the size of the reloc in the test for out of range addresses.
      PR 17512: file: c146ab8b, 46dff27f, 38e53ebf.  */
   octets = reloc_entry->address * bfd_octets_per_byte (abfd);
-  if (octets + bfd_get_reloc_size (howto)
-      > bfd_get_section_limit_octets (abfd, input_section))
-    return bfd_reloc_outofrange;
 
   /* Get symbol value.  (Common symbols are special.)  */
   if (bfd_is_com_section (symbol->section))

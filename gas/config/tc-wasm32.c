@@ -27,9 +27,9 @@
 #include "dw2gencfi.h"
 #include "elf/wasm32.h"
 
-enum wasm_clas { wasm_typed, wasm_special, wasm_special1, wasm_break, wasm_break_if, wasm_break_table,
+enum wasm_clas { wasm_typed, wasm_special, wasm_special1, wasm_break, wasm_fakebreak, wasm_break_if, wasm_break_table,
                  wasm_return, wasm_call, wasm_call_import, wasm_call_indirect, wasm_get_local, wasm_set_local, wasm_tee_local, wasm_drop,
-wasm_constant, wasm_constant_f32, wasm_constant_f64, wasm_unary, wasm_binary,
+                 wasm_constant_i32, wasm_constant_i64, wasm_constant_f32, wasm_constant_f64, wasm_unary, wasm_binary,
 wasm_conv, wasm_load, wasm_store, wasm_select, wasm_relational, wasm_eqz, wasm_signature };
 
 enum wasm_signedness { wasm_signed, wasm_unsigned, wasm_agnostic, wasm_floating };
@@ -290,7 +290,7 @@ static void wasm32_put_uleb128(unsigned long value)
   } while (value);
 }
 
-static void wasm32_put_long_uleb128(void)
+static void wasm32_put_long_uleb128(int bits)
 {
   unsigned char c;
   int i = 0;
@@ -299,13 +299,13 @@ static void wasm32_put_long_uleb128(void)
   do {
     c = value & 0x7f;
     value >>= 7;
-    if (i < 15)
+    if (i < (bits-1)/7)
       c |= 0x80;
     FRAG_APPEND_1_CHAR (c);
-  } while (++i < 16);
+  } while (++i < (bits+6)/7);
 }
 
-static void wasm32_uleb128(char **line)
+static void wasm32_uleb128(char **line, int bits)
 {
   char *t = input_line_pointer;
   char *str = *line;
@@ -337,7 +337,7 @@ static void wasm32_uleb128(char **line)
   str = input_line_pointer;
   str = skip_space (str);
   *line = str;
-  wasm32_put_long_uleb128();
+  wasm32_put_long_uleb128(bits);
   input_line_pointer = t;
 }
 
@@ -580,7 +580,7 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
       if (str[0] == 'a' && str[1] == '=')
         {
           str += 2;
-          wasm32_uleb128(&str);
+          wasm32_uleb128(&str, 32);
           str++;
         }
       else
@@ -588,27 +588,30 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
           as_bad (_("missing alignment hint"));
         }
       str = skip_space (str);
-      wasm32_uleb128(&str);
+      wasm32_uleb128(&str, 32);
       break;
     case wasm_set_local:
     case wasm_get_local:
     case wasm_tee_local:
-      wasm32_uleb128(&str);
+      wasm32_uleb128(&str, 32);
       break;
     case wasm_break:
     case wasm_break_if:
-      wasm32_uleb128(&str);
+      wasm32_uleb128(&str, 32);
       break;
     case wasm_return:
       break;
     case wasm_call:
-      wasm32_uleb128(&str);
+      wasm32_uleb128(&str, 32);
       break;
     case wasm_call_indirect:
     case wasm_call_import:
       break;
-    case wasm_constant:
-      wasm32_uleb128(&str);
+    case wasm_constant_i32:
+      wasm32_uleb128(&str, 32);
+      break;
+    case wasm_constant_i64:
+      wasm32_uleb128(&str, 64);
       break;
     case wasm_constant_f32:
       wasm32_f32(&str);
@@ -626,7 +629,7 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
           pstr  = skip_space (pstr);
         } while (pstr[0]);
 
-        wasm32_put_uleb128(count);
+        wasm32_put_uleb128(count, 32);
         count++;
         while (count--)
           {

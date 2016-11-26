@@ -30,6 +30,8 @@ SECTIONS
      . = ALIGN(., 16);
      *(.gnu.linkonce.d.*)
      . = ALIGN(., 16);
+     *(__libc_IO_vtables)
+     . = ALIGN(., 16);
      *(.rodata*)
      . = ALIGN(., 16);
      *(.jcr*)
@@ -126,43 +128,6 @@ SECTIONS
     LONG(0);
     LONG(0);
   }
-  . = 0x40010000;
-  .init : { *(.init*) }
-  .text :
-  {
-    *(.text*)
-    *(__libc_freeres_fn*)
-    *(__libc_thread_freeres_fn*)
-  }
-  .fini : { *(.fini*) }
-  . = 0xc0000000;
-  .javascript.init : { FILL(0x20202020); *(.javascript.init*) }
-  .javascript.text :
-  {
-    FILL(0x20202020);
-    *(.javascript.text*)
-    *(.javascript__libc_freeres_fn*)
-    *(.javascript__libc_thread_freeres_fn*)
-  }
-  .javascript.fini : { FILL(0x20202020); *(.javascript.fini*) }
-
-  .javascript.special.export : { *(.javascript.special.export*) }
-  .javascript.special.define : { *(.javascript.special.define*) }
-  .javascript.special.fpswitch : { *(.javascript.special.fpswitch*) }
-
-  .wasm_pwas.init : { FILL(0x20202020); *(.wasm_pwas.init*) }
-  .wasm_pwas.text :
-  {
-    FILL(0x20202020);
-    *(.wasm_pwas.text*)
-    *(.wasm_pwas__libc_freeres_fn*)
-    *(.wasm_pwas__libc_thread_freeres_fn*)
-  }
-  .wasm_pwas.fini : { FILL(0x20202020); *(.wasm_pwas.fini*) }
-
-  .wasm_pwas.special.export : { *(.wasm_pwas.special.export*) }
-  .wasm_pwas.special.define : { *(.wasm_pwas.special.define*) }
-  .wasm_pwas.special.fpswitch : { *(.wasm_pwas.special.fpswitch*) }
 EOF
 
 . $srcdir/scripttempl/DWARF.sc

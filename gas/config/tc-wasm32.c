@@ -525,7 +525,6 @@ static unsigned
 wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
 {
   char *str = *line;
-  unsigned long consumed = 0;
   unsigned long block_type = 0;
   FRAG_APPEND_1_CHAR (opcode->opcode);
   str = skip_space (str);
@@ -534,7 +533,6 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
       str++;
       block_type = 0x40;
       if (str[0] != ']') {
-        consumed = wasm32_get_constant(&str).X_add_number;
         str = skip_space (str);
         switch (str[0])
           {
@@ -602,15 +600,12 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
       wasm32_uleb128(&str);
       break;
     case wasm_return:
-      wasm32_put_uleb128(consumed);
       break;
     case wasm_call:
       wasm32_uleb128(&str);
       break;
     case wasm_call_indirect:
     case wasm_call_import:
-      wasm32_put_uleb128(consumed);
-      wasm32_uleb128(&str);
       break;
     case wasm_constant:
       wasm32_uleb128(&str);
@@ -631,7 +626,6 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
           pstr  = skip_space (pstr);
         } while (pstr[0]);
 
-        wasm32_put_uleb128(consumed);
         wasm32_put_uleb128(count);
         count++;
         while (count--)

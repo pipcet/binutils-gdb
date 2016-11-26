@@ -128,11 +128,17 @@ SECTIONS
     LONG(0);
     LONG(0);
   }
+  .wasm.chars.function_index 0 (NOLOAD) :
+  {
+       . = 0;
+       *(.wasm.chars.function_index.a);
+       *(.wasm.chars.function_index.b);
+  }
 EOF
 
 . $srcdir/scripttempl/DWARF.sc
 
 cat <<EOF
-/*  /DISCARD/ : { *(*) } */
+  /DISCARD/ : { *(.text) *(.init) *(.fini) }
 }
 EOF

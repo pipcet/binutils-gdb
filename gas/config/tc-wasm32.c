@@ -568,7 +568,6 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
         {
           str += 2;
           wasm32_uleb128(&str, 32);
-          str++;
         }
       else
         {

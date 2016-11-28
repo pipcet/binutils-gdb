@@ -4,7 +4,7 @@ WASM_OPCODE("block", void, void, typed, agnostic, 0x02)
 WASM_OPCODE("loop", void, void, typed, agnostic, 0x03)
 WASM_OPCODE("if", void, void, typed, agnostic, 0x04)
 WASM_OPCODE("else", void, void, special, agnostic, 0x05)
-WASM_OPCODE("**br", void, void, fakebreak, agnostic, 0x0c)
+WASM_OPCODE("**br", void, void, fakebreak, agnostic, 0x06)
 WASM_OPCODE("end", void, void, special, agnostic, 0x0b)
 WASM_OPCODE("br", void, void, break, agnostic, 0x0c)
 WASM_OPCODE("br_if", void, void, break_if, agnostic, 0x0d)
@@ -22,7 +22,6 @@ WASM_OPCODE("set_local", any, any, set_local, agnostic, 0x21)
 WASM_OPCODE("tee_local", any, any, tee_local, agnostic, 0x22)
 WASM_OPCODE("get_global", any, any, get_local, agnostic, 0x23)
 WASM_OPCODE("set_global", any, any, set_local, agnostic, 0x24)
-
 
 WASM_OPCODE("call_import", any, any, call_import, agnostic, 0x18)
 

@@ -306,12 +306,12 @@ print_insn_little_wasm32 (bfd_vma pc, struct disassemble_info *info)
           break;
         case wasm_fakebreak:
           {
-          long n;
-          len += read_uleb128(&n, pc + len, info);
-          prin (stream, "[%ld]", n);
-          len += read_uleb128(&depth, pc + len, info);
-          //prin (stream, " %ld %ld", argument_count, depth);
-          prin (stream, " %ld", depth);
+            long n = 0;
+            len += read_uleb128(&n, pc + len, info);
+            prin (stream, "[%ld]", n);
+            len += read_uleb128(&depth, pc + len, info);
+            //prin (stream, " %ld %ld", argument_count, depth);
+            prin (stream, " %ld", depth);
           }
           break;
         case wasm_break:

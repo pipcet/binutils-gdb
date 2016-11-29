@@ -141,7 +141,7 @@ SECTIONS
        *(.wasm.chars.name.a);
        *(.wasm.chars.name.b);
   }
-  .wasm.payload.name 0 (NOLOAD) :
+  .wasm.payload.name 0 :
   {
        . = 0;
        *(.wasm.payload.name)

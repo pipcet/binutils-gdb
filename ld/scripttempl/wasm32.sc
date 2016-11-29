@@ -134,6 +134,20 @@ SECTIONS
        *(.wasm.chars.function_index.a);
        *(.wasm.chars.function_index.b);
   }
+  .wasm.chars.name 0 (NOLOAD) :
+  {
+       . = 0;
+       *(.wasm.chars.name)
+       *(.wasm.chars.name.a);
+       *(.wasm.chars.name.b);
+  }
+  .wasm.payload.name 0 (NOLOAD) :
+  {
+       . = 0;
+       *(.wasm.payload.name)
+       *(.wasm.payload.name.a);
+       *(.wasm.payload.name.b);
+  }
 EOF
 
 . $srcdir/scripttempl/DWARF.sc

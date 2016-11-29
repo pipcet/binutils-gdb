@@ -593,6 +593,8 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
       break;
     case wasm_call_indirect:
     case wasm_call_import:
+      wasm32_uleb128(&str, 32);
+      wasm32_uleb128(&str, 32);
       break;
     case wasm_constant_i32:
       wasm32_uleb128(&str, 32);

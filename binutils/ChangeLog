@@ -1,3 +1,43 @@
+2016-11-30  Nick Clifton  <nickc@redhat.com>
+
+	PR ld/20815
+	* readelf.c (process_program_headers): Do not warn about out of
+	order PT_LOAD segments.
+
+2016-11-29  Claudiu Zissulescu  <claziss@synopsys.com>
+
+	* testsuite/binutils-all/arc/objdump.exp (Warning test): Update
+	test.
+
+2016-11-27  Ambrogino Modigliani  <ambrogino.modigliani@gmail.com>
+
+	* dwarf.c: Fix spelling in comments.
+	* dwarf.h: Fix spelling in comments.
+	* objcopy.c: Fix spelling in comments.
+	* od-macho.c: Fix spelling in comments.
+	* rclex.c: Fix spelling in comments.
+	* readelf.c: Fix spelling in comments.
+	* stabs.c: Fix spelling in comments.
+
+2016-11-23  Nick Clifton  <nickc@redhat.com>
+
+	PR ld/20815
+	* readelf.c (process_program_headers): Check PT_LOAD and PT_PHDR
+	segments for validity.
+
+2016-11-22  Ambrogino Modigliani  <ambrogino.modigliani@gmail.com>
+
+        * configure: Regenerate.
+
+2016-11-22  Alan Modra  <amodra@gmail.com>
+
+	PR 20744
+	* NEWS: Mention PowerPC VLE relocation error.
+
+2016-11-16  Mark Wielaard  <mark@klomp.org>
+
+	* cxxfilt.c (main): Recognize rust_demangling.
+
 2016-11-14  Rudy  <jacky.chouchou@yandex.ru>
 
 	PR binutils/20814

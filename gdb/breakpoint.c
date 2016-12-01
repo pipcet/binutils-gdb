@@ -2268,7 +2268,7 @@ parse_cond_to_aexpr (CORE_ADDR scope, struct expression *cond)
      that may show up.  */
   TRY
     {
-      aexpr = std::move (gen_eval_for_expr (scope, cond));
+      aexpr = gen_eval_for_expr (scope, cond);
     }
 
   CATCH (ex, RETURN_MASK_ERROR)
@@ -2452,9 +2452,9 @@ parse_cmd_to_aexpr (CORE_ADDR scope, char *cmd)
      that may show up.  */
   TRY
     {
-      aexpr = std::move (gen_printf (scope, gdbarch, 0, 0,
-				     format_start, format_end - format_start,
-				     fpieces, nargs, argvec));
+      aexpr = gen_printf (scope, gdbarch, 0, 0,
+			  format_start, format_end - format_start,
+			  fpieces, nargs, argvec);
     }
   CATCH (ex, RETURN_MASK_ERROR)
     {
@@ -6954,9 +6954,9 @@ breakpoint_1 (char *args, int allflag,
       if (!filter)
 	{
 	  if (args == NULL || *args == '\0')
-	    ui_out_message (uiout, 0, "No breakpoints or watchpoints.\n");
+	    ui_out_message (uiout, "No breakpoints or watchpoints.\n");
 	  else
-	    ui_out_message (uiout, 0, 
+	    ui_out_message (uiout,
 			    "No breakpoint or watchpoint matching '%s'.\n",
 			    args);
 	}
@@ -7012,9 +7012,9 @@ watchpoints_info (char *args, int from_tty)
   if (num_printed == 0)
     {
       if (args == NULL || *args == '\0')
-	ui_out_message (uiout, 0, "No watchpoints.\n");
+	ui_out_message (uiout, "No watchpoints.\n");
       else
-	ui_out_message (uiout, 0, "No watchpoint matching '%s'.\n", args);
+	ui_out_message (uiout, "No watchpoint matching '%s'.\n", args);
     }
 }
 
@@ -11378,7 +11378,7 @@ watch_command_1 (const char *arg, int accessflag, int from_tty,
   b->thread = thread;
   b->disposition = disp_donttouch;
   b->pspace = current_program_space;
-  w->exp = gdb::move (exp);
+  w->exp = std::move (exp);
   w->exp_valid_block = exp_valid_block;
   w->cond_exp_valid_block = cond_exp_valid_block;
   if (just_location)
@@ -15193,15 +15193,16 @@ insert_single_step_breakpoint (struct gdbarch *gdbarch,
 int
 insert_single_step_breakpoints (struct gdbarch *gdbarch)
 {
-  struct frame_info *frame = get_current_frame ();
+  struct regcache *regcache = get_current_regcache ();
   VEC (CORE_ADDR) * next_pcs;
 
-  next_pcs = gdbarch_software_single_step (gdbarch, frame);
+  next_pcs = gdbarch_software_single_step (gdbarch, regcache);
 
   if (next_pcs != NULL)
     {
       int i;
       CORE_ADDR pc;
+      struct frame_info *frame = get_current_frame ();
       struct address_space *aspace = get_frame_address_space (frame);
 
       for (i = 0; VEC_iterate (CORE_ADDR, next_pcs, i, pc); i++)
@@ -15477,9 +15478,9 @@ tracepoints_info (char *args, int from_tty)
   if (num_printed == 0)
     {
       if (args == NULL || *args == '\0')
-	ui_out_message (uiout, 0, "No tracepoints.\n");
+	ui_out_message (uiout, "No tracepoints.\n");
       else
-	ui_out_message (uiout, 0, "No tracepoint matching '%s'.\n", args);
+	ui_out_message (uiout, "No tracepoint matching '%s'.\n", args);
     }
 
   default_collect_info ();

@@ -1,3 +1,45 @@
+2016-11-30  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* Makefile.in: Include disable-implicit-rules.mk.
+
+2016-11-24  Andreas Arnez  <arnez@linux.vnet.ibm.com>
+
+	* gdb.dwarf2/nonvar-access.exp: Add a test for accessing
+	non-byte-aligned bit fields.
+
+2016-11-24  Andreas Arnez  <arnez@linux.vnet.ibm.com>
+
+	PR gdb/12616
+	* gdb.dwarf2/nonvar-access.exp: New testcase.  Check that GDB
+	respects the DW_AT_data_bit_offset attribute.
+
+2016-11-22  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* gdb.base/default.exp: Fix output of "set language".
+
+2016-11-17  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* Makefile.in: Remove @GMAKE_TRUE@ prefixes and removes lines
+	prefixed with @GMAKE_FALSE@.  Update comment related to non-GNU
+	make.
+	* configure.ac: Remove checks for the make program.
+	* configure: Re-generate.
+
+2016-11-16  Kevin Buettner  <kevinb@redhat.com>
+
+	* gdb.python/py-recurse-unwind.c (main): Add loop.
+	* gdb.python/py-recurse-unwind.py (TestUnwinder): Add calls
+	to read_register() and gdb.parse_and_eval().  Make each code
+	call a separate case that can be individually tested.
+	* gdb.python/py-recurse-unwind.exp (cont_and_backtrace): New
+	proc. Call cont_and_backtrace for each of the code paths that
+	we want to test in the unwinder.
+
+2016-11-15  Andreas Arnez  <arnez@linux.vnet.ibm.com>
+
+	* gdb.dwarf2/bitfield-parent-optimized-out.exp: Fix DWARF code for
+	the definition of struct S.
+
 2016-11-11  Catherine Moore  <clm@codesourcery.com>
 
 	* gdb.base/dump.exp: Identify verilog format dump tests as such.

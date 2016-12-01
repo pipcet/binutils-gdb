@@ -1,3 +1,139 @@
+2016-11-29  Claudiu Zissulescu  <claziss@synopsys.com>
+
+	* arc-opc.c (insert_ra_chk): New function.
+	(insert_rb_chk): Likewise.
+	(insert_rad): Update text error message.
+	(insert_rcd): Likewise.
+	(insert_rhv2): Likewise.
+	(insert_r0): Likewise.
+	(insert_r1): Likewise.
+	(insert_r2): Likewise.
+	(insert_r3): Likewise.
+	(insert_sp): Likewise.
+	(insert_gp): Likewise.
+	(insert_pcl): Likewise.
+	(insert_blink): Likewise.
+	(insert_ilink1): Likewise.
+	(insert_ilink2): Likewise.
+	(insert_ras): Likewise.
+	(insert_rbs): Likewise.
+	(insert_rcs): Likewise.
+	(insert_simm3s): Likewise.
+	(insert_rrange): Likewise.
+	(insert_fpel): Likewise.
+	(insert_blinkel): Likewise.
+	(insert_pcel): Likewise.
+	(insert_nps_3bit_dst): Likewise.
+	(insert_nps_3bit_dst_short): Likewise.
+	(insert_nps_3bit_src2_short): Likewise.
+	(insert_nps_bitop_size_2b): Likewise.
+	(MAKE_SRC_POS_INSERT_EXTRACT_FUNCS): Likewise.
+	(RA_CHK): Define.
+	(RB): Adjust.
+	(RB_CHK): Define.
+	(RC): Adjust.
+	* arc-dis.c (print_insn_arc): Add LOAD and STORE class.
+	* arc-tbl.h (div, divu): All instructions are DIVREM class.
+	Change first insn argument to check for LP_COUNT usage.
+	(rem): Likewise.
+	(ld, ldd): All instructions are LOAD class.  Change first insn
+	argument to check for LP_COUNT usage.
+	(st, std): All instructions are STORE class.
+	(mac, mpy, dmac, mul, dmpy): All instructions are MPY class.
+	Change first insn argument to check for LP_COUNT usage.
+	(mov): All instructions are MOVE class.  Change first insn
+	argument to check for LP_COUNT usage.
+
+2016-11-29  Claudiu Zissulescu  <claziss@synopsys.com>
+
+	* arc-dis.c (is_compatible_p): Remove function.
+	(skip_this_opcode): Don't add any decoding class to decode list.
+	Remove warning.
+	(find_format_from_table): Go through all opcodes, and warn if we
+	use a guessed mnemonic.
+
+2016-11-28  Ramiro Polla  <ramiro@hex-rays.com>
+	    Amit Pawar  <amit.pawar@amd.com>
+
+	PR binutils/20637
+	* i386-dis.c (get_valid_dis386): Ignore REX_B for 32-bit XOP
+	instructions.
+
+2016-11-22  Ambrogino Modigliani  <ambrogino.modigliani@gmail.com>
+
+        * configure: Regenerate.
+
+2016-11-22  Jose E. Marchesi  <jose.marchesi@oracle.com>
+
+	* sparc-opc.c (HWS_V8): Definition moved from
+	gas/config/tc-sparc.c.
+	(HWS_V9): Likewise.
+	(HWS_VA): Likewise.
+	(HWS_VB): Likewise.
+	(HWS_VC): Likewise.
+	(HWS_VD): Likewise.
+	(HWS_VE): Likewise.
+	(HWS_VV): Likewise.
+	(HWS_VM): Likewise.
+	(HWS2_VM): Likewise.
+	(sparc_opcode_archs): Initialize hwcaps and hwcaps2 fields of
+	existing entries.
+
+2016-11-22  Claudiu Zissulescu  <claziss@synopsys.com>
+
+	* arc-tbl.h: Reorder conditional flags with delay flags for 'b'
+	instructions.
+
+2016-11-18  Szabolcs Nagy  <szabolcs.nagy@arm.com>
+
+	* aarch64-tbl.h (QL_V3SAMEHSD_ROT, QL_ELEMENT_ROT): Define.
+	(aarch64_feature_simd_v8_3, SIMD_V8_3): Define.
+	(aarch64_opcode_table): Add fcmla and fcadd.
+	(AARCH64_OPERANDS): Add IMM_ROT{1,2,3}.
+	* aarch64-asm.h (aarch64_ins_imm_rotate): Declare.
+	* aarch64-asm.c (aarch64_ins_imm_rotate): Define.
+	* aarch64-dis.h (aarch64_ext_imm_rotate): Declare.
+	* aarch64-dis.c (aarch64_ext_imm_rotate): Define.
+	* aarch64-opc.h (enum aarch64_field_kind): Add FLD_rotate{1,2,3}.
+	* aarch64-opc.c (fields): Add FLD_rotate{1,2,3}.
+	(operand_general_constraint_met_p): Rotate and index range check.
+	(aarch64_print_operand): Handle rotate operand.
+	* aarch64-asm-2.c: Regenerate.
+	* aarch64-dis-2.c: Likewise.
+	* aarch64-opc-2.c: Likewise.
+
+2016-11-18  Szabolcs Nagy  <szabolcs.nagy@arm.com>
+
+	* aarch64-tbl.h (arch64_opcode_table): Add ldaprb, ldaprh, ldapr.
+	* aarch64-asm-2.c: Regenerate.
+	* aarch64-dis-2.c: Regenerate.
+	* aarch64-opc-2.c: Regenerate.
+
+2016-11-18  Szabolcs Nagy  <szabolcs.nagy@arm.com>
+
+	* aarch64-tbl.h (arch64_opcode_table): Add fjcvtzs.
+	(QL_FP2INT_W_D, aarch64_feature_fp_v8_3, FP_V8_3): Define.
+	* aarch64-asm-2.c: Regenerate.
+	* aarch64-dis-2.c: Regenerate.
+	* aarch64-opc-2.c: Regenerate.
+
+2016-11-18  Szabolcs Nagy  <szabolcs.nagy@arm.com>
+
+	* aarch64-tbl.h (QL_X1NIL): New.
+	(arch64_opcode_table): Add ldraa, ldrab.
+	(AARCH64_OPERANDS): Add "ADDR_SIMM10".
+	* aarch64-asm.h (aarch64_ins_addr_simm10): Declare.
+	* aarch64-asm.c (aarch64_ins_addr_simm10): Define.
+	* aarch64-dis.h (aarch64_ext_addr_simm10): Declare.
+	* aarch64-dis.c (aarch64_ext_addr_simm10): Define.
+	* aarch64-opc.h (enum aarch64_field_kind): Add FLD_S_simm10.
+	* aarch64-opc.c (fields): Add data for FLD_S_simm10.
+	(operand_general_constraint_met_p): Handle AARCH64_OPND_ADDR_SIMM10.
+	(aarch64_print_operand): Likewise.
+	* aarch64-asm-2.c: Regenerate.
+	* aarch64-dis-2.c: Regenerate.
+	* aarch64-opc-2.c: Regenerate.
+
 2016-11-11  Szabolcs Nagy  <szabolcs.nagy@arm.com>
 
 	* aarch64-tbl.h (arch64_opcode_table): Add braa, brab, blraa, blrab, braaz,

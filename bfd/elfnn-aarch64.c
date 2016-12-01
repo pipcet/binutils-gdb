@@ -6939,8 +6939,7 @@ aarch64_elf_create_got_section (bfd *abfd, struct bfd_link_info *info)
   struct elf_link_hash_table *htab = elf_hash_table (info);
 
   /* This function may be called more than once.  */
-  s = bfd_get_linker_section (abfd, ".got");
-  if (s != NULL)
+  if (htab->sgot != NULL)
     return TRUE;
 
   flags = bed->dynamic_sec_flags;
@@ -9067,21 +9066,6 @@ elfNN_aarch64_finish_dynamic_sections (bfd *output_bfd,
 	      dyn.d_un.d_val = s->size;
 	      break;
 
-	    case DT_RELASZ:
-	      /* The procedure linkage table relocs (DT_JMPREL) should
-		 not be included in the overall relocs (DT_RELA).
-		 Therefore, we override the DT_RELASZ entry here to
-		 make it not include the JMPREL relocs.  Since the
-		 linker script arranges for .rela.plt to follow all
-		 other relocation sections, we don't have to worry
-		 about changing the DT_RELA entry.  */
-	      if (htab->root.srelplt != NULL)
-		{
-		  s = htab->root.srelplt;
-		  dyn.d_un.d_val -= s->size;
-		}
-	      break;
-
 	    case DT_TLSDESC_PLT:
 	      s = htab->root.splt;
 	      dyn.d_un.d_ptr = s->output_section->vma + s->output_offset
@@ -9411,6 +9395,7 @@ const struct elf_size_info elfNN_aarch64_size_info =
 #define elf_backend_may_use_rela_p     1
 #define elf_backend_default_use_rela_p 1
 #define elf_backend_rela_normal        1
+#define elf_backend_dtrel_excludes_plt 1
 #define elf_backend_got_header_size (GOT_ENTRY_SIZE * 3)
 #define elf_backend_default_execstack  0
 #define elf_backend_extern_protected_data 1

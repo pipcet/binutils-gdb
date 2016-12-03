@@ -32,6 +32,8 @@ SECTIONS
      . = ALIGN(., 16);
      *(__libc_IO_vtables)
      . = ALIGN(., 16);
+     *(.got)
+     . = ALIGN(., 16);
      *(.rodata*)
      . = ALIGN(., 16);
      *(.jcr*)
@@ -141,12 +143,45 @@ SECTIONS
        *(.wasm.chars.name.a);
        *(.wasm.chars.name.b);
   }
-  .wasm.payload.name 0 :
+  .wasm.payload.name 0 (NOLOAD) :
   {
        . = 0;
        *(.wasm.payload.name)
        *(.wasm.payload.name.a);
        *(.wasm.payload.name.b);
+  }
+  . = 0x80000000;
+  .plt :
+  {
+    *(.plt)
+  }
+  .got.plt :
+  {
+    *(.got.plt)
+  }
+  .dynamic :
+  {
+    *(.dynamic)
+  }
+  .interp :
+  {
+    *(.interp)
+  }
+  .dynstr :
+  {
+    *(.dynstr)
+  }
+  .hash :
+  {
+    *(.hash)
+  }
+  .rela.dyn :
+  {
+    *(.rela.dyn)
+  }
+  .dynsym :
+  {
+    *(.dynsym)
   }
 EOF
 

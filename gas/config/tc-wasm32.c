@@ -298,6 +298,9 @@ static void wasm32_uleb128(char **line, int bits)
   char *str = *line;
   struct reloc_list *reloc;
   expressionS ex;
+  int gotrel = 0;
+  int pltrel = 0;
+
   reloc = XNEW (struct reloc_list);
   input_line_pointer = str;
   expression (&ex);
@@ -312,7 +315,18 @@ static void wasm32_uleb128(char **line, int bits)
       reloc->u.a.sym = make_expr_symbol (&ex);
       reloc->u.a.addend = 0;
     }
-  reloc->u.a.howto = bfd_reloc_name_lookup (stdoutput, "R_ASMJS_LEB128");
+  if (strncmp(input_line_pointer, "@got", 4) == 0) {
+    gotrel = 1;
+    input_line_pointer += 4;
+  }
+  if (strncmp(input_line_pointer, "@plt", 4) == 0) {
+    pltrel = 1;
+    input_line_pointer += 4;
+  }
+  reloc->u.a.howto = bfd_reloc_name_lookup (stdoutput,
+                                            gotrel ? "R_ASMJS_LEB128_GOT" :
+                                            pltrel ? "R_ASMJS_LEB128_PLT" :
+                                            "R_ASMJS_LEB128");
   if (!reloc->u.a.howto)
     {
       as_bad (_("couldn't find relocation to use"));

@@ -22,17 +22,20 @@ SECTIONS
      LONG(0);
      LONG(0);
   }
-  .data :
+  .got :
   {
      . = ALIGN(., 16);
      __data_start = .;
+     *(.got)
+  }
+  .data :
+  {
+     . = ALIGN(., 16);
      *(.data*)
      . = ALIGN(., 16);
      *(.gnu.linkonce.d.*)
      . = ALIGN(., 16);
      *(__libc_IO_vtables)
-     . = ALIGN(., 16);
-     *(.got)
      . = ALIGN(., 16);
      *(.rodata*)
      . = ALIGN(., 16);
@@ -149,6 +152,26 @@ SECTIONS
        *(.wasm.payload.name)
        *(.wasm.payload.name.a);
        *(.wasm.payload.name.b);
+  }
+  .wasm.chars.code 0 (NOLOAD) :
+  {
+      . = 0;
+      *(.wasm.chars.code)
+  }
+  .wasm.payload.code 0 :
+  {
+      . = 0;
+      *(.wasm.payload.code)
+  }
+  .wasm.chars.code.plt 0 (NOLOAD) :
+  {
+      . = 0;
+      *(.wasm.chars.code.plt)
+  }
+  .wasm.payload.code.plt 0 :
+  {
+      . = 0;
+      *(.wasm.payload.code.plt)
   }
   . = 0x80000000;
   .plt :

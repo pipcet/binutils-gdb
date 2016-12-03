@@ -386,7 +386,12 @@ _bfd_elf_create_dynamic_sections (bfd *abfd, struct bfd_link_info *info)
   if (bed->plt_readonly)
     pltflags |= SEC_READONLY;
 
-  s = bfd_make_section_anyway_with_flags (abfd, ".plt", pltflags);
+  s = bfd_make_section_anyway_with_flags (abfd, ".wasm.chars.code.plt", pltflags & ~ (SEC_CODE | SEC_LOAD | SEC_HAS_CONTENTS));
+  if (s == NULL)
+    return FALSE;
+  htab->spltspace = s;
+
+  s = bfd_make_section_anyway_with_flags (abfd, ".wasm.payload.code.plt", pltflags);
   if (s == NULL
       || ! bfd_set_section_alignment (abfd, s, bed->plt_alignment))
     return FALSE;

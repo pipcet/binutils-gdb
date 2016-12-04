@@ -28,6 +28,10 @@ SECTIONS
      __data_start = .;
      *(.got)
   }
+  .got.plt :
+  {
+    *(.got.plt)
+  }
   .data :
   {
      . = ALIGN(., 16);
@@ -156,31 +160,19 @@ SECTIONS
   .wasm.chars.code 0 (NOLOAD) :
   {
       . = 0;
+      *(.wasm.chars.code.plt)
       *(.wasm.chars.code)
   }
-  .wasm.payload.code 0 :
-  {
-      . = 0;
-      *(.wasm.payload.code)
-  }
-  .wasm.chars.code.plt 0 (NOLOAD) :
-  {
-      . = 0;
-      *(.wasm.chars.code.plt)
-  }
-  .wasm.payload.code.plt 0 :
+  . = 0x80000000;
+  .wasm.payload.code :
   {
       . = 0;
       *(.wasm.payload.code.plt)
+      *(.wasm.payload.code)
   }
-  . = 0x80000000;
   .plt :
   {
     *(.plt)
-  }
-  .got.plt :
-  {
-    *(.got.plt)
   }
   .dynamic :
   {

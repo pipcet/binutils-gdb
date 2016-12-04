@@ -1216,21 +1216,19 @@ elf_wasm32_finish_dynamic_symbol (bfd * output_bfd,
 
       /* Get the index in the procedure linkage table which
          corresponds to this symbol.  This is the index of this symbol
-         in all the symbols for which we are making plt entries.  The
-         first entry in the procedure linkage table is reserved.  */
-      plt_index = h->plt.offset / 0x20 - 1;
+         in all the symbols for which we are making plt entries. */
+      plt_index = h->plt.offset / 0x20;
 
       /* Get the offset into the .got table of the entry that
-         corresponds to this function.  Each .got entry is 4 bytes.
-         The first three are reserved.  */
-      got_offset = (plt_index + 3) * 4;
+         corresponds to this function.  Each .got entry is 4 bytes. */
+      got_offset = (plt_index) * 4;
 
       /* Fill in the entry in the procedure linkage table.  */
         {
           uint8_t pltentry[] = {
             0x20, 0x00, 0x20, 0x01, 0x20, 0x02,
             0x20, 0x03, 0x20, 0x04, 0x20, 0x05,
-            0x23, 0x00, 0x41, 0x80, 0x80, 0x80,
+            0x23, 0x01, 0x41, 0x80, 0x80, 0x80,
             0x80, 0x00, 0x6a, 0x11, 0x80, 0x80,
             0x80, 0x80, 0x00, 0x00, 0x0f, 0x01,
             0x01, 0x0b
@@ -1429,7 +1427,7 @@ elf_wasm32_size_dynamic_sections (bfd * output_bfd,
           s = bfd_get_section_by_name (dynobj, ".interp");
           BFD_ASSERT (s != NULL);
           s->size = sizeof (ELF_DYNAMIC_INTERPRETER);
-          s->contents = (unsigned char *) ELF_DYNAMIC_INTERPRETER;
+          s->contents = (unsigned char *) strdup (ELF_DYNAMIC_INTERPRETER);
         }
 
       /* Add some entries to the .dynamic section.  We fill in some of
@@ -1976,8 +1974,7 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
               || ! bfd_link_pic (info)
               || info->symbolic
               || h->dynindx == -1
-              || h->plt.offset == (bfd_vma) -1
-              || h->got.offset != (bfd_vma) -1)
+              || h->plt.offset == (bfd_vma) -1)
             goto force_got;
 
           /* Relocation is to the entry for this symbol in the global
@@ -1985,11 +1982,7 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
           sgotplt = elf_hash_table (info)->sgotplt;
           BFD_ASSERT (sgotplt != NULL);
 
-          relocation = (sgotplt->output_offset
-                        + ((h->plt.offset / 0x20
-                            - 1 + 3) * 4));
-
-          relocation -= 0;
+          relocation = (h->plt.offset / 0x20);
 
           goto final_link_relocate;
 

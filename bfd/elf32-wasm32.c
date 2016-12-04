@@ -2036,6 +2036,7 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
               relocation = sgot->output_offset + off;
             }
 
+          relocation += 0x40;
           goto final_link_relocate;
 
         case R_ASMJS_LEB128:

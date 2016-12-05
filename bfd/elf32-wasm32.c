@@ -1067,7 +1067,8 @@ elf_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec, c
 
 
         case R_ASMJS_LEB128_PLT:
-          h->needs_plt = 1;
+          if (h)
+            h->needs_plt = 1;
           break;
         default:
             if (bfd_link_pic (info))

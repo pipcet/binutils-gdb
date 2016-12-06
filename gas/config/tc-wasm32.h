@@ -98,7 +98,7 @@
 
 /* If this macro returns non-zero, it guarantees that a relocation will be emitted
    even when the value can be resolved locally. Do that if linkrelax is turned on */
-//#define TC_FORCE_RELOCATION(fix)	wasm32_force_relocation (fix)
+#define TC_FORCE_RELOCATION(fix)	wasm32_force_relocation (fix)
 extern int wasm32_force_relocation (struct fix *);
 
 /* Values passed to md_apply_fix don't include the symbol value.  */
@@ -195,10 +195,14 @@ struct wasm32_frag_data
 
 #define TC_CASE_SENSITIVE 1
 
-#define TC_FORCE_RELOCATION_SUB_SAME(fix,seg) 0
-#define TC_FORCE_RELOCATION_SUB_ABS(fix,seg) 0
-#define TC_FORCE_RELOCATION_SUB_LOCAL(fix,seg) 0
+#define TC_FORCE_RELOCATION_LOCAL(fix) wasm32_force_relocation(fix)
+#define TC_FORCE_RELOCATION_SUB_SAME(fix,seg) wasm32_force_relocation(fix)
+#define TC_FORCE_RELOCATION_SUB_ABS(fix,seg) wasm32_force_relocation(fix)
+#define TC_FORCE_RELOCATION_SUB_LOCAL(fix,seg) wasm32_force_relocation(fix)
 
-#define TC_VALIDATE_FIX_SUB(fix,seg) 0
+#define TC_VALIDATE_FIX_SUB(fix,seg) wasm32_force_relocation(fix)
+
+extern bfd_boolean wasm32_fix_adjustable(struct fix *);
+#define tc_fix_adjustable(FIX) wasm32_fix_adjustable(FIX)
 
 #define TC_KEEP_OPERAND_SPACES

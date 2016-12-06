@@ -3,6 +3,7 @@ ENTRY(_start)
 SECTIONS
 {
   . = 16384;
+  .wasm.data = .;
   .asmjs.header :
   {
      LONG(ABSOLUTE(__data_start));
@@ -136,39 +137,49 @@ SECTIONS
     LONG(0);
     LONG(0);
     LONG(0);
+    .wasm.data_end = .;
   }
   .wasm.chars.function_index 0 (NOLOAD) :
   {
-       . = 0;
+       *(.wasm.chars.function_index.import)
        *(.wasm.chars.function_index.a);
        *(.wasm.chars.function_index.b);
+       .wasm.plt_bias = .;
+       *(.wasm.chars.function_index.plt)
   }
-  .wasm.chars.name 0 (NOLOAD) :
+  .wasm.plt_end = .;
+  . = 0x80000000;
+  .wasm.chars.name (NOLOAD) :
   {
-       . = 0;
        *(.wasm.chars.name)
        *(.wasm.chars.name.a);
        *(.wasm.chars.name.b);
   }
-  .wasm.payload.name 0 :
+  .wasm.payload.name :
   {
-       . = 0;
        *(.wasm.payload.name)
        *(.wasm.payload.name.a);
        *(.wasm.payload.name.b);
   }
-  .wasm.chars.code 0 (NOLOAD) :
+  .wasm.chars.code (NOLOAD) :
   {
-      . = 0;
-      *(.wasm.chars.code.plt)
       *(.wasm.chars.code)
+      *(.wasm.chars.code.plt)
   }
-  . = 0x80000000;
   .wasm.payload.code :
   {
-      . = 0;
-      *(.wasm.payload.code.plt)
       *(.wasm.payload.code)
+      *(.wasm.payload.code.plt)
+  }
+  .wasm.chars.function (NOLOAD) :
+  {
+      *(.wasm.chars.function)
+      *(.wasm.chars.function.plt)
+  }
+  .wasm.payload.function :
+  {
+       *(.wasm.payload.function)
+       *(.wasm.payload.function.plt)
   }
   .plt :
   {

@@ -56,6 +56,9 @@ enum dyn_section_types
   dyn,
   plt,
   pltspace,
+  pltfun,
+  pltfunspace,
+  pltidx,
   relplt,
   DYN_SECTION_TYPES_END
 };
@@ -68,6 +71,9 @@ const char * dyn_section_names[DYN_SECTION_TYPES_END] =
   ".dynamic",
   ".wasm.payload.code.plt",
   ".wasm.chars.code.plt",
+  ".wasm.payload.function.plt",
+  ".wasm.chars.function.plt",
+  ".wasm.chars.function_index.plt",
   ".rela.plt"
 };
 
@@ -141,6 +147,9 @@ struct dynamic_sections
   asection *      sdyn;
   asection *      splt;
   asection *      spltspace;
+  asection *      spltfun;
+  asection *      spltfunspace;
+  asection *      spltidx;
   asection *      srelplt;
 };
 
@@ -163,7 +172,7 @@ struct wasm32_got_info
 struct plt_entry
 {
   bfd_vma offset;
-  bfd_vma gotplt_index;
+  bfd_vma function_index;
 };
 
 /* ELF relocs are against symbols.  If we are producing relocatable
@@ -654,6 +663,20 @@ static reloc_howto_type wasm32_elf32_howto_table[] =
          0xffffffffffffffff,	/* dst_mask */
          FALSE),		/* pcrel_offset */
 
+  HOWTO (R_ASMJS_LEB128_PLT_INDEX, /* type */
+         0,			/* rightshift */
+         8,			/* size - 16 bytes*/
+         32,			/* bitsize */
+         FALSE,			/* pc_relative */
+         0,			/* bitpos */
+         complain_overflow_signed,/* complain_on_overflow */
+         wasm32_elf32_leb128_reloc,/* special_function */
+         "R_ASMJS_LEB128_PLT_INDEX", /* name */
+         FALSE,			/* partial_inplace */
+         0xffffffffffffffff,	/* src_mask */
+         0xffffffffffffffff,	/* dst_mask */
+         FALSE),		/* pcrel_offset */
+
 };
 
 reloc_howto_type *
@@ -690,6 +713,10 @@ wasm32_elf32_bfd_reloc_type_lookup (bfd *abfd ATTRIBUTE_UNUSED,
     return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_ABS32");
   case BFD_RELOC_16:
     return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_ABS16");
+  case BFD_RELOC_ASMJS_LEB128_GOT:
+    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_LEB128_GOT");
+  case BFD_RELOC_ASMJS_LEB128_PLT:
+    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_LEB128_PLT");
   default:
     return NULL;
   }
@@ -701,6 +728,9 @@ wasm32_elf32_info_to_howto_ptr (unsigned int r_type);
 reloc_howto_type *
 wasm32_elf32_info_to_howto_ptr (unsigned int r_type)
 {
+  if (r_type > R_ASMJS_LEB128_PLT_INDEX)
+    r_type = 0;
+
   return &wasm32_elf32_howto_table[r_type];
 }
 
@@ -750,7 +780,10 @@ wasm32_create_dynamic_sections (bfd * abfd, struct bfd_link_info *info)
       .sdyn = NULL,
       .splt = NULL,
       .spltspace = NULL,
-      .srelplt = NULL
+      .srelplt = NULL,
+      .spltfun = NULL,
+      .spltfunspace = NULL,
+      .spltidx = NULL,
     };
 
   htab = elf_hash_table (info);
@@ -786,6 +819,10 @@ wasm32_create_dynamic_sections (bfd * abfd, struct bfd_link_info *info)
           bfd_make_section_anyway_with_flags (dynobj, ".wasm.chars.code.plt", pltflags);
           ds.spltspace = bfd_get_section_by_name (dynobj, ".wasm.chars.code.plt");
         }
+
+      ds.spltfun = bfd_get_section_by_name (dynobj, ".wasm.payload.function.plt");
+      ds.spltfunspace = bfd_get_section_by_name (dynobj, ".wasm.chars.function.plt");
+      ds.spltidx = bfd_get_section_by_name (dynobj, ".wasm.chars.function_index");
       ds.srelplt = bfd_get_section_by_name (dynobj, ".rela.plt");
     }
 
@@ -808,12 +845,15 @@ add_symbol_to_plt (bfd *output_bfd, struct bfd_link_info *info)
 
   ret = htab->splt->size;
 
-  htab->splt->size += 0x20;
+  htab->splt->size += 0x40;
 
   htab->sgotplt->size += 4;
-  htab->srelplt->size += sizeof (Elf32_External_Rela);
+  htab->srelplt->size += 2 * sizeof (Elf32_External_Rela);
 
   ds.spltspace->size++;
+  ds.spltfun->size++;
+  ds.spltfunspace->size++;
+  ds.spltidx->size++;
 
   return ret;
 }
@@ -1019,7 +1059,7 @@ elf_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec, c
                     return FALSE;
                 }
 
-              srelgot->size += sizeof (Elf64_External_Rela);
+              srelgot->size += sizeof (Elf32_External_Rela);
             }
           else
             {
@@ -1108,17 +1148,21 @@ relocate_plt_for_entry (bfd *abfd,
                         struct bfd_link_info *info)
 {
   struct elf_link_hash_table *htab = elf_hash_table (info);
-  unsigned elem_size = 0x20;
+  unsigned elem_size = 0x40;
 
   {
     bfd_vma i = 0;
     uint8_t pltentry[] = {
-      0x20, 0x00, 0x20, 0x01, 0x20, 0x02,
-      0x20, 0x03, 0x20, 0x04, 0x20, 0x05,
-      0x23, 0x00, 0x41, 0x80, 0x80, 0x80,
-      0x80, 0x00, 0x6a, 0x11, 0x80, 0x80,
-      0x80, 0x80, 0x00, 0x00, 0x0f, 0x01,
-      0x01, 0x0b
+      0x3f,
+      0x01, 0x11, 0x7f,
+      0x20, 0x00, 0x20, 0x01, 0x20,
+      0x02, 0x20, 0x03, 0x20, 0x04, 0x20, 0x05, 0x23,
+      0x00, 0x41, 0x80, 0x80, 0x80, 0x80, 0x00, 0x6a,
+      0x11, 0x80, 0x80, 0x80, 0x80, 0x00, 0x00, 0x0f,
+      0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
+      0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
+      0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
+      0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x0b
     };
     for (i = 0; i < elem_size; i++)
       bfd_put_8 (abfd,
@@ -1218,36 +1262,43 @@ elf_wasm32_finish_dynamic_symbol (bfd * output_bfd,
       /* Get the index in the procedure linkage table which
          corresponds to this symbol.  This is the index of this symbol
          in all the symbols for which we are making plt entries. */
-      plt_index = h->plt.offset / 0x20;
+      plt_index = h->plt.offset / 0x40;
 
       /* Get the offset into the .got table of the entry that
          corresponds to this function.  Each .got entry is 4 bytes. */
       got_offset = (plt_index) * 4;
 
       /* Fill in the entry in the procedure linkage table.  */
-        {
-          uint8_t pltentry[] = {
-            0x20, 0x00, 0x20, 0x01, 0x20, 0x02,
-            0x20, 0x03, 0x20, 0x04, 0x20, 0x05,
-            0x23, 0x01, 0x41, 0x80, 0x80, 0x80,
-            0x80, 0x00, 0x6a, 0x11, 0x80, 0x80,
-            0x80, 0x80, 0x00, 0x00, 0x0f, 0x01,
-            0x01, 0x0b
-          };
-          memcpy (splt->contents + h->plt.offset, pltentry,
-                  0x20);
+      uint8_t pltentry[] = {
+        0x3f, 0x01, 0x11, 0x7f,
+        0x20, 0x00, 0x20, 0x01, 0x20, 0x02,
+        0x20, 0x03, 0x20, 0x04, 0x20, 0x05,
+        0x23, 0x01, 0x41, 0x80, 0x80, 0x80,
+        0x80, 0x00, 0x6a, 0x11, 0x80, 0x80,
+        0x80, 0x80, 0x00, 0x00, 0x0f,
+        0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
+        0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
+        0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
+        0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x0b
+      };
+      memcpy (splt->contents + h->plt.offset, pltentry,
+              0x40);
 
-          set_uleb128 (output_bfd,
-                       got_offset/4,
-                       splt->contents + h->plt.offset + 15);
-        }
+      struct elf_link_hash_entry *h2;
+      h2 = elf_link_hash_lookup (elf_hash_table (info),
+                                 ".wasm.plt_bias", FALSE, FALSE, TRUE);
+      BFD_ASSERT (h2 != NULL);
+
+      set_uleb128 (output_bfd,
+                   got_offset/4 + h2->root.u.def.value,
+                   splt->contents + h->plt.offset + 19);
 
       /* Fill in the entry in the global offset table.  */
       bfd_put_32 (output_bfd,
                   (splt->output_section->vma
                    + splt->output_offset
                    + h->plt.offset
-                   + 15),
+                   + 19),
                   sgot->contents + got_offset);
 
       /* Fill in the entry in the .rela.plt section.  */
@@ -1256,7 +1307,14 @@ elf_wasm32_finish_dynamic_symbol (bfd * output_bfd,
                       + got_offset);
       rel.r_info = ELF32_R_INFO (h->dynindx, R_ASMJS_LEB128_PLT);
       rel.r_addend = 0;
-      loc = srel->contents + plt_index * sizeof (Elf32_External_Rela);
+      loc = srel->contents + 2 * plt_index * sizeof (Elf32_External_Rela);
+      bfd_elf32_swap_reloca_out (output_bfd, &rel, loc);
+
+      /* Fill in the entry in the .rela.plt section.  */
+      rel.r_offset = got_offset/4 + h2->root.u.def.value;
+      rel.r_info = ELF32_R_INFO (h->dynindx, R_ASMJS_LEB128_PLT_INDEX);
+      rel.r_addend = 0;
+      loc = srel->contents + (2 * plt_index + 1) * sizeof (Elf32_External_Rela);
       bfd_elf32_swap_reloca_out (output_bfd, &rel, loc);
 
       if (!h->def_regular)
@@ -1621,7 +1679,7 @@ elf_wasm32_finish_dynamic_sections (bfd * output_bfd,
 
       if (htab->splt->size > 0)
         {
-          relocate_plt_for_entry (output_bfd, info);
+          //relocate_plt_for_entry (output_bfd, info);
         }
 
       /* TODO: Validate this.  */
@@ -1831,7 +1889,7 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
   Elf_Internal_Rela *rel, *relend;
   bfd_vma *local_got_offsets;
   asection *sgot;
-  asection *sgotplt;
+  asection *splt;
   //asection *splt;
   //asection *sreloc;
 
@@ -1918,9 +1976,6 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
                       && ((input_section->flags & SEC_DEBUGGING) != 0
                           && h->def_dynamic)))
                 ;
-              else if ((r_type == R_ASMJS_LEB128_GOT ||
-                        r_type == R_ASMJS_LEB128_PLT))
-                ;
               else if (sec->output_section != NULL)
                 relocation = ((h->root.u.def.value
                                + sec->output_section->vma
@@ -1969,25 +2024,36 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
           /* Relocation is to the entry for this symbol in the
              procedure linkage table.  */
 
-          if (h == NULL
-              || ELF_ST_VISIBILITY (h->other) == STV_INTERNAL
-              || ELF_ST_VISIBILITY (h->other) == STV_HIDDEN
-              || ! bfd_link_pic (info)
-              || info->symbolic
-              || h->dynindx == -1
-              || h->plt.offset == (bfd_vma) -1)
-            goto force_got;
+          /* Resolve a PLT reloc against a local symbol directly,
+             without using the procedure linkage table.  */
+          if (h == NULL)
+            goto final_link_relocate;
 
-          /* Relocation is to the entry for this symbol in the global
-             offset table extension for the procedure linkage table.  */
-          sgotplt = elf_hash_table (info)->sgotplt;
-          BFD_ASSERT (sgotplt != NULL);
+          if (ELF_ST_VISIBILITY (h->other) == STV_INTERNAL
+              || ELF_ST_VISIBILITY (h->other) == STV_HIDDEN)
+            goto final_link_relocate;
 
-          relocation = (h->plt.offset / 0x20);
+          if (h->plt.offset == (bfd_vma) -1)
+            {
+              /* We didn't make a PLT entry for this symbol.  This
+                 happens when statically linking PIC code, or when
+                 using -Bsymbolic.  */
+              goto final_link_relocate;
+            }
+
+          splt = elf_hash_table (info)->splt;
+          BFD_ASSERT (splt != NULL);
+
+          struct elf_link_hash_entry *h2;
+          h2 = elf_link_hash_lookup (elf_hash_table (info),
+                                     ".wasm.plt_bias", FALSE, FALSE, TRUE);
+          BFD_ASSERT (h2 != NULL);
+
+          relocation = h->plt.offset/0x40 + h2->root.u.def.value;
+          addend = rel->r_addend;
 
           goto final_link_relocate;
 
-        force_got:
         case R_ASMJS_LEB128_GOT:
           /* Relocation is to the entry for this symbol in the global
              offset table.  */
@@ -2012,7 +2078,7 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
                 }
               BFD_ASSERT (off != (bfd_vma) -1);
 
-              relocation = sgot->output_offset + off;
+              relocation = sgot->output_offset/*XXX*/ + off;
             }
           else
             {
@@ -2024,7 +2090,9 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
                               && (local_got_offsets[r_symndx]
                                   != (bfd_vma) -1));
 
-                  off = local_got_offsets[r_symndx] + rel->r_addend;
+                  off = local_got_offsets[r_symndx];
+
+                  relocation += rel->r_addend;
                 }
               else
                 {
@@ -2034,7 +2102,34 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
                   off = local_got_offsets[r_symndx];
                 }
 
-              relocation = sgot->output_offset + off;
+              off &= ~1LL;
+              if (off & 1)
+                off &= ~1LL;
+              else
+                {
+                  bfd_put_32 (output_bfd, relocation, sgot->contents + off);
+
+                  if (bfd_link_pic (info)) {
+                    asection *s;
+                    Elf_Internal_Rela outrel;
+                    bfd_byte *loc;
+
+                    s = elf_hash_table (info)->srelgot;
+                    BFD_ASSERT (s != NULL);
+
+                    outrel.r_offset = (sgot->output_section->vma
+                                       + sgot->output_offset
+                                       + off);
+                    outrel.r_info = ELF32_R_INFO (0, R_ASMJS_REL32);
+                    outrel.r_addend = relocation;
+                    loc = s->contents;
+                    loc += s->reloc_count++ * sizeof (Elf32_External_Rela);
+                    bfd_elf32_swap_reloca_out (output_bfd, &outrel, loc);
+
+                  }
+                  local_got_offsets[r_symndx] |= 1;
+                  relocation = sgot->output_offset + off;
+                }
             }
 
           relocation += 0x40;

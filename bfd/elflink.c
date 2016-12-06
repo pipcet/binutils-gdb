@@ -391,9 +391,20 @@ _bfd_elf_create_dynamic_sections (bfd *abfd, struct bfd_link_info *info)
     return FALSE;
   htab->spltspace = s;
 
+  s = bfd_make_section_anyway_with_flags (abfd, ".wasm.chars.function.plt", pltflags & ~ (SEC_CODE | SEC_LOAD | SEC_HAS_CONTENTS));
+  if (s == NULL)
+    return FALSE;
+
+  s = bfd_make_section_anyway_with_flags (abfd, ".wasm.chars.function_index", pltflags & ~ (SEC_ALLOC | SEC_CODE | SEC_LOAD | SEC_HAS_CONTENTS));
+  if (s == NULL)
+    return FALSE;
+
+  s = bfd_make_section_anyway_with_flags (abfd, ".wasm.payload.function.plt", pltflags & ~SEC_CODE);
+  if (s == NULL)
+    return FALSE;
+
   s = bfd_make_section_anyway_with_flags (abfd, ".wasm.payload.code.plt", pltflags);
-  if (s == NULL
-      || ! bfd_set_section_alignment (abfd, s, bed->plt_alignment))
+  if (s == NULL)
     return FALSE;
   htab->splt = s;
 

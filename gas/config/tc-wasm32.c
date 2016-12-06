@@ -175,6 +175,7 @@ md_begin (void)
   linkrelax = !wasm32_opt.no_link_relax;
   flag_sectname_subst = 1;
   flag_no_comments = 0;
+  flag_keep_locals = 1;
 }
 
 /* GAS will call this function for each section at the end of the assembly,
@@ -710,7 +711,23 @@ void wasm32_elf_final_processing (void)
 int
 wasm32_force_relocation (fixS *f ATTRIBUTE_UNUSED)
 {
-  return 1;
+  if (f->fx_r_type == BFD_RELOC_ASMJS_LEB128_PLT ||
+      f->fx_r_type == BFD_RELOC_ASMJS_LEB128_GOT)
+    return 1;
+
+  return 0;
+}
+
+bfd_boolean wasm32_fix_adjustable (fixS * fixP)
+{
+  if (fixP->fx_addsy == NULL)
+    return TRUE;
+
+  if (fixP->fx_r_type == BFD_RELOC_ASMJS_LEB128_PLT ||
+      fixP->fx_r_type == BFD_RELOC_ASMJS_LEB128_GOT)
+    return FALSE;
+
+  return TRUE;
 }
 
 arelent **

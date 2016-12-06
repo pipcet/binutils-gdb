@@ -6417,6 +6417,10 @@ assembler and not (currently) written to any object files.  */
   BFD_RELOC_VISIUM_HI16_PCREL,
   BFD_RELOC_VISIUM_LO16_PCREL,
   BFD_RELOC_VISIUM_IM16_PCREL,
+
+/* WebAssembly relocations.  */
+  BFD_RELOC_ASMJS_LEB128_GOT,
+  BFD_RELOC_ASMJS_LEB128_PLT,
   BFD_RELOC_UNUSED };
 
 typedef enum bfd_reloc_code_real bfd_reloc_code_real_type;

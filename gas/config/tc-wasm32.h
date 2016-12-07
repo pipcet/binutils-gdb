@@ -195,7 +195,7 @@ struct wasm32_frag_data
 
 #define TC_CASE_SENSITIVE 1
 
-#define TC_FORCE_RELOCATION_LOCAL(fix) wasm32_force_relocation(fix)
+#define TC_FORCE_RELOCATION_LOCAL(fix) 1
 #define TC_FORCE_RELOCATION_SUB_SAME(fix,seg) wasm32_force_relocation(fix)
 #define TC_FORCE_RELOCATION_SUB_ABS(fix,seg) wasm32_force_relocation(fix)
 #define TC_FORCE_RELOCATION_SUB_LOCAL(fix,seg) wasm32_force_relocation(fix)

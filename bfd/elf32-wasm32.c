@@ -913,8 +913,8 @@ add_symbol_to_plt (bfd *output_bfd, struct bfd_link_info *info)
   ds.spltfunspace->size++;
   ds.spltidx->size++;
 
-  fprintf (stderr, "adding symbol to %s at %lx\n",
-           htab->splt->name, ret);
+  if (0) fprintf (stderr, "adding symbol to %s at %lx\n",
+                  htab->splt->name, ret);
 
   return ret;
 }
@@ -1130,8 +1130,8 @@ elf_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec, c
                     return FALSE;
                 }
 
-              fprintf(stderr, "allocating at %s:%lx for GOT\n",
-                      srelgot->name, srelgot->size);
+              if (0) fprintf(stderr, "allocating at %s:%lx for GOT\n",
+                             srelgot->name, srelgot->size);
               srelgot->size += sizeof (Elf32_External_Rela);
             }
           else
@@ -1170,7 +1170,7 @@ elf_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec, c
                   /* If we are generating a shared object, we need to
                      output a R_SH_RELATIVE reloc so that the dynamic
                      linker can adjust this GOT entry.  */
-              fprintf(stderr, "allocating at %s:%lx for GOT local\n",
+                  if (0) fprintf(stderr, "allocating at %s:%lx for GOT local\n",
                       srelgot->name, srelgot->size);
                   srelgot->size += sizeof (Elf32_External_Rela);
                 }
@@ -1205,7 +1205,7 @@ elf_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec, c
                     if (sreloc == NULL)
                       return FALSE;
                   }
-                fprintf(stderr, "allocating at %s:%lx for r_type = %d\n",
+                if (0) fprintf(stderr, "allocating at %s:%lx for r_type = %d\n",
                         sreloc->name, sreloc->size, r_type);
                 sreloc->size += 2 * sizeof (Elf32_External_Rela);
 
@@ -1303,7 +1303,7 @@ elf_wasm32_finish_dynamic_symbol (bfd * output_bfd,
       rel.r_offset = (sgot->output_section->vma
                       + sgot->output_offset
                       + got_offset);
-      fprintf(stderr, "creating relocs for PLT at %s:%ld (+1)\n",
+      if (0) fprintf(stderr, "creating relocs for PLT at %s:%ld (+1)\n",
               sgot->output_section->name, 2 * plt_index);
       rel.r_info = ELF32_R_INFO (h->dynindx, R_ASMJS_LEB128_PLT);
       rel.r_addend = 0;
@@ -1366,7 +1366,7 @@ elf_wasm32_finish_dynamic_symbol (bfd * output_bfd,
           rel.r_addend = 0;
         }
 
-      fprintf (stderr, "creating reloc at %s:%u for relgot\n",
+      if (0) fprintf (stderr, "creating reloc at %s:%u for relgot\n",
                srel->name, srel->reloc_count);
       loc = srel->contents;
       loc += srel->reloc_count++ * sizeof (Elf32_External_Rela);
@@ -2161,7 +2161,7 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
                                      ".wasm.plt_bias", FALSE, FALSE, TRUE);
           BFD_ASSERT (h2 != NULL);
 
-          fprintf (stderr, "creating reloc at %s:%ld for PLT (2)\n",
+          if (0) fprintf (stderr, "creating reloc at %s:%ld for PLT (2)\n",
                    splt->name, h->plt.offset / 0x40);
           relocation = h->plt.offset/0x40 + h2->root.u.def.value;
           addend = rel->r_addend;
@@ -2240,7 +2240,7 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
                     loc += s->reloc_count++ * sizeof (Elf32_External_Rela);
                     bfd_elf32_swap_reloca_out (output_bfd, &outrel, loc);
 
-                    fprintf (stderr, "creating reloc at %s:%ld for relgot (2)\n",
+                    if (0) fprintf (stderr, "creating reloc at %s:%ld for relgot (2)\n",
                              s->name,
                              (long)s->reloc_count);
                     BFD_ASSERT (s->size >= loc - s->contents + sizeof (Elf32_External_Rela));
@@ -2317,7 +2317,7 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
 			: addend);
 		}
 
-              fprintf (stderr, "creating reloc at %s:%u with relocate = %d, r_info = %lx\n",
+              if (0) fprintf (stderr, "creating reloc at %s:%u with relocate = %d, r_info = %lx\n",
                        sreloc->name, sreloc->reloc_count, relocate, outrel.r_info);
 
 	      loc = sreloc->contents;

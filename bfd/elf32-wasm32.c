@@ -855,6 +855,9 @@ add_symbol_to_plt (bfd *output_bfd, struct bfd_link_info *info)
   ds.spltfunspace->size++;
   ds.spltidx->size++;
 
+  fprintf (stderr, "adding symbol to %s at %lx\n",
+           htab->splt->name, ret);
+
   return ret;
 }
 
@@ -1059,6 +1062,8 @@ elf_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec, c
                     return FALSE;
                 }
 
+              fprintf(stderr, "allocating at %s:%lx for GOT\n",
+                      srelgot->name, srelgot->size);
               srelgot->size += sizeof (Elf32_External_Rela);
             }
           else
@@ -1097,6 +1102,8 @@ elf_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec, c
                   /* If we are generating a shared object, we need to
                      output a R_SH_RELATIVE reloc so that the dynamic
                      linker can adjust this GOT entry.  */
+              fprintf(stderr, "allocating at %s:%lx for GOT local\n",
+                      srelgot->name, srelgot->size);
                   srelgot->size += sizeof (Elf32_External_Rela);
                 }
             }
@@ -1109,6 +1116,8 @@ elf_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec, c
         case R_ASMJS_LEB128_PLT:
           if (h)
             h->needs_plt = 1;
+          break;
+        case R_ASMJS_LEB128:
           break;
         default:
             if (bfd_link_pic (info))
@@ -1123,7 +1132,9 @@ elf_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec, c
                     if (sreloc == NULL)
                       return FALSE;
                   }
-                sreloc->size += sizeof (Elf32_External_Rela);
+                fprintf(stderr, "allocating at %s:%lx for r_type = %d\n",
+                        sreloc->name, sreloc->size, r_type);
+                sreloc->size += 2 * sizeof (Elf32_External_Rela);
 
               }
         }
@@ -1219,6 +1230,8 @@ elf_wasm32_finish_dynamic_symbol (bfd * output_bfd,
       rel.r_offset = (sgot->output_section->vma
                       + sgot->output_offset
                       + got_offset);
+      fprintf(stderr, "creating relocs for PLT at %s:%ld (+1)\n",
+              sgot->output_section->name, 2 * plt_index);
       rel.r_info = ELF32_R_INFO (h->dynindx, R_ASMJS_LEB128_PLT);
       rel.r_addend = 0;
       loc = srel->contents + 2 * plt_index * sizeof (Elf32_External_Rela);
@@ -1231,6 +1244,7 @@ elf_wasm32_finish_dynamic_symbol (bfd * output_bfd,
       loc = srel->contents + (2 * plt_index + 1) * sizeof (Elf32_External_Rela);
       bfd_elf32_swap_reloca_out (output_bfd, &rel, loc);
 
+      BFD_ASSERT (srel->size >= loc - srel->contents + sizeof (Elf32_External_Rela));
       if (!h->def_regular)
         {
           /* Mark the symbol as undefined, rather than as defined in
@@ -1279,9 +1293,12 @@ elf_wasm32_finish_dynamic_symbol (bfd * output_bfd,
           rel.r_addend = 0;
         }
 
+      fprintf (stderr, "creating reloc at %s:%u for relgot\n",
+               srel->name, srel->reloc_count);
       loc = srel->contents;
       loc += srel->reloc_count++ * sizeof (Elf32_External_Rela);
       bfd_elf32_swap_reloca_out (output_bfd, &rel, loc);
+      BFD_ASSERT (srel->size >= loc - srel->contents + sizeof (Elf32_External_Rela));
     }
 
 
@@ -1798,14 +1815,14 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
                            Elf_Internal_Sym *local_syms,
                            asection **local_sections)
 {
-  Elf_Internal_Shdr *symtab_hdr;
-  struct elf_link_hash_entry **sym_hashes;
-  Elf_Internal_Rela *rel, *relend;
-  bfd_vma *local_got_offsets;
-  asection *sgot;
-  asection *splt;
+  Elf_Internal_Shdr *symtab_hdr = NULL;
+  struct elf_link_hash_entry **sym_hashes = NULL;
+  Elf_Internal_Rela *rel = NULL, *relend = NULL;
+  bfd_vma *local_got_offsets = NULL;
+  asection *sgot = NULL;
+  asection *splt = NULL;
   //asection *splt;
-  asection *sreloc;
+  asection *sreloc = NULL;
 
   symtab_hdr = &elf_tdata (input_bfd)->symtab_hdr;
   sym_hashes = elf_sym_hashes (input_bfd);
@@ -1963,6 +1980,8 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
                                      ".wasm.plt_bias", FALSE, FALSE, TRUE);
           BFD_ASSERT (h2 != NULL);
 
+          fprintf (stderr, "creating reloc at %s:%ld for PLT (2)\n",
+                   splt->name, h->plt.offset / 0x40);
           relocation = h->plt.offset/0x40 + h2->root.u.def.value;
           addend = rel->r_addend;
 
@@ -2006,6 +2025,7 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
 
                   off = local_got_offsets[r_symndx];
 
+                  fprintf (stderr, "unsupported relocation with addend against GOT symbol\n");
                   relocation += rel->r_addend;
                 }
               else
@@ -2016,7 +2036,6 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
                   off = local_got_offsets[r_symndx];
                 }
 
-              off &= ~1LL;
               if (off & 1)
                 off &= ~1LL;
               else
@@ -2040,10 +2059,14 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
                     loc += s->reloc_count++ * sizeof (Elf32_External_Rela);
                     bfd_elf32_swap_reloca_out (output_bfd, &outrel, loc);
 
+                    fprintf (stderr, "creating reloc at %s:%ld for relgot (2)\n",
+                             s->name,
+                             (long)s->reloc_count);
+                    BFD_ASSERT (s->size >= loc - s->contents + sizeof (Elf32_External_Rela));
                   }
                   local_got_offsets[r_symndx] |= 1;
-                  relocation = sgot->output_offset + off;
                 }
+              relocation = sgot->output_offset + off;
             }
 
           relocation += 0x40;
@@ -2111,9 +2134,13 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
 			: addend);
 		}
 
+              fprintf (stderr, "creating reloc at %s:%u with relocate = %d, r_info = %lx\n",
+                       sreloc->name, sreloc->reloc_count, relocate, outrel.r_info);
+
 	      loc = sreloc->contents;
 	      loc += sreloc->reloc_count++ * sizeof (Elf32_External_Rela);
 	      bfd_elf32_swap_reloca_out (output_bfd, &outrel, loc);
+              BFD_ASSERT (sreloc->size >= loc - sreloc->contents + sizeof (Elf32_External_Rela));
 
 	      /* If this reloc is against an external symbol, we do
 		 not want to fiddle with the addend.  Otherwise, we

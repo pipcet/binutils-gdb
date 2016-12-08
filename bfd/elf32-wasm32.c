@@ -719,7 +719,7 @@ static reloc_howto_type wasm32_elf32_howto_table[] =
          0,			/* bitpos */
          complain_overflow_bitfield,/* complain_on_overflow */
          bfd_elf_generic_reloc,	/* special_function */
-         "R_ASMJS_ABS64_CODE",	/* name */
+         "R_ASMJS_COPY",	/* name */
          FALSE,			/* partial_inplace */
          0xffffffff,		/* src_mask */
          0xffffffff,		/* dst_mask */
@@ -776,7 +776,7 @@ wasm32_elf32_info_to_howto_ptr (unsigned int r_type);
 reloc_howto_type *
 wasm32_elf32_info_to_howto_ptr (unsigned int r_type)
 {
-  if (r_type > R_ASMJS_LEB128_PLT_INDEX)
+  if (r_type > R_ASMJS_max)
     r_type = 0;
 
   return &wasm32_elf32_howto_table[r_type];
@@ -873,10 +873,13 @@ wasm32_create_dynamic_sections (bfd * abfd, struct bfd_link_info *info)
       ds.spltidx = bfd_get_section_by_name (dynobj, ".wasm.chars.function_index");
       ds.srelplt = bfd_get_section_by_name (dynobj, ".rela.plt");
 
-      ds.sdynbss = bfd_make_section_anyway_with_flags (dynobj, ".dynbss",
+      ds.sdynbss = bfd_get_section_by_name (dynobj, ".dynbss");
+      if (ds.sdynbss == NULL)
+        ds.sdynbss = bfd_make_section_anyway_with_flags (dynobj, ".dynbss",
                                                       SEC_ALLOC | SEC_LINKER_CREATED);
 
-
+      ds.srelbss = bfd_get_section_by_name (dynobj, ".rela.bss");
+      if (ds.srelbss == NULL)
       ds.srelbss = bfd_make_section_anyway_with_flags (dynobj, ".rela.bss",
                                                       SEC_READONLY | SEC_ALLOC | SEC_LOAD | SEC_HAS_CONTENTS | SEC_IN_MEMORY | SEC_LINKER_CREATED);
     }
@@ -1013,6 +1016,16 @@ elf_wasm32_adjust_dynamic_symbol (struct bfd_link_info *info,
 
   s = bfd_get_section_by_name (dynobj, ".dynbss");
   BFD_ASSERT (s != NULL);
+
+  if ((h->root.u.def.section->flags & SEC_ALLOC) != 0 && h->size != 0)
+    {
+      struct dynamic_sections ds = wasm32_create_dynamic_sections (dynobj, info);
+      asection *srel = ds.srelbss;
+
+      BFD_ASSERT (srel != NULL);
+      srel->size += sizeof (Elf32_External_Rela);
+      h->needs_copy = 1;
+    }
 
   return _bfd_elf_adjust_dynamic_copy (info, h, s);
 }
@@ -1173,6 +1186,11 @@ elf_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec, c
             h->needs_plt = 1;
           break;
         case R_ASMJS_LEB128:
+          if (h != NULL && ! bfd_link_pic (info))
+	    {
+	      h->non_got_ref = 1;
+	    }
+
           break;
         default:
             if (bfd_link_pic (info))
@@ -1366,6 +1384,31 @@ elf_wasm32_finish_dynamic_symbol (bfd * output_bfd,
   /*                                 info, */
   /*                                 h); */
 
+  if (h->needs_copy)
+    {
+      asection *s;
+      Elf_Internal_Rela rel;
+      bfd_byte *loc;
+
+      /* This symbol needs a copy reloc.  Set it up.  */
+
+      BFD_ASSERT (h->dynindx != -1
+		  && (h->root.type == bfd_link_hash_defined
+		      || h->root.type == bfd_link_hash_defweak));
+
+      s = bfd_get_linker_section (elf_hash_table (info)->dynobj, ".rela.bss");
+      BFD_ASSERT (s != NULL);
+
+      rel.r_offset = (h->root.u.def.value
+		      + h->root.u.def.section->output_section->vma
+		      + h->root.u.def.section->output_offset);
+      rel.r_info = ELF32_R_INFO (h->dynindx, R_ASMJS_COPY);
+      rel.r_addend = 0;
+      loc = s->contents + s->reloc_count++ * sizeof (Elf32_External_Rela);
+      bfd_elf32_swap_reloca_out (output_bfd, &rel, loc);
+      BFD_ASSERT (s->size >= loc - s->contents + sizeof (Elf32_External_Rela));
+    }
+
   /* Mark _DYNAMIC and _GLOBAL_OFFSET_TABLE_ as absolute.  */
   if (strcmp (h->root.root.string, "_DYNAMIC") == 0
       || strcmp (h->root.root.string, "__DYNAMIC") == 0
@@ -1446,6 +1489,95 @@ wasm32_elf_create_dynamic_sections (bfd *dynobj, struct bfd_link_info *info)
   return TRUE;
 }
 
+
+/* Allocate space in .plt, .got and associated reloc sections for
+   dynamic relocs.  */
+
+static bfd_boolean
+allocate_dynrelocs (struct elf_link_hash_entry *h, void *inf)
+{
+  struct bfd_link_info *info;
+  struct elf_link_hash_table *htab;
+
+  if (h->root.type == bfd_link_hash_indirect)
+    return TRUE;
+
+  info = (struct bfd_link_info *) inf;
+  htab = elf_hash_table (info);
+  if (htab == NULL)
+    return FALSE;
+
+  if (htab->dynamic_sections_created
+      && h->plt.refcount > 0
+      && (ELF_ST_VISIBILITY (h->other) == STV_DEFAULT
+	  || h->root.type != bfd_link_hash_undefweak))
+    {
+      /* Make sure this symbol is output as a dynamic symbol.
+	 Undefined weak syms won't yet be marked as dynamic.  */
+      if (h->dynindx == -1
+	  && !h->forced_local)
+	{
+	  if (! bfd_elf_link_record_dynamic_symbol (info, h))
+	    return FALSE;
+	}
+    }
+
+  if (h->got.refcount > 0)
+    {
+      /* Make sure this symbol is output as a dynamic symbol.
+	 Undefined weak syms won't yet be marked as dynamic.  */
+      if (h->dynindx == -1
+	  && !h->forced_local)
+	{
+	  if (! bfd_elf_link_record_dynamic_symbol (info, h))
+	    return FALSE;
+	}
+    }
+  else
+    h->got.offset = (bfd_vma) -1;
+
+  /* In the shared -Bsymbolic case, discard space allocated for
+     dynamic pc-relative relocs against symbols which turn out to be
+     defined in regular objects.  For the normal shared case, discard
+     space for pc-relative relocs that have become local due to symbol
+     visibility changes.  */
+
+  if (bfd_link_pic (info))
+    {
+    }
+  else
+    {
+      /* For the non-shared case, discard space for relocs against
+	 symbols which turn out to need copy relocs or are not
+	 dynamic.  */
+
+      if (!h->non_got_ref
+	  && ((h->def_dynamic
+	       && !h->def_regular)
+	      || (htab->dynamic_sections_created
+		  && (h->type == bfd_link_hash_undefweak
+		      || h->type == bfd_link_hash_undefined))))
+	{
+	  /* Make sure this symbol is output as a dynamic symbol.
+	     Undefined weak syms won't yet be marked as dynamic.  */
+	  if (h->dynindx == -1
+	      && !h->forced_local)
+	    {
+	      if (! bfd_elf_link_record_dynamic_symbol (info, h))
+		return FALSE;
+	    }
+
+	  /* If that succeeded, we know we'll be keeping all the
+	     relocs.  */
+	  if (h->dynindx != -1)
+	    goto keep;
+	}
+    keep: ;
+    }
+
+  return TRUE;
+}
+
 /* Set the sizes of the dynamic sections.  */
 static bfd_boolean
 elf_wasm32_size_dynamic_sections (bfd * output_bfd,
@@ -1460,6 +1592,8 @@ elf_wasm32_size_dynamic_sections (bfd * output_bfd,
 
   dynobj = (elf_hash_table (info))->dynobj;
   BFD_ASSERT (dynobj != NULL);
+
+  elf_link_hash_traverse (htab, allocate_dynrelocs, info);
 
   if ((elf_hash_table (info))->dynamic_sections_created)
     {
@@ -1972,14 +2106,6 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
                                                     rel->r_offset)
                            != (bfd_vma) -1))
                 {
-                  _bfd_error_handler
-                    /* xgettext:c-format */
-                    (_("%B(%A+0x%lx): unresolvable %s relocation against symbol `%s'"),
-                     input_bfd,
-                     input_section,
-                     (long) rel->r_offset,
-                     howto->name,
-                     h->root.root.string);
                 }
             }
           else if (h->root.type == bfd_link_hash_undefweak)
@@ -2128,6 +2254,8 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
           goto final_link_relocate;
 
         case R_ASMJS_ABS32:
+        case R_ASMJS_ABS32_CODE:
+        case R_ASMJS_LEB128:
           if (bfd_link_pic (info)
 	      && (h == NULL
 		  || ELF_ST_VISIBILITY (h->other) == STV_DEFAULT
@@ -2175,12 +2303,12 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
 			  && h->def_regular))
 		    {
 		      relocate = howto->partial_inplace;
-		      outrel.r_info = ELF32_R_INFO (0, R_ASMJS_ABS32);
+		      outrel.r_info = ELF32_R_INFO (0, r_type);
 		    }
 		  else
 		    {
 		      BFD_ASSERT (h->dynindx != -1);
-		      outrel.r_info = ELF32_R_INFO (h->dynindx, R_ASMJS_ABS32);
+		      outrel.r_info = ELF32_R_INFO (h->dynindx, r_type);
 		    }
 		  outrel.r_addend = relocation;
 		  outrel.r_addend
@@ -2204,7 +2332,6 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
 	      if (! relocate)
 		continue;
 	    }
-        case R_ASMJS_LEB128:
         case R_ASMJS_HEX16:
         case R_ASMJS_REL32:
           addend = rel->r_addend;

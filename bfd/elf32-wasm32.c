@@ -60,6 +60,8 @@ enum dyn_section_types
   pltfunspace,
   pltidx,
   relplt,
+  dynbss,
+  relbss,
   DYN_SECTION_TYPES_END
 };
 
@@ -74,7 +76,9 @@ const char * dyn_section_names[DYN_SECTION_TYPES_END] =
   ".wasm.payload.function.plt",
   ".wasm.chars.function.plt",
   ".wasm.chars.function_index.plt",
-  ".rela.plt"
+  ".rela.plt",
+  ".dynbss"
+  ".rela.bss"
 };
 
 #define ADD_DYNAMIC_SYMBOL(NAME, TAG)					\
@@ -151,6 +155,8 @@ struct dynamic_sections
   asection *      spltfunspace;
   asection *      spltidx;
   asection *      srelplt;
+  asection *      sdynbss;
+  asection *      srelbss;
 };
 
 struct wasm32_got_entry
@@ -866,6 +872,13 @@ wasm32_create_dynamic_sections (bfd * abfd, struct bfd_link_info *info)
       ds.spltfunspace = bfd_get_section_by_name (dynobj, ".wasm.chars.function.plt");
       ds.spltidx = bfd_get_section_by_name (dynobj, ".wasm.chars.function_index");
       ds.srelplt = bfd_get_section_by_name (dynobj, ".rela.plt");
+
+      ds.sdynbss = bfd_make_section_anyway_with_flags (dynobj, ".dynbss",
+                                                      SEC_ALLOC | SEC_LINKER_CREATED);
+
+
+      ds.srelbss = bfd_make_section_anyway_with_flags (dynobj, ".rela.bss",
+                                                      SEC_READONLY | SEC_ALLOC | SEC_LOAD | SEC_HAS_CONTENTS | SEC_IN_MEMORY | SEC_LINKER_CREATED);
     }
 
   if (htab->dynamic_sections_created)

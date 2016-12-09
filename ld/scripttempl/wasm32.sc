@@ -148,6 +148,11 @@ SECTIONS
        *(.wasm.chars.function_index.plt)
   }
   .wasm.plt_end = .;
+  .wasm.space.pc 0 (NOLOAD) :
+  {
+       *(.wasm.space.pc)
+       .wasm.pc_end = .;
+  }
   . = 0x80000000;
   .wasm.chars.name (NOLOAD) :
   {

@@ -78,6 +78,9 @@ wasm32_symbol_is_valid (asymbol * sym,
   if (sym == NULL)
     return FALSE;
 
+  if (strcmp(sym->section->name, "*ABS*") == 0)
+    return FALSE;
+
   return TRUE;
 }
 
@@ -197,6 +200,14 @@ print_insn_little_wasm32 (bfd_vma pc, struct disassemble_info *info)
   long block_type = 0;
   int len = 1;
   int i;
+  const char *locals[] = {
+    "$dpc", "$sp1", "$r0", "$r1", "$rpc", "$pc0",
+    "$rp", "$fp", "$sp",
+    "$r2", "$r3", "$r4", "$r5", "$r6", "$r7",
+    "$i0", "$i1", "$i2", "$i3", "$i4", "$i5", "$i6", "$i7",
+    "$f0", "$f1", "$f2", "$f3", "$f4", "$f5", "$f6", "$f7",
+  };
+  int nlocals = sizeof(locals) / sizeof(locals[0]);
 
   if (info->read_memory_func (pc, buffer, 1, info))
     return -1;
@@ -337,17 +348,22 @@ print_insn_little_wasm32 (bfd_vma pc, struct disassemble_info *info)
           prin (stream, " %f", fconstant);
           break;
         case wasm_call:
+          len += read_uleb128(&index, pc + len, info);
+          prin (stream, " ");
+          (*info->print_address_func) ((bfd_vma) index, info);
+          break;
         case wasm_call_import:
         case wasm_call_indirect:
-          len += read_uleb128(&index, pc + len, info);
-          //prin (stream, " %ld %ld", argument_count, index);
-          prin (stream, " %ld", index);
+          len += read_uleb128(&constant, pc + len, info);
+          prin (stream, " %ld", constant);
           break;
         case wasm_get_local:
         case wasm_set_local:
         case wasm_tee_local:
           len += read_uleb128(&constant, pc + len, info);
           prin (stream, " %ld", constant);
+          if (constant >= 0 && constant < nlocals)
+            prin (stream, " <%s>", locals[constant]);
           break;
         case wasm_load:
         case wasm_store:

@@ -668,10 +668,11 @@ disassemble_init_for_target (struct disassemble_info * info)
       break;
 #endif
 #ifdef ARCH_asmjs
-    case bfd_arch_wasm32:
+      /*
+        case bfd_arch_wasm32:
       info->symbol_is_valid = wasm32_symbol_is_valid;
       info->disassembler_needs_relocs = TRUE;
-      break;
+      break; */
 #endif
 #ifdef ARCH_wasm32
     case bfd_arch_wasm32:
@@ -680,10 +681,12 @@ disassemble_init_for_target (struct disassemble_info * info)
       break;
 #endif
 #ifdef ARCH_wasm64
+      /*
     case bfd_arch_wasm32:
       info->symbol_is_valid = wasm32_symbol_is_valid;
       info->disassembler_needs_relocs = TRUE;
       break;
+      */
 #endif
     default:
       break;

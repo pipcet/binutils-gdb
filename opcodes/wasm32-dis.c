@@ -208,6 +208,11 @@ print_insn_little_wasm32 (bfd_vma pc, struct disassemble_info *info)
     "$f0", "$f1", "$f2", "$f3", "$f4", "$f5", "$f6", "$f7",
   };
   int nlocals = sizeof(locals) / sizeof(locals[0]);
+  const char *globals[] = {
+    "$got", "$plt", "$gpo"
+  };
+  int nglobals = sizeof(globals) / sizeof(globals[0]);
+  (void) nglobals;
 
   if (info->read_memory_func (pc, buffer, 1, info))
     return -1;
@@ -352,8 +357,9 @@ print_insn_little_wasm32 (bfd_vma pc, struct disassemble_info *info)
           prin (stream, " ");
           (*info->print_address_func) ((bfd_vma) index, info);
           break;
-        case wasm_call_import:
         case wasm_call_indirect:
+          len += read_uleb128(&constant, pc + len, info);
+          prin (stream, " %ld", constant);
           len += read_uleb128(&constant, pc + len, info);
           prin (stream, " %ld", constant);
           break;
@@ -371,6 +377,7 @@ print_insn_little_wasm32 (bfd_vma pc, struct disassemble_info *info)
           len += read_uleb128(&offset, pc + len, info);
           prin (stream, " a=%ld %ld", flags, offset);
         case wasm_signature:
+        case wasm_call_import:
           break;
         }
     }

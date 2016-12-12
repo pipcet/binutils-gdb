@@ -89,12 +89,6 @@ SECTIONS
      *(COMMON)
      *(.tbss*)
   }
-  .preinit_array     :
-  {
-    PROVIDE_HIDDEN (__preinit_array_start = .);
-    KEEP (*(.preinit_array))
-    PROVIDE_HIDDEN (__preinit_array_end = .);
-  }
   .ctors          :
   {
     /* gcc uses crtbegin.o to find the start of

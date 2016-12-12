@@ -1,3 +1,10 @@
+if [ -z "${RELOCATING}" ]; then
+cat << EOF
+SECTIONS
+{
+}
+EOF
+else
 cat <<EOF
 ENTRY(_start)
 SECTIONS
@@ -222,3 +229,4 @@ cat <<EOF
   /DISCARD/ : { *(.text) *(.init) *(.fini) }
 }
 EOF
+fi

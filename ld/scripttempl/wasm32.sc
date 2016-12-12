@@ -209,10 +209,7 @@ SECTIONS
   {
     *(.dynstr)
   }
-  .hash :
-  {
-    *(.hash)
-  }
+  .hash : { *(.hash) }
   .rela.dyn :
   {
     *(.rela.dyn)

@@ -1082,6 +1082,7 @@ elf_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec, c
       else
         {
           h = sym_hashes[r_symndx - symtab_hdr->sh_info];
+          if (h) {
           while (h->root.type == bfd_link_hash_indirect
                  || h->root.type == bfd_link_hash_warning)
             h = (struct elf_link_hash_entry *) h->root.u.i.link;
@@ -1089,6 +1090,7 @@ elf_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec, c
           /* PR15323, ref flags aren't set for references in the same
              object.  */
           h->root.non_ir_ref = 1;
+          }
         }
 
       if (dynobj == NULL)
@@ -1522,7 +1524,6 @@ allocate_dynrelocs (struct elf_link_hash_entry *h, void *inf)
 	}
     }
 
-  if (h->got.refcount > 0)
     {
       /* Make sure this symbol is output as a dynamic symbol.
 	 Undefined weak syms won't yet be marked as dynamic.  */
@@ -1533,8 +1534,6 @@ allocate_dynrelocs (struct elf_link_hash_entry *h, void *inf)
 	    return FALSE;
 	}
     }
-  else
-    h->got.offset = (bfd_vma) -1;
 
   /* In the shared -Bsymbolic case, discard space allocated for
      dynamic pc-relative relocs against symbols which turn out to be
@@ -2181,14 +2180,16 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
               off = h->got.offset;
               if (off == (bfd_vma) -1)
                 {
-                  fprintf(stderr, "that should have happened earlier\n");
+                  //fprintf(stderr, "that should have happened earlier\n");
+                  // I think it's too late to do the right thing at this point.
                   off = h->got.offset = sgot->size;
 
                   if (h->dynindx == -1)
                     if (! bfd_elf_link_record_dynamic_symbol (info, h))
                       return FALSE;
 
-                  //srelgot->size += sizeof (Elf32_External_Rela);
+                  sgot->size += 4;
+                  // but srelgot has already been allocated?!
                 }
               BFD_ASSERT (off != (bfd_vma) -1);
 

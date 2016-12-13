@@ -2368,8 +2368,6 @@ enum bfd_architecture
 #define bfd_mach_nios2r2       2
   bfd_arch_visium,     /* Visium */
 #define bfd_mach_visium        1
-  bfd_arch_wasm,
-#define bfd_mach_wasm          1
   bfd_arch_wasm32,
 #define bfd_mach_wasm32        1
   bfd_arch_wasm64,

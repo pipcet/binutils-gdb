@@ -436,7 +436,6 @@ ALL_EMULATION_SOURCES = \
 	evaxnbsd.c \
 	evsta.c \
 	ew65.c \
-	ewasm.c \
 	ewasm32.c \
 	ewasm64.c \
 	exgateelf.c \
@@ -2073,11 +2072,6 @@ eshlelf64_nbsd.c: $(srcdir)/emulparams/shlelf64_nbsd.sh \
   $(srcdir)/emulparams/shelf64_nbsd.sh \
   $(srcdir)/emulparams/shelf32_nbsd.sh $(srcdir)/emulparams/shelf32.sh \
   $(ELF_DEPS) $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
-
-ewasm.c: $(srcdir)/emulparams/wasm.sh \
-  $(srcdir)/emulparams/wasm.sh $(ELF_DEPS) \
-  $(srcdir)/emultempl/wasm.em $(srcdir)/scripttempl/wasm.sc \
-  ${GEN_DEPENDS}
 
 ewasm32.c: $(srcdir)/emulparams/wasm32.sh \
   $(srcdir)/emulparams/wasm32.sh $(ELF_DEPS) \

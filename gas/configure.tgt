@@ -112,7 +112,6 @@ case ${cpu} in
   tilegx*)		cpu_type=tilegx endian=little ;;
   v850*)		cpu_type=v850 ;;
   visium)		cpu_type=visium endian=big ;;
-  wasm)                 cpu_type=wasm endian=little ;;
   wasm32)               cpu_type=wasm32 endian=little ;;
   wasm64)               cpu_type=wasm64 endian=little ;;
   x86_64*)		cpu_type=i386 arch=x86_64;;
@@ -471,8 +470,6 @@ case ${generic_target} in
   vax-*-linux-*)			fmt=elf em=linux ;;
 
   visium-*-elf)				fmt=elf ;;
-
-  wasm-*-*)                             fmt=elf ;;
 
   wasm32-*-*)                           fmt=elf ;;
 

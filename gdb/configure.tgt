@@ -657,11 +657,6 @@ vax-*-*)
 	gdb_target_obs="vax-tdep.o"
 	;;
 
-wasm-*-*)
-        # Target: ASMJS virtual machine
-        gdb_target_obs="wasm-tdep.o"
-        ;;
-
 wasm32-*-*)
         # Target: ASMJS virtual machine
         gdb_target_obs="wasm32-tdep.o"

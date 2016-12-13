@@ -169,7 +169,6 @@ ALL_MACHINES = \
 	cpu-vax.lo \
 	cpu-visium.lo \
 	cpu-w65.lo \
-	cpu-wasm.lo \
 	cpu-wasm32.lo \
 	cpu-wasm64.lo \
 	cpu-we32k.lo \
@@ -260,7 +259,6 @@ ALL_MACHINES_CFILES = \
 	cpu-v850_rh850.c \
 	cpu-vax.c \
 	cpu-visium.c \
-	cpu-wasm.c \
 	cpu-wasm32.c \
 	cpu-wasm64.c \
 	cpu-w65.c \
@@ -389,7 +387,6 @@ BFD32_BACKENDS = \
 	elf32-v850.lo \
 	elf32-vax.lo \
 	elf32-visium.lo \
-	elf32-wasm.lo \
 	elf32-xc16x.lo \
 	elf32-xgate.lo \
 	elf32-xstormy16.lo \
@@ -583,7 +580,6 @@ BFD32_BACKENDS_CFILES = \
 	elf32-v850.c \
 	elf32-vax.c \
 	elf32-visium.c \
-	elf32-wasm.c \
 	elf32-xc16x.c \
 	elf32-xgate.c \
 	elf32-xstormy16.c \

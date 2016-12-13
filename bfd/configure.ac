@@ -700,7 +700,6 @@ do
     ft32_elf32_vec)		 tb="$tb elf32-ft32.lo elf32.lo $elf" ;;
     visium_elf32_vec)		 tb="$tb elf32-visium.lo elf32.lo $elf" ;;
     w65_coff_vec)		 tb="$tb coff-w65.lo reloc16.lo $coffgen" ;;
-    wasm_elf32_vec)              tb="$tb elf32-wasm.lo elf32.lo $elf" ;;
     wasm32_elf32_vec)            tb="$tb elf32-wasm32.lo elf32.lo $elf" ;;
     wasm64_elf64_vec)            tb="$tb elf64-wasm64.lo elf64.lo $elf" ;;
     we32k_coff_vec)		 tb="$tb coff-we32k.lo $coffgen" ;;

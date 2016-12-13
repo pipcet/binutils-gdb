@@ -805,7 +805,6 @@ ALL_EMULATION_SOURCES = \
 	evaxnbsd.c \
 	evsta.c \
 	ew65.c \
-	ewasm.c \
 	ewasm32.c \
 	ewasm64.c \
 	exgateelf.c \
@@ -1513,7 +1512,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/evaxnbsd.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/evsta.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ew65.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ewasm.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ewasm32.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ewasm64.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/exgateelf.Po@am__quote@
@@ -3474,11 +3472,6 @@ evsta.c: $(srcdir)/emulparams/vsta.sh \
 
 ew65.c: $(srcdir)/emulparams/w65.sh \
   $(srcdir)/emultempl/generic.em $(srcdir)/scripttempl/w65.sc ${GEN_DEPENDS}
-
-ewasm.c: $(srcdir)/emulparams/wasm.sh \
-  $(srcdir)/emulparams/wasm.sh $(ELF_DEPS) \
-  $(srcdir)/emultempl/wasm.em $(srcdir)/scripttempl/wasm.sc \
-  ${GEN_DEPENDS}
 
 ewasm32.c: $(srcdir)/emulparams/wasm32.sh \
   $(srcdir)/emulparams/wasm32.sh $(ELF_DEPS) \

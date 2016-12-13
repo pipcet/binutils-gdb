@@ -79,7 +79,7 @@ WHICH = aarch64 \
 	s390-tevx-linux64 s390x-tevx-linux64 \
 	tic6x-c64xp tic6x-c64x tic6x-c62x \
 	tic6x-c64xp-linux tic6x-c64x-linux tic6x-c62x-linux \
-	wasm wasm32 wasm64
+	wasm32 wasm64
 
 # Record which registers should be sent to GDB by default after stop.
 aarch64-expedite = x29,sp,pc
@@ -118,7 +118,7 @@ tic6x-c62x-expedite = A15,PC
 tic6x-c64xp-linux-expedite = A15,PC
 tic6x-c64x-linux-expedite = A15,PC
 tic6x-c62x-linux-expedite = A15,PC
-wasm-expedite = sp,pc
+wasm32-expedite = sp,pc
 wasm64-expedite = sp,pc
 
 
@@ -234,7 +234,7 @@ XMLTOC = \
 	tic6x-c64x.xml \
 	tic6x-c64xp-linux.xml \
 	tic6x-c64xp.xml \
-	wasm.xml \
+	wasm32.xml \
 	wasm64.xml
 
 

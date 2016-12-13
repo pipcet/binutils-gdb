@@ -196,7 +196,6 @@ TARGET_CPU_CFILES = \
 	config/tc-v850.c \
 	config/tc-vax.c \
 	config/tc-visium.c \
-	config/tc-wasm.c \
 	config/tc-wasm32.c \
 	config/tc-wasm64.c \
 	config/tc-xstormy16.c \
@@ -274,7 +273,6 @@ TARGET_CPU_HFILES = \
 	config/tc-v850.h \
 	config/tc-vax.h \
 	config/tc-visium.h \
-	config/tc-wasm.h \
 	config/tc-wasm32.h \
 	config/tc-wasm64.h \
 	config/tc-xstormy16.h \

@@ -332,7 +332,7 @@ static void wasm32_uleb128(char **line, int bits)
     input_line_pointer += 4;
   }
   reloc->u.a.howto = bfd_reloc_name_lookup (stdoutput,
-                                            gotrel ? (code ? "R_ASMJS_LEB128_GOT" : "R_ASMJS_LEB128_GOT_CODE") :
+                                            gotrel ? (code ? "R_ASMJS_LEB128_GOT_CODE" : "R_ASMJS_LEB128_GOT") :
                                             pltrel ? "R_ASMJS_LEB128_PLT" :
                                             "R_ASMJS_LEB128");
   if (!reloc->u.a.howto)

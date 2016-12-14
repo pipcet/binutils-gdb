@@ -725,6 +725,20 @@ static reloc_howto_type wasm32_elf32_howto_table[] =
          0xffffffff,		/* dst_mask */
          FALSE),		/* pcrel_offset */
 
+  HOWTO (R_ASMJS_LEB128_GOT_CODE, /* type */
+         0,			/* rightshift */
+         8,			/* size - 16 bytes*/
+         32,			/* bitsize */
+         FALSE,			/* pc_relative */
+         0,			/* bitpos */
+         complain_overflow_signed,/* complain_on_overflow */
+         wasm32_elf32_leb128_reloc,/* special_function */
+         "R_ASMJS_LEB128_GOT_CODE",/* name */
+         FALSE,			/* partial_inplace */
+         0xffffffffffffffff,	/* src_mask */
+         0xffffffffffffffff,	/* dst_mask */
+         FALSE),		/* pcrel_offset */
+
 };
 
 reloc_howto_type *
@@ -763,6 +777,8 @@ wasm32_elf32_bfd_reloc_type_lookup (bfd *abfd ATTRIBUTE_UNUSED,
     return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_ABS16");
   case BFD_RELOC_ASMJS_LEB128_GOT:
     return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_LEB128_GOT");
+  case BFD_RELOC_ASMJS_LEB128_GOT_CODE:
+    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_LEB128_GOT_CODE");
   case BFD_RELOC_ASMJS_LEB128_PLT:
     return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_LEB128_PLT");
   default:
@@ -1070,7 +1086,8 @@ elf_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec, c
 
       if (dynobj == NULL
           && (r_type == R_ASMJS_LEB128_PLT ||
-              r_type == R_ASMJS_LEB128_GOT))
+              r_type == R_ASMJS_LEB128_GOT ||
+              r_type == R_ASMJS_LEB128_GOT_CODE))
         {
           dynobj = elf_hash_table (info)->dynobj = abfd;
           if (! _bfd_elf_create_got_section (abfd, info))
@@ -1097,6 +1114,7 @@ elf_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec, c
       switch (r_type)
         {
         case R_ASMJS_LEB128_GOT:
+        case R_ASMJS_LEB128_GOT_CODE:
         case R_ASMJS_LEB128_PLT:
           elf_hash_table (info)->dynobj = dynobj = abfd;
           if (! _bfd_elf_create_got_section (dynobj, info))
@@ -1109,6 +1127,7 @@ elf_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec, c
       switch (r_type)
         {
         case R_ASMJS_LEB128_GOT:
+        case R_ASMJS_LEB128_GOT_CODE:
           /* This symbol requires a GOT entry. */
 
           sgot = elf_hash_table (info)->sgot;
@@ -2168,6 +2187,7 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
           goto final_link_relocate;
 
         case R_ASMJS_LEB128_GOT:
+        case R_ASMJS_LEB128_GOT_CODE:
           /* Relocation is to the entry for this symbol in the global
              offset table.  */
           sgot = elf_hash_table (info)->sgot;
@@ -2235,7 +2255,7 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
                     outrel.r_offset = (sgot->output_section->vma
                                        + sgot->output_offset
                                        + off);
-                    outrel.r_info = ELF32_R_INFO (0, R_ASMJS_REL32);
+                    outrel.r_info = ELF32_R_INFO (0, (r_type == R_ASMJS_LEB128_GOT_CODE) ? R_ASMJS_ABS32_CODE : R_ASMJS_REL32);
                     outrel.r_addend = relocation;
                     loc = s->contents;
                     loc += s->reloc_count++ * sizeof (Elf32_External_Rela);

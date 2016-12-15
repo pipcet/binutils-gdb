@@ -53,10 +53,6 @@ SECTIONS
      . = ALIGN(., 16);
      *(.jcr*)
      . = ALIGN(., 16);
-     *(.dynbss)
-     . = ALIGN(., 16);
-     *(.bss* .gnu.linkonce.b.*)
-     . = ALIGN(., 16);
      *(.gcc_except_table*)
      . = ALIGN(., 16);
      *(.eh_frame*)
@@ -87,6 +83,8 @@ SECTIONS
   .bss :
   {
      *(COMMON)
+     *(.dynbss)
+     *(.bss* .gnu.linkonce.b.*)
      *(.tbss*)
   }
   .preinit_array     :

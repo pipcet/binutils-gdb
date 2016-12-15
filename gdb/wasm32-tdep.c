@@ -172,6 +172,15 @@ wasm32_breakpoint_from_pc (struct gdbarch *gdbarch, CORE_ADDR *pcptr, int *lenpt
   return NULL;
 }
 
+static int
+wasm32_breakpoint_kind_from_pc (struct gdbarch *gdbarch, CORE_ADDR *pcptr)
+{
+  (void) gdbarch;
+  (void) pcptr;
+
+  return 0;
+}
+
 /* we're abusing this to skip the non-breakpointable first PC value
  * in a function. */
 static CORE_ADDR
@@ -628,6 +637,7 @@ wasm32_gdbarch_init (struct gdbarch_info info, struct gdbarch_list *arches)
 
   /* Breakpoint manipulation.  */
   set_gdbarch_breakpoint_from_pc (gdbarch, wasm32_breakpoint_from_pc);
+  set_gdbarch_breakpoint_kind_from_pc (gdbarch, wasm32_breakpoint_kind_from_pc);
   set_gdbarch_memory_insert_breakpoint (gdbarch, wasm32_memory_insert_breakpoint);
   set_gdbarch_memory_remove_breakpoint (gdbarch, wasm32_memory_remove_breakpoint);
   set_gdbarch_skip_entrypoint (gdbarch, wasm32_skip_entrypoint);

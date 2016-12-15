@@ -2364,6 +2364,7 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
 		      outrel.r_info = ELF32_R_INFO (h->dynindx, r_type);
 		    }
 		  outrel.r_addend = relocation;
+                  addend = rel->r_addend;
 		  outrel.r_addend
 		    += (howto->partial_inplace
 			? bfd_get_32 (input_bfd, contents + rel->r_offset)

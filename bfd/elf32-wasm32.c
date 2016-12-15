@@ -2196,6 +2196,7 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
           if (h != NULL)
             {
               bfd_vma off;
+	      bfd_boolean dynamic_p;
 
               off = h->got.offset;
               if (off == (bfd_vma) -1)
@@ -2213,6 +2214,37 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
                 }
               BFD_ASSERT (off != (bfd_vma) -1);
 
+              struct elf_link_hash_table *htab = elf_hash_table (info);
+	      dynamic_p = htab->dynamic_sections_created;
+	      if (! WILL_CALL_FINISH_DYNAMIC_SYMBOL (dynamic_p,
+						     bfd_link_pic (info),
+						     h)
+		  || (bfd_link_pic (info)
+		      && SYMBOL_REFERENCES_LOCAL (info, h))
+		  || (ELF_ST_VISIBILITY (h->other)
+		      && h->root.type == bfd_link_hash_undefweak))
+		{
+		  /* This is actually a static link, or it is a
+		     -Bsymbolic link and the symbol is defined
+		     locally, or the symbol was forced to be local
+		     because of a version file.  We must initialize
+		     this entry in the global offset table.  Since the
+		     offset must always be a multiple of 4, we use the
+		     least significant bit to record whether we have
+		     initialized it already.
+
+		     When doing a dynamic link, we create a .rela.got
+		     relocation entry to initialize the value.  This
+		     is done in the finish_dynamic_symbol routine.  */
+		  if ((off & 1) != 0)
+		    off &= ~1;
+		  else
+		    {
+		      bfd_put_32 (output_bfd, relocation,
+				  sgot->contents + off);
+                      h->got.offset |= 1;
+		    }
+		}
               relocation = sgot->output_offset/*XXX*/ + off;
             }
           else

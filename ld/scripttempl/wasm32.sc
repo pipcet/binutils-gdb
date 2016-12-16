@@ -123,6 +123,7 @@ SECTIONS
     KEEP (*(.dtors))
   }
   . = ALIGN(., 16);
+  .wasm.data_end = .;
   .wasm.chars.function_index 0 (NOLOAD) :
   {
        *(.wasm.chars.function_index.import)

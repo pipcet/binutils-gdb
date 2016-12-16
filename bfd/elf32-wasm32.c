@@ -669,7 +669,7 @@ static reloc_howto_type wasm32_elf32_howto_table[] =
          0xffffffffffffffff,	/* dst_mask */
          FALSE),		/* pcrel_offset */
 
-  HOWTO (R_ASMJS_LEB128_PLT_INDEX, /* type */
+  HOWTO (R_ASMJS_PLT_INDEX,     /* type */
          0,			/* rightshift */
          8,			/* size - 16 bytes*/
          32,			/* bitsize */
@@ -677,7 +677,7 @@ static reloc_howto_type wasm32_elf32_howto_table[] =
          0,			/* bitpos */
          complain_overflow_signed,/* complain_on_overflow */
          wasm32_elf32_leb128_reloc,/* special_function */
-         "R_ASMJS_LEB128_PLT_INDEX", /* name */
+         "R_ASMJS_PLT_INDEX",   /* name */
          FALSE,			/* partial_inplace */
          0xffffffffffffffff,	/* src_mask */
          0xffffffffffffffff,	/* dst_mask */
@@ -1333,7 +1333,7 @@ elf_wasm32_finish_dynamic_symbol (bfd * output_bfd,
 
       /* Fill in the entry in the .rela.plt section.  */
       rel.r_offset = got_offset/4 + h2->root.u.def.value;
-      rel.r_info = ELF32_R_INFO (h->dynindx, R_ASMJS_LEB128_PLT_INDEX);
+      rel.r_info = ELF32_R_INFO (h->dynindx, R_ASMJS_PLT_INDEX);
       rel.r_addend = 0;
       loc = srel->contents + (2 * plt_index + 1) * sizeof (Elf32_External_Rela);
       bfd_elf32_swap_reloca_out (output_bfd, &rel, loc);

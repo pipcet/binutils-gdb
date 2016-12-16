@@ -921,8 +921,8 @@ add_symbol_to_plt (bfd *output_bfd, struct bfd_link_info *info)
 
   htab->splt->size += 0x40;
 
-  htab->sgotplt->size += 4;
-  htab->srelplt->size += 2 * sizeof (Elf32_External_Rela);
+  htab->sgotplt->size += /* 4 */ 0;
+  htab->srelplt->size += /* 2 * */ sizeof (Elf32_External_Rela);
 
   ds.spltspace->size++;
   ds.spltfun->size++;
@@ -1142,7 +1142,7 @@ elf_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec, c
                   /* We have already allocated space in the .got.  */
                   break;
                 }
-              h->got.offset = sgot->size;
+              h->got.offset = sgot->size + (r_type == R_ASMJS_LEB128_GOT_CODE ? 2 : 0);
 
               /* Make sure this symbol is output as a dynamic symbol.  */
               if (h->dynindx == -1)
@@ -1213,8 +1213,13 @@ elf_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec, c
 	    }
 
           break;
+        case R_ASMJS_HEX16:
+          /* It's intentional that there are no dynamic relocs for these */
+          break;
         default:
-            if (bfd_link_pic (info))
+            if (bfd_link_pic (info) &&
+                r_symndx != STN_UNDEF &&
+                (sec->flags & SEC_ALLOC) != 0)
               {
                 if (sreloc == NULL)
                   {
@@ -1228,8 +1233,7 @@ elf_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec, c
                   }
                 if (0) fprintf(stderr, "allocating at %s:%lx for r_type = %d\n",
                         sreloc->name, sreloc->size, r_type);
-                sreloc->size += 2 * sizeof (Elf32_External_Rela);
-
+                sreloc->size += sizeof (Elf32_External_Rela);
               }
         }
 
@@ -1264,7 +1268,6 @@ elf_wasm32_finish_dynamic_symbol (bfd * output_bfd,
       asection *srel;
 
       bfd_vma plt_index;
-      bfd_vma got_offset;
       Elf_Internal_Rela rel;
       bfd_byte *loc;
 
@@ -1285,7 +1288,6 @@ elf_wasm32_finish_dynamic_symbol (bfd * output_bfd,
 
       /* Get the offset into the .got table of the entry that
          corresponds to this function.  Each .got entry is 4 bytes. */
-      got_offset = (plt_index) * 4;
 
       /* Fill in the entry in the procedure linkage table.  */
       uint8_t pltentry[] = {
@@ -1309,9 +1311,10 @@ elf_wasm32_finish_dynamic_symbol (bfd * output_bfd,
       BFD_ASSERT (h2 != NULL);
 
       set_uleb128 (output_bfd,
-                   got_offset/4 + h2->root.u.def.value,
+                   plt_index + h2->root.u.def.value,
                    splt->contents + h->plt.offset + 19);
 
+#if 0
       /* Fill in the entry in the global offset table.  */
       bfd_put_32 (output_bfd,
                   (splt->output_section->vma
@@ -1330,12 +1333,13 @@ elf_wasm32_finish_dynamic_symbol (bfd * output_bfd,
       rel.r_addend = 0;
       loc = srel->contents + 2 * plt_index * sizeof (Elf32_External_Rela);
       bfd_elf32_swap_reloca_out (output_bfd, &rel, loc);
+#endif
 
       /* Fill in the entry in the .rela.plt section.  */
-      rel.r_offset = got_offset/4 + h2->root.u.def.value;
+      rel.r_offset = plt_index + h2->root.u.def.value;
       rel.r_info = ELF32_R_INFO (h->dynindx, R_ASMJS_PLT_INDEX);
       rel.r_addend = 0;
-      loc = srel->contents + (2 * plt_index + 1) * sizeof (Elf32_External_Rela);
+      loc = srel->contents + (/*2 **/ plt_index /*+ 1*/) * sizeof (Elf32_External_Rela);
       bfd_elf32_swap_reloca_out (output_bfd, &rel, loc);
 
       BFD_ASSERT (srel->size >= loc - srel->contents + sizeof (Elf32_External_Rela));
@@ -1364,7 +1368,7 @@ elf_wasm32_finish_dynamic_symbol (bfd * output_bfd,
 
       rel.r_offset = (sgot->output_section->vma
                       + sgot->output_offset
-                      + (h->got.offset &~ 1));
+                      + (h->got.offset &~ 3));
 
       /* If this is a -Bsymbolic link, and the symbol is defined
          locally, we just want to emit a RELATIVE reloc.  Likewise if
@@ -1382,8 +1386,8 @@ elf_wasm32_finish_dynamic_symbol (bfd * output_bfd,
         }
       else
         {
-          bfd_put_32 (output_bfd, (bfd_vma) 0, sgot->contents + h->got.offset);
-          rel.r_info = ELF32_R_INFO (h->dynindx, R_ASMJS_ABS32);
+          bfd_put_32 (output_bfd, (bfd_vma) 0, sgot->contents + (h->got.offset & -4));
+          rel.r_info = ELF32_R_INFO (h->dynindx, (h->got.offset & 2) ? R_ASMJS_ABS32_CODE : R_ASMJS_ABS32);
           rel.r_addend = 0;
         }
 
@@ -2203,7 +2207,7 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
                 {
                   //fprintf(stderr, "that should have happened earlier\n");
                   // I think it's too late to do the right thing at this point.
-                  off = h->got.offset = sgot->size;
+                  off = h->got.offset = sgot->size + (r_type == R_ASMJS_LEB128_GOT_CODE ? 2 : 0);
 
                   if (h->dynindx == -1)
                     if (! bfd_elf_link_record_dynamic_symbol (info, h))
@@ -2241,11 +2245,11 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
 		  else
 		    {
 		      bfd_put_32 (output_bfd, relocation,
-				  sgot->contents + off);
+				  sgot->contents + (off & -4));
                       h->got.offset |= 1;
 		    }
 		}
-              relocation = sgot->output_offset/*XXX*/ + off;
+              relocation = sgot->output_offset/*XXX*/ + (off & -4);
             }
           else
             {
@@ -2274,7 +2278,7 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
                 off &= ~1LL;
               else
                 {
-                  bfd_put_32 (output_bfd, relocation, sgot->contents + off);
+                  bfd_put_32 (output_bfd, relocation, sgot->contents + (off&-4));
 
                   if (bfd_link_pic (info)) {
                     asection *s;
@@ -2286,7 +2290,7 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
 
                     outrel.r_offset = (sgot->output_section->vma
                                        + sgot->output_offset
-                                       + off);
+                                       + (off & -4));
                     outrel.r_info = ELF32_R_INFO (0, (r_type == R_ASMJS_LEB128_GOT_CODE) ? R_ASMJS_ABS32_CODE : R_ASMJS_REL32);
                     outrel.r_addend = relocation;
                     loc = s->contents;
@@ -2300,7 +2304,7 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
                   }
                   local_got_offsets[r_symndx] |= 1;
                 }
-              relocation = sgot->output_offset + off;
+              relocation = sgot->output_offset + (off&-4);
             }
 
           relocation += 0x40;
@@ -2445,6 +2449,6 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
 #define elf_backend_size_dynamic_sections    elf_wasm32_size_dynamic_sections
 #define elf_backend_want_got_plt 1
 #define elf_backend_plt_readonly 1
-#define elf_backend_got_header_size 12
+#define elf_backend_got_header_size 0
 
 #include "elf32-target.h"

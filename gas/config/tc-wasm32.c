@@ -278,11 +278,10 @@ static expressionS wasm32_get_constant(char **line)
   return ex;
 }
 
-static void wasm32_put_long_uleb128(int bits)
+static void wasm32_put_long_uleb128(int bits, unsigned long value)
 {
   unsigned char c;
   int i = 0;
-  unsigned long value = 0;
 
   do {
     c = value & 0x7f;
@@ -293,7 +292,36 @@ static void wasm32_put_long_uleb128(int bits)
   } while (++i < (bits+6)/7);
 }
 
-static void wasm32_uleb128(char **line, int bits)
+static void wasm32_put_sleb128(long value)
+{
+  unsigned char c;
+  int more;
+
+  do {
+    c = (value & 0x7f);
+    value >>= 7;
+    more = !((((value == 0) && ((c & 0x40) == 0))
+              || ((value == -1) && ((c & 0x40) != 0))));
+    if (more)
+      c |= 0x80;
+    FRAG_APPEND_1_CHAR (c);
+  } while (more);
+}
+
+static void wasm32_put_uleb128(unsigned long value)
+{
+  unsigned char c;
+
+  do {
+    c = value & 0x7f;
+    value >>= 7;
+    if (value)
+      c |= 0x80;
+    FRAG_APPEND_1_CHAR (c);
+  } while (value);
+}
+
+static void wasm32_leb128(char **line, int bits, int sign)
 {
   char *t = input_line_pointer;
   char *str = *line;
@@ -303,9 +331,25 @@ static void wasm32_uleb128(char **line, int bits)
   int pltrel = 0;
   int code = 0;
 
-  reloc = XNEW (struct reloc_list);
   input_line_pointer = str;
   expression (&ex);
+
+  if (ex.X_op == O_constant && strncmp(input_line_pointer, "@", 1))
+    {
+      unsigned long value = ex.X_add_number;
+
+      str = input_line_pointer;
+      str = skip_space (str);
+      *line = str;
+      if (sign)
+        wasm32_put_sleb128(value);
+      else
+        wasm32_put_uleb128(value);
+      input_line_pointer = t;
+      return;
+    }
+
+  reloc = XNEW (struct reloc_list);
   reloc->u.a.offset_sym = expr_build_dot ();
   if (ex.X_op == O_symbol)
     {
@@ -346,8 +390,18 @@ static void wasm32_uleb128(char **line, int bits)
   str = input_line_pointer;
   str = skip_space (str);
   *line = str;
-  wasm32_put_long_uleb128(bits);
+  wasm32_put_long_uleb128(bits, 0);
   input_line_pointer = t;
+}
+
+static void wasm32_uleb128(char **line, int bits)
+{
+  wasm32_leb128(line, bits, 0);
+}
+
+static void wasm32_sleb128(char **line, int bits)
+{
+  wasm32_leb128(line, bits, 1);
 }
 
 #if 0
@@ -619,10 +673,10 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
       wasm32_uleb128(&str, 32);
       break;
     case wasm_constant_i32:
-      wasm32_uleb128(&str, 32);
+      wasm32_sleb128(&str, 32);
       break;
     case wasm_constant_i64:
-      wasm32_uleb128(&str, 64);
+      wasm32_sleb128(&str, 64);
       break;
     case wasm_constant_f32:
       wasm32_f32(&str);

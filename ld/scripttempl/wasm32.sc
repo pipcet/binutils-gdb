@@ -15,7 +15,7 @@ SECTIONS
   {
      LONG(ABSOLUTE(__data_start));
      LONG(0);
-     LONG(ABSOLUTE(__terminator));
+     LONG(0);
      LONG(0);
      LONG(0);
      LONG(0);
@@ -123,27 +123,6 @@ SECTIONS
     KEEP (*(.dtors))
   }
   . = ALIGN(., 16);
-  .asmjs.term :
-  {
-    PROVIDE_HIDDEN(__terminator = .);
-    LONG(0);
-    LONG(0);
-    LONG(0);
-    LONG(0);
-    LONG(0);
-    LONG(0);
-    LONG(0);
-    LONG(0);
-    LONG(0);
-    LONG(0);
-    LONG(0);
-    LONG(0);
-    LONG(0);
-    LONG(0);
-    LONG(0);
-    LONG(0);
-    .wasm.data_end = .;
-  }
   .wasm.chars.function_index 0 (NOLOAD) :
   {
        *(.wasm.chars.function_index.import)

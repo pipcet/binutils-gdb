@@ -427,7 +427,7 @@ process_archive (const char * file_name, FILE * file,
           member_file = fopen (member_file_name, "r+b");
           if (member_file == NULL)
             {
-              error (_("Input file '%s' is not readable\n"),
+              error (_("Input file '%s' is not readable/writable\n"),
 			 member_file_name);
               free (member_file_name);
               ret = 1;
@@ -519,7 +519,7 @@ process_file (const char *file_name)
   file = fopen (file_name, "r+b");
   if (file == NULL)
     {
-      error (_("Input file '%s' is not readable\n"), file_name);
+      error (_("Input file '%s' is not readable/writable\n"), file_name);
       return 1;
     }
 

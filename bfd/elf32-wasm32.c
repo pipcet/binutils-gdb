@@ -994,7 +994,7 @@ wasm32_create_dynamic_sections (bfd * abfd, struct bfd_link_info *info)
   return ds;
 }
 
-#define LAZY 1
+#define LAZY 0
 #define PLTNAME 1
 
 static bfd_vma

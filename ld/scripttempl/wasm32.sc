@@ -171,6 +171,16 @@ SECTIONS
        *(.wasm.payload.function)
        *(.wasm.payload.function.plt)
   }
+  .wasm.chars.element 0 (NOLOAD) :
+  {
+       *(.wasm.chars.element)
+       *(.wasm.chars.element.plt)
+  }
+  .wasm.payload.element :
+  {
+       *(.wasm.payload.element)
+       *(.wasm.payload.element.plt)
+  }
   .plt :
   {
     *(.plt)

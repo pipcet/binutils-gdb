@@ -144,12 +144,14 @@ SECTIONS
        *(.wasm.chars.name)
        *(.wasm.chars.name.a);
        *(.wasm.chars.name.b);
+       *(.wasm.chars.name.plt);
   }
   .wasm.payload.name :
   {
        *(.wasm.payload.name)
        *(.wasm.payload.name.a);
        *(.wasm.payload.name.b);
+       *(.wasm.payload.name.plt);
   }
   .wasm.chars.code (NOLOAD) :
   {
@@ -173,11 +175,13 @@ SECTIONS
   }
   .wasm.chars.element 0 (NOLOAD) :
   {
+       *(.wasm.chars.element.a)
        *(.wasm.chars.element)
        *(.wasm.chars.element.plt)
   }
   .wasm.payload.element :
   {
+       *(.wasm.payload.element.a)
        *(.wasm.payload.element)
        *(.wasm.payload.element.plt)
   }

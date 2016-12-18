@@ -399,7 +399,19 @@ _bfd_elf_create_dynamic_sections (bfd *abfd, struct bfd_link_info *info)
   if (s == NULL)
     return FALSE;
 
+  s = bfd_make_section_anyway_with_flags (abfd, ".wasm.chars.element.plt", pltflags & ~ (SEC_ALLOC | SEC_CODE | SEC_LOAD | SEC_HAS_CONTENTS));
+  if (s == NULL)
+    return FALSE;
+
+  s = bfd_make_section_anyway_with_flags (abfd, ".wasm.chars.name.plt", pltflags & ~ (SEC_ALLOC | SEC_CODE | SEC_LOAD | SEC_HAS_CONTENTS));
+  if (s == NULL)
+    return FALSE;
+
   s = bfd_make_section_anyway_with_flags (abfd, ".wasm.payload.function.plt", pltflags & ~SEC_CODE);
+  if (s == NULL)
+    return FALSE;
+
+  s = bfd_make_section_anyway_with_flags (abfd, ".wasm.payload.element.plt", pltflags & ~SEC_CODE);
   if (s == NULL)
     return FALSE;
 
@@ -407,6 +419,10 @@ _bfd_elf_create_dynamic_sections (bfd *abfd, struct bfd_link_info *info)
   if (s == NULL)
     return FALSE;
   htab->splt = s;
+
+  s = bfd_make_section_anyway_with_flags (abfd, ".wasm.payload.name.plt", pltflags & ~SEC_CODE);
+  if (s == NULL)
+    return FALSE;
 
   /* Define the symbol _PROCEDURE_LINKAGE_TABLE_ at the start of the
      .plt section.  */

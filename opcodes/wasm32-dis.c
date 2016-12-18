@@ -368,8 +368,16 @@ print_insn_little_wasm32 (bfd_vma pc, struct disassemble_info *info)
         case wasm_tee_local:
           len += read_uleb128(&constant, pc + len, info);
           prin (stream, " %ld", constant);
-          if (constant >= 0 && constant < nlocals)
-            prin (stream, " <%s>", locals[constant]);
+          if (strcmp (op->name + 4, "local") == 0)
+            {
+              if (constant >= 0 && constant < nlocals)
+                prin (stream, " <%s>", locals[constant]);
+            }
+          else
+            {
+              if (constant >= 0 && constant < nglobals)
+                prin (stream, " <%s>", globals[constant]);
+            }
           break;
         case wasm_load:
         case wasm_store:

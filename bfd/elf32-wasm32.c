@@ -761,6 +761,20 @@ static reloc_howto_type wasm32_elf32_howto_table[] =
          0xffffffffffffffff,	/* dst_mask */
          FALSE),		/* pcrel_offset */
 
+  HOWTO (R_ASMJS_PLT_LAZY,      /* type */
+         0,			/* rightshift */
+         8,			/* size - 16 bytes*/
+         32,			/* bitsize */
+         FALSE,			/* pc_relative */
+         0,			/* bitpos */
+         complain_overflow_signed,/* complain_on_overflow */
+         wasm32_elf32_leb128_reloc,/* special_function */
+         "R_ASMJS_PLT_LAZY",    /* name */
+         FALSE,			/* partial_inplace */
+         0xffffffffffffffff,	/* src_mask */
+         0xffffffffffffffff,	/* dst_mask */
+         FALSE),		/* pcrel_offset */
+
 };
 
 reloc_howto_type *
@@ -998,7 +1012,7 @@ add_symbol_to_plt (bfd *output_bfd, struct bfd_link_info *info,
   htab->splt->size += LAZY ? 0x80 : 0x40;
 
   htab->sgotplt->size += /* 4 */ 0;
-  htab->srelplt->size += /* 2 * */ sizeof (Elf32_External_Rela);
+  htab->srelplt->size += (LAZY?2:1) * sizeof (Elf32_External_Rela);
 
   ds.spltspace->size++;
   ds.spltfun->size++;
@@ -1409,11 +1423,12 @@ elf_wasm32_finish_dynamic_symbol (bfd * output_bfd,
         0x36, 0x02, 0x00,
         0x20, 0x00, 0x20, 0x01, 0x20, 0x02,
         0x20, 0x03, 0x20, 0x04, 0x20, 0x05,
-        0x10, 0x80, 0x80, 0x80, 0x80, 0x00,
-        0x0f, 0x01, 0x01, 0x01, 0x01, 0x01,
+        0x41, 0x80, 0x80, 0x80, 0x80, 0x00,
+        0x28, 0x02, 0x00,
+        0x11, 0x00, 0x00, 0x0f, 0x01, 0x01,
         0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
         0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
-        0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x0b
+        0x01, 0x01, 0x01, 0x0b
       };
       memcpy (splt->contents + h->plt.offset, pltentry,
               0x40);
@@ -1505,27 +1520,29 @@ elf_wasm32_finish_dynamic_symbol (bfd * output_bfd,
                        plt_index + 1 + h2->root.u.def.value,
                        spltelem->contents + 5 * (plt_index + 1));
 
-          struct elf_link_hash_entry *h3;
-          h3 = elf_link_hash_lookup (elf_hash_table (info),
-                                     "__wasm_lazyload_stub",
-                                     FALSE, FALSE, TRUE);
-
-          if (h3)
-            {
-              set_uleb128 (output_bfd,
-                           plt_index + h3->root.u.def.value,
-                           splt->contents + h->plt.offset + 0x40 + 30);
-            }
+          set_uleb128 (output_bfd,
+                       12416,
+                       splt->contents + h->plt.offset + 0x40 + 30);
         }
 
       /* Fill in the entry in the .rela.plt section.  */
       rel.r_offset = plt_index + h2->root.u.def.value;
       rel.r_info = ELF32_R_INFO (h->dynindx, R_ASMJS_PLT_INDEX);
       rel.r_addend = 0;
-      loc = srel->contents + (/*2 **/ plt_index/(LAZY?2:1) /*+ 1*/) * sizeof (Elf32_External_Rela);
+      loc = srel->contents + (/*2 **/ plt_index /*+ 1*/) * sizeof (Elf32_External_Rela);
       bfd_elf32_swap_reloca_out (output_bfd, &rel, loc);
-
       BFD_ASSERT (srel->size >= loc - srel->contents + sizeof (Elf32_External_Rela));
+
+      if (LAZY)
+        {
+          rel.r_offset = plt_index + h2->root.u.def.value + 1;
+          rel.r_info = ELF32_R_INFO (h->dynindx, R_ASMJS_PLT_LAZY);
+          rel.r_addend = 0;
+          loc = srel->contents + (/*2 **/ plt_index + 1) * sizeof (Elf32_External_Rela);
+          bfd_elf32_swap_reloca_out (output_bfd, &rel, loc);
+          BFD_ASSERT (srel->size >= loc - srel->contents + sizeof (Elf32_External_Rela));
+        }
+
       if (!h->def_regular)
         {
           /* Mark the symbol as undefined, rather than as defined in

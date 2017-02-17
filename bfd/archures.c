@@ -1,5 +1,5 @@
 /* BFD library support routines for architectures.
-   Copyright (C) 1990-2016 Free Software Foundation, Inc.
+   Copyright (C) 1990-2017 Free Software Foundation, Inc.
    Hacked by John Gilmore and Steve Chamberlain of Cygnus Support.
 
    This file is part of BFD, the Binary File Descriptor library.
@@ -534,6 +534,8 @@ DESCRIPTION
 .#define bfd_mach_wasm32        1
 .  bfd_arch_wasm64,
 .#define bfd_mach_wasm64        1
+.  bfd_arch_pru,	{* PRU *}
+.#define bfd_mach_pru	0
 .  bfd_arch_last
 .  };
 */
@@ -638,6 +640,7 @@ extern const bfd_arch_info_type bfd_pj_arch;
 extern const bfd_arch_info_type bfd_plugin_arch;
 extern const bfd_arch_info_type bfd_powerpc_archs[];
 #define bfd_powerpc_arch bfd_powerpc_archs[0]
+extern const bfd_arch_info_type bfd_pru_arch;
 extern const bfd_arch_info_type bfd_riscv_arch;
 extern const bfd_arch_info_type bfd_rs6000_arch;
 extern const bfd_arch_info_type bfd_rl78_arch;
@@ -731,6 +734,7 @@ static const bfd_arch_info_type * const bfd_archures_list[] =
     &bfd_or1k_arch,
     &bfd_pdp11_arch,
     &bfd_powerpc_arch,
+    &bfd_pru_arch,
     &bfd_riscv_arch,
     &bfd_rl78_arch,
     &bfd_rs6000_arch,

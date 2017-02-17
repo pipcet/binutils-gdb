@@ -1,6 +1,6 @@
 /* Language independent support for printing types for GDB, the GNU debugger.
 
-   Copyright (C) 1986-2016 Free Software Foundation, Inc.
+   Copyright (C) 1986-2017 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -371,26 +371,19 @@ type_print (struct type *type, const char *varstring, struct ui_file *stream,
 std::string
 type_to_string (struct type *type)
 {
-  std::string s;
-  struct ui_file *stb;
-  struct cleanup *old_chain;
-
-  stb = mem_fileopen ();
-  old_chain = make_cleanup_ui_file_delete (stb);
-
   TRY
     {
-      type_print (type, "", stb, -1);
-      s = ui_file_as_string (stb);
+      string_file stb;
+
+      type_print (type, "", &stb, -1);
+      return std::move (stb.string ());
     }
   CATCH (except, RETURN_MASK_ALL)
     {
     }
   END_CATCH
 
-  do_cleanups (old_chain);
-
-  return s;
+  return {};
 }
 
 /* Print type of EXP, or last thing in value history if EXP == NULL.

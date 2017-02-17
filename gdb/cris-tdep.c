@@ -1,6 +1,6 @@
 /* Target dependent code for CRIS, for GDB, the GNU debugger.
 
-   Copyright (C) 2001-2016 Free Software Foundation, Inc.
+   Copyright (C) 2001-2017 Free Software Foundation, Inc.
 
    Contributed by Axis Communications AB.
    Written by Hendrik Ruijter, Stefan Andersson, and Orjan Friberg.
@@ -3792,10 +3792,7 @@ static int
 cris_delayed_get_disassembler (bfd_vma addr, struct disassemble_info *info)
 {
   int (*print_insn) (bfd_vma addr, struct disassemble_info *info);
-  /* FIXME: cagney/2003-08-27: It should be possible to select a CRIS
-     disassembler, even when there is no BFD.  Does something like
-     "gdb; target remote; disassmeble *0x123" work?  */
-  gdb_assert (exec_bfd != NULL);
+
   print_insn = cris_get_disassembler (exec_bfd);
   gdb_assert (print_insn != NULL);
   return print_insn (addr, info);
@@ -4025,31 +4022,14 @@ cris_gdbarch_init (struct gdbarch_info info, struct gdbarch_list *arches)
 
   /* No matching architecture was found.  Create a new one.  */
   tdep = XNEW (struct gdbarch_tdep);
+  info.byte_order = BFD_ENDIAN_LITTLE;
   gdbarch = gdbarch_alloc (&info, tdep);
 
   tdep->cris_version = usr_cmd_cris_version;
   tdep->cris_mode = usr_cmd_cris_mode;
   tdep->cris_dwarf2_cfi = usr_cmd_cris_dwarf2_cfi;
 
-  /* INIT shall ensure that the INFO.BYTE_ORDER is non-zero.  */
-  switch (info.byte_order)
-    {
-    case BFD_ENDIAN_LITTLE:
-      /* Ok.  */
-      break;
-
-    case BFD_ENDIAN_BIG:
-      /* Cris is always little endian, but the user could have forced
-	 big endian with "set endian".  */
-      return 0;
-
-    default:
-      internal_error (__FILE__, __LINE__,
-		      _("cris_gdbarch_init: unknown byte order in info"));
-    }
-
   set_gdbarch_return_value (gdbarch, cris_return_value);
-
   set_gdbarch_sp_regnum (gdbarch, 14);
   
   /* Length of ordinary registers used in push_word and a few other

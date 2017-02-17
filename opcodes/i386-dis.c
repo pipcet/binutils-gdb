@@ -1,5 +1,5 @@
 /* Print i386 instructions for GDB, the GNU debugger.
-   Copyright (C) 1988-2016 Free Software Foundation, Inc.
+   Copyright (C) 1988-2017 Free Software Foundation, Inc.
 
    This file is part of the GNU opcodes library.
 
@@ -1548,6 +1548,7 @@ enum
   PREFIX_EVEX_0F384F,
   PREFIX_EVEX_0F3852,
   PREFIX_EVEX_0F3853,
+  PREFIX_EVEX_0F3855,
   PREFIX_EVEX_0F3858,
   PREFIX_EVEX_0F3859,
   PREFIX_EVEX_0F385A,
@@ -2377,6 +2378,7 @@ enum
   EVEX_W_0F3839_P_1,
   EVEX_W_0F383A_P_1,
   EVEX_W_0F3840_P_2,
+  EVEX_W_0F3855_P_2,
   EVEX_W_0F3858_P_2,
   EVEX_W_0F3859_P_2,
   EVEX_W_0F385A_P_2,
@@ -16975,7 +16977,8 @@ OP_VEX (int bytemode, int sizeflag ATTRIBUTE_UNUSED)
 	  names = names_mask;
 	  break;
 	default:
-	  abort ();
+	  /* See PR binutils/20893 for a reproducer.  */
+	  oappend ("(bad)");
 	  return;
 	}
       break;

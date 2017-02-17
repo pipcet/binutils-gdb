@@ -1,6 +1,6 @@
 /* Interface between GDB and target environments, including files and processes
 
-   Copyright (C) 1990-2016 Free Software Foundation, Inc.
+   Copyright (C) 1990-2017 Free Software Foundation, Inc.
 
    Contributed by Cygnus Support.  Written by John Gilmore.
 
@@ -72,6 +72,7 @@ struct inferior;
 #include "vec.h"
 #include "gdb_signals.h"
 #include "btrace.h"
+#include "record.h"
 #include "command.h"
 
 #include "break-common.h" /* For enum target_hw_bp_type.  */
@@ -1149,6 +1150,10 @@ struct target_ops
 						   const struct btrace_target_info *)
       TARGET_DEFAULT_RETURN (NULL);
 
+    /* Current recording method.  */
+    enum record_method (*to_record_method) (struct target_ops *, ptid_t ptid)
+      TARGET_DEFAULT_RETURN (RECORD_METHOD_NONE);
+
     /* Stop trace recording.  */
     void (*to_stop_recording) (struct target_ops *)
       TARGET_DEFAULT_IGNORE ();
@@ -1450,6 +1455,9 @@ extern int target_write_raw_memory (CORE_ADDR memaddr, const gdb_byte *myaddr,
    and returned, after some consistency checking.  Otherwise, NULL
    is returned.  */
 VEC(mem_region_s) *target_memory_map (void);
+
+/* Erases all flash memory regions on the target.  */
+void flash_erase_command (char *cmd, int from_tty);
 
 /* Erase the specified flash region.  */
 void target_flash_erase (ULONGEST address, LONGEST length);
@@ -2491,6 +2499,9 @@ extern int target_supports_delete_record (void);
 
 /* See to_delete_record in struct target_ops.  */
 extern void target_delete_record (void);
+
+/* See to_record_method.  */
+extern enum record_method target_record_method (ptid_t ptid);
 
 /* See to_record_is_replaying in struct target_ops.  */
 extern int target_record_is_replaying (ptid_t ptid);

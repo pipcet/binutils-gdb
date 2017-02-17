@@ -1,6 +1,6 @@
 /* ELF executable support for BFD.
 
-   Copyright (C) 1993-2016 Free Software Foundation, Inc.
+   Copyright (C) 1993-2017 Free Software Foundation, Inc.
 
    This file is part of BFD, the Binary File Descriptor library.
 
@@ -1062,7 +1062,7 @@ _bfd_elf_make_section_from_shdr (bfd *abfd,
       if (!bfd_malloc_and_get_section (abfd, newsect, &contents))
 	return FALSE;
 
-      elf_parse_notes (abfd, (char *) contents, hdr->sh_size, -1);
+      elf_parse_notes (abfd, (char *) contents, hdr->sh_size, hdr->sh_offset);
       free (contents);
     }
 
@@ -1271,13 +1271,19 @@ find_link (const bfd * obfd, const Elf_Internal_Shdr * iheader, const unsigned i
   Elf_Internal_Shdr ** oheaders = elf_elfsections (obfd);
   unsigned int i;
 
-  if (section_match (oheaders[hint], iheader))
+  BFD_ASSERT (iheader != NULL);
+
+  /* See PR 20922 for a reproducer of the NULL test.  */
+  if (oheaders[hint] != NULL
+      && section_match (oheaders[hint], iheader))
     return hint;
 
   for (i = 1; i < elf_numsections (obfd); i++)
     {
       Elf_Internal_Shdr * oheader = oheaders[i];
 
+      if (oheader == NULL)
+	continue;
       if (section_match (oheader, iheader))
 	/* FIXME: Do we care if there is a potential for
 	   multiple matches ?  */
@@ -1340,6 +1346,16 @@ copy_special_section_fields (const bfd *ibfd,
      in the input bfd.  */
   if (iheader->sh_link != SHN_UNDEF)
     {
+      /* See PR 20931 for a reproducer.  */
+      if (iheader->sh_link >= elf_numsections (ibfd))
+	{
+	  (* _bfd_error_handler)
+	    /* xgettext:c-format */
+	    (_("%B: Invalid sh_link field (%d) in section number %d"),
+	     ibfd, iheader->sh_link, secnum);
+	  return FALSE;
+	}
+
       sh_link = find_link (obfd, iheaders[iheader->sh_link], iheader->sh_link);
       if (sh_link != SHN_UNDEF)
 	{
@@ -5109,6 +5125,7 @@ assign_file_positions_for_load_sections (bfd *abfd,
   Elf_Internal_Phdr *p;
   file_ptr off;
   bfd_size_type maxpagesize;
+  unsigned int pt_load_count = 0;
   unsigned int alloc;
   unsigned int i, j;
   bfd_vma header_pad = 0;
@@ -5236,6 +5253,7 @@ assign_file_positions_for_load_sections (bfd *abfd,
 	    maxpagesize = m->p_align;
 
 	  p->p_align = maxpagesize;
+	  pt_load_count += 1;
 	}
       else if (m->p_align_valid)
 	p->p_align = m->p_align;
@@ -5287,6 +5305,15 @@ assign_file_positions_for_load_sections (bfd *abfd,
 	      }
 
 	  off_adjust = vma_page_aligned_bias (p->p_vaddr, off, align);
+
+	  /* Broken hardware and/or kernel require that files do not
+	     map the same page with different permissions on some hppa
+	     processors.  */
+	  if (pt_load_count > 1
+	      && bed->no_page_alias
+	      && (off & (maxpagesize - 1)) != 0
+	      && (off & -maxpagesize) == ((off + off_adjust) & -maxpagesize))
+	    off_adjust += maxpagesize;
 	  off += off_adjust;
 	  if (no_contents)
 	    {

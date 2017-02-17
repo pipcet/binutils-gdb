@@ -1,6 +1,6 @@
 /* GNU/Linux native-dependent code common to multiple platforms.
 
-   Copyright (C) 2001-2016 Free Software Foundation, Inc.
+   Copyright (C) 2001-2017 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -4417,9 +4417,8 @@ linux_nat_is_async_p (struct target_ops *ops)
 static int
 linux_nat_can_async_p (struct target_ops *ops)
 {
-  /* NOTE: palves 2008-03-21: We're only async when the user requests
-     it explicitly with the "set target-async" command.
-     Someday, linux will always be async.  */
+  /* We're always async, unless the user explicitly prevented it with the
+     "maint set target-async" command.  */
   return target_async_permitted;
 }
 

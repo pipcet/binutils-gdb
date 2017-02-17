@@ -1,5 +1,5 @@
 /* BFD back-end data structures for ELF files.
-   Copyright (C) 1992-2016 Free Software Foundation, Inc.
+   Copyright (C) 1992-2017 Free Software Foundation, Inc.
    Written by Cygnus Support.
 
    This file is part of BFD, the Binary File Descriptor library.
@@ -467,6 +467,7 @@ enum elf_target_id
   OR1K_ELF_DATA,
   PPC32_ELF_DATA,
   PPC64_ELF_DATA,
+  PRU_ELF_DATA,
   S390_ELF_DATA,
   SH_ELF_DATA,
   SPARC_ELF_DATA,
@@ -596,6 +597,10 @@ struct elf_link_hash_table
   asection *splt;
   asection *spltspace;
   asection *srelplt;
+  asection *sdynbss;
+  asection *srelbss;
+  asection *sdynrelro;
+  asection *sreldynrelro;
   asection *igotplt;
   asection *iplt;
   asection *irelplt;
@@ -1450,11 +1455,16 @@ struct elf_backend_data
   unsigned can_refcount : 1;
   unsigned want_got_sym : 1;
   unsigned want_dynbss : 1;
+  unsigned want_dynrelro : 1;
 
   /* Targets which do not support physical addressing often require
      that the p_paddr field in the section header to be set to zero.
      This field indicates whether this behavior is required.  */
   unsigned want_p_paddr_set_to_zero : 1;
+
+  /* Target has broken hardware and/or kernel that requires pages not
+     to be mapped twice with different permissions.  */
+  unsigned no_page_alias : 1;
 
   /* True if an object file lacking a .note.GNU-stack section
      should be assumed to be requesting exec stack.  At least one

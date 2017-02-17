@@ -1,5 +1,5 @@
 /* dwarf2dbg.c - DWARF2 debug support
-   Copyright (C) 1999-2016 Free Software Foundation, Inc.
+   Copyright (C) 1999-2017 Free Software Foundation, Inc.
    Contributed by David Mosberger-Tang <davidm@hpl.hp.com>
 
    This file is part of GAS, the GNU Assembler.
@@ -121,7 +121,7 @@
 # define DWARF2_USE_FIXED_ADVANCE_PC	linkrelax
 #endif
 
-/* First special line opcde - leave room for the standard opcodes.
+/* First special line opcode - leave room for the standard opcodes.
    Note: If you want to change this, you'll have to update the
    "standard_opcode_lengths" table that is emitted below in
    out_debug_line().  */

@@ -1,6 +1,6 @@
 /* Native-dependent code for GNU/Linux i386.
 
-   Copyright (C) 1999-2016 Free Software Foundation, Inc.
+   Copyright (C) 1999-2017 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -59,7 +59,7 @@
   (I386_ST0_REGNUM <= (regno) && (regno) < I386_SSE_NUM_REGS)
 
 #define GETXSTATEREGS_SUPPLIES(regno) \
-  (I386_ST0_REGNUM <= (regno) && (regno) < I386_AVX512_NUM_REGS)
+  (I386_ST0_REGNUM <= (regno) && (regno) < I386_PKEYS_NUM_REGS)
 
 /* Does the current host support the GETREGS request?  */
 int have_ptrace_getregs =

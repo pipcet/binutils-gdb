@@ -1,5 +1,5 @@
 /* tc-xtensa.c -- Assemble Xtensa instructions.
-   Copyright (C) 2003-2016 Free Software Foundation, Inc.
+   Copyright (C) 2003-2017 Free Software Foundation, Inc.
 
    This file is part of GAS, the GNU Assembler.
 
@@ -1187,7 +1187,7 @@ directive_pop (directiveE *directive,
 
   if (!directive_state_stack)
     {
-      as_bad (_("unmatched end directive"));
+      as_bad (_("unmatched .end directive"));
       *directive = directive_none;
       return;
     }
@@ -11223,7 +11223,7 @@ xtensa_move_literals (void)
 	  /* First, move the frag out of the literal section and
 	     to the appropriate place.  */
 
-	  /* Insert an aligmnent frag at start of pool.  */
+	  /* Insert an alignment frag at start of pool.  */
 	  if (literal_pool->fr_next->fr_type == rs_machine_dependent &&
 	      literal_pool->fr_next->fr_subtype == RELAX_LITERAL_POOL_END)
 	    {

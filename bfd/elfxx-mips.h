@@ -1,5 +1,5 @@
 /* MIPS ELF specific backend routines.
-   Copyright (C) 2002-2016 Free Software Foundation, Inc.
+   Copyright (C) 2002-2017 Free Software Foundation, Inc.
 
    This file is part of BFD, the Binary File Descriptor library.
 
@@ -150,8 +150,8 @@ extern bfd_boolean _bfd_mips_elf_ignore_undef_symbol
   (struct elf_link_hash_entry *);
 extern void _bfd_mips_elf_use_plts_and_copy_relocs
   (struct bfd_link_info *);
-extern void _bfd_mips_elf_insn32
-  (struct bfd_link_info *, bfd_boolean);
+extern void _bfd_mips_elf_linker_flags
+  (struct bfd_link_info *, bfd_boolean, bfd_boolean);
 extern bfd_boolean _bfd_mips_elf_init_stubs
   (struct bfd_link_info *,
    asection *(*) (const char *, asection *, asection *));

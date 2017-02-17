@@ -1,6 +1,6 @@
 /* Cache and manage the values of registers for GDB, the GNU debugger.
 
-   Copyright (C) 1986-2016 Free Software Foundation, Inc.
+   Copyright (C) 1986-2017 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -988,7 +988,8 @@ regcache_xfer_part (struct regcache *regcache, int regnum,
 				   const gdb_byte *buf))
 {
   struct regcache_descr *descr = regcache->descr;
-  gdb_byte reg[MAX_REGISTER_SIZE];
+  struct gdbarch *gdbarch = get_regcache_arch (regcache);
+  gdb_byte *reg = (gdb_byte *) alloca (register_size (gdbarch, regnum));
 
   gdb_assert (offset >= 0 && offset <= descr->sizeof_register[regnum]);
   gdb_assert (len >= 0 && offset + len <= descr->sizeof_register[regnum]);
@@ -1497,14 +1498,11 @@ regcache_print (char *args, enum regcache_dump_what what_to_dump)
     regcache_dump (get_current_regcache (), gdb_stdout, what_to_dump);
   else
     {
-      struct cleanup *cleanups;
-      struct ui_file *file = gdb_fopen (args, "w");
+      stdio_file file;
 
-      if (file == NULL)
+      if (!file.open (args, "w"))
 	perror_with_name (_("maintenance print architecture"));
-      cleanups = make_cleanup_ui_file_delete (file);
-      regcache_dump (get_current_regcache (), file, what_to_dump);
-      do_cleanups (cleanups);
+      regcache_dump (get_current_regcache (), &file, what_to_dump);
     }
 }
 

@@ -1,6 +1,6 @@
 /* Target-dependent definitions for AMD64.
 
-   Copyright (C) 2001-2016 Free Software Foundation, Inc.
+   Copyright (C) 2001-2017 Free Software Foundation, Inc.
    Contributed by Jiri Smid, SuSE Labs.
 
    This file is part of GDB.
@@ -76,13 +76,16 @@ enum amd64_regnum
   AMD64_K0_REGNUM,
   AMD64_K7_REGNUM = AMD64_K0_REGNUM + 7,
   AMD64_ZMM0H_REGNUM,
-  AMD64_ZMM31H_REGNUM = AMD64_ZMM0H_REGNUM + 31
+  AMD64_ZMM31H_REGNUM = AMD64_ZMM0H_REGNUM + 31,
+  AMD64_PKRU_REGNUM,
+  AMD64_FSBASE_REGNUM,
+  AMD64_GSBASE_REGNUM
 };
 
 /* Number of general purpose registers.  */
 #define AMD64_NUM_GREGS		24
 
-#define AMD64_NUM_REGS		(AMD64_ZMM31H_REGNUM + 1)
+#define AMD64_NUM_REGS		(AMD64_GSBASE_REGNUM + 1)
 
 extern struct target_desc *tdesc_amd64;
 

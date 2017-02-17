@@ -1,5 +1,5 @@
 /* readelf.c -- display contents of an ELF format file
-   Copyright (C) 1998-2016 Free Software Foundation, Inc.
+   Copyright (C) 1998-2017 Free Software Foundation, Inc.
 
    Originally developed by Eric Youngdale <eric@andante.jic.com>
    Modifications by Nick Clifton <nickc@redhat.com>
@@ -137,6 +137,7 @@
 #include "elf/pj.h"
 #include "elf/ppc.h"
 #include "elf/ppc64.h"
+#include "elf/pru.h"
 #include "elf/rl78.h"
 #include "elf/rx.h"
 #include "elf/s390.h"
@@ -776,6 +777,7 @@ guess_is_rela (unsigned int e_machine)
     case EM_OR1K:
     case EM_PPC64:
     case EM_PPC:
+    case EM_TI_PRU:
     case EM_RISCV:
     case EM_RL78:
     case EM_RX:
@@ -1482,6 +1484,10 @@ dump_relocations (FILE * file,
 
 	case EM_ALTERA_NIOS2:
 	  rtype = elf_nios2_reloc_type (type);
+	  break;
+
+	case EM_TI_PRU:
+	  rtype = elf_pru_reloc_type (type);
 	  break;
 	}
 
@@ -2370,6 +2376,7 @@ get_machine_name (unsigned e_machine)
     case EM_CSR_KALIMBA:	return "CSR Kalimba architecture family";
     case EM_Z80:		return "Zilog Z80";
     case EM_AMDGPU:		return "AMD GPU architecture";
+    case EM_TI_PRU:		return "TI PRU I/O processor";
     default:
       snprintf (buff, sizeof (buff), _("<unknown>: 0x%x"), e_machine);
       return buff;
@@ -3317,8 +3324,25 @@ get_machine_flags (unsigned e_flags, unsigned e_machine)
 	case EM_RISCV:
 	  if (e_flags & EF_RISCV_RVC)
 	    strcat (buf, ", RVC");
-	  if (e_flags & EF_RISCV_SOFT_FLOAT)
-	    strcat (buf, ", soft-float ABI");
+
+	  switch (e_flags & EF_RISCV_FLOAT_ABI)
+	    {
+	    case EF_RISCV_FLOAT_ABI_SOFT:
+	      strcat (buf, ", soft-float ABI");
+	      break;
+
+	    case EF_RISCV_FLOAT_ABI_SINGLE:
+	      strcat (buf, ", single-float ABI");
+	      break;
+
+	    case EF_RISCV_FLOAT_ABI_DOUBLE:
+	      strcat (buf, ", double-float ABI");
+	      break;
+
+	    case EF_RISCV_FLOAT_ABI_QUAD:
+	      strcat (buf, ", quad-float ABI");
+	      break;
+	    }
 	  break;
 
 	case EM_SH:
@@ -4900,7 +4924,7 @@ process_program_headers (FILE * file)
 		      (segment->p_flags & PF_R ? 'R' : ' '),
 		      (segment->p_flags & PF_W ? 'W' : ' '),
 		      (segment->p_flags & PF_X ? 'E' : ' '));
-	      print_vma (segment->p_align, HEX);
+	      print_vma (segment->p_align, PREFIX_HEX);
 	    }
 
 	  putc ('\n', stdout);
@@ -5691,11 +5715,17 @@ get_elf_section_flags (bfd_vma sh_flags)
 }
 
 static unsigned int
-get_compression_header (Elf_Internal_Chdr *chdr, unsigned char *buf)
+get_compression_header (Elf_Internal_Chdr *chdr, unsigned char *buf, bfd_size_type size)
 {
   if (is_32bit_elf)
     {
       Elf32_External_Chdr *echdr = (Elf32_External_Chdr *) buf;
+
+      if (size < sizeof (* echdr))
+	{
+	  error (_("Compressed section is too small even for a compression header\n"));
+	  return 0;
+	}
 
       chdr->ch_type = BYTE_GET (echdr->ch_type);
       chdr->ch_size = BYTE_GET (echdr->ch_size);
@@ -5705,6 +5735,12 @@ get_compression_header (Elf_Internal_Chdr *chdr, unsigned char *buf)
   else
     {
       Elf64_External_Chdr *echdr = (Elf64_External_Chdr *) buf;
+
+      if (size < sizeof (* echdr))
+	{
+	  error (_("Compressed section is too small even for a compression header\n"));
+	  return 0;
+	}
 
       chdr->ch_type = BYTE_GET (echdr->ch_type);
       chdr->ch_size = BYTE_GET (echdr->ch_size);
@@ -6068,8 +6104,8 @@ process_section_headers (FILE * file)
 		  && (streq (SECTION_NAME (section), ".rel.dyn")
 		      || streq (SECTION_NAME (section), ".rela.dyn")))
 		/* The .rel.dyn and .rela.dyn sections have an sh_info field
-		   of zero.  No idea why.  I would have expected the index
-		   of the .plt section.  */
+		   of zero.  The relocations in these sections may apply
+		   to many different sections.  */
 		   ;
 	      else
 		warn (_("[%2u]: Info field (%u) should index a relocatable section.\n"),
@@ -6287,7 +6323,7 @@ process_section_headers (FILE * file)
 		{
 		  Elf_Internal_Chdr chdr;
 
-		  (void) get_compression_header (&chdr, buf);
+		  (void) get_compression_header (&chdr, buf, sizeof (buf));
 
 		  if (chdr.ch_type == ELFCOMPRESS_ZLIB)
 		    printf ("       ZLIB, ");
@@ -9995,7 +10031,7 @@ process_version_sections (FILE * file)
 			ent.vd_ndx, ent.vd_cnt);
 
 		/* Check for overflow.  */
-		if (ent.vd_aux > (size_t) (endbuf - vstart))
+		if (ent.vd_aux + sizeof (* eaux) > (size_t) (endbuf - vstart))
 		  break;
 
 		vstart += ent.vd_aux;
@@ -11560,16 +11596,32 @@ process_syminfo (FILE * file ATTRIBUTE_UNUSED)
   return 1;
 }
 
+#define IN_RANGE(START,END,ADDR,OFF)		\
+  (((ADDR) >= (START)) && ((ADDR) + (OFF) < (END)))
+
 /* Check to see if the given reloc needs to be handled in a target specific
    manner.  If so then process the reloc and return TRUE otherwise return
-   FALSE.  */
+   FALSE.
+
+   If called with reloc == NULL, then this is a signal that reloc processing
+   for the current section has finished, and any saved state should be
+   discarded.  */
 
 static bfd_boolean
 target_specific_reloc_handling (Elf_Internal_Rela * reloc,
 				unsigned char *     start,
-				Elf_Internal_Sym *  symtab)
+				unsigned char *     end,
+				Elf_Internal_Sym *  symtab,
+				unsigned long       num_syms)
 {
-  unsigned int reloc_type = get_reloc_type (reloc->r_info);
+  unsigned int reloc_type = 0;
+  unsigned long sym_index = 0;
+
+  if (reloc)
+    {
+      reloc_type = get_reloc_type (reloc->r_info);
+      sym_index = get_reloc_symindex (reloc->r_info);
+    }
 
   switch (elf_header.e_machine)
     {
@@ -11578,6 +11630,12 @@ target_specific_reloc_handling (Elf_Internal_Rela * reloc,
       {
 	static Elf_Internal_Sym * saved_sym = NULL;
 
+	if (reloc == NULL)
+	  {
+	    saved_sym = NULL;
+	    return TRUE;
+	  }
+
 	switch (reloc_type)
 	  {
 	  case 10: /* R_MSP430_SYM_DIFF */
@@ -11585,7 +11643,12 @@ target_specific_reloc_handling (Elf_Internal_Rela * reloc,
 	      break;
 	    /* Fall through.  */
 	  case 21: /* R_MSP430X_SYM_DIFF */
-	    saved_sym = symtab + get_reloc_symindex (reloc->r_info);
+	    /* PR 21139.  */
+	    if (sym_index >= num_syms)
+	      error (_("MSP430 SYM_DIFF reloc contains invalid symbol index %lu\n"),
+		     sym_index);
+	    else
+	      saved_sym = symtab + sym_index;
 	    return TRUE;
 
 	  case 1: /* R_MSP430_32 or R_MSP430_ABS32 */
@@ -11607,13 +11670,24 @@ target_specific_reloc_handling (Elf_Internal_Rela * reloc,
 	  handle_sym_diff:
 	    if (saved_sym != NULL)
 	      {
+		int reloc_size = reloc_type == 1 ? 4 : 2;
 		bfd_vma value;
 
-		value = reloc->r_addend
-		  + (symtab[get_reloc_symindex (reloc->r_info)].st_value
-		     - saved_sym->st_value);
+		if (sym_index >= num_syms)
+		  error (_("MSP430 reloc contains invalid symbol index %lu\n"),
+			 sym_index);
+		else
+		  {
+		    value = reloc->r_addend + (symtab[sym_index].st_value
+					       - saved_sym->st_value);
 
-		byte_put (start + reloc->r_offset, value, reloc_type == 1 ? 4 : 2);
+		    if (IN_RANGE (start, end, start + reloc->r_offset, reloc_size))
+		      byte_put (start + reloc->r_offset, value, reloc_size);
+		    else
+		      /* PR 21137 */
+		      error (_("MSP430 sym diff reloc contains invalid offset: 0x%lx\n"),
+			     (long) reloc->r_offset);
+		  }
 
 		saved_sym = NULL;
 		return TRUE;
@@ -11633,24 +11707,45 @@ target_specific_reloc_handling (Elf_Internal_Rela * reloc,
       {
 	static Elf_Internal_Sym * saved_sym = NULL;
 
+	if (reloc == NULL)
+	  {
+	    saved_sym = NULL;
+	    return TRUE;
+	  }
+
 	switch (reloc_type)
 	  {
 	  case 34: /* R_MN10300_ALIGN */
 	    return TRUE;
 	  case 33: /* R_MN10300_SYM_DIFF */
-	    saved_sym = symtab + get_reloc_symindex (reloc->r_info);
+	    if (sym_index >= num_syms)
+	      error (_("MN10300_SYM_DIFF reloc contains invalid symbol index %lu\n"),
+		     sym_index);
+	    else
+	      saved_sym = symtab + sym_index;
 	    return TRUE;
+
 	  case 1: /* R_MN10300_32 */
 	  case 2: /* R_MN10300_16 */
 	    if (saved_sym != NULL)
 	      {
+		int reloc_size = reloc_type == 1 ? 4 : 2;
 		bfd_vma value;
 
-		value = reloc->r_addend
-		  + (symtab[get_reloc_symindex (reloc->r_info)].st_value
-		     - saved_sym->st_value);
+		if (sym_index >= num_syms)
+		  error (_("MN10300 reloc contains invalid symbol index %lu\n"),
+			 sym_index);
+		else
+		  {
+		    value = reloc->r_addend + (symtab[sym_index].st_value
+					       - saved_sym->st_value);
 
-		byte_put (start + reloc->r_offset, value, reloc_type == 1 ? 4 : 2);
+		    if (IN_RANGE (start, end, start + reloc->r_offset, reloc_size))
+		      byte_put (start + reloc->r_offset, value, reloc_size);
+		    else
+		      error (_("MN10300 sym diff reloc contains invalid offset: 0x%lx\n"),
+			     (long) reloc->r_offset);
+		  }
 
 		saved_sym = NULL;
 		return TRUE;
@@ -11670,12 +11765,24 @@ target_specific_reloc_handling (Elf_Internal_Rela * reloc,
 	static bfd_vma saved_sym2 = 0;
 	static bfd_vma value;
 
+	if (reloc == NULL)
+	  {
+	    saved_sym1 = saved_sym2 = 0;
+	    return TRUE;
+	  }
+
 	switch (reloc_type)
 	  {
 	  case 0x80: /* R_RL78_SYM.  */
 	    saved_sym1 = saved_sym2;
-	    saved_sym2 = symtab[get_reloc_symindex (reloc->r_info)].st_value;
-	    saved_sym2 += reloc->r_addend;
+	    if (sym_index >= num_syms)
+	      error (_("RL78_SYM reloc contains invalid symbol index %lu\n"),
+		     sym_index);
+	    else
+	      {
+		saved_sym2 = symtab[sym_index].st_value;
+		saved_sym2 += reloc->r_addend;
+	      }
 	    return TRUE;
 
 	  case 0x83: /* R_RL78_OPsub.  */
@@ -11685,12 +11792,20 @@ target_specific_reloc_handling (Elf_Internal_Rela * reloc,
 	    break;
 
 	  case 0x41: /* R_RL78_ABS32.  */
-	    byte_put (start + reloc->r_offset, value, 4);
+	    if (IN_RANGE (start, end, start + reloc->r_offset, 4))
+	      byte_put (start + reloc->r_offset, value, 4);
+	    else
+	      error (_("RL78 sym diff reloc contains invalid offset: 0x%lx\n"),
+		     (long) reloc->r_offset);
 	    value = 0;
 	    return TRUE;
 
 	  case 0x43: /* R_RL78_ABS16.  */
-	    byte_put (start + reloc->r_offset, value, 2);
+	    if (IN_RANGE (start, end, start + reloc->r_offset, 2))
+	      byte_put (start + reloc->r_offset, value, 2);
+	    else
+	      error (_("RL78 sym diff reloc contains invalid offset: 0x%lx\n"),
+		     (long) reloc->r_offset);
 	    value = 0;
 	    return TRUE;
 
@@ -11731,7 +11846,8 @@ is_32bit_abs_reloc (unsigned int reloc_type)
     case EM_960:
       return reloc_type == 2; /* R_960_32.  */
     case EM_AARCH64:
-      return reloc_type == 258; /* R_AARCH64_ABS32 */
+      return (reloc_type == 258
+	      || reloc_type == 1); /* R_AARCH64_ABS32 || R_AARCH64_P32_ABS32 */
     case EM_ADAPTEVA_EPIPHANY:
       return reloc_type == 3;
     case EM_ALPHA:
@@ -11834,6 +11950,8 @@ is_32bit_abs_reloc (unsigned int reloc_type)
       return reloc_type == 1; /* R_PPC64_ADDR32.  */
     case EM_PPC:
       return reloc_type == 1; /* R_PPC_ADDR32.  */
+    case EM_TI_PRU:
+      return reloc_type == 11; /* R_PRU_BFD_RELOC_32.  */
     case EM_RISCV:
       return reloc_type == 1; /* R_RISCV_32.  */
     case EM_RL78:
@@ -12116,6 +12234,8 @@ is_16bit_abs_reloc (unsigned int reloc_type)
       return reloc_type == 9; /* R_NIOS_16.  */
     case EM_OR1K:
       return reloc_type == 2; /* R_OR1K_16.  */
+    case EM_TI_PRU:
+      return reloc_type == 8; /* R_PRU_BFD_RELOC_16.  */
     case EM_TI_C6000:
       return reloc_type == 2; /* R_C6000_ABS16.  */
     case EM_VISIUM:
@@ -12192,6 +12312,11 @@ is_none_reloc (unsigned int reloc_type)
 	      || reloc_type == 205  /* R_NDS32_DIFF16.  */
 	      || reloc_type == 206  /* R_NDS32_DIFF32.  */
 	      || reloc_type == 207  /* R_NDS32_ULEB128.  */);
+    case EM_TI_PRU:
+      return (reloc_type == 0       /* R_PRU_NONE.  */
+	      || reloc_type == 65   /* R_PRU_DIFF8.  */
+	      || reloc_type == 66   /* R_PRU_DIFF16.  */
+	      || reloc_type == 67   /* R_PRU_DIFF32.  */);
     case EM_XTENSA_OLD:
     case EM_XTENSA:
       return (reloc_type == 0      /* R_XTENSA_NONE.  */
@@ -12306,7 +12431,7 @@ apply_relocations (void *                     file,
 
 	  reloc_type = get_reloc_type (rp->r_info);
 
-	  if (target_specific_reloc_handling (rp, start, symtab))
+	  if (target_specific_reloc_handling (rp, start, end, symtab, num_syms))
 	    continue;
 	  else if (is_none_reloc (reloc_type))
 	    continue;
@@ -12402,6 +12527,9 @@ apply_relocations (void *                     file,
 	}
 
       free (symtab);
+      /* Let the target specific reloc processing code know that
+	 we have finished with these relocs.  */
+      target_specific_reloc_handling (NULL, NULL, NULL, NULL, 0);
 
       if (relocs_return)
 	{
@@ -12530,7 +12658,8 @@ dump_section_as_strings (Elf_Internal_Shdr * section, FILE * file)
 	{
 	  Elf_Internal_Chdr chdr;
 	  unsigned int compression_header_size
-	    = get_compression_header (& chdr, (unsigned char *) start);
+	    = get_compression_header (& chdr, (unsigned char *) start,
+				      num_bytes);
 
 	  if (chdr.ch_type != ELFCOMPRESS_ZLIB)
 	    {
@@ -12565,10 +12694,20 @@ dump_section_as_strings (Elf_Internal_Shdr * section, FILE * file)
 	  new_size -= 12;
 	}
 
-      if (uncompressed_size
-	  && uncompress_section_contents (& start,
-					  uncompressed_size, & new_size))
-	num_bytes = new_size;
+      if (uncompressed_size)
+	{
+	  if (uncompress_section_contents (& start,
+					   uncompressed_size, & new_size))
+	    num_bytes = new_size;
+	  else
+	    {
+	      error (_("Unable to decompress section %s\n"),
+		     printable_section_name (section));
+	      return;
+	    }
+	}
+      else
+	start = real_start;
     }
 
   /* If the section being dumped has relocations against it the user might
@@ -12664,7 +12803,7 @@ dump_section_as_bytes (Elf_Internal_Shdr * section,
 	{
 	  Elf_Internal_Chdr chdr;
 	  unsigned int compression_header_size
-	    = get_compression_header (& chdr, start);
+	    = get_compression_header (& chdr, start, section_size);
 
 	  if (chdr.ch_type != ELFCOMPRESS_ZLIB)
 	    {
@@ -12699,10 +12838,23 @@ dump_section_as_bytes (Elf_Internal_Shdr * section,
 	  new_size -= 12;
 	}
 
-      if (uncompressed_size
-	  && uncompress_section_contents (& start, uncompressed_size,
-					  & new_size))
-	section_size = new_size;
+      if (uncompressed_size)
+	{
+	  if (uncompress_section_contents (& start, uncompressed_size,
+					   & new_size))
+	    {
+	      section_size = new_size;
+	    }
+	  else
+	    {
+	      error (_("Unable to decompress section %s\n"),
+		     printable_section_name (section));
+	      /* FIXME: Print the section anyway ?  */
+	      return;
+	    }
+	}
+      else
+	start = real_start;
     }
 
   if (relocate)
@@ -12817,7 +12969,7 @@ load_specific_debug_section (enum dwarf_section_display_enum debug,
 	      return 0;
 	    }
 
-	  compression_header_size = get_compression_header (&chdr, start);
+	  compression_header_size = get_compression_header (&chdr, start, size);
 
 	  if (chdr.ch_type != ELFCOMPRESS_ZLIB)
 	    {
@@ -12852,15 +13004,24 @@ load_specific_debug_section (enum dwarf_section_display_enum debug,
 	  size -= 12;
 	}
 
-      if (uncompressed_size
-	  && uncompress_section_contents (&start, uncompressed_size,
-					  &size))
+      if (uncompressed_size)
 	{
-	  /* Free the compressed buffer, update the section buffer
-	     and the section size if uncompress is successful.  */
-	  free (section->start);
-	  section->start = start;
+	  if (uncompress_section_contents (&start, uncompressed_size,
+					   &size))
+	    {
+	      /* Free the compressed buffer, update the section buffer
+		 and the section size if uncompress is successful.  */
+	      free (section->start);
+	      section->start = start;
+	    }
+	  else
+	    {
+	      error (_("Unable to decompress section %s\n"),
+		     printable_section_name (sec));
+	      return 0;
+	    }
 	}
+
       section->size = size;
     }
 
@@ -13059,9 +13220,12 @@ process_section_contents (FILE * file)
 
   /* Check to see if the user requested a
      dump of a section that does not exist.  */
-  while (i++ < num_dump_sects)
-    if (dump_sects[i])
-      warn (_("Section %d was not dumped because it does not exist!\n"), i);
+  while (i < num_dump_sects)
+    {
+      if (dump_sects[i])
+	warn (_("Section %d was not dumped because it does not exist!\n"), i);
+      i++;
+    }
 }
 
 static void

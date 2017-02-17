@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script
 dnl
-dnl   Copyright (C) 2012-2016 Free Software Foundation, Inc.
+dnl   Copyright (C) 2012-2017 Free Software Foundation, Inc.
 dnl
 dnl This file is free software; you can redistribute it and/or modify
 dnl it under the terms of the GNU General Public License as published by
@@ -190,7 +190,7 @@ fi
 
 # host-specific stuff:
 
-ALL_LINGUAS="fr sv tr es da vi zh_CN zh_TW ga fi id bg it uk"
+ALL_LINGUAS="fr sv tr es da vi zh_CN zh_TW ga fi id bg it uk sr"
 ZW_GNU_GETTEXT_SISTER_DIR
 AM_PO_SUBDIRS
 
@@ -206,10 +206,6 @@ ACX_PROG_CMP_IGNORE_INITIAL
 . ${srcdir}/configure.host
 
 AC_SUBST(HDEFINES)
-AC_SUBST(HOSTING_CRT0)
-AC_SUBST(HOSTING_SCRT0)
-AC_SUBST(HOSTING_LIBS)
-AC_SUBST(HOSTING_SLIBS)
 AC_SUBST(NATIVE_LIB_DIRS)
 
 AC_CHECK_HEADERS(string.h strings.h stdlib.h unistd.h elf-hints.h limits.h locale.h sys/param.h)

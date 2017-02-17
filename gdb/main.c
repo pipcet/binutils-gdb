@@ -1,6 +1,6 @@
 /* Top level stuff for GDB, the GNU debugger.
 
-   Copyright (C) 1986-2016 Free Software Foundation, Inc.
+   Copyright (C) 1986-2017 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -763,7 +763,7 @@ captured_main_1 (struct captured_main_args *context)
 	    break;
 	  case 'B':
 	    batch_flag = batch_silent = 1;
-	    gdb_stdout = ui_file_new();
+	    gdb_stdout = new null_file ();
 	    break;
 	  case 'D':
 	    if (optarg[0] == '\0')

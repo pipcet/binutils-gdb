@@ -1,4 +1,4 @@
-# Copyright (C) 1989-2016 Free Software Foundation, Inc.
+# Copyright (C) 1989-2017 Free Software Foundation, Inc.
 
 # This file is part of GDB.
 
@@ -460,6 +460,9 @@ SUBDIR_PYTHON_OBS = \
 	py-param.o \
 	py-prettyprint.o \
 	py-progspace.o \
+	py-record.o \
+	py-record-btrace.o \
+	py-record-full.o \
 	py-signalevent.o \
 	py-stopevent.o \
 	py-symbol.o \
@@ -500,6 +503,9 @@ SUBDIR_PYTHON_SRCS = \
 	python/py-param.c \
 	python/py-prettyprint.c \
 	python/py-progspace.c \
+	python/py-record.c \
+	python/py-record-btrace.c \
+	python/py-record-full.c \
 	python/py-signalevent.c \
 	python/py-stopevent.c \
 	python/py-symbol.c \
@@ -817,6 +823,7 @@ ALL_TARGET_OBS = \
 	mep-tdep.o \
 	microblaze-linux-tdep.o \
 	microblaze-tdep.o \
+	mips-fbsd-tdep.o \
 	mips-linux-tdep.o \
 	mips-nbsd-tdep.o \
 	mips-sde-tdep.o \
@@ -873,7 +880,6 @@ ALL_TARGET_OBS = \
 	tilegx-tdep.o \
 	v850-tdep.o \
 	vax-nbsd-tdep.o \
-	vax-obsd-tdep.o \
 	vax-tdep.o \
 	windows-tdep.o \
 	xcoffread.o \
@@ -1039,6 +1045,7 @@ SFILES = \
 	dfp.c \
 	dictionary.c \
 	disasm.c \
+	disasm-selftests.c \
 	doublest.c \
 	dtrace-probe.c \
 	dummy-frame.c \
@@ -1140,6 +1147,7 @@ SFILES = \
 	rust-exp.y \
 	rust-lang.c \
 	selftest.c \
+	selftest-arch.c \
 	sentinel-frame.c \
 	ser-base.c \
 	ser-event.c \
@@ -1296,7 +1304,6 @@ HFILES_NO_SRCDIR = \
 	gdb_expat.h \
 	gdb_obstack.h \
 	gdb_proc_service.h \
-	gdb_ptrace.h \
 	gdb_regex.h \
 	gdb_select.h \
 	gdb-stabs.h \
@@ -1397,6 +1404,7 @@ HFILES_NO_SRCDIR = \
 	rs6000-tdep.h \
 	s390-linux-tdep.h \
 	score-tdep.h \
+	selftest-arch.h \
 	sentinel-frame.h \
 	ser-base.h \
 	ser-event.h \
@@ -1519,6 +1527,7 @@ HFILES_NO_SRCDIR = \
 	nat/aarch64-linux.h \
 	nat/aarch64-linux-hw-point.h \
 	nat/amd64-linux-siginfo.h \
+	nat/gdb_ptrace.h \
 	nat/gdb_thread_db.h \
 	nat/linux-btrace.h \
 	nat/linux-namespaces.h \
@@ -1643,6 +1652,7 @@ COMMON_OBS = $(DEPFILES) $(CONFIG_OBS) $(YYOBJ) \
 	dfp.o \
 	dictionary.o \
 	disasm.o \
+	disasm-selftests.o \
 	doublest.o \
 	dummy-frame.o \
 	dwarf2-frame.o \
@@ -1744,6 +1754,7 @@ COMMON_OBS = $(DEPFILES) $(CONFIG_OBS) $(YYOBJ) \
 	run-time-clock.o \
 	rust-lang.o \
 	selftest.o \
+	selftest-arch.o \
 	sentinel-frame.o \
 	ser-event.o \
 	serial.o \
@@ -1988,8 +1999,8 @@ CHECK_HEADERS = $(HFILES_NO_SRCDIR)
 check-headers:
 	@echo Checking headers.
 	for i in $(CHECK_HEADERS) ; do \
-		$(CC) -x c -c -fsyntax-only $(INTERNAL_CFLAGS) \
-			-include defs.h $(srcdir)/$$i ; \
+		$(CXX) $(CXX_DIALECT) -x c++-header -c -fsyntax-only \
+		$(INTERNAL_CFLAGS) -include defs.h $(srcdir)/$$i ; \
 	done
 .PHONY: check-headers
 
@@ -2541,6 +2552,8 @@ ALLDEPFILES = \
 	microblaze-linux-tdep.c \
 	microblaze-tdep.c \
 	mingw-hdep.c \
+	mips-fbsd-nat.c \
+	mips-fbsd-tdep.c \
 	mips-linux-nat.c \
 	mips-linux-tdep.c \
 	mips-nbsd-nat.c \

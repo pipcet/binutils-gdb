@@ -1,6 +1,6 @@
 /* Python interface to breakpoints
 
-   Copyright (C) 2008-2016 Free Software Foundation, Inc.
+   Copyright (C) 2008-2017 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -485,37 +485,30 @@ bppy_get_commands (PyObject *self, void *closure)
   gdbpy_breakpoint_object *self_bp = (gdbpy_breakpoint_object *) self;
   struct breakpoint *bp = self_bp->bp;
   long length;
-  struct ui_file *string_file;
   PyObject *result;
-  struct cleanup *chain;
 
   BPPY_REQUIRE_VALID (self_bp);
 
   if (! self_bp->bp->commands)
     Py_RETURN_NONE;
 
-  string_file = mem_fileopen ();
-  chain = make_cleanup_ui_file_delete (string_file);
+  string_file stb;
 
-  ui_out_redirect (current_uiout, string_file);
+  current_uiout->redirect (&stb);
   TRY
     {
       print_command_lines (current_uiout, breakpoint_commands (bp), 0);
     }
   CATCH (except, RETURN_MASK_ALL)
     {
-      ui_out_redirect (current_uiout, NULL);
-      do_cleanups (chain);
+      current_uiout->redirect (NULL);
       gdbpy_convert_exception (except);
       return NULL;
     }
   END_CATCH
 
-  ui_out_redirect (current_uiout, NULL);
-  std::string cmdstr = ui_file_as_string (string_file);
-  result = host_string_to_python_string (cmdstr.c_str ());
-  do_cleanups (chain);
-  return result;
+  current_uiout->redirect (NULL);
+  return host_string_to_python_string (stb.c_str ());
 }
 
 /* Python function to get the breakpoint type.  */
@@ -762,28 +755,20 @@ build_bp_list (struct breakpoint *b, void *arg)
 PyObject *
 gdbpy_breakpoints (PyObject *self, PyObject *args)
 {
-  PyObject *list, *tuple;
-
   if (bppy_live == 0)
     return PyTuple_New (0);
 
-  list = PyList_New (0);
-  if (!list)
+  gdbpy_ref<> list (PyList_New (0));
+  if (list == NULL)
     return NULL;
 
   /* If iterate_over_breakpoints returns non NULL it signals an error
      condition.  In that case abandon building the list and return
      NULL.  */
-  if (iterate_over_breakpoints (build_bp_list, list) != NULL)
-    {
-      Py_DECREF (list);
-      return NULL;
-    }
+  if (iterate_over_breakpoints (build_bp_list, list.get ()) != NULL)
+    return NULL;
 
-  tuple = PyList_AsTuple (list);
-  Py_DECREF (list);
-
-  return tuple;
+  return PyList_AsTuple (list.get ());
 }
 
 /* Call the "stop" method (if implemented) in the breakpoint
@@ -799,26 +784,26 @@ gdbpy_breakpoint_cond_says_stop (const struct extension_language_defn *extlang,
   struct gdbpy_breakpoint_object *bp_obj = b->py_bp_object;
   PyObject *py_bp = (PyObject *) bp_obj;
   struct gdbarch *garch;
-  struct cleanup *cleanup;
 
   if (bp_obj == NULL)
     return EXT_LANG_BP_STOP_UNSET;
 
   stop = -1;
   garch = b->gdbarch ? b->gdbarch : get_current_arch ();
-  cleanup = ensure_python_env (garch, current_language);
+
+  gdbpy_enter enter_py (garch, current_language);
 
   if (bp_obj->is_finish_bp)
     bpfinishpy_pre_stop_hook (bp_obj);
 
   if (PyObject_HasAttrString (py_bp, stop_func))
     {
-      PyObject *result = PyObject_CallMethod (py_bp, stop_func, NULL);
+      gdbpy_ref<> result (PyObject_CallMethod (py_bp, stop_func, NULL));
 
       stop = 1;
-      if (result)
+      if (result != NULL)
 	{
-	  int evaluate = PyObject_IsTrue (result);
+	  int evaluate = PyObject_IsTrue (result.get ());
 
 	  if (evaluate == -1)
 	    gdbpy_print_stack ();
@@ -827,8 +812,6 @@ gdbpy_breakpoint_cond_says_stop (const struct extension_language_defn *extlang,
 	     the Python breakpoint wants GDB to continue.  */
 	  if (! evaluate)
 	    stop = 0;
-
-	  Py_DECREF (result);
 	}
       else
 	gdbpy_print_stack ();
@@ -836,8 +819,6 @@ gdbpy_breakpoint_cond_says_stop (const struct extension_language_defn *extlang,
 
   if (bp_obj->is_finish_bp)
     bpfinishpy_post_stop_hook (bp_obj);
-
-  do_cleanups (cleanup);
 
   if (stop < 0)
     return EXT_LANG_BP_STOP_UNSET;
@@ -852,21 +833,17 @@ int
 gdbpy_breakpoint_has_cond (const struct extension_language_defn *extlang,
 			   struct breakpoint *b)
 {
-  int has_func;
   PyObject *py_bp;
   struct gdbarch *garch;
-  struct cleanup *cleanup;
 
   if (b->py_bp_object == NULL)
     return 0;
 
   py_bp = (PyObject *) b->py_bp_object;
   garch = b->gdbarch ? b->gdbarch : get_current_arch ();
-  cleanup = ensure_python_env (garch, current_language);
-  has_func = PyObject_HasAttrString (py_bp, stop_func);
-  do_cleanups (cleanup);
 
-  return has_func;
+  gdbpy_enter enter_py (garch, current_language);
+  return PyObject_HasAttrString (py_bp, stop_func);
 }
 
 
@@ -918,7 +895,6 @@ gdbpy_breakpoint_created (struct breakpoint *bp)
 
   if (!evregpy_no_listeners_p (gdb_py_events.breakpoint_created))
     {
-      Py_INCREF (newbp);
       if (evpy_emit_event ((PyObject *) newbp,
 			   gdb_py_events.breakpoint_created) < 0)
 	gdbpy_print_stack ();
@@ -935,28 +911,23 @@ gdbpy_breakpoint_deleted (struct breakpoint *b)
   int num = b->number;
   PyGILState_STATE state;
   struct breakpoint *bp = NULL;
-  gdbpy_breakpoint_object *bp_obj;
 
   state = PyGILState_Ensure ();
   bp = get_breakpoint (num);
   if (bp)
     {
-      bp_obj = bp->py_bp_object;
-      if (bp_obj)
+      gdbpy_ref<gdbpy_breakpoint_object> bp_obj (bp->py_bp_object);
+      if (bp_obj != NULL)
 	{
 	  if (!evregpy_no_listeners_p (gdb_py_events.breakpoint_deleted))
 	    {
-	      PyObject *bp_obj_alias = (PyObject *) bp_obj;
-
-	      Py_INCREF (bp_obj_alias);
-	      if (evpy_emit_event (bp_obj_alias,
+	      if (evpy_emit_event ((PyObject *) bp_obj.get (),
 				   gdb_py_events.breakpoint_deleted) < 0)
 		gdbpy_print_stack ();
 	    }
 
 	  bp_obj->bp = NULL;
 	  --bppy_live;
-	  Py_DECREF (bp_obj);
 	}
     }
   PyGILState_Release (state);
@@ -981,7 +952,6 @@ gdbpy_breakpoint_modified (struct breakpoint *b)
 	{
 	  if (!evregpy_no_listeners_p (gdb_py_events.breakpoint_modified))
 	    {
-	      Py_INCREF (bp_obj);
 	      if (evpy_emit_event (bp_obj,
 				   gdb_py_events.breakpoint_modified) < 0)
 		gdbpy_print_stack ();

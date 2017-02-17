@@ -1,5 +1,5 @@
 /* ECOFF debugging support.
-   Copyright (C) 1993-2016 Free Software Foundation, Inc.
+   Copyright (C) 1993-2017 Free Software Foundation, Inc.
    Contributed by Cygnus Support.
    This file was put together by Ian Lance Taylor <ian@cygnus.com>.  A
    good deal of it comes directly from mips-tfile.c, by Michael
@@ -185,7 +185,7 @@
 
    Each file table has offsets for where the line numbers, local
    strings, local symbols, and procedure table starts from within the
-   global tables, and the indexs are reset to 0 for each of those
+   global tables, and the indices are reset to 0 for each of those
    tables for the file.
 
    The procedure table contains the binary equivalents of the .ent
@@ -3318,7 +3318,7 @@ mark_stabs (int ignore ATTRIBUTE_UNUSED)
 {
   if (! stabs_seen)
     {
-      /* Add a dummy @stabs dymbol.  */
+      /* Add a dummy @stabs symbol.  */
       stabs_seen = 1;
       (void) add_ecoff_symbol (stabs_symbol, st_Nil, sc_Info,
 			       (symbolS *) NULL,

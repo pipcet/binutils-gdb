@@ -1,5 +1,5 @@
 /* tc-nds32.h -- Header file for tc-nds32.c.
-   Copyright (C) 2012-2016 Free Software Foundation, Inc.
+   Copyright (C) 2012-2017 Free Software Foundation, Inc.
    Contributed by Andes Technology Corporation.
 
    This file is part of GAS.
@@ -168,7 +168,7 @@ struct nds32_frag_type
   relax_substateT flag;
   struct nds32_opcode *opcode;
   uint32_t insn;
-  /* To Save previos label fixup if existence.  */
+  /* To Save previous label fixup if existence.  */
   struct fix *fixup;
 };
 
@@ -252,7 +252,7 @@ typedef struct nds32_cond_field
 
 /* The max relaxation pattern is 20-bytes including the nop.  */
 #define NDS32_MAXCHAR 20
-/* In current, the max entend number of instruction for one pseudo instruction
+/* In current, the max extended number of instruction for one pseudo instruction
    is 4, but its number of relocation may be 12.  */
 #define MAX_RELAX_NUM 4
 #define MAX_RELAX_FIX 12

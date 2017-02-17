@@ -1,5 +1,5 @@
 /* objcopy.c -- copy object file from input to output, optionally massaging it.
-   Copyright (C) 1991-2016 Free Software Foundation, Inc.
+   Copyright (C) 1991-2017 Free Software Foundation, Inc.
 
    This file is part of GNU Binutils.
 
@@ -491,14 +491,14 @@ extern char *program_name;
    -1 means if we should use argv[0] to decide.  */
 extern int is_strip;
 
-/* The maximum length of an S record.  This variable is declared in srec.c
+/* The maximum length of an S record.  This variable is defined in srec.c
    and can be modified by the --srec-len parameter.  */
-extern unsigned int Chunk;
+extern unsigned int _bfd_srec_len;
 
 /* Restrict the generation of Srecords to type S3 only.
-   This variable is declare in bfd/srec.c and can be toggled
+   This variable is defined in bfd/srec.c and can be toggled
    on by the --srec-forceS3 command line switch.  */
-extern bfd_boolean S3Forced;
+extern bfd_boolean _bfd_srec_forceS3;
 
 /* Forward declarations.  */
 static void setup_section (bfd *, asection *, void *);
@@ -3551,7 +3551,10 @@ mark_symbols_used_in_relocations (bfd *ibfd, sec_ptr isection, void *symbolsarg)
      special bfd section symbols, then mark it with BSF_KEEP.  */
   for (i = 0; i < relcount; i++)
     {
-      if (*relpp[i]->sym_ptr_ptr != bfd_com_section_ptr->symbol
+      /* See PRs 20923 and 20930 for reproducers for the NULL tests.  */
+      if (relpp[i]->sym_ptr_ptr != NULL
+	  && * relpp[i]->sym_ptr_ptr != NULL
+	  && *relpp[i]->sym_ptr_ptr != bfd_com_section_ptr->symbol
 	  && *relpp[i]->sym_ptr_ptr != bfd_abs_section_ptr->symbol
 	  && *relpp[i]->sym_ptr_ptr != bfd_und_section_ptr->symbol)
 	(*relpp[i]->sym_ptr_ptr)->flags |= BSF_KEEP;
@@ -4506,11 +4509,11 @@ copy_main (int argc, char *argv[])
 	  break;
 
 	case OPTION_SREC_LEN:
-	  Chunk = parse_vma (optarg, "--srec-len");
+	  _bfd_srec_len = parse_vma (optarg, "--srec-len");
 	  break;
 
 	case OPTION_SREC_FORCES3:
-	  S3Forced = TRUE;
+	  _bfd_srec_forceS3 = TRUE;
 	  break;
 
 	case OPTION_STRIP_SYMBOLS:

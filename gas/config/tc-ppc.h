@@ -1,5 +1,5 @@
 /* tc-ppc.h -- Header file for tc-ppc.c.
-   Copyright (C) 1994-2016 Free Software Foundation, Inc.
+   Copyright (C) 1994-2017 Free Software Foundation, Inc.
    Written by Ian Lance Taylor, Cygnus Support.
 
    This file is part of GAS, the GNU Assembler.
@@ -263,6 +263,9 @@ extern long md_pcrel_from_section (struct fix *, segT);
 
 #define md_parse_name(name, exp, mode, c) ppc_parse_name (name, exp)
 extern int ppc_parse_name (const char *, struct expressionS *);
+
+#define md_optimize_expr(left, op, right) ppc_optimize_expr (left, op, right)
+extern int ppc_optimize_expr (expressionS *, operatorT, expressionS *);
 
 #define md_operand(x)
 

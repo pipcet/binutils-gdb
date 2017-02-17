@@ -1,5 +1,5 @@
 /* NDS32-specific support for 32-bit ELF.
-   Copyright (C) 2012-2016 Free Software Foundation, Inc.
+   Copyright (C) 2012-2017 Free Software Foundation, Inc.
    Contributed by Andes Technology Corporation.
 
    This file is part of BFD, the Binary File Descriptor library.
@@ -8696,8 +8696,8 @@ nds32_elf_relax_delete_blanks (bfd *abfd, asection *sec,
 	      unsigned long before, between;
 	      bfd_byte *endp, *p;
 
-	      val = read_unsigned_leb128 (abfd, contents + irel->r_offset,
-					  &len);
+	      val = _bfd_read_unsigned_leb128 (abfd, contents + irel->r_offset,
+					       &len);
 
 	      before = get_nds32_elf_blank_total (&blank_t, irel->r_addend, 0);
 	      between = get_nds32_elf_blank_total (&blank_t,
@@ -14949,7 +14949,6 @@ nds32_elf_ex9_import_table (struct bfd_link_info *info)
 {
   int num = 0;
   bfd_byte *contents;
-  unsigned long insn;
   FILE *ex9_import_file;
   int update_ex9_table;
   struct elf_nds32_link_hash_table *table;
@@ -14963,6 +14962,7 @@ nds32_elf_ex9_import_table (struct bfd_link_info *info)
   /* Read instructions from the input file and build the list.  */
   while (!feof (ex9_import_file))
     {
+      unsigned long insn;
       char *code;
       struct elf_nds32_insn_times_entry *ptr;
       size_t nread;
@@ -14973,7 +14973,7 @@ nds32_elf_ex9_import_table (struct bfd_link_info *info)
 	break;
       insn = bfd_getb32 (contents);
       code = bfd_malloc (sizeof (char) * 9);
-      snprintf (code, 9, "%08lx", insn);
+      snprintf (code, 9, "%08lx", (insn & 0xffffffff));
       ptr = bfd_malloc (sizeof (struct elf_nds32_insn_times_entry));
       ptr->string = code;
       ptr->order = num;

@@ -1,6 +1,6 @@
 /* Support for GDB maintenance commands.
 
-   Copyright (C) 1992-2016 Free Software Foundation, Inc.
+   Copyright (C) 1992-2017 Free Software Foundation, Inc.
 
    Written by Fred Fish at Cygnus Support.
 
@@ -403,14 +403,11 @@ maintenance_print_architecture (char *args, int from_tty)
     gdbarch_dump (gdbarch, gdb_stdout);
   else
     {
-      struct cleanup *cleanups;
-      struct ui_file *file = gdb_fopen (args, "w");
+      stdio_file file;
 
-      if (file == NULL)
+      if (!file.open (args, "w"))
 	perror_with_name (_("maintenance print architecture"));
-      cleanups = make_cleanup_ui_file_delete (file);
-      gdbarch_dump (gdbarch, file);
-      do_cleanups (cleanups);
+      gdbarch_dump (gdbarch, &file);
     }
 }
 

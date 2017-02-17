@@ -1,6 +1,6 @@
 \input texinfo
 @setfilename ld.info
-@c Copyright (C) 1991-2016 Free Software Foundation, Inc.
+@c Copyright (C) 1991-2017 Free Software Foundation, Inc.
 @syncodeindex ky cp
 @c man begin INCLUDE
 @include configdoc.texi
@@ -55,7 +55,7 @@ This file documents the @sc{gnu} linker LD
 @end ifset
 version @value{VERSION}.
 
-Copyright @copyright{} 1991-2016 Free Software Foundation, Inc.
+Copyright @copyright{} 1991-2017 Free Software Foundation, Inc.
 
 Permission is granted to copy, distribute and/or modify this document
 under the terms of the GNU Free Documentation License, Version 1.3
@@ -92,7 +92,7 @@ section entitled ``GNU Free Documentation License''.
 
 @vskip 0pt plus 1filll
 @c man begin COPYRIGHT
-Copyright @copyright{} 1991-2016 Free Software Foundation, Inc.
+Copyright @copyright{} 1991-2017 Free Software Foundation, Inc.
 
 Permission is granted to copy, distribute and/or modify this document
 under the terms of the GNU Free Documentation License, Version 1.3
@@ -828,6 +828,22 @@ the linker may make more use of this option.  Also currently there is
 no difference in the linker's behaviour for different non-zero values
 of this option.  Again this may change with future releases.
 
+@kindex -plugin @var{name}
+@item -plugin @var{name}
+Involve a plugin in the linking process.  The @var{name} parameter is
+the absolute filename of the plugin.  Usually this parameter is
+automatically added by the complier, when using link time
+optimization, but users can also add their own plugins if they so
+wish.
+
+Note that the location of the compiler originated plugins is different
+from the place where the @command{ar}, @command{nm} and
+@command{ranlib} programs search for their plugins.  In order for
+those commands to make use of a compiler based plugin it must first be
+copied into the @file{$@{libdir@}/bfd-plugins} directory.  All gcc
+based linker plugins are backward compatible, so it is sufficient to
+just copy in the newest one. 
+
 @kindex --push-state
 @cindex push state governing input file handling
 @item --push-state
@@ -1557,6 +1573,18 @@ collection has been enabled via the @samp{--gc-sections}) option.  The
 default behaviour (of not listing the sections that are removed) can
 be restored by specifying @samp{--no-print-gc-sections} on the command
 line.
+
+@kindex --gc-keep-exported
+@cindex garbage collection
+@item --gc-keep-exported
+When @samp{--gc-sections} is enabled, this option prevents garbage
+collection of unused input sections that contain global symbols having
+default or protected visibility.  This option is intended to be used for
+executables where unreferenced sections would otherwise be garbage
+collected regardless of the external visibility of contained symbols.
+Note that this option has no effect when linking shared objects since
+it is already the default behaviour.  This option is only supported for
+ELF format targets.
 
 @kindex --print-output-format
 @cindex output format
@@ -2973,7 +3001,8 @@ Info entry for @file{ld}.
 @c man begin OPTIONS
 
 The following options are supported to control microMIPS instruction
-generation when linking for MIPS targets.
+generation and branch relocation checks for ISA mode transitions when
+linking for MIPS targets.
 
 @table @gcctabopt
 
@@ -2987,6 +3016,20 @@ or in relaxation.  If @samp{--insn32} is used, then the linker only uses
 32-bit instruction encodings.  By default or if @samp{--no-insn32} is
 used, all instruction encodings are used, including 16-bit ones where
 possible.
+
+@kindex --ignore-branch-isa
+@item --ignore-branch-isa
+@kindex --no-ignore-branch-isa
+@itemx --no-ignore-branch-isa
+These options control branch relocation checks for invalid ISA mode
+transitions.  If @samp{--ignore-branch-isa} is used, then the linker
+accepts any branch relocations and any ISA mode transition required
+is lost in relocation calculation, except for some cases of @code{BAL}
+instructions which meet relaxation conditions and are converted to
+equivalent @code{JALX} instructions as the associated relocation is
+calculated.  By default or if @samp{--no-ignore-branch-isa} is used
+a check is made causing the loss of an ISA mode transition to produce
+an error.
 
 @end table
 
@@ -7033,6 +7076,19 @@ in the PLT or lazy binding stubs, or in relaxation.  If @samp{--insn32} is
 used, then the linker only uses 32-bit instruction encodings.  By default
 or if @samp{--no-insn32} is used, all instruction encodings are used,
 including 16-bit ones where possible.
+
+@cindex MIPS branch relocation check control
+@kindex --ignore-branch-isa
+@kindex --no-ignore-branch-isa
+The @samp{--ignore-branch-isa} and @samp{--no-ignore-branch-isa} options
+control branch relocation checks for invalid ISA mode transitions.  If
+@samp{--ignore-branch-isa} is used, then the linker accepts any branch
+relocations and any ISA mode transition required is lost in relocation
+calculation, except for some cases of @code{BAL} instructions which meet
+relaxation conditions and are converted to equivalent @code{JALX}
+instructions as the associated relocation is calculated.  By default
+or if @samp{--no-ignore-branch-isa} is used a check is made causing
+the loss of an ISA mode transition to produce an error.
 
 @ifclear GENERIC
 @lowersections

@@ -1,6 +1,6 @@
 /* tc-aarch64.c -- Assemble for the AArch64 ISA
 
-   Copyright (C) 2009-2016 Free Software Foundation, Inc.
+   Copyright (C) 2009-2017 Free Software Foundation, Inc.
    Contributed by ARM Ltd.
 
    This file is part of GAS.
@@ -138,9 +138,9 @@ static aarch64_instruction inst;
 static bfd_boolean parse_operands (char *, const aarch64_opcode *);
 static bfd_boolean programmer_friendly_fixup (aarch64_instruction *);
 
-/* Diagnostics inline function utilites.
+/* Diagnostics inline function utilities.
 
-   These are lightweight utlities which should only be called by parse_operands
+   These are lightweight utilities which should only be called by parse_operands
    and other parsers.  GAS processes each assembly line by parsing it against
    instruction template(s), in the case of multiple templates (for the same
    mnemonic name), those templates are tried one by one until one succeeds or
@@ -151,7 +151,7 @@ static bfd_boolean programmer_friendly_fixup (aarch64_instruction *);
    the parsing; we don't want to slow down the whole parsing by recording
    non-user errors in detail.
 
-   Remember that the objective is to help GAS pick up the most approapriate
+   Remember that the objective is to help GAS pick up the most appropriate
    error message in the case of multiple templates, e.g. FMOV which has 8
    templates.  */
 
@@ -266,7 +266,6 @@ struct reloc_entry
   BASIC_REG_TYPE(FP_S)	/* s[0-31] */	\
   BASIC_REG_TYPE(FP_D)	/* d[0-31] */	\
   BASIC_REG_TYPE(FP_Q)	/* q[0-31] */	\
-  BASIC_REG_TYPE(CN)	/* c[0-7]  */	\
   BASIC_REG_TYPE(VN)	/* v[0-31] */	\
   BASIC_REG_TYPE(ZN)	/* z[0-31] */	\
   BASIC_REG_TYPE(PN)	/* p[0-15] */	\
@@ -406,9 +405,6 @@ get_reg_expected_msg (aarch64_reg_type reg_type)
     case REG_TYPE_FP_Q:
       msg = N_("128-bit SIMD scalar or floating-point quad precision "
 	       "register expected");
-      break;
-    case REG_TYPE_CN:
-      msg = N_("C0 - C15 expected");
       break;
     case REG_TYPE_R_Z_BHSDQ_V:
     case REG_TYPE_R_Z_BHSDQ_VZP:
@@ -976,7 +972,7 @@ parse_typed_reg (char **ccp, aarch64_reg_type type, aarch64_reg_type *rtype,
 	/* Expect index. In the new scheme we cannot have
 	   Vn.[bhsdq] represent a scalar. Therefore any
 	   Vn.[bhsdq] should have an index following it.
-	   Except in reglists ofcourse.  */
+	   Except in reglists of course.  */
 	atype.defined |= NTA_HASINDEX;
       else
 	atype.defined |= NTA_HASTYPE;
@@ -1748,7 +1744,7 @@ add_to_lit_pool (expressionS *exp, int size)
 }
 
 /* Can't use symbol_new here, so have to create a symbol and then at
-   a later date assign it a value. Thats what these functions do.  */
+   a later date assign it a value. That's what these functions do.  */
 
 static void
 symbol_locate (symbolS * symbolP,
@@ -2402,7 +2398,7 @@ aarch64_gas_internal_fixup_p (void)
   return inst.reloc.type == BFD_RELOC_AARCH64_GAS_INTERNAL_FIXUP;
 }
 
-/* Assign the immediate value to the relavant field in *OPERAND if
+/* Assign the immediate value to the relevant field in *OPERAND if
    RELOC->EXP is a constant expression; otherwise, flag that *OPERAND
    needs an internal fixup in a later stage.
    ADDR_OFF_P determines whether it is the field ADDR.OFFSET.IMM or
@@ -2690,7 +2686,7 @@ static struct reloc_table_entry reloc_table[] = {
   /* Get to the page containing GOT TLS entry for a symbol.
      The same as GD, we allocate two consecutive GOT slots
      for module index and module offset, the only difference
-     with GD is the module offset should be intialized to
+     with GD is the module offset should be initialized to
      zero without any outstanding runtime relocation. */
   {"tlsldm", 0,
    BFD_RELOC_AARCH64_TLSLD_ADR_PREL21, /* adr_type */
@@ -4207,7 +4203,7 @@ reset_aarch64_instruction (aarch64_instruction *instruction)
   instruction->reloc.type = BFD_RELOC_UNUSED;
 }
 
-/* Data strutures storing one user error in the assembly code related to
+/* Data structures storing one user error in the assembly code related to
    operands.  */
 
 struct operand_error_record
@@ -4438,7 +4434,7 @@ find_best_match (const aarch64_inst *instr,
   return idx;
 }
 
-/* Assign qualifiers in the qualifier seqence (headed by QUALIFIERS) to the
+/* Assign qualifiers in the qualifier sequence (headed by QUALIFIERS) to the
    corresponding operands in *INSTR.  */
 
 static inline void
@@ -4688,7 +4684,7 @@ output_operand_error_record (const operand_error_record *record, char *str)
 
    When this function is called, the operand error information had
    been collected for an assembly line and there will be multiple
-   errors in the case of mulitple instruction templates; output the
+   errors in the case of multiple instruction templates; output the
    error message that most closely describes the problem.  */
 
 static void
@@ -4717,7 +4713,7 @@ output_operand_error_report (char *str)
     }
 
   /* Find the error kind of the highest severity.  */
-  DEBUG_TRACE ("multiple opcode entres with error kind");
+  DEBUG_TRACE ("multiple opcode entries with error kind");
   kind = AARCH64_OPDE_NIL;
   for (curr = head; curr != NULL; curr = curr->next)
     {
@@ -5137,7 +5133,7 @@ process_movw_reloc_info (void)
   return TRUE;
 }
 
-/* A primitive log caculator.  */
+/* A primitive log calculator.  */
 
 static inline unsigned int
 get_logsz (unsigned int size)
@@ -5207,7 +5203,7 @@ ldst_lo12_determine_real_reloc_type (void)
     gas_assert (logsz <= 4);
 
   /* In reloc.c, these pseudo relocation types should be defined in similar
-     order as above reloc_ldst_lo12 array. Because the array index calcuation
+     order as above reloc_ldst_lo12 array. Because the array index calculation
      below relies on this.  */
   return reloc_ldst_lo12[inst.reloc.type - BFD_RELOC_AARCH64_LDST_LO12][logsz];
 }
@@ -5287,7 +5283,7 @@ parse_operands (char *str, const aarch64_opcode *opcode)
 	  backtrack_pos = str;
 	}
 
-      /* Expect comma between operands; the backtrack mechanizm will take
+      /* Expect comma between operands; the backtrack mechanism will take
 	 care of cases of omitted optional operand.  */
       if (i > 0 && ! skip_past_char (&str, ','))
 	{
@@ -5520,16 +5516,23 @@ parse_operands (char *str, const aarch64_opcode *opcode)
 	    goto failure;
 	  break;
 
-	case AARCH64_OPND_Cn:
-	case AARCH64_OPND_Cm:
-	  po_reg_or_fail (REG_TYPE_CN);
-	  if (val > 15)
+	case AARCH64_OPND_CRn:
+	case AARCH64_OPND_CRm:
 	    {
-	      set_fatal_syntax_error (_(get_reg_expected_msg (REG_TYPE_CN)));
-	      goto failure;
+	      char prefix = *(str++);
+	      if (prefix != 'c' && prefix != 'C')
+		goto failure;
+
+	      po_imm_nc_or_fail ();
+	      if (val > 15)
+		{
+		  set_fatal_syntax_error (_(N_ ("C0 - C15 expected")));
+		  goto failure;
+		}
+	      info->qualifier = AARCH64_OPND_QLF_CR;
+	      info->imm.value = val;
+	      break;
 	    }
-	  inst.base.operands[i].reg.regno = val;
-	  break;
 
 	case AARCH64_OPND_SHLL_IMM:
 	case AARCH64_OPND_IMM_VLSR:
@@ -6780,9 +6783,6 @@ static const reg_entry reg_names[] = {
   REGDEF (wzr, 31, Z_32), REGDEF (WZR, 31, Z_32),
   REGDEF (xzr, 31, Z_64), REGDEF (XZR, 31, Z_64),
 
-  /* Coprocessor register numbers.  */
-  REGSET (c, CN), REGSET (C, CN),
-
   /* Floating-point single precision registers.  */
   REGSET (s, FP_S), REGSET (S, FP_S),
 
@@ -6952,7 +6952,7 @@ aarch64_handle_align (fragS * fragP)
    Note - despite the name this initialisation is not done when the frag
    is created, but only when its type is assigned.  A frag can be created
    and used a long time before its type is set, so beware of assuming that
-   this initialisationis performed first.  */
+   this initialisation is performed first.  */
 
 #ifndef OBJ_ELF
 void
@@ -8438,6 +8438,8 @@ static const struct aarch64_option_cpu_value_table aarch64_features[] = {
   {"sve",		AARCH64_FEATURE (AARCH64_FEATURE_SVE, 0),
 			AARCH64_FEATURE (AARCH64_FEATURE_FP
 					 | AARCH64_FEATURE_SIMD, 0)},
+  {"rcpc",		AARCH64_FEATURE (AARCH64_FEATURE_RCPC, 0),
+			AARCH64_ARCH_NONE},
   {NULL,		AARCH64_ARCH_NONE, AARCH64_ARCH_NONE},
 };
 

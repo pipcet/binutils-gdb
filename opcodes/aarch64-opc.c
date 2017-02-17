@@ -1,5 +1,5 @@
 /* aarch64-opc.c -- AArch64 opcode support.
-   Copyright (C) 2009-2016 Free Software Foundation, Inc.
+   Copyright (C) 2009-2017 Free Software Foundation, Inc.
    Contributed by ARM Ltd.
 
    This file is part of the GNU opcodes library.
@@ -711,6 +711,7 @@ struct operand_qualifier_data aarch64_opnd_qualifiers[] =
      First 3 fields:
      Lower bound, higher bound, unused.  */
 
+  {0, 15, 0, "CR",       OQK_VALUE_IN_RANGE},
   {0,  7, 0, "imm_0_7" , OQK_VALUE_IN_RANGE},
   {0, 15, 0, "imm_0_15", OQK_VALUE_IN_RANGE},
   {0, 31, 0, "imm_0_31", OQK_VALUE_IN_RANGE},
@@ -2418,16 +2419,6 @@ operand_general_constraint_met_p (const aarch64_opnd_info *opnds, int idx,
 	}
       break;
 
-    case AARCH64_OPND_CLASS_CP_REG:
-      /* Cn or Cm: 4-bit opcode field named for historical reasons.
-	 valid range: C0 - C15.  */
-      if (opnd->reg.regno > 15)
-	{
-	  set_regno_out_of_range_error (mismatch_detail, idx, 0, 15);
-	  return 0;
-	}
-      break;
-
     case AARCH64_OPND_CLASS_SYSTEM:
       switch (type)
 	{
@@ -2874,7 +2865,8 @@ print_register_list (char *buf, size_t size, const aarch64_opnd_info *opnd,
 
   /* Prepare the index if any.  */
   if (opnd->reglist.has_index)
-    snprintf (tb, 8, "[%" PRIi64 "]", opnd->reglist.index);
+    /* PR 21096: The %100 is to silence a warning about possible truncation.  */
+    snprintf (tb, 8, "[%" PRIi64 "]", (opnd->reglist.index % 100));
   else
     tb[0] = '\0';
 
@@ -2974,7 +2966,8 @@ print_register_offset_address (char *buf, size_t size,
     {
       if (print_amount_p)
 	snprintf (tb, sizeof (tb), ", %s #%" PRIi64, shift_name,
-		  opnd->shifter.amount);
+  /* PR 21096: The %100 is to silence a warning about possible truncation.  */
+		  (opnd->shifter.amount % 100));
       else
 	snprintf (tb, sizeof (tb), ", %s", shift_name);
     }
@@ -3187,9 +3180,9 @@ aarch64_print_operand (char *buf, size_t size, bfd_vma pc,
 		opnd->reglane.index);
       break;
 
-    case AARCH64_OPND_Cn:
-    case AARCH64_OPND_Cm:
-      snprintf (buf, size, "C%d", opnd->reg.regno);
+    case AARCH64_OPND_CRn:
+    case AARCH64_OPND_CRm:
+      snprintf (buf, size, "C%" PRIi64, opnd->imm.value);
       break;
 
     case AARCH64_OPND_IDX:
@@ -3677,6 +3670,7 @@ const aarch64_sys_reg aarch64_sys_regs [] =
   { "id_aa64mmfr2_el1", CPENC (3, 0, C0, C7, 2), F_ARCHEXT }, /* RO */
   { "id_aa64afr0_el1",  CPENC(3,0,C0,C5,4),	0 }, /* RO */
   { "id_aa64afr1_el1",  CPENC(3,0,C0,C5,5),	0 }, /* RO */
+  { "id_aa64zfr0_el1",  CPENC (3, 0, C0, C4, 4), F_ARCHEXT }, /* RO */
   { "clidr_el1",        CPENC(3,1,C0,C0,1),	0 }, /* RO */
   { "csselr_el1",       CPENC(3,2,C0,C0,0),	0 }, /* RO */
   { "vpidr_el2",        CPENC(3,4,C0,C0,0),	0 },
@@ -3698,6 +3692,11 @@ const aarch64_sys_reg aarch64_sys_regs [] =
   { "mdcr_el3",         CPENC(3,6,C1,C3,1),	0 },
   { "hstr_el2",         CPENC(3,4,C1,C1,3),	0 },
   { "hacr_el2",         CPENC(3,4,C1,C1,7),	0 },
+  { "zcr_el1",          CPENC (3, 0, C1, C2, 0), F_ARCHEXT },
+  { "zcr_el12",         CPENC (3, 5, C1, C2, 0), F_ARCHEXT },
+  { "zcr_el2",          CPENC (3, 4, C1, C2, 0), F_ARCHEXT },
+  { "zcr_el3",          CPENC (3, 6, C1, C2, 0), F_ARCHEXT },
+  { "zidr_el1",         CPENC (3, 0, C0, C0, 7), F_ARCHEXT },
   { "ttbr0_el1",        CPENC(3,0,C2,C0,0),	0 },
   { "ttbr1_el1",        CPENC(3,0,C2,C0,1),	0 },
   { "ttbr0_el2",        CPENC(3,4,C2,C0,0),	0 },
@@ -4109,6 +4108,16 @@ aarch64_sys_reg_supported_p (const aarch64_feature_set features,
        || reg->value == CPENC (3, 0, C2, C3, 0)
        || reg->value == CPENC (3, 0, C2, C3, 1))
       && !AARCH64_CPU_HAS_FEATURE (features, AARCH64_FEATURE_V8_3))
+    return FALSE;
+
+  /* SVE.  */
+  if ((reg->value == CPENC (3, 0, C0, C4, 4)
+       || reg->value == CPENC (3, 0, C1, C2, 0)
+       || reg->value == CPENC (3, 4, C1, C2, 0)
+       || reg->value == CPENC (3, 6, C1, C2, 0)
+       || reg->value == CPENC (3, 5, C1, C2, 0)
+       || reg->value == CPENC (3, 0, C0, C0, 7))
+      && !AARCH64_CPU_HAS_FEATURE (features, AARCH64_FEATURE_SVE))
     return FALSE;
 
   return TRUE;

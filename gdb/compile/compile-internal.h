@@ -1,5 +1,5 @@
 /* Header file for GDB compile command and supporting functions.
-   Copyright (C) 2014-2016 Free Software Foundation, Inc.
+   Copyright (C) 2014-2017 Free Software Foundation, Inc.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -135,7 +135,7 @@ extern struct compile_instance *new_compile_instance (struct gcc_c_context *fe);
 
 extern unsigned char *generate_c_for_variable_locations
      (struct compile_c_instance *compiler,
-      struct ui_file *stream,
+      string_file &stream,
       struct gdbarch *gdbarch,
       const struct block *block,
       CORE_ADDR pc);

@@ -1,6 +1,6 @@
 /* Intel 386 target-dependent stuff.
 
-   Copyright (C) 1988-2016 Free Software Foundation, Inc.
+   Copyright (C) 1988-2017 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -54,7 +54,8 @@
 #include "features/i386/i386-avx.c"
 #include "features/i386/i386-mpx.c"
 #include "features/i386/i386-avx-mpx.c"
-#include "features/i386/i386-avx512.c"
+#include "features/i386/i386-avx-avx512.c"
+#include "features/i386/i386-avx-mpx-avx512-pku.c"
 #include "features/i386/i386-mmx.c"
 
 #include "ax.h"
@@ -118,6 +119,11 @@ static const char *i386_ymmh_names[] =
 static const char *i386_mpx_names[] =
 {
   "bnd0raw", "bnd1raw", "bnd2raw", "bnd3raw", "bndcfgu", "bndstatus"
+};
+
+static const char* i386_pkeys_names[] =
+{
+  "pkru"
 };
 
 /* Register names for MPX pseudo-registers.  */
@@ -412,6 +418,21 @@ i386_mpx_ctrl_regnum_p (struct gdbarch *gdbarch, int regnum)
 
   regnum -= I387_BNDCFGU_REGNUM (tdep);
   return regnum >= 0 && regnum < I387_NUM_MPX_CTRL_REGS;
+}
+
+/* PKRU register?  */
+
+bool
+i386_pkru_regnum_p (struct gdbarch *gdbarch, int regnum)
+{
+  struct gdbarch_tdep *tdep = gdbarch_tdep (gdbarch);
+  int pkru_regnum = tdep->pkru_regnum;
+
+  if (pkru_regnum < 0)
+    return false;
+
+  regnum -= pkru_regnum;
+  return regnum >= 0 && regnum < I387_NUM_PKEYS_REGS;
 }
 
 /* Return the name of register REGNUM, or the empty string if it is
@@ -4528,7 +4549,7 @@ i386_register_reggroup_p (struct gdbarch *gdbarch, int regnum,
       ymm_regnum_p, ymmh_regnum_p, ymm_avx512_regnum_p, ymmh_avx512_regnum_p,
       bndr_regnum_p, bnd_regnum_p, k_regnum_p, zmm_regnum_p, zmmh_regnum_p,
       zmm_avx512_regnum_p, mpx_ctrl_regnum_p, xmm_avx512_regnum_p,
-      avx512_p, avx_p, sse_p;
+      avx512_p, avx_p, sse_p, pkru_regnum_p;
 
   /* Don't include pseudo registers, except for MMX, in any register
      groups.  */
@@ -4545,6 +4566,7 @@ i386_register_reggroup_p (struct gdbarch *gdbarch, int regnum,
   if (group == i386_mmx_reggroup)
     return mmx_regnum_p;
 
+  pkru_regnum_p = i386_pkru_regnum_p(gdbarch, regnum);
   xmm_regnum_p = i386_xmm_regnum_p (gdbarch, regnum);
   xmm_avx512_regnum_p = i386_xmm_avx512_regnum_p (gdbarch, regnum);
   mxcsr_regnum_p = i386_mxcsr_regnum_p (gdbarch, regnum);
@@ -4555,11 +4577,11 @@ i386_register_reggroup_p (struct gdbarch *gdbarch, int regnum,
   ymm_avx512_regnum_p = i386_ymm_avx512_regnum_p (gdbarch, regnum);
   zmm_regnum_p = i386_zmm_regnum_p (gdbarch, regnum);
 
-  avx512_p = ((tdep->xcr0 & X86_XSTATE_AVX512_MASK)
-	      == X86_XSTATE_AVX512_MASK);
-  avx_p = ((tdep->xcr0 & X86_XSTATE_AVX512_MASK)
+  avx512_p = ((tdep->xcr0 & X86_XSTATE_AVX_AVX512_MASK)
+	      == X86_XSTATE_AVX_AVX512_MASK);
+  avx_p = ((tdep->xcr0 & X86_XSTATE_AVX_AVX512_MASK)
 	   == X86_XSTATE_AVX_MASK) && !avx512_p;
-  sse_p = ((tdep->xcr0 & X86_XSTATE_AVX512_MASK)
+  sse_p = ((tdep->xcr0 & X86_XSTATE_AVX_AVX512_MASK)
 	   == X86_XSTATE_SSE_MASK) && !avx512_p && ! avx_p;
 
   if (group == vector_reggroup)
@@ -4616,7 +4638,8 @@ i386_register_reggroup_p (struct gdbarch *gdbarch, int regnum,
 	    && !bnd_regnum_p
 	    && !mpx_ctrl_regnum_p
 	    && !zmm_regnum_p
-	    && !zmmh_regnum_p);
+	    && !zmmh_regnum_p
+	    && !pkru_regnum_p);
 
   return default_register_reggroup_p (gdbarch, regnum, group);
 }
@@ -5501,14 +5524,36 @@ i386_process_record (struct gdbarch *gdbarch, struct regcache *regcache,
       I386_RECORD_FULL_ARCH_LIST_ADD_REG (X86_RECORD_EFLAGS_REGNUM);
       break;
 
-    case 0x0fc7:    /* cmpxchg8b */
+    case 0x0fc7:    /* cmpxchg8b / rdrand / rdseed */
       if (i386_record_modrm (&ir))
 	return -1;
       if (ir.mod == 3)
 	{
-	  ir.addr -= 2;
-	  opcode = opcode << 8 | ir.modrm;
-	  goto no_support;
+	  /* rdrand and rdseed use the 3 bits of the REG field of ModR/M as
+	     an extended opcode.  rdrand has bits 110 (/6) and rdseed
+	     has bits 111 (/7).  */
+	  if (ir.reg == 6 || ir.reg == 7)
+	    {
+	      /* The storage register is described by the 3 R/M bits, but the
+		 REX.B prefix may be used to give access to registers
+		 R8~R15.  In this case ir.rex_b + R/M will give us the register
+		 in the range R8~R15.
+
+		 REX.W may also be used to access 64-bit registers, but we
+		 already record entire registers and not just partial bits
+		 of them.  */
+	      I386_RECORD_FULL_ARCH_LIST_ADD_REG (ir.rex_b + ir.rm);
+	      /* These instructions also set conditional bits.  */
+	      I386_RECORD_FULL_ARCH_LIST_ADD_REG (X86_RECORD_EFLAGS_REGNUM);
+	      break;
+	    }
+	  else
+	    {
+	      /* We don't handle this particular instruction yet.  */
+	      ir.addr -= 2;
+	      opcode = opcode << 8 | ir.modrm;
+	      goto no_support;
+	    }
 	}
       I386_RECORD_FULL_ARCH_LIST_ADD_REG (X86_RECORD_REAX_REGNUM);
       I386_RECORD_FULL_ARCH_LIST_ADD_REG (X86_RECORD_REDX_REGNUM);
@@ -8110,7 +8155,6 @@ i386_fast_tracepoint_valid_at (struct gdbarch *gdbarch, CORE_ADDR addr,
 			       char **msg)
 {
   int len, jumplen;
-  static struct ui_file *gdb_null = NULL;
 
   /*  Ask the target for the minimum instruction length supported.  */
   jumplen = target_get_min_fast_tracepoint_insn_len ();
@@ -8133,12 +8177,8 @@ i386_fast_tracepoint_valid_at (struct gdbarch *gdbarch, CORE_ADDR addr,
       jumplen = (register_size (gdbarch, 0) == 8) ? 5 : 4;
     }
 
-  /* Dummy file descriptor for the disassembler.  */
-  if (!gdb_null)
-    gdb_null = ui_file_new ();
-
   /* Check for fit.  */
-  len = gdb_print_insn (gdbarch, addr, gdb_null, NULL);
+  len = gdb_insn_length (gdbarch, addr);
 
   if (len < jumplen)
     {
@@ -8183,7 +8223,7 @@ i386_validate_tdesc_p (struct gdbarch_tdep *tdep,
   const struct tdesc_feature *feature_core;
 
   const struct tdesc_feature *feature_sse, *feature_avx, *feature_mpx,
-			     *feature_avx512;
+			     *feature_avx512, *feature_pkeys;
   int i, num_regs, valid_p;
 
   if (! tdesc_has_registers (tdesc))
@@ -8206,6 +8246,9 @@ i386_validate_tdesc_p (struct gdbarch_tdep *tdep,
   /* Try AVX512 registers.  */
   feature_avx512 = tdesc_find_feature (tdesc, "org.gnu.gdb.i386.avx512");
 
+  /* Try PKEYS  */
+  feature_pkeys = tdesc_find_feature (tdesc, "org.gnu.gdb.i386.pkeys");
+
   valid_p = 1;
 
   /* The XCR0 bits.  */
@@ -8215,7 +8258,7 @@ i386_validate_tdesc_p (struct gdbarch_tdep *tdep,
       if (!feature_avx)
 	return 0;
 
-      tdep->xcr0 = X86_XSTATE_MPX_AVX512_MASK;
+      tdep->xcr0 = X86_XSTATE_AVX_AVX512_MASK;
 
       /* It may have been set by OSABI initialization function.  */
       if (tdep->k0_regnum < 0)
@@ -8310,6 +8353,22 @@ i386_validate_tdesc_p (struct gdbarch_tdep *tdep,
 	valid_p &= tdesc_numbered_register (feature_mpx, tdesc_data,
 	    I387_BND0R_REGNUM (tdep) + i,
 	    tdep->mpx_register_names[i]);
+    }
+
+  if (feature_pkeys)
+    {
+      tdep->xcr0 |= X86_XSTATE_PKRU;
+      if (tdep->pkru_regnum < 0)
+	{
+	  tdep->pkeys_register_names = i386_pkeys_names;
+	  tdep->pkru_regnum = I386_PKRU_REGNUM;
+	  tdep->num_pkeys_regs = 1;
+	}
+
+      for (i = 0; i < I387_NUM_PKEYS_REGS; i++)
+	valid_p &= tdesc_numbered_register (feature_pkeys, tdesc_data,
+					    I387_PKRU_REGNUM (tdep) + i,
+					    tdep->pkeys_register_names[i]);
     }
 
   return valid_p;
@@ -8507,7 +8566,7 @@ i386_gdbarch_init (struct gdbarch_info info, struct gdbarch_list *arches)
   /* Even though the default ABI only includes general-purpose registers,
      floating-point registers and the SSE registers, we have to leave a
      gap for the upper AVX, MPX and AVX512 registers.  */
-  set_gdbarch_num_regs (gdbarch, I386_AVX512_NUM_REGS);
+  set_gdbarch_num_regs (gdbarch, I386_PKEYS_NUM_REGS);
 
   set_gdbarch_gnu_triplet_regexp (gdbarch, i386_gnu_triplet_regexp);
 
@@ -8551,6 +8610,10 @@ i386_gdbarch_init (struct gdbarch_info info, struct gdbarch_list *arches)
   tdep->num_zmm_regs = 0;
   tdep->num_ymm_avx512_regs = 0;
   tdep->num_xmm_avx512_regs = 0;
+
+  /* No PKEYS registers  */
+  tdep->pkru_regnum = -1;
+  tdep->num_pkeys_regs = 0;
 
   tdesc_data = tdesc_data_alloc ();
 
@@ -8690,9 +8753,10 @@ i386_target_description (uint64_t xcr0)
 {
   switch (xcr0 & X86_XSTATE_ALL_MASK)
     {
-    case X86_XSTATE_MPX_AVX512_MASK:
-    case X86_XSTATE_AVX512_MASK:
-      return tdesc_i386_avx512;
+    case X86_XSTATE_AVX_MPX_AVX512_PKU_MASK:
+      return tdesc_i386_avx_mpx_avx512_pku;
+    case X86_XSTATE_AVX_AVX512_MASK:
+      return tdesc_i386_avx_avx512;
     case X86_XSTATE_AVX_MPX_MASK:
       return tdesc_i386_avx_mpx;
     case X86_XSTATE_MPX_MASK:
@@ -8810,22 +8874,22 @@ i386_mpx_print_bounds (const CORE_ADDR bt_entry[4])
 
   if (bounds_in_map == 1)
     {
-      ui_out_text (uiout, "Null bounds on map:");
-      ui_out_text (uiout, " pointer value = ");
-      ui_out_field_core_addr (uiout, "pointer-value", gdbarch, bt_entry[2]);
-      ui_out_text (uiout, ".");
-      ui_out_text (uiout, "\n");
+      uiout->text ("Null bounds on map:");
+      uiout->text (" pointer value = ");
+      uiout->field_core_addr ("pointer-value", gdbarch, bt_entry[2]);
+      uiout->text (".");
+      uiout->text ("\n");
     }
   else
     {
-      ui_out_text (uiout, "{lbound = ");
-      ui_out_field_core_addr (uiout, "lower-bound", gdbarch, bt_entry[0]);
-      ui_out_text (uiout, ", ubound = ");
+      uiout->text ("{lbound = ");
+      uiout->field_core_addr ("lower-bound", gdbarch, bt_entry[0]);
+      uiout->text (", ubound = ");
 
       /* The upper bound is stored in 1's complement.  */
-      ui_out_field_core_addr (uiout, "upper-bound", gdbarch, ~bt_entry[1]);
-      ui_out_text (uiout, "}: pointer value = ");
-      ui_out_field_core_addr (uiout, "pointer-value", gdbarch, bt_entry[2]);
+      uiout->field_core_addr ("upper-bound", gdbarch, ~bt_entry[1]);
+      uiout->text ("}: pointer value = ");
+      uiout->field_core_addr ("pointer-value", gdbarch, bt_entry[2]);
 
       if (gdbarch_ptr_bit (gdbarch) == 64)
 	size = ( (~(int64_t) bt_entry[1]) - (int64_t) bt_entry[0]);
@@ -8837,12 +8901,12 @@ i386_mpx_print_bounds (const CORE_ADDR bt_entry[4])
 	 one to the size.  */
 
       size = (size > -1 ? size + 1 : size);
-      ui_out_text (uiout, ", size = ");
-      ui_out_field_fmt (uiout, "size", "%s", plongest (size));
+      uiout->text (", size = ");
+      uiout->field_fmt ("size", "%s", plongest (size));
 
-      ui_out_text (uiout, ", metadata = ");
-      ui_out_field_core_addr (uiout, "metadata", gdbarch, bt_entry[3]);
-      ui_out_text (uiout, "\n");
+      uiout->text (", metadata = ");
+      uiout->field_core_addr ("metadata", gdbarch, bt_entry[3]);
+      uiout->text ("\n");
     }
 }
 
@@ -9034,7 +9098,8 @@ Show Intel Memory Protection Extensions specific variables."),
   initialize_tdesc_i386_avx ();
   initialize_tdesc_i386_mpx ();
   initialize_tdesc_i386_avx_mpx ();
-  initialize_tdesc_i386_avx512 ();
+  initialize_tdesc_i386_avx_avx512 ();
+  initialize_tdesc_i386_avx_mpx_avx512_pku ();
 
   /* Tell remote stub that we support XML target description.  */
   register_remote_support_xml ("i386");

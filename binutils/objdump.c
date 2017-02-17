@@ -1,5 +1,5 @@
 /* objdump.c -- dump information about an object file.
-   Copyright (C) 1990-2016 Free Software Foundation, Inc.
+   Copyright (C) 1990-2017 Free Software Foundation, Inc.
 
    This file is part of GNU Binutils.
 
@@ -438,11 +438,11 @@ free_only_list (void)
 
 
 static void
-dump_section_header (bfd *abfd, asection *section,
-		     void *ignored ATTRIBUTE_UNUSED)
+dump_section_header (bfd *abfd, asection *section, void *data)
 {
   char *comma = "";
   unsigned int opb = bfd_octets_per_byte (abfd);
+  int longest_section_name = *((int *) data);
 
   /* Ignore linker created section.  See elfNN_ia64_object_p in
      bfd/elfxx-ia64.c.  */
@@ -453,7 +453,7 @@ dump_section_header (bfd *abfd, asection *section,
   if (! process_section_p (section))
     return;
 
-  printf ("%3d %-13s %08lx  ", section->index,
+  printf ("%3d %-*s %08lx  ", section->index, longest_section_name,
 	  bfd_get_section_name (abfd, section),
 	  (unsigned long) bfd_section_size (abfd, section) / opb);
   bfd_printf_vma (abfd, bfd_get_section_vma (abfd, section));
@@ -536,26 +536,64 @@ dump_section_header (bfd *abfd, asection *section,
 #undef PF
 }
 
+/* Called on each SECTION in ABFD, update the int variable pointed to by
+   DATA which contains the string length of the longest section name.  */
+
+static void
+find_longest_section_name (bfd *abfd, asection *section, void *data)
+{
+  int *longest_so_far = (int *) data;
+  const char *name;
+  int len;
+
+  /* Ignore linker created section.  */
+  if (section->flags & SEC_LINKER_CREATED)
+    return;
+
+  /* Skip sections that we are ignoring.  */
+  if (! process_section_p (section))
+    return;
+
+  name = bfd_get_section_name (abfd, section);
+  len = (int) strlen (name);
+  if (len > *longest_so_far)
+    *longest_so_far = len;
+}
+
 static void
 dump_headers (bfd *abfd)
 {
-  printf (_("Sections:\n"));
+  /* The default width of 13 is just an arbitrary choice.  */
+  int max_section_name_length = 13;
+  int bfd_vma_width;
 
 #ifndef BFD64
-  printf (_("Idx Name          Size      VMA       LMA       File off  Algn"));
+  bfd_vma_width = 10;
 #else
   /* With BFD64, non-ELF returns -1 and wants always 64 bit addresses.  */
   if (bfd_get_arch_size (abfd) == 32)
-    printf (_("Idx Name          Size      VMA       LMA       File off  Algn"));
+    bfd_vma_width = 10;
   else
-    printf (_("Idx Name          Size      VMA               LMA               File off  Algn"));
+    bfd_vma_width = 18;
 #endif
+
+  printf (_("Sections:\n"));
+
+  if (wide_output)
+    bfd_map_over_sections (abfd, find_longest_section_name,
+                           &max_section_name_length);
+
+  printf (_("Idx %-*s Size      %-*s%-*sFile off  Algn"),
+	  max_section_name_length, "Name",
+	  bfd_vma_width, "VMA",
+	  bfd_vma_width, "LMA");
 
   if (wide_output)
     printf (_("  Flags"));
   printf ("\n");
 
-  bfd_map_over_sections (abfd, dump_section_header, NULL);
+  bfd_map_over_sections (abfd, dump_section_header,
+                         &max_section_name_length);
 }
 
 static asymbol **
@@ -3616,7 +3654,7 @@ display_any_bfd (bfd *file, int level)
 }
 
 static void
-display_file (char *filename, char *target)
+display_file (char *filename, char *target, bfd_boolean last_file)
 {
   bfd *file;
 
@@ -3635,7 +3673,18 @@ display_file (char *filename, char *target)
 
   display_any_bfd (file, 0);
 
-  bfd_close (file);
+  /* This is an optimization to improve the speed of objdump, especially when
+     dumping a file with lots of associated debug informatiom.  Calling
+     bfd_close on such a file can take a non-trivial amount of time as there
+     are lots of lists to walk and buffers to free.  This is only really
+     necessary however if we are about to load another file and we need the
+     memory back.  Otherwise, if we are about to exit, then we can save (a lot
+     of) time by only doing a quick close, and allowing the OS to reclaim the
+     memory for us.  */
+  if (! last_file)
+    bfd_close (file);
+  else
+    bfd_close_all_done (file);
 }
 
 int
@@ -3913,10 +3962,13 @@ main (int argc, char **argv)
   else
     {
       if (optind == argc)
-	display_file ("a.out", target);
+	display_file ("a.out", target, TRUE);
       else
 	for (; optind < argc;)
-	  display_file (argv[optind++], target);
+	  {
+	    display_file (argv[optind], target, optind == argc - 1);
+	    optind++;
+	  }
     }
 
   free_only_list ();

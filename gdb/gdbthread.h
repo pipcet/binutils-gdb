@@ -1,5 +1,5 @@
 /* Multi-process/thread control defs for GDB, the GNU debugger.
-   Copyright (C) 1987-2016 Free Software Foundation, Inc.
+   Copyright (C) 1987-2017 Free Software Foundation, Inc.
    Contributed by Lynx Real-Time Systems, Inc.  Los Gatos, CA.
    
 
@@ -624,6 +624,10 @@ extern void thread_cancel_execution_command (struct thread_info *thr);
    thread at this point.  If not, throw an error (e.g., the thread is
    executing).  */
 extern void validate_registers_access (void);
+
+/* Check whether it makes sense to access a register of PTID at this point.
+   Returns true if registers may be accessed; false otherwise.  */
+extern bool can_access_registers_ptid (ptid_t ptid);
 
 /* Returns whether to show which thread hit the breakpoint, received a
    signal, etc. and ended up causing a user-visible stop.  This is

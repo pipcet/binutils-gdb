@@ -1,6 +1,6 @@
 // mips.cc -- mips target support for gold.
 
-// Copyright (C) 2011-2016 Free Software Foundation, Inc.
+// Copyright (C) 2011-2017 Free Software Foundation, Inc.
 // Written by Sasa Stankovic <sasa.stankovic@imgtec.com>
 //        and Aleksandar Simeonov <aleksandar.simeonov@rt-rk.com>.
 // This file contains borrowed and adapted code from bfd/elfxx-mips.c.
@@ -2475,7 +2475,7 @@ class Mips_output_data_plt : public Output_section_data
   add_entry(Mips_symbol<size>* gsym, unsigned int r_type);
 
   // Return the .rel.plt section data.
-  const Reloc_section*
+  Reloc_section*
   rel_plt() const
   { return this->rel_; }
 
@@ -5579,6 +5579,52 @@ class Mips_relocate_functions : public Relocate_functions<size, big_endian>
     return This::STATUS_OKAY;
   }
 
+  // R_MIPS_HIGHER, R_MICROMIPS_HIGHER
+  static inline typename This::Status
+  relhigher(unsigned char* view, const Mips_relobj<size, big_endian>* object,
+            const Symbol_value<size>* psymval, Mips_address addend_a,
+            bool extract_addend, bool calculate_only, Valtype* calculated_value)
+  {
+    Valtype32* wv = reinterpret_cast<Valtype32*>(view);
+    Valtype32 val = elfcpp::Swap<32, big_endian>::readval(wv);
+    Valtype addend = (extract_addend ? Bits<16>::sign_extend32(val & 0xffff)
+                                     : addend_a);
+
+    Valtype x = psymval->value(object, addend);
+    x = ((x + (uint64_t) 0x80008000) >> 32) & 0xffff;
+    val = Bits<32>::bit_select32(val, x, 0xffff);
+
+    if (calculate_only)
+      *calculated_value = x;
+    else
+      elfcpp::Swap<32, big_endian>::writeval(wv, val);
+
+    return This::STATUS_OKAY;
+  }
+
+  // R_MIPS_HIGHEST, R_MICROMIPS_HIGHEST
+  static inline typename This::Status
+  relhighest(unsigned char* view, const Mips_relobj<size, big_endian>* object,
+             const Symbol_value<size>* psymval, Mips_address addend_a,
+             bool extract_addend, bool calculate_only,
+             Valtype* calculated_value)
+  {
+    Valtype32* wv = reinterpret_cast<Valtype32*>(view);
+    Valtype32 val = elfcpp::Swap<32, big_endian>::readval(wv);
+    Valtype addend = (extract_addend ? Bits<16>::sign_extend32(val & 0xffff)
+                                     : addend_a);
+
+    Valtype x = psymval->value(object, addend);
+    x = ((x + (uint64_t) 0x800080008000) >> 48) & 0xffff;
+    val = Bits<32>::bit_select32(val, x, 0xffff);
+
+    if (calculate_only)
+      *calculated_value = x;
+    else
+      elfcpp::Swap<32, big_endian>::writeval(wv, val);
+
+    return This::STATUS_OKAY;
+  }
 };
 
 template<int size, bool big_endian>
@@ -5627,7 +5673,7 @@ Mips_got_info<size, big_endian>::record_global_got_symbol(
     mips_sym->set_got_not_only_for_calls();
 
   // A global symbol in the GOT must also be in the dynamic symbol table.
-  if (!mips_sym->needs_dynsym_entry())
+  if (!mips_sym->needs_dynsym_entry() && !mips_sym->is_forced_local())
     {
       switch (mips_sym->visibility())
         {
@@ -8521,6 +8567,10 @@ Target_mips<size, big_endian>::make_plt_entry(Symbol_table* symtab,
                                       (elfcpp::SHF_ALLOC
                                        | elfcpp::SHF_EXECINSTR),
                                       this->plt_, ORDER_PLT, false);
+
+      // Make the sh_info field of .rel.plt point to .plt.
+      Output_section* rel_plt_os = this->plt_->rel_plt()->output_section();
+      rel_plt_os->set_info_section(this->plt_->output_section());
     }
 
   this->plt_->add_entry(gsym, r_type);
@@ -9781,7 +9831,8 @@ Target_mips<size, big_endian>::do_finalize_sections(Layout* layout,
                                             elfcpp::STV_DEFAULT, 0,
                                             false, false);
 
-        rld_map->set_needs_dynsym_entry();
+        if (!rld_map->is_forced_local())
+          rld_map->set_needs_dynsym_entry();
 
         if (!parameters->options().pie())
           // This member holds the absolute address of the debug pointer.
@@ -9930,6 +9981,8 @@ mips_get_size_for_reloc(unsigned int r_type, Relobj* object)
     case elfcpp::R_MIPS_16:
     case elfcpp::R_MIPS_HI16:
     case elfcpp::R_MIPS_LO16:
+    case elfcpp::R_MIPS_HIGHER:
+    case elfcpp::R_MIPS_HIGHEST:
     case elfcpp::R_MIPS_GPREL16:
     case elfcpp::R_MIPS16_HI16:
     case elfcpp::R_MIPS16_LO16:
@@ -10668,7 +10721,11 @@ Target_mips<size, big_endian>::Scan::local(
         {
         case elfcpp::R_MIPS16_HI16:
         case elfcpp::R_MIPS_HI16:
+        case elfcpp::R_MIPS_HIGHER:
+        case elfcpp::R_MIPS_HIGHEST:
         case elfcpp::R_MICROMIPS_HI16:
+        case elfcpp::R_MICROMIPS_HIGHER:
+        case elfcpp::R_MICROMIPS_HIGHEST:
           // Don't refuse a high part relocation if it's against
           // no symbol (e.g. part of a compound relocation).
           if (r_sym == 0)
@@ -11171,7 +11228,11 @@ Target_mips<size, big_endian>::Scan::global(
         {
         case elfcpp::R_MIPS16_HI16:
         case elfcpp::R_MIPS_HI16:
+        case elfcpp::R_MIPS_HIGHER:
+        case elfcpp::R_MIPS_HIGHEST:
         case elfcpp::R_MICROMIPS_HI16:
+        case elfcpp::R_MICROMIPS_HIGHER:
+        case elfcpp::R_MICROMIPS_HIGHEST:
           // Don't refuse a high part relocation if it's against
           // no symbol (e.g. part of a compound relocation).
           if (r_sym == 0)
@@ -12116,6 +12177,19 @@ Target_mips<size, big_endian>::Relocate::relocate(
                                              extract_addend,
                                              calculate_only, &calculated_value);
           break;
+        case elfcpp::R_MIPS_HIGHER:
+        case elfcpp::R_MICROMIPS_HIGHER:
+          reloc_status = Reloc_funcs::relhigher(view, object, psymval, r_addend,
+                                                extract_addend, calculate_only,
+                                                &calculated_value);
+          break;
+        case elfcpp::R_MIPS_HIGHEST:
+        case elfcpp::R_MICROMIPS_HIGHEST:
+          reloc_status = Reloc_funcs::relhighest(view, object, psymval,
+                                                 r_addend, extract_addend,
+                                                 calculate_only,
+                                                 &calculated_value);
+          break;
         default:
           gold_error_at_location(relinfo, relnum, r_offset,
                                  _("unsupported reloc %u"), r_types[i]);
@@ -12181,10 +12255,14 @@ Target_mips<size, big_endian>::Scan::get_reference_flags(
     case elfcpp::R_MIPS_64:
     case elfcpp::R_MIPS_HI16:
     case elfcpp::R_MIPS_LO16:
+    case elfcpp::R_MIPS_HIGHER:
+    case elfcpp::R_MIPS_HIGHEST:
     case elfcpp::R_MIPS16_HI16:
     case elfcpp::R_MIPS16_LO16:
     case elfcpp::R_MICROMIPS_HI16:
     case elfcpp::R_MICROMIPS_LO16:
+    case elfcpp::R_MICROMIPS_HIGHER:
+    case elfcpp::R_MICROMIPS_HIGHEST:
       return Symbol::ABSOLUTE_REF;
 
     case elfcpp::R_MIPS_26:
@@ -12256,7 +12334,6 @@ Target_mips<size, big_endian>::Scan::get_reference_flags(
     case elfcpp::R_MIPS_COPY:
     case elfcpp::R_MIPS_JUMP_SLOT:
     default:
-      gold_unreachable();
       // Not expected.  We will give an error later.
       return 0;
     }

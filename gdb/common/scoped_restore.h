@@ -1,6 +1,6 @@
 /* scoped_restore, a simple class for saving and restoring a value
 
-   Copyright (C) 2016 Free Software Foundation, Inc.
+   Copyright (C) 2016-2017 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -47,8 +47,11 @@ class scoped_restore_tmpl : public scoped_restore_base
 
   /* Create a new scoped_restore object that saves the current value
      of *VAR, and sets *VAR to VALUE.  *VAR will be restored when this
-     scoped_restore object is destroyed.  */
-  scoped_restore_tmpl (T *var, T value)
+     scoped_restore object is destroyed.  This is templated on T2 to
+     allow passing VALUEs of types convertible to T.
+     E.g.: T='base'; T2='derived'.  */
+  template <typename T2>
+  scoped_restore_tmpl (T *var, T2 value)
     : m_saved_var (var),
       m_saved_value (*var)
   {
@@ -90,8 +93,8 @@ scoped_restore_tmpl<T> make_scoped_restore (T *var)
 
 /* Make a scoped_restore.  This is useful because it lets template
    argument deduction work.  */
-template<typename T>
-scoped_restore_tmpl<T> make_scoped_restore (T *var, T value)
+template<typename T, typename T2>
+scoped_restore_tmpl<T> make_scoped_restore (T *var, T2 value)
 {
   return scoped_restore_tmpl<T> (var, value);
 }

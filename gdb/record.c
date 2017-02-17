@@ -1,6 +1,6 @@
 /* Process record and replay target for GDB, the GNU debugger.
 
-   Copyright (C) 2008-2016 Free Software Foundation, Inc.
+   Copyright (C) 2008-2017 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -89,6 +89,48 @@ record_preopen (void)
   if (find_record_target () != NULL)
     error (_("The process is already being recorded.  Use \"record stop\" to "
 	     "stop recording first."));
+}
+
+/* See record.h.  */
+
+void
+record_start (const char *method, const char *format, int from_tty)
+{
+  if (method == NULL)
+    {
+      if (format == NULL)
+	execute_command_to_string ("record", from_tty);
+      else
+	error (_("Invalid format."));
+    }
+  else if (strcmp (method, "full") == 0)
+    {
+      if (format == NULL)
+	execute_command_to_string ("record full", from_tty);
+      else
+	error (_("Invalid format."));
+    }
+  else if (strcmp (method, "btrace") == 0)
+    {
+      if (format == NULL)
+	execute_command_to_string ("record btrace", from_tty);
+      else if (strcmp (format, "bts") == 0)
+	execute_command_to_string ("record btrace bts", from_tty);
+      else if (strcmp (format, "pt") == 0)
+	execute_command_to_string ("record btrace pt", from_tty);
+      else
+	error (_("Invalid format."));
+    }
+  else
+    error (_("Invalid method."));
+}
+
+/* See record.h.  */
+
+void
+record_stop (int from_tty)
+{
+  execute_command_to_string ("record stop", from_tty);
 }
 
 /* See record.h.  */

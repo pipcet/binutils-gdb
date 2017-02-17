@@ -1,7 +1,7 @@
 /* Target-struct-independent code to start (run) and stop an inferior
    process.
 
-   Copyright (C) 1986-2016 Free Software Foundation, Inc.
+   Copyright (C) 1986-2017 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -1320,7 +1320,9 @@ struct step_over_info
 static struct step_over_info step_over_info;
 
 /* Record the address of the breakpoint/instruction we're currently
-   stepping over.  */
+   stepping over.
+   N.B. We record the aspace and address now, instead of say just the thread,
+   because when we need the info later the thread may be running.  */
 
 static void
 set_step_over_info (struct address_space *aspace, CORE_ADDR address,
@@ -3436,40 +3438,32 @@ print_target_wait_results (ptid_t waiton_ptid, ptid_t result_ptid,
 			   const struct target_waitstatus *ws)
 {
   char *status_string = target_waitstatus_to_string (ws);
-  struct ui_file *tmp_stream = mem_fileopen ();
+  string_file stb;
 
   /* The text is split over several lines because it was getting too long.
      Call fprintf_unfiltered (gdb_stdlog) once so that the text is still
      output as a unit; we want only one timestamp printed if debug_timestamp
      is set.  */
 
-  fprintf_unfiltered (tmp_stream,
-		      "infrun: target_wait (%d.%ld.%ld",
-		      ptid_get_pid (waiton_ptid),
-		      ptid_get_lwp (waiton_ptid),
-		      ptid_get_tid (waiton_ptid));
+  stb.printf ("infrun: target_wait (%d.%ld.%ld",
+	      ptid_get_pid (waiton_ptid),
+	      ptid_get_lwp (waiton_ptid),
+	      ptid_get_tid (waiton_ptid));
   if (ptid_get_pid (waiton_ptid) != -1)
-    fprintf_unfiltered (tmp_stream,
-			" [%s]", target_pid_to_str (waiton_ptid));
-  fprintf_unfiltered (tmp_stream, ", status) =\n");
-  fprintf_unfiltered (tmp_stream,
-		      "infrun:   %d.%ld.%ld [%s],\n",
-		      ptid_get_pid (result_ptid),
-		      ptid_get_lwp (result_ptid),
-		      ptid_get_tid (result_ptid),
-		      target_pid_to_str (result_ptid));
-  fprintf_unfiltered (tmp_stream,
-		      "infrun:   %s\n",
-		      status_string);
-
-  std::string text = ui_file_as_string (tmp_stream);
+    stb.printf (" [%s]", target_pid_to_str (waiton_ptid));
+  stb.printf (", status) =\n");
+  stb.printf ("infrun:   %d.%ld.%ld [%s],\n",
+	      ptid_get_pid (result_ptid),
+	      ptid_get_lwp (result_ptid),
+	      ptid_get_tid (result_ptid),
+	      target_pid_to_str (result_ptid));
+  stb.printf ("infrun:   %s\n", status_string);
 
   /* This uses %s in part to handle %'s in the text, but also to avoid
      a gcc error: the format attribute requires a string literal.  */
-  fprintf_unfiltered (gdb_stdlog, "%s", text.c_str ());
+  fprintf_unfiltered (gdb_stdlog, "%s", stb.c_str ());
 
   xfree (status_string);
-  ui_file_delete (tmp_stream);
 }
 
 /* Select a thread at random, out of those which are resumed and have
@@ -7889,9 +7883,9 @@ print_end_stepping_range_reason (struct ui_out *uiout)
 {
   /* For CLI-like interpreters, print nothing.  */
 
-  if (ui_out_is_mi_like_p (uiout))
+  if (uiout->is_mi_like_p ())
     {
-      ui_out_field_string (uiout, "reason",
+      uiout->field_string ("reason",
 			   async_reason_lookup (EXEC_ASYNC_END_STEPPING_RANGE));
     }
 }
@@ -7900,21 +7894,21 @@ void
 print_signal_exited_reason (struct ui_out *uiout, enum gdb_signal siggnal)
 {
   annotate_signalled ();
-  if (ui_out_is_mi_like_p (uiout))
-    ui_out_field_string
-      (uiout, "reason", async_reason_lookup (EXEC_ASYNC_EXITED_SIGNALLED));
-  ui_out_text (uiout, "\nProgram terminated with signal ");
+  if (uiout->is_mi_like_p ())
+    uiout->field_string
+      ("reason", async_reason_lookup (EXEC_ASYNC_EXITED_SIGNALLED));
+  uiout->text ("\nProgram terminated with signal ");
   annotate_signal_name ();
-  ui_out_field_string (uiout, "signal-name",
+  uiout->field_string ("signal-name",
 		       gdb_signal_to_name (siggnal));
   annotate_signal_name_end ();
-  ui_out_text (uiout, ", ");
+  uiout->text (", ");
   annotate_signal_string ();
-  ui_out_field_string (uiout, "signal-meaning",
+  uiout->field_string ("signal-meaning",
 		       gdb_signal_to_string (siggnal));
   annotate_signal_string_end ();
-  ui_out_text (uiout, ".\n");
-  ui_out_text (uiout, "The program no longer exists.\n");
+  uiout->text (".\n");
+  uiout->text ("The program no longer exists.\n");
 }
 
 void
@@ -7926,27 +7920,26 @@ print_exited_reason (struct ui_out *uiout, int exitstatus)
   annotate_exited (exitstatus);
   if (exitstatus)
     {
-      if (ui_out_is_mi_like_p (uiout))
-	ui_out_field_string (uiout, "reason", 
-			     async_reason_lookup (EXEC_ASYNC_EXITED));
-      ui_out_text (uiout, "[Inferior ");
-      ui_out_text (uiout, plongest (inf->num));
-      ui_out_text (uiout, " (");
-      ui_out_text (uiout, pidstr);
-      ui_out_text (uiout, ") exited with code ");
-      ui_out_field_fmt (uiout, "exit-code", "0%o", (unsigned int) exitstatus);
-      ui_out_text (uiout, "]\n");
+      if (uiout->is_mi_like_p ())
+	uiout->field_string ("reason", async_reason_lookup (EXEC_ASYNC_EXITED));
+      uiout->text ("[Inferior ");
+      uiout->text (plongest (inf->num));
+      uiout->text (" (");
+      uiout->text (pidstr);
+      uiout->text (") exited with code ");
+      uiout->field_fmt ("exit-code", "0%o", (unsigned int) exitstatus);
+      uiout->text ("]\n");
     }
   else
     {
-      if (ui_out_is_mi_like_p (uiout))
-	ui_out_field_string
-	  (uiout, "reason", async_reason_lookup (EXEC_ASYNC_EXITED_NORMALLY));
-      ui_out_text (uiout, "[Inferior ");
-      ui_out_text (uiout, plongest (inf->num));
-      ui_out_text (uiout, " (");
-      ui_out_text (uiout, pidstr);
-      ui_out_text (uiout, ") exited normally]\n");
+      if (uiout->is_mi_like_p ())
+	uiout->field_string
+	  ("reason", async_reason_lookup (EXEC_ASYNC_EXITED_NORMALLY));
+      uiout->text ("[Inferior ");
+      uiout->text (plongest (inf->num));
+      uiout->text (" (");
+      uiout->text (pidstr);
+      uiout->text (") exited normally]\n");
     }
 }
 
@@ -7971,55 +7964,53 @@ print_signal_received_reason (struct ui_out *uiout, enum gdb_signal siggnal)
 
   annotate_signal ();
 
-  if (ui_out_is_mi_like_p (uiout))
+  if (uiout->is_mi_like_p ())
     ;
   else if (show_thread_that_caused_stop ())
     {
       const char *name;
 
-      ui_out_text (uiout, "\nThread ");
-      ui_out_field_fmt (uiout, "thread-id", "%s", print_thread_id (thr));
+      uiout->text ("\nThread ");
+      uiout->field_fmt ("thread-id", "%s", print_thread_id (thr));
 
       name = thr->name != NULL ? thr->name : target_thread_name (thr);
       if (name != NULL)
 	{
-	  ui_out_text (uiout, " \"");
-	  ui_out_field_fmt (uiout, "name", "%s", name);
-	  ui_out_text (uiout, "\"");
+	  uiout->text (" \"");
+	  uiout->field_fmt ("name", "%s", name);
+	  uiout->text ("\"");
 	}
     }
   else
-    ui_out_text (uiout, "\nProgram");
+    uiout->text ("\nProgram");
 
-  if (siggnal == GDB_SIGNAL_0 && !ui_out_is_mi_like_p (uiout))
-    ui_out_text (uiout, " stopped");
+  if (siggnal == GDB_SIGNAL_0 && !uiout->is_mi_like_p ())
+    uiout->text (" stopped");
   else
     {
-      ui_out_text (uiout, " received signal ");
+      uiout->text (" received signal ");
       annotate_signal_name ();
-      if (ui_out_is_mi_like_p (uiout))
-	ui_out_field_string
-	  (uiout, "reason", async_reason_lookup (EXEC_ASYNC_SIGNAL_RECEIVED));
-      ui_out_field_string (uiout, "signal-name",
-			   gdb_signal_to_name (siggnal));
+      if (uiout->is_mi_like_p ())
+	uiout->field_string
+	  ("reason", async_reason_lookup (EXEC_ASYNC_SIGNAL_RECEIVED));
+      uiout->field_string ("signal-name", gdb_signal_to_name (siggnal));
       annotate_signal_name_end ();
-      ui_out_text (uiout, ", ");
+      uiout->text (", ");
       annotate_signal_string ();
-      ui_out_field_string (uiout, "signal-meaning",
-			   gdb_signal_to_string (siggnal));
+      uiout->field_string ("signal-meaning", gdb_signal_to_string (siggnal));
 
       if (siggnal == GDB_SIGNAL_SEGV)
 	handle_segmentation_fault (uiout);
 
       annotate_signal_string_end ();
     }
-  ui_out_text (uiout, ".\n");
+  uiout->text (".\n");
 }
 
 void
 print_no_history_reason (struct ui_out *uiout)
 {
-  ui_out_text (uiout, "\nNo more reverse-execution history.\n");
+  uiout->text ("\nNo more reverse-execution history.\n");
 }
 
 /* Print current location without a level number, if we have changed

@@ -1,5 +1,5 @@
 /* ELF support for BFD.
-   Copyright (C) 1991-2016 Free Software Foundation, Inc.
+   Copyright (C) 1991-2017 Free Software Foundation, Inc.
 
    Written by Fred Fish @ Cygnus Support, from information published
    in "UNIX System V Release 4, Programmers Guide: ANSI C and
@@ -248,7 +248,7 @@
 #define EM_TI_C2000	141	/* Texas Instruments TMS320C2000 DSP family */
 #define EM_TI_C5500	142	/* Texas Instruments TMS320C55x DSP family */
 #define EM_res143	143	/* Reserved */
-#define EM_res144	144	/* Reserved */
+#define EM_TI_PRU	144	/* Texas Instruments Programmable Realtime Unit */
 #define EM_res145	145	/* Reserved */
 #define EM_res146	146	/* Reserved */
 #define EM_res147	147	/* Reserved */
@@ -606,6 +606,8 @@
 #define NT_ARM_HW_BREAK	0x402		/* AArch hardware breakpoint registers */
 					/*   note name must be "LINUX".  */
 #define NT_ARM_HW_WATCH	0x403		/* AArch hardware watchpoint registers */
+					/*   note name must be "LINUX".  */
+#define NT_ARM_SVE	0x405		/* AArch SVE registers.  */
 					/*   note name must be "LINUX".  */
 #define NT_SIGINFO	0x53494749	/* Fields of siginfo_t.  */
 #define NT_FILE		0x46494c45	/* Description of mapped files.  */

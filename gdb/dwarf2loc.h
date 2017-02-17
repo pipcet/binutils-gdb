@@ -1,6 +1,6 @@
 /* DWARF 2 location expression support for GDB.
 
-   Copyright (C) 2003-2016 Free Software Foundation, Inc.
+   Copyright (C) 2003-2017 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -151,7 +151,7 @@ int dwarf2_evaluate_property (const struct dynamic_prop *prop,
    evaluated.
    SYM the originating symbol, used for error reporting.  */
 
-void dwarf2_compile_property_to_c (struct ui_file *stream,
+void dwarf2_compile_property_to_c (string_file &stream,
 				   const char *result_name,
 				   struct gdbarch *gdbarch,
 				   unsigned char *registers_used,

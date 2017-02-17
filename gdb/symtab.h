@@ -1,6 +1,6 @@
 /* Symbol table definitions for GDB.
 
-   Copyright (C) 1986-2016 Free Software Foundation, Inc.
+   Copyright (C) 1986-2017 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -674,7 +674,7 @@ struct symbol_computed_ops
      The generated C code must assign the location to a local
      variable; this variable's name is RESULT_NAME.  */
 
-  void (*generate_c_location) (struct symbol *symbol, struct ui_file *stream,
+  void (*generate_c_location) (struct symbol *symbol, string_file &stream,
 			       struct gdbarch *gdbarch,
 			       unsigned char *registers_used,
 			       CORE_ADDR pc, const char *result_name);

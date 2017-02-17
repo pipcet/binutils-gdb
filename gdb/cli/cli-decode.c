@@ -1,6 +1,6 @@
 /* Handle lists of commands, their decoding and documentation, for GDB.
 
-   Copyright (C) 1986-2016 Free Software Foundation, Inc.
+   Copyright (C) 1986-2017 Free Software Foundation, Inc.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -1255,7 +1255,9 @@ find_cmd (const char *command, int len, struct cmd_list_element *clist,
   return found;
 }
 
-static int
+/* Return the length of command name in TEXT.  */
+
+int
 find_command_name_length (const char *text)
 {
   const char *p = text;
@@ -1331,7 +1333,7 @@ valid_user_defined_cmd_name_p (const char *name)
    if no prefix command was ever found.  For example, in the case of "info a",
    "info" matches without ambiguity, but "a" could be "args" or "address", so
    *RESULT_LIST is set to the cmd_list_element for "info".  So in this case
-   RESULT_LIST should not be interpeted as a pointer to the beginning of a
+   RESULT_LIST should not be interpreted as a pointer to the beginning of a
    list; it simply points to a specific command.  In the case of an ambiguous
    return *TEXT is advanced past the last non-ambiguous prefix (e.g.
    "info t" can be "info types" or "info target"; upon return *TEXT has been
@@ -1377,19 +1379,6 @@ lookup_cmd_1 (const char **text, struct cmd_list_element *clist,
   found = 0;
   nfound = 0;
   found = find_cmd (command, len, clist, ignore_help_classes, &nfound);
-
-  /* We didn't find the command in the entered case, so lower case it
-     and search again.  */
-  if (!found || nfound == 0)
-    {
-      for (tmp = 0; tmp < len; tmp++)
-	{
-	  char x = command[tmp];
-
-	  command[tmp] = isupper (x) ? tolower (x) : x;
-	}
-      found = find_cmd (command, len, clist, ignore_help_classes, &nfound);
-    }
 
   /* If nothing matches, we have a simple failure.  */
   if (nfound == 0)
@@ -1730,20 +1719,6 @@ lookup_cmd_composition (const char *text,
       *cmd = 0;
       nfound = 0;
       *cmd = find_cmd (command, len, cur_list, 1, &nfound);
-      
-      /* We didn't find the command in the entered case, so lower case
-	 it and search again.
-      */
-      if (!*cmd || nfound == 0)
-	{
-	  for (tmp = 0; tmp < len; tmp++)
-	    {
-	      char x = command[tmp];
-
-	      command[tmp] = isupper (x) ? tolower (x) : x;
-	    }
-	  *cmd = find_cmd (command, len, cur_list, 1, &nfound);
-	}
       
       if (*cmd == CMD_LIST_AMBIGUOUS)
 	{

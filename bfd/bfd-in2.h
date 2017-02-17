@@ -7,7 +7,7 @@
 
 /* Main header file for the bfd library -- portable access to object files.
 
-   Copyright (C) 1990-2016 Free Software Foundation, Inc.
+   Copyright (C) 1990-2017 Free Software Foundation, Inc.
 
    Contributed by Cygnus Support.
 
@@ -493,20 +493,20 @@ extern int bfd_stat (bfd *, struct stat *);
 /* Deprecated old routines.  */
 #if __GNUC__
 #define bfd_read(BUF, ELTSIZE, NITEMS, ABFD)				\
-  (warn_deprecated ("bfd_read", __FILE__, __LINE__, __FUNCTION__),	\
+  (_bfd_warn_deprecated ("bfd_read", __FILE__, __LINE__, __FUNCTION__),	\
    bfd_bread ((BUF), (ELTSIZE) * (NITEMS), (ABFD)))
 #define bfd_write(BUF, ELTSIZE, NITEMS, ABFD)				\
-  (warn_deprecated ("bfd_write", __FILE__, __LINE__, __FUNCTION__),	\
+  (_bfd_warn_deprecated ("bfd_write", __FILE__, __LINE__, __FUNCTION__),	\
    bfd_bwrite ((BUF), (ELTSIZE) * (NITEMS), (ABFD)))
 #else
 #define bfd_read(BUF, ELTSIZE, NITEMS, ABFD)				\
-  (warn_deprecated ("bfd_read", (const char *) 0, 0, (const char *) 0), \
+  (_bfd_warn_deprecated ("bfd_read", (const char *) 0, 0, (const char *) 0), \
    bfd_bread ((BUF), (ELTSIZE) * (NITEMS), (ABFD)))
 #define bfd_write(BUF, ELTSIZE, NITEMS, ABFD)				\
-  (warn_deprecated ("bfd_write", (const char *) 0, 0, (const char *) 0),\
+  (_bfd_warn_deprecated ("bfd_write", (const char *) 0, 0, (const char *) 0),\
    bfd_bwrite ((BUF), (ELTSIZE) * (NITEMS), (ABFD)))
 #endif
-extern void warn_deprecated (const char *, const char *, int, const char *);
+extern void _bfd_warn_deprecated (const char *, const char *, int, const char *);
 
 /* Cast from const char * to char * so that caller can assign to
    a char * without a warning.  */
@@ -1052,6 +1052,10 @@ extern bfd_boolean v850_elf_create_sections
 
 extern bfd_boolean v850_elf_set_note
   (bfd *, unsigned int, unsigned int);
+
+/* MIPS ABI flags data access.  For the disassembler.  */
+struct elf_internal_abiflags_v0;
+extern struct elf_internal_abiflags_v0 *bfd_mips_elf_get_abiflags (bfd *);
 /* Extracted from init.c.  */
 void bfd_init (void);
 
@@ -1116,6 +1120,8 @@ struct bfd_section *bfd_create_gnu_debuglink_section
 
 bfd_boolean bfd_fill_in_gnu_debuglink_section
    (bfd *abfd, struct bfd_section *sect, const char *filename);
+
+char *bfd_follow_build_id_debuglink (bfd *abfd, const char *dir);
 
 /* Extracted from libbfd.c.  */
 
@@ -2372,6 +2378,8 @@ enum bfd_architecture
 #define bfd_mach_wasm32        1
   bfd_arch_wasm64,
 #define bfd_mach_wasm64        1
+  bfd_arch_pru,        /* PRU */
+#define bfd_mach_pru   0
   bfd_arch_last
   };
 
@@ -4739,6 +4747,15 @@ number for the SBIC, SBIS, SBI and CBI instructions  */
   BFD_RELOC_RISCV_RVC_LUI,
   BFD_RELOC_RISCV_GPREL_I,
   BFD_RELOC_RISCV_GPREL_S,
+  BFD_RELOC_RISCV_TPREL_I,
+  BFD_RELOC_RISCV_TPREL_S,
+  BFD_RELOC_RISCV_RELAX,
+  BFD_RELOC_RISCV_CFA,
+  BFD_RELOC_RISCV_SUB6,
+  BFD_RELOC_RISCV_SET6,
+  BFD_RELOC_RISCV_SET8,
+  BFD_RELOC_RISCV_SET16,
+  BFD_RELOC_RISCV_SET32,
 
 /* Renesas RL78 Relocations.  */
   BFD_RELOC_RL78_NEG8,
@@ -5554,6 +5571,41 @@ a matching LO8XG part.  */
   BFD_RELOC_NIOS2_R2_L5I4X1,
   BFD_RELOC_NIOS2_R2_T1X1I6,
   BFD_RELOC_NIOS2_R2_T1X1I6_2,
+
+/* PRU LDI 16-bit unsigned data-memory relocation.  */
+  BFD_RELOC_PRU_U16,
+
+/* PRU LDI 16-bit unsigned instruction-memory relocation.  */
+  BFD_RELOC_PRU_U16_PMEMIMM,
+
+/* PRU relocation for two consecutive LDI load instructions that load a
+32 bit value into a register. If the higher bits are all zero, then
+the second instruction may be relaxed.  */
+  BFD_RELOC_PRU_LDI32,
+
+/* PRU QBBx 10-bit signed PC-relative relocation.  */
+  BFD_RELOC_PRU_S10_PCREL,
+
+/* PRU 8-bit unsigned relocation used for the LOOP instruction.  */
+  BFD_RELOC_PRU_U8_PCREL,
+
+/* PRU Program Memory relocations.  Used to convert from byte addressing to
+32-bit word addressing.  */
+  BFD_RELOC_PRU_32_PMEM,
+  BFD_RELOC_PRU_16_PMEM,
+
+/* PRU relocations to mark the difference of two local symbols.
+These are only needed to support linker relaxation and can be ignored
+when not relaxing.  The field is set to the value of the difference
+assuming no relaxation.  The relocation encodes the position of the
+second symbol so the linker can determine whether to adjust the field
+value. The PMEM variants encode the word difference, instead of byte
+difference between symbols.  */
+  BFD_RELOC_PRU_GNU_DIFF8,
+  BFD_RELOC_PRU_GNU_DIFF16,
+  BFD_RELOC_PRU_GNU_DIFF32,
+  BFD_RELOC_PRU_GNU_DIFF16_PMEM,
+  BFD_RELOC_PRU_GNU_DIFF32_PMEM,
 
 /* IQ2000 Relocations.  */
   BFD_RELOC_IQ2000_OFFSET_16,
@@ -6765,8 +6817,9 @@ struct bfd
 
   /* Flags bits to be saved in bfd_preserve_save.  */
 #define BFD_FLAGS_SAVED \
-  (BFD_IN_MEMORY | BFD_COMPRESS | BFD_DECOMPRESS | BFD_PLUGIN \
-   | BFD_COMPRESS_GABI | BFD_CONVERT_ELF_COMMON | BFD_USE_ELF_STT_COMMON)
+  (BFD_IN_MEMORY | BFD_COMPRESS | BFD_DECOMPRESS | BFD_LINKER_CREATED \
+   | BFD_PLUGIN | BFD_COMPRESS_GABI | BFD_CONVERT_ELF_COMMON \
+   | BFD_USE_ELF_STT_COMMON)
 
   /* Flags bits which are for BFD use only.  */
 #define BFD_FLAGS_FOR_BFD_USE_MASK \

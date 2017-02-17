@@ -1,6 +1,6 @@
 /* Print values for GNU debugger GDB.
 
-   Copyright (C) 1986-2016 Free Software Foundation, Inc.
+   Copyright (C) 1986-2017 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -45,6 +45,7 @@
 #include "charset.h"
 #include "arch-utils.h"
 #include "cli/cli-utils.h"
+#include "cli/cli-script.h"
 #include "format.h"
 #include "source.h"
 
@@ -2716,16 +2717,13 @@ printf_command (char *arg, int from_tty)
 static void
 eval_command (char *arg, int from_tty)
 {
-  struct ui_file *ui_out = mem_fileopen ();
-  struct cleanup *cleanups = make_cleanup_ui_file_delete (ui_out);
+  string_file stb;
 
-  ui_printf (arg, ui_out);
+  ui_printf (arg, &stb);
 
-  std::string expanded = ui_file_as_string (ui_out);
+  std::string expanded = insert_user_defined_cmd_args (stb.c_str ());
 
   execute_command (&expanded[0], from_tty);
-
-  do_cleanups (cleanups);
 }
 
 void

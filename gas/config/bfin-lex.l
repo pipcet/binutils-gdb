@@ -1,5 +1,7 @@
+%option noyywrap
+
 /* bfin-lex.l  ADI Blackfin lexer
-   Copyright (C) 2005-2016 Free Software Foundation, Inc.
+   Copyright (C) 2005-2017 Free Software Foundation, Inc.
 
    This file is part of GAS, the GNU Assembler.
 
@@ -545,12 +547,3 @@ set_start_state (void)
 {
   BEGIN KEYWORD;
 }
-
-
-#ifndef yywrap
-int
-yywrap ()
-{
-  return 1;
-}
-#endif

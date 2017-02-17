@@ -1,5 +1,5 @@
 \input texinfo      @c -*-texinfo-*-
-@c Copyright (C) 1988-2016 Free Software Foundation, Inc.
+@c Copyright (C) 1988-2017 Free Software Foundation, Inc.
 @c
 @c %**start of header
 @c makeinfo ignores cmds prev to setfilename, so its arg cannot make use
@@ -50,7 +50,7 @@
 
 @copying
 @c man begin COPYRIGHT
-Copyright @copyright{} 1988-2016 Free Software Foundation, Inc.
+Copyright @copyright{} 1988-2017 Free Software Foundation, Inc.
 
 Permission is granted to copy, distribute and/or modify this document
 under the terms of the GNU Free Documentation License, Version 1.3 or
@@ -120,7 +120,7 @@ This is the @value{EDITION} Edition, for @value{GDBN}
 @end ifset
 Version @value{GDBVN}.
 
-Copyright (C) 1988-2016 Free Software Foundation, Inc.
+Copyright (C) 1988-2017 Free Software Foundation, Inc.
 
 This edition of the GDB manual is dedicated to the memory of Fred
 Fish.  Fred was a long-standing contributor to GDB and to Free
@@ -540,6 +540,11 @@ Steve Tjiang, John Newlin, and Scott Foehner.
 
 Michael Eager and staff of Xilinx, Inc., contributed support for the
 Xilinx MicroBlaze architecture.
+
+Initial support for the FreeBSD/mips target and native configuration
+was developed by SRI International and the University of Cambridge
+Computer Laboratory under DARPA/AFRL contract FA8750-10-C-0237
+("CTSRD"), as part of the DARPA CRASH research programme.
 
 @node Sample Session
 @chapter A Sample @value{GDBN} Session
@@ -3583,12 +3588,14 @@ breakpoint you want to change.  Each breakpoint may be @dfn{enabled} or
 enable it again.
 
 @cindex breakpoint ranges
+@cindex breakpoint lists
 @cindex ranges of breakpoints
-Some @value{GDBN} commands accept a range of breakpoints on which to
-operate.  A breakpoint range is either a single breakpoint number, like
-@samp{5}, or two such numbers, in increasing order, separated by a
-hyphen, like @samp{5-7}.  When a breakpoint range is given to a command,
-all breakpoints in that range are operated on.
+@cindex lists of breakpoints
+Some @value{GDBN} commands accept a space-separated list of breakpoints
+on which to operate.  A list element can be either a single breakpoint number,
+like @samp{5}, or a range of such numbers, like @samp{5-7}.
+When a breakpoint list is given to a command, all breakpoints in that list
+are operated on.
 
 @menu
 * Set Breaks::                  Setting breakpoints
@@ -3753,8 +3760,8 @@ optionally be surrounded by spaces.
 
 @kindex info breakpoints
 @cindex @code{$_} and @code{info breakpoints}
-@item info breakpoints @r{[}@var{n}@dots{}@r{]}
-@itemx info break @r{[}@var{n}@dots{}@r{]}
+@item info breakpoints @r{[}@var{list}@dots{}@r{]}
+@itemx info break @r{[}@var{list}@dots{}@r{]}
 Print a table of all breakpoints, watchpoints, and catchpoints set and
 not deleted.  Optional argument @var{n} means print information only
 about the specified breakpoint(s) (or watchpoint(s) or catchpoint(s)).
@@ -3942,7 +3949,7 @@ breakpoints set by commands like @code{next} and @code{finish}.  For
 breakpoints set with @code{hbreak}, @value{GDBN} will always use hardware
 breakpoints.
 
-You can control this automatic behaviour with the following commands::
+You can control this automatic behaviour with the following commands:
 
 @kindex set breakpoint auto-hw
 @kindex show breakpoint auto-hw
@@ -4137,8 +4144,8 @@ by the program.
 Set a watchpoint that will break when @var{expr} is either read from
 or written into by the program.
 
-@kindex info watchpoints @r{[}@var{n}@dots{}@r{]}
-@item info watchpoints @r{[}@var{n}@dots{}@r{]}
+@kindex info watchpoints @r{[}@var{list}@dots{}@r{]}
+@item info watchpoints @r{[}@var{list}@dots{}@r{]}
 This command prints a list of watchpoints, using the same format as
 @code{info break} (@pxref{Set Breaks}).
 @end table
@@ -4634,9 +4641,9 @@ Delete any breakpoints set at or within the code of the specified
 @cindex delete breakpoints
 @kindex delete
 @kindex d @r{(@code{delete})}
-@item delete @r{[}breakpoints@r{]} @r{[}@var{range}@dots{}@r{]}
+@item delete @r{[}breakpoints@r{]} @r{[}@var{list}@dots{}@r{]}
 Delete the breakpoints, watchpoints, or catchpoints of the breakpoint
-ranges specified as arguments.  If no argument is specified, delete all
+list specified as argument.  If no argument is specified, delete all
 breakpoints (@value{GDBN} asks confirmation, unless you have @code{set
 confirm off}).  You can abbreviate this command as @code{d}.
 @end table
@@ -4686,7 +4693,7 @@ watchpoints, and catchpoints:
 @table @code
 @kindex disable
 @kindex dis @r{(@code{disable})}
-@item disable @r{[}breakpoints@r{]} @r{[}@var{range}@dots{}@r{]}
+@item disable @r{[}breakpoints@r{]} @r{[}@var{list}@dots{}@r{]}
 Disable the specified breakpoints---or all breakpoints, if none are
 listed.  A disabled breakpoint has no effect but is not forgotten.  All
 options such as ignore-counts, conditions and commands are remembered in
@@ -4694,15 +4701,15 @@ case the breakpoint is enabled again later.  You may abbreviate
 @code{disable} as @code{dis}.
 
 @kindex enable
-@item enable @r{[}breakpoints@r{]} @r{[}@var{range}@dots{}@r{]}
+@item enable @r{[}breakpoints@r{]} @r{[}@var{list}@dots{}@r{]}
 Enable the specified breakpoints (or all defined breakpoints).  They
 become effective once again in stopping your program.
 
-@item enable @r{[}breakpoints@r{]} once @var{range}@dots{}
+@item enable @r{[}breakpoints@r{]} once @var{list}@dots{}
 Enable the specified breakpoints temporarily.  @value{GDBN} disables any
 of these breakpoints immediately after stopping your program.
 
-@item enable @r{[}breakpoints@r{]} count @var{count} @var{range}@dots{}
+@item enable @r{[}breakpoints@r{]} count @var{count} @var{list}@dots{}
 Enable the specified breakpoints temporarily.  @value{GDBN} records
 @var{count} with each of the specified breakpoints, and decrements a
 breakpoint's count when it is hit.  When any count reaches 0,
@@ -4710,7 +4717,7 @@ breakpoint's count when it is hit.  When any count reaches 0,
 count (@pxref{Conditions, ,Break Conditions}), that will be
 decremented to 0 before @var{count} is affected.
 
-@item enable @r{[}breakpoints@r{]} delete @var{range}@dots{}
+@item enable @r{[}breakpoints@r{]} delete @var{list}@dots{}
 Enable the specified breakpoints to work once, then die.  @value{GDBN}
 deletes any of these breakpoints as soon as your program stops there.
 Breakpoints set by the @code{tbreak} command start out in this state.
@@ -4868,7 +4875,7 @@ enable other breakpoints.
 @table @code
 @kindex commands
 @kindex end@r{ (breakpoint commands)}
-@item commands @r{[}@var{range}@dots{}@r{]}
+@item commands @r{[}@var{list}@dots{}@r{]}
 @itemx @dots{} @var{command-list} @dots{}
 @itemx end
 Specify a list of commands for the given breakpoints.  The commands
@@ -4981,6 +4988,7 @@ dynamic printfs immediately.  (If you need individual control over the
 print commands, simply define normal breakpoints with
 explicitly-supplied command lists.)
 
+@table @code
 @item gdb
 @kindex dprintf-style gdb
 Handle the output using the @value{GDBN} @code{printf} command.
@@ -4995,6 +5003,7 @@ Handle the output by calling a function in your program (normally
 Have the remote debugging agent (such as @code{gdbserver}) handle
 the output itself.  This style is only available for agents that
 support running commands on the target.
+@end table
 
 @item set dprintf-function @var{function}
 Set the function to call if the dprintf style is @code{call}.  By
@@ -17243,21 +17252,32 @@ entered from the keyboard causes symbol information to be loaded.
 @cindex partial symbol dump
 @kindex maint print msymbols
 @cindex minimal symbol dump
-@item maint print symbols @var{filename}
-@itemx maint print psymbols @var{filename}
-@itemx maint print msymbols @var{filename}
-Write a dump of debugging symbol data into the file @var{filename}.
-These commands are used to debug the @value{GDBN} symbol-reading code.  Only
-symbols with debugging data are included.  If you use @samp{maint print
-symbols}, @value{GDBN} includes all the symbols for which it has already
-collected full details: that is, @var{filename} reflects symbols for
-only those files whose symbols @value{GDBN} has read.  You can use the
-command @code{info sources} to find out which files these are.  If you
-use @samp{maint print psymbols} instead, the dump shows information about
-symbols that @value{GDBN} only knows partially---that is, symbols defined in
-files that @value{GDBN} has skimmed, but not yet read completely.  Finally,
-@samp{maint print msymbols} dumps just the minimal symbol information
-required for each object file from which @value{GDBN} has read some symbols.
+@item maint print symbols @r{[}-pc @var{address}@r{]} @r{[}@var{filename}@r{]}
+@itemx maint print symbols @r{[}-objfile @var{objfile}@r{]} @r{[}-source @var{source}@r{]} @r{[}--@r{]} @r{[}@var{filename}@r{]}
+@itemx maint print psymbols @r{[}-objfile @var{objfile}@r{]} @r{[}-pc @var{address}@r{]} @r{[}--@r{]} @r{[}@var{filename}@r{]}
+@itemx maint print psymbols @r{[}-objfile @var{objfile}@r{]} @r{[}-source @var{source}@r{]} @r{[}--@r{]} @r{[}@var{filename}@r{]}
+@itemx maint print msymbols @r{[}-objfile @var{objfile}@r{]} @r{[}--@r{]} @r{[}@var{filename}@r{]}
+Write a dump of debugging symbol data into the file @var{filename} or
+the terminal if @var{filename} is unspecified.
+If @code{-objfile @var{objfile}} is specified, only dump symbols for
+that objfile.
+If @code{-pc @var{address}} is specified, only dump symbols for the file
+with code at that address.  Note that @var{address} may be a symbol like
+@code{main}.
+If @code{-source @var{source}} is specified, only dump symbols for that
+source file.
+
+These commands are used to debug the @value{GDBN} symbol-reading code.
+These commands do not modify internal @value{GDBN} state, therefore
+@samp{maint print symbols} will only print symbols for already expanded symbol
+tables.
+You can use the command @code{info sources} to find out which files these are.
+If you use @samp{maint print psymbols} instead, the dump shows information
+about symbols that @value{GDBN} only knows partially---that is, symbols
+defined in files that @value{GDBN} has skimmed, but not yet read completely.
+Finally, @samp{maint print msymbols} just dumps ``minimal symbols'', e.g.,
+``ELF symbols''.
+
 @xref{Files, ,Commands to Specify Files}, for a discussion of how
 @value{GDBN} reads symbols (in the description of @code{symbol-file}).
 
@@ -19580,8 +19600,8 @@ Show the current status of displaying communications between
 
 @table @code
 
-@kindex load @var{filename}
-@item load @var{filename}
+@kindex load @var{filename} @var{offset}
+@item load @var{filename} @var{offset}
 @anchor{load}
 Depending on what remote debugging facilities are configured into
 @value{GDBN}, the @code{load} command may be available.  Where it exists, it
@@ -19600,10 +19620,24 @@ link the program; for other formats, like a.out, the object file format
 specifies a fixed address.
 @c FIXME! This would be a good place for an xref to the GNU linker doc.
 
+It is also possible to tell @value{GDBN} to load the executable file at a
+specific offset described by the optional argument @var{offset}.  When
+@var{offset} is provided, @var{filename} must also be provided.
+
 Depending on the remote side capabilities, @value{GDBN} may be able to
 load programs into flash memory.
 
 @code{load} does not repeat if you press @key{RET} again after using it.
+@end table
+
+@table @code
+
+@kindex flash-erase
+@item flash-erase
+@anchor{flash-erase}
+
+Erases all known flash memory regions on the target.
+
 @end table
 
 @node Byte Order
@@ -24057,9 +24091,9 @@ files.
 @cindex arguments, to user-defined commands
 A @dfn{user-defined command} is a sequence of @value{GDBN} commands to
 which you assign a new name as a command.  This is done with the
-@code{define} command.  User commands may accept up to 10 arguments
+@code{define} command.  User commands may accept an unlimited number of arguments
 separated by whitespace.  Arguments are accessed within the user command
-via @code{$arg0@dots{}$arg9}.  A trivial example:
+via @code{$arg0@dots{}$argN}.  A trivial example:
 
 @smallexample
 define adder
@@ -24083,7 +24117,7 @@ functions calls.
 @cindex argument count in user-defined commands
 @cindex how many arguments (user-defined commands)
 In addition, @code{$argc} may be used to find out how many arguments have
-been passed.  This expands to a number in the range 0@dots{}10.
+been passed.
 
 @smallexample
 define adder
@@ -24093,6 +24127,21 @@ define adder
   if $argc == 3
     print $arg0 + $arg1 + $arg2
   end
+end
+@end smallexample
+
+Combining with the @code{eval} command (@pxref{eval}) makes it easier
+to process a variable number of arguments:
+
+@smallexample
+define adder
+  set $i = 0
+  set $sum = 0
+  while $i < $argc
+    eval "set $sum = $sum + $arg%d", $i
+    set $i = $i + 1
+  end
+  print $sum
 end
 @end smallexample
 
@@ -24526,6 +24575,7 @@ Here's an example of printing DFP types using the above conversion letters:
 printf "D32: %Hf - D64: %Df - D128: %DDf\n",1.2345df,1.2E10dd,1.2E1dl
 @end smallexample
 
+@anchor{eval}
 @kindex eval
 @item eval @var{template}, @var{expressions}@dots{}
 Convert the values of one or more @var{expressions} under the control of
@@ -31827,6 +31877,28 @@ No equivalent.
 @subsubheading Example
 N.A.
 
+@subheading The @code{-target-flash-erase} Command
+@findex -target-flash-erase
+
+@subsubheading Synopsis
+
+@smallexample
+ -target-flash-erase
+@end smallexample
+
+Erases all known flash memory regions on the target.
+
+The corresponding @value{GDBN} command is @samp{flash-erase}.
+
+The output is a list of flash regions that have been erased, with starting
+addresses and memory region sizes.
+
+@smallexample
+(gdb)
+-target-flash-erase
+^done,erased-regions=@{address="0x0",size="0x40000"@}
+(gdb)
+@end smallexample
 
 @subheading The @code{-target-select} Command
 @findex -target-select
@@ -40966,6 +41038,7 @@ registers using the capitalization used in the description.
 * Nios II Features::
 * PowerPC Features::
 * S/390 and System z Features::
+* Sparc Features::
 * TIC6x Features::
 @end menu
 
@@ -41116,6 +41189,9 @@ Memory Protection Extension (MPX).  It should describe the following registers:
 The @samp{org.gnu.gdb.i386.linux} feature is optional.  It should
 describe a single register, @samp{orig_eax}.
 
+The @samp{org.gnu.gdb.i386.segments} feature is optional.  It should
+describe two system registers: @samp{fs_base} and @samp{gs_base}.
+
 The @samp{org.gnu.gdb.i386.avx512} feature is optional and requires the
 @samp{org.gnu.gdb.i386.avx} feature.  It should
 describe additional @sc{xmm} registers:
@@ -41149,6 +41225,10 @@ describe the additional @sc{zmm} registers:
 @item
 @samp{zmm16h} through @samp{zmm31h}, only valid for amd64.
 @end itemize
+
+The @samp{org.gnu.gdb.i386.pkeys} feature is optional.  It should
+describe a single register, @samp{pkru}.  It is a 32-bit register
+valid for i386 and amd64.
 
 @node MicroBlaze Features
 @subsection MicroBlaze Features
@@ -41313,6 +41393,48 @@ through @samp{f15} to present the 128-bit wide vector registers
 @samp{v0} through @samp{v15}.  In addition, this feature should
 contain the 128-bit wide vector registers @samp{v16} through
 @samp{v31}.
+
+@node Sparc Features
+@subsection Sparc Features
+@cindex target descriptions, sparc32 features
+@cindex target descriptions, sparc64 features
+The @samp{org.gnu.gdb.sparc.cpu} feature is required for sparc32/sparc64
+targets.  It should describe the following registers:
+
+@itemize @minus
+@item
+@samp{g0} through @samp{g7}
+@item
+@samp{o0} through @samp{o7}
+@item
+@samp{l0} through @samp{l7}
+@item
+@samp{i0} through @samp{i7}
+@end itemize
+
+They may be 32-bit or 64-bit depending on the target.
+
+Also the @samp{org.gnu.gdb.sparc.fpu} feature is required for sparc32/sparc64
+targets.  It should describe the following registers:
+
+@itemize @minus
+@item
+@samp{f0} through @samp{f31}
+@item
+@samp{f32} through @samp{f62} for sparc64
+@end itemize
+
+The @samp{org.gnu.gdb.sparc.cp0} feature is required for sparc32/sparc64
+targets.  It should describe the following registers:
+
+@itemize @minus
+@item
+@samp{y}, @samp{psr}, @samp{wim}, @samp{tbr}, @samp{pc}, @samp{npc},
+@samp{fsr}, and @samp{csr} for sparc32
+@item
+@samp{pc}, @samp{npc}, @samp{state}, @samp{fsr}, @samp{fprs}, and @samp{y}
+for sparc64
+@end itemize
 
 @node TIC6x Features
 @subsection TMS320C6x Features

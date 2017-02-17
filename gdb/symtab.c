@@ -1,6 +1,6 @@
 /* Symbol table lookup for the GNU debugger, GDB.
 
-   Copyright (C) 1986-2016 Free Software Foundation, Inc.
+   Copyright (C) 1986-2017 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -5162,6 +5162,9 @@ add_symtab_completions (struct compunit_symtab *cust,
   const struct block *b;
   struct block_iterator iter;
   int i;
+
+  if (cust == NULL)
+    return;
 
   for (i = GLOBAL_BLOCK; i <= STATIC_BLOCK; i++)
     {

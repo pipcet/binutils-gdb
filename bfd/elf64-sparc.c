@@ -1,5 +1,5 @@
 /* SPARC-specific support for 64-bit ELF
-   Copyright (C) 1993-2016 Free Software Foundation, Inc.
+   Copyright (C) 1993-2017 Free Software Foundation, Inc.
 
    This file is part of BFD, the Binary File Descriptor library.
 
@@ -99,7 +99,9 @@ elf64_sparc_slurp_one_reloc_table (bfd *abfd, asection *asect,
 
       if (ELF64_R_SYM (rela.r_info) == STN_UNDEF
 	  /* PR 17512: file: 996185f8.  */
-	  || ELF64_R_SYM (rela.r_info) > bfd_get_symcount (abfd))
+	  || (!dynamic && ELF64_R_SYM(rela.r_info) > bfd_get_symcount(abfd))
+          || (dynamic
+              && ELF64_R_SYM(rela.r_info) > bfd_get_dynamic_symcount(abfd)))
 	relent->sym_ptr_ptr = bfd_abs_section_ptr->symbol_ptr_ptr;
       else
 	{
@@ -920,6 +922,7 @@ const struct elf_size_info elf64_sparc_size_info =
 #define elf_backend_plt_readonly 0
 #define elf_backend_want_plt_sym 1
 #define elf_backend_got_header_size 8
+#define elf_backend_want_dynrelro 1
 #define elf_backend_rela_normal 1
 
 /* Section 5.2.4 of the ABI specifies a 256-byte boundary for the table.  */

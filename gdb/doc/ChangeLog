@@ -1,3 +1,67 @@
+2017-02-14  Tim Wiederhake  <tim.wiederhake@intel.com>
+
+	* python.texi (Recordings In Python): New section.
+
+2017-02-14  Tom Tromey  <tom@tromey.com>
+
+	PR python/13598:
+	* python.texi (Events In Python): Document events.before_prompt.
+
+2017-02-13  Luis Machado  <lgustavo@codesourcery.com>
+
+	* gdb.texinfo (Target Commands): Document the optional offset
+	argument for the load command.
+
+2017-02-10  Martin Galvan  <martingalvan@sourceware.org>
+
+	PR gdb/21122
+	* gdb.texinfo (Breakpoints): Reword documentation to speak in terms of
+	space-separated breakpoint lists.  Also add a missing @table command
+	and @cindex for breakpoint lists.
+
+2017-02-06  Ivo Raisr  <ivo.raisr@oracle.com>
+
+	PR tdep/20936
+	* gdb.texinfo: (Standard Target Features): Document SPARC features.
+	(Sparc Features): New node.
+
+2017-01-27  Walfred Tedeschi  <walfred.tedeschi@intel.com>
+
+	* gdb.texinfo (i386 Features): Add system segment registers
+	as feature.
+
+2017-01-24  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* python.texi (Events In Python): Fix typo.
+
+2017-01-20  Mike Wrighton  <mike_wrighton@codesourcery.com>
+	    Luis Machado  <lgustavo@codesourcery.com>
+
+	* gdb.texinfo (-target-flash-erase): New MI command description.
+	(flash-erase): New CLI command description.
+
+2017-01-04  John Baldwin  <jhb@FreeBSD.org>
+
+	* gdb.texinfo (Contributors): Add SRI International and University
+	of Cambridge for FreeBSD/mips.
+
+2016-12-22  Doug Evans  <xdje42@gmail.com>
+
+	* gdb.texinfo (Symbols): Update docs for symbol printing maintenance
+	commands.
+
+2016-12-02  Pedro Alves  <palves@redhat.com>
+
+	* gdb.texinfo (User-defined Commands): Limit on number of
+	arguments passed to user-defined commands removed; update.
+
+2016-12-02  Pedro Alves  <palves@redhat.com>
+
+	PR cli/20559
+	* gdb.texinfo (Define): Add example of using "eval" to process a
+	variable number of arguments.
+	(Output) <eval>: Add anchor.
+
 2016-11-30  Simon Marchi  <simon.marchi@polymtl.ca>
 
 	* Makefile.in: Likewise.

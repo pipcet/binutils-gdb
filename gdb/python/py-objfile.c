@@ -1,6 +1,6 @@
 /* Python interface to objfiles.
 
-   Copyright (C) 2008-2016 Free Software Foundation, Inc.
+   Copyright (C) 2008-2017 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -24,6 +24,7 @@
 #include "language.h"
 #include "build-id.h"
 #include "symtab.h"
+#include "py-ref.h"
 
 typedef struct
 {
@@ -227,18 +228,15 @@ objfpy_initialize (objfile_object *self)
 static PyObject *
 objfpy_new (PyTypeObject *type, PyObject *args, PyObject *keywords)
 {
-  objfile_object *self = (objfile_object *) type->tp_alloc (type, 0);
+  gdbpy_ref<objfile_object> self ((objfile_object *) type->tp_alloc (type, 0));
 
-  if (self)
+  if (self != NULL)
     {
-      if (!objfpy_initialize (self))
-	{
-	  Py_DECREF (self);
-	  return NULL;
-	}
+      if (!objfpy_initialize (self.get ()))
+	return NULL;
     }
 
-  return (PyObject *) self;
+  return (PyObject *) self.release ();
 }
 
 PyObject *
@@ -445,9 +443,9 @@ objfpy_add_separate_debug_file (PyObject *self, PyObject *args, PyObject *kw)
 
   TRY
     {
-      bfd *abfd = symfile_bfd_open (file_name);
+      gdb_bfd_ref_ptr abfd (symfile_bfd_open (file_name));
 
-      symbol_file_add_separate (abfd, file_name, 0, obj->objfile);
+      symbol_file_add_separate (abfd.get (), file_name, 0, obj->objfile);
     }
   CATCH (except, RETURN_MASK_ALL)
     {
@@ -612,13 +610,9 @@ gdbpy_lookup_objfile (PyObject *self, PyObject *args, PyObject *kw)
 static void
 py_free_objfile (struct objfile *objfile, void *datum)
 {
-  struct cleanup *cleanup;
-  objfile_object *object = (objfile_object *) datum;
-
-  cleanup = ensure_python_env (get_objfile_arch (objfile), current_language);
+  gdbpy_enter enter_py (get_objfile_arch (objfile), current_language);
+  gdbpy_ref<objfile_object> object ((objfile_object *) datum);
   object->objfile = NULL;
-  Py_DECREF ((PyObject *) object);
-  do_cleanups (cleanup);
 }
 
 /* Return a borrowed reference to the Python object of type Objfile
@@ -629,26 +623,22 @@ py_free_objfile (struct objfile *objfile, void *datum)
 PyObject *
 objfile_to_objfile_object (struct objfile *objfile)
 {
-  objfile_object *object;
-
-  object = (objfile_object *) objfile_data (objfile, objfpy_objfile_data_key);
-  if (!object)
+  gdbpy_ref<objfile_object> object
+    ((objfile_object *) objfile_data (objfile, objfpy_objfile_data_key));
+  if (object == NULL)
     {
-      object = PyObject_New (objfile_object, &objfile_object_type);
-      if (object)
+      object.reset (PyObject_New (objfile_object, &objfile_object_type));
+      if (object != NULL)
 	{
-	  if (!objfpy_initialize (object))
-	    {
-	      Py_DECREF (object);
-	      return NULL;
-	    }
+	  if (!objfpy_initialize (object.get ()))
+	    return NULL;
 
 	  object->objfile = objfile;
-	  set_objfile_data (objfile, objfpy_objfile_data_key, object);
+	  set_objfile_data (objfile, objfpy_objfile_data_key, object.get ());
 	}
     }
 
-  return (PyObject *) object;
+  return (PyObject *) object.release ();
 }
 
 int

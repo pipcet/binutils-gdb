@@ -2,7 +2,7 @@
 
 # icf_safe_so_test.sh -- test --icf=safe
 
-# Copyright (C) 2010-2016 Free Software Foundation, Inc.
+# Copyright (C) 2010-2017 Free Software Foundation, Inc.
 # Written by Sriraman Tallam <tmsriram@google.com>.
 
 # This file is part of gold.
@@ -26,6 +26,8 @@
 # File icf_safe_so_test.cc is in this test.  The goal of this script is
 # to verify if identical code folding in safe mode correctly folds
 # functions in a shared object.
+
+set -e
 
 error_if_symbol_absent()
 {
@@ -84,8 +86,7 @@ END {
 
 arch_specific_safe_fold()
 {
-    grep -e "Intel 80386" -e "ARM" -e "PowerPC" $1 > /dev/null 2>&1
-    if [ $? -eq 0 ];
+    if grep -q -e "Intel 80386" -e "ARM" -e "PowerPC" $1;
     then
       check_fold $2 $4 $5 $3
     else

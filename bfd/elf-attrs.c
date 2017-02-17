@@ -1,5 +1,5 @@
 /* ELF attributes support (based on ARM EABI attributes).
-   Copyright (C) 2005-2016 Free Software Foundation, Inc.
+   Copyright (C) 2005-2017 Free Software Foundation, Inc.
 
    This file is part of BFD, the Binary File Descriptor library.
 
@@ -493,7 +493,7 @@ _bfd_elf_parse_attributes (bfd *abfd, Elf_Internal_Shdr * hdr)
 	      bfd_vma subsection_len;
 	      bfd_byte *end;
 
-	      tag = safe_read_leb128 (abfd, p, &n, FALSE, p_end);
+	      tag = _bfd_safe_read_leb128 (abfd, p, &n, FALSE, p_end);
 	      p += n;
 	      if (p < p_end - 4)
 		subsection_len = bfd_get_32 (abfd, p);
@@ -517,13 +517,13 @@ _bfd_elf_parse_attributes (bfd *abfd, Elf_Internal_Shdr * hdr)
 		    {
 		      int type;
 
-		      tag = safe_read_leb128 (abfd, p, &n, FALSE, end);
+		      tag = _bfd_safe_read_leb128 (abfd, p, &n, FALSE, end);
 		      p += n;
 		      type = _bfd_elf_obj_attrs_arg_type (abfd, vendor, tag);
 		      switch (type & (ATTR_TYPE_FLAG_INT_VAL | ATTR_TYPE_FLAG_STR_VAL))
 			{
 			case ATTR_TYPE_FLAG_INT_VAL | ATTR_TYPE_FLAG_STR_VAL:
-			  val = safe_read_leb128 (abfd, p, &n, FALSE, end);
+			  val = _bfd_safe_read_leb128 (abfd, p, &n, FALSE, end);
 			  p += n;
 			  bfd_elf_add_obj_attr_int_string (abfd, vendor, tag,
 							   val, (char *) p);
@@ -535,7 +535,7 @@ _bfd_elf_parse_attributes (bfd *abfd, Elf_Internal_Shdr * hdr)
 			  p += strlen ((char *)p) + 1;
 			  break;
 			case ATTR_TYPE_FLAG_INT_VAL:
-			  val = safe_read_leb128 (abfd, p, &n, FALSE, end);
+			  val = _bfd_safe_read_leb128 (abfd, p, &n, FALSE, end);
 			  p += n;
 			  bfd_elf_add_obj_attr_int (abfd, vendor, tag, val);
 			  break;

@@ -1060,7 +1060,7 @@ elf_wasm32_adjust_dynamic_symbol (struct bfd_link_info *info,
       || h->type == STT_GNU_IFUNC
       || h->needs_plt == 1)
     {
-      if (!bfd_link_pic (info) && !h->def_dynamic && !h->ref_dynamic)
+      if (FALSE && !bfd_link_pic (info) && !h->def_dynamic && !h->ref_dynamic)
         {
           /* This case can occur if we saw a PLT32 reloc in an input
              file, but the symbol was never referred to by a dynamic

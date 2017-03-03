@@ -126,7 +126,10 @@ SECTIONS
   .wasm.data_end = .;
   .wasm.chars.function_index 0 (NOLOAD) :
   {
+       *(.wasm.chars.function_index.stdlib)
        *(.wasm.chars.function_index.import)
+       *(.wasm.chars.function_index.import.ab)
+       *(.wasm.chars.function_index.ab);
        *(.wasm.chars.function_index.a);
        *(.wasm.chars.function_index.b);
        .wasm.plt_bias = .;
@@ -141,6 +144,7 @@ SECTIONS
   . = 0x80000000;
   .wasm.chars.name (NOLOAD) :
   {
+       *(.wasm.chars.name.ab);
        *(.wasm.chars.name)
        *(.wasm.chars.name.a);
        *(.wasm.chars.name.b);
@@ -148,6 +152,7 @@ SECTIONS
   }
   .wasm.payload.name :
   {
+       *(.wasm.payload.name.ab);
        *(.wasm.payload.name)
        *(.wasm.payload.name.a);
        *(.wasm.payload.name.b);
@@ -160,16 +165,19 @@ SECTIONS
   }
   .wasm.payload.code :
   {
+      *(.wasm.payload.code.ab)
       *(.wasm.payload.code)
       *(.wasm.payload.code.plt)
   }
   .wasm.chars.function (NOLOAD) :
   {
+      *(.wasm.chars.function.ab)
       *(.wasm.chars.function)
       *(.wasm.chars.function.plt)
   }
   .wasm.payload.function :
   {
+       *(.wasm.payload.function.ab)
        *(.wasm.payload.function)
        *(.wasm.payload.function.plt)
   }

@@ -86,13 +86,6 @@ const char line_separator_chars[] = "";
 
 const char *md_shortopts = "m:";
 
-/* WASM32 target-specific switches.  */
-struct wasm32_opt_s
-{
-};
-
-static struct wasm32_opt_s wasm32_opt = { 0, 0, 0, 0 };
-
 const char EXP_CHARS[] = "eE";
 const char FLT_CHARS[] = "dD";
 

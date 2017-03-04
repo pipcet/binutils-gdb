@@ -87,8 +87,6 @@
 
 #define MAX_RELOC_EXPANSION 3
 
-/* No shared lib support, so we don't need to ensure externally
-   visible symbols can be overridden.  */
 #define EXTERN_FORCE_RELOC 1
 
 /* If defined, this macro allows control over whether fixups for a

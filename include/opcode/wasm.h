@@ -23,8 +23,6 @@ WASM_OPCODE("tee_local", any, any, tee_local, agnostic, 0x22)
 WASM_OPCODE("get_global", any, any, get_local, agnostic, 0x23)
 WASM_OPCODE("set_global", any, any, set_local, agnostic, 0x24)
 
-WASM_OPCODE("call_import", any, any, call_import, agnostic, 0x18)
-
 WASM_OPCODE("i32.load", i32, i32, load, agnostic, 0x28)
 WASM_OPCODE("i64.load", i32, i64, load, agnostic, 0x29)
 WASM_OPCODE("f32.load", i32, f32, load, agnostic, 0x2a)

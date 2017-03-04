@@ -1,4 +1,4 @@
-/* tc-wasm32.c -- "Assembler" code for the asm.js target
+/* tc-wasm32.c -- Assembler code for the wasm32 target.
 
    Copyright (C) 1999-2015 Free Software Foundation, Inc.
    Copyright (C) 2016 Pip Cet <pipcet@gmail.com>
@@ -27,12 +27,41 @@
 #include "dw2gencfi.h"
 #include "elf/wasm32.h"
 
-enum wasm_clas { wasm_typed, wasm_special, wasm_special1, wasm_break, wasm_fakebreak, wasm_break_if, wasm_break_table,
-                 wasm_return, wasm_call, wasm_call_import, wasm_call_indirect, wasm_get_local, wasm_set_local, wasm_tee_local, wasm_drop,
-                 wasm_constant_i32, wasm_constant_i64, wasm_constant_f32, wasm_constant_f64, wasm_unary, wasm_binary,
-wasm_conv, wasm_load, wasm_store, wasm_select, wasm_relational, wasm_eqz, wasm_signature };
+enum wasm_clas {
+  wasm_typed, /* a typed opcode: block, loop, and if */
+  wasm_special, /* a special opcode: unreachable, nop, else, end */
+  wasm_break, /* "br" */
+  wasm_fakebreak, /* XXX remove this */
+  wasm_break_if, /* "br_if" opcode */
+  wasm_break_table, /* "br_table" opcode */
+  wasm_return, /* "return" opcode */
+  wasm_call, /* "call" opcode */
+  wasm_call_indirect, /* "call_indirect" opcode */
+  wasm_get_local, /* "get_local" and "get_global" */
+  wasm_set_local, /* "set_local" and "set_global" */
+  wasm_tee_local, /* "tee_local" */
+  wasm_drop, /* "drop" */
+  wasm_constant_i32, /* "i32.const" */
+  wasm_constant_i64, /* "i64.const" */
+  wasm_constant_f32, /* "f32.const" */
+  wasm_constant_f64, /* "f64.const" */
+  wasm_unary, /* unary ops */
+  wasm_binary, /* binary ops */
+  wasm_conv, /* conversion ops */
+  wasm_load, /* load ops */
+  wasm_store, /* store ops */
+  wasm_select, /* "select" */
+  wasm_relational, /* comparison ops */
+  wasm_eqz, /* "eqz" */
+  wasm_signature /* "signature", which isn't an opcode */
+};
 
-enum wasm_signedness { wasm_signed, wasm_unsigned, wasm_agnostic, wasm_floating };
+enum wasm_signedness {
+  wasm_signed,
+  wasm_unsigned,
+  wasm_agnostic,
+  wasm_floating
+};
 
 enum wasm_type { wasm_void, wasm_any, wasm_i32, wasm_i64, wasm_f32, wasm_f64 };
 
@@ -60,11 +89,6 @@ const char *md_shortopts = "m:";
 /* WASM32 target-specific switches.  */
 struct wasm32_opt_s
 {
-  int all_opcodes;  /* -mall-opcodes: accept all known WASM32 opcodes.  */
-  int no_skip_bug;  /* -mno-skip-bug: no warnings for skipping 2-word insns.  */
-  int no_wrap;      /* -mno-wrap: reject rjmp/rcall with 8K wrap-around.  */
-  int no_link_relax;   /* -mno-link-relax / -mlink-relax: generate (or not)
-                          relocations for linker relaxation.  */
 };
 
 static struct wasm32_opt_s wasm32_opt = { 0, 0, 0, 0 };
@@ -75,14 +99,14 @@ const char FLT_CHARS[] = "dD";
 /* The target specific pseudo-ops which we support.  */
 const pseudo_typeS md_pseudo_table[] =
 {
-  { "qi", cons, 1 },
-  { "hi", cons, 2 },
-  { "si", cons, 4 },
-  { "di", cons, 8 },
-  { "QI", cons, 1 },
-  { "HI", cons, 2 },
-  { "SI", cons, 4 },
-  { "DI", cons, 8 },
+  { "qi", cons, 1 }, /* 8-bit integer */
+  { "hi", cons, 2 }, /* 16-bit integer */
+  { "si", cons, 4 }, /* 32-bit integer */
+  { "di", cons, 8 }, /* 64-bit integer */
+  { "QI", cons, 1 }, /* 8-bit integer */
+  { "HI", cons, 2 }, /* 16-bit integer */
+  { "SI", cons, 4 }, /* 32-bit integer */
+  { "DI", cons, 8 }, /* 64-bit integer */
   { NULL,	NULL,		0}
 };
 
@@ -91,12 +115,7 @@ static struct hash_control *wasm32_hash;
 
 enum options
 {
-  OPTION_ALL_OPCODES = OPTION_MD_BASE + 1,
-  OPTION_NO_SKIP_BUG,
-  OPTION_NO_WRAP,
-  OPTION_LINK_RELAX,
-  OPTION_NO_LINK_RELAX,
-  OPTION_INCLUDE,
+  OPTION_INCLUDE = OPTION_MD_BASE + 1,
 };
 
 struct option md_longopts[] =
@@ -172,7 +191,7 @@ md_begin (void)
   for (opcode = wasm32_opcodes; opcode->name; opcode++)
     hash_insert (wasm32_hash, opcode->name, (char *) opcode);
 
-  linkrelax = !wasm32_opt.no_link_relax;
+  linkrelax = 1;
   flag_sectname_subst = 1;
   flag_no_comments = 0;
   flag_keep_locals = 1;
@@ -404,44 +423,6 @@ static void wasm32_sleb128(char **line, int bits)
   wasm32_leb128(line, bits, 1);
 }
 
-#if 0
-static void wasm32_uleb128_r32(char **line)
-{
-  char *t = input_line_pointer;
-  char *str = *line;
-  struct reloc_list *reloc;
-  expressionS ex;
-  reloc = XNEW (struct reloc_list);
-  input_line_pointer = str;
-  expression (&ex);
-  reloc->u.a.offset_sym = expr_build_dot ();
-  if (ex.X_op == O_symbol)
-    {
-      reloc->u.a.sym = ex.X_add_symbol;
-      reloc->u.a.addend = ex.X_add_number;
-    }
-  else
-    {
-      reloc->u.a.sym = make_expr_symbol (&ex);
-      reloc->u.a.addend = 0;
-    }
-  reloc->u.a.howto = bfd_reloc_name_lookup (stdoutput, "R_ASMJS_LEB128_R32");
-  if (!reloc->u.a.howto)
-    {
-      as_bad (_("couldn't find relocation to use"));
-    }
-  reloc->file = as_where (&reloc->line);
-  reloc->next = reloc_list;
-  reloc_list = reloc;
-
-  str = input_line_pointer;
-  str = skip_space (str);
-  *line = str;
-  wasm32_put_long_uleb128();
-  input_line_pointer = t;
-}
-#endif
-
 static void wasm32_u32(char **line)
 {
   char *t = input_line_pointer;
@@ -471,7 +452,6 @@ static void wasm32_f64(char **line)
 
 static void wasm32_signature(char **line)
 {
-#if 1
   unsigned long count = 0;
   char *str = *line;
   char *ostr;
@@ -493,7 +473,7 @@ static void wasm32_signature(char **line)
       as_bad (_("Unknown type %c\n"), str[-1]);
     }
   }
-  FRAG_APPEND_1_CHAR (count);
+  wasm32_put_uleb128(count);
   str = ostr;
   while (*str != 'E') {
     switch (*str++) {
@@ -538,50 +518,6 @@ static void wasm32_signature(char **line)
     as_bad (_("Unknown type"));
   }
   *line = str;
-#else
-  unsigned long count = 0;
-  char *str = *line;
-  char *ostr = str;
-  int has_result = 0;
-  while (*str) {
-    if (strncmp(str, "i32", 3) == 0)
-      count++;
-    else if (strncmp(str, "i64", 3) == 0)
-      count++;
-    else if (strncmp(str, "f32", 3) == 0)
-      count++;
-    else if (strncmp(str, "f64", 3) == 0)
-      count++;
-    else if (strncmp(str, "result", 6) == 0) {
-      count--;
-      str += 3;
-      has_result = 1;
-    }
-    str += 3;
-    str = skip_space (str);
-  }
-  FRAG_APPEND_1_CHAR (count); /* XXX >127 arguments */
-  str = ostr;
-  while (*str) {
-    if (strncmp(str, "i32", 3) == 0)
-      FRAG_APPEND_1_CHAR (0x01);
-    else if (strncmp(str, "i64", 3) == 0)
-      FRAG_APPEND_1_CHAR (0x02);
-    else if (strncmp(str, "f32", 3) == 0)
-      FRAG_APPEND_1_CHAR (0x03);
-    else if (strncmp(str, "f64", 3) == 0)
-      FRAG_APPEND_1_CHAR (0x04);
-    else if (strncmp(str, "result", 6) == 0) {
-      FRAG_APPEND_1_CHAR (0x01);
-      str += 3;
-    }
-    str += 3;
-    str = skip_space (str);
-  }
-  if (!has_result)
-    FRAG_APPEND_1_CHAR (0x00);
-  *line = str;
-#endif
 }
 
 static unsigned
@@ -630,7 +566,6 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
       break;
     case wasm_drop:
     case wasm_special:
-    case wasm_special1:
     case wasm_binary:
     case wasm_unary:
     case wasm_relational:
@@ -668,7 +603,6 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
       wasm32_uleb128(&str, 32);
       break;
     case wasm_call_indirect:
-    case wasm_call_import:
       wasm32_uleb128(&str, 32);
       wasm32_uleb128(&str, 32);
       break;
@@ -734,8 +668,6 @@ md_assemble (char *str)
 
   t = input_line_pointer;
   wasm32_operands (opcode, &str);
-  //if (*skip_space (str))
-  //  as_bad (_("garbage at end of line"));
   input_line_pointer = t;
 }
 

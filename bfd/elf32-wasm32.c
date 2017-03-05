@@ -132,7 +132,6 @@ struct elf_wasm32_link_hash_entry
   struct elf_link_hash_entry root;
 
   bfd_vma pltnameoff;
-  bfd_vma lazynameoff;
 };
 
 #define wasm32_elf_hash_entry(ent) ((struct elf_wasm32_link_hash_entry *)(ent))
@@ -879,7 +878,6 @@ wasm32_elf_link_hash_newfunc (struct bfd_hash_entry *entry,
   if (ret != (struct elf_wasm32_link_hash_entry *) NULL)
     {
       ret->pltnameoff = (bfd_vma)-1;
-      ret->lazynameoff = (bfd_vma)-1;
     }
 
   return (struct bfd_hash_entry *) ret;
@@ -994,7 +992,6 @@ wasm32_create_dynamic_sections (bfd * abfd, struct bfd_link_info *info)
   return ds;
 }
 
-#define LAZY 0
 #define PLTNAME 1
 
 static bfd_vma
@@ -1009,10 +1006,10 @@ add_symbol_to_plt (bfd *output_bfd, struct bfd_link_info *info,
 
   ret = htab->splt->size;
 
-  htab->splt->size += LAZY ? 0x80 : 0x40;
+  htab->splt->size += 0x40;
 
   htab->sgotplt->size += /* 4 */ 0;
-  htab->srelplt->size += (LAZY?2:1) * sizeof (Elf32_External_Rela);
+  htab->srelplt->size += 1 * sizeof (Elf32_External_Rela);
 
   ds.spltspace->size++;
   ds.spltfun->size++;
@@ -1025,21 +1022,6 @@ add_symbol_to_plt (bfd *output_bfd, struct bfd_link_info *info,
     h2->pltnameoff = ds.spltname->size;
     ds.spltname->size += 5 + 5 + (h->root.root.string ? (strlen(h->root.root.string) + strlen ("@plt")) : 0);
     ds.spltnamespace->size++;
-  }
-
-  if (LAZY) {
-    ds.spltspace->size++;
-    ds.spltfun->size++;
-    ds.spltfunspace->size++;
-    ds.spltidx->size++;
-    ds.spltelemspace->size++;
-    ds.spltelem->size+=5;
-    if (PLTNAME) {
-      struct elf_wasm32_link_hash_entry *h2 = (struct elf_wasm32_link_hash_entry *)h;
-      h2->lazynameoff = ds.spltname->size;
-      ds.spltname->size += 5 + (h->root.root.string ? (strlen(h->root.root.string) + strlen("@lazy")): 0) + 1;
-      ds.spltnamespace->size++;
-  }
   }
 
   if (0) fprintf (stderr, "adding symbol to %s at %lx\n",
@@ -1416,27 +1398,8 @@ elf_wasm32_finish_dynamic_symbol (bfd * output_bfd,
         0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x0b
       };
 
-      uint8_t pltlazystub[] = {
-        0x3f, 0x01, 0x11, 0x7f,
-        0x41, 0xf8, 0xe0, 0x00,
-        0x41, 0x80, 0x80, 0x80, 0x80, 0x00,
-        0x36, 0x02, 0x00,
-        0x20, 0x00, 0x20, 0x01, 0x20, 0x02,
-        0x20, 0x03, 0x20, 0x04, 0x20, 0x05,
-        0x41, 0x80, 0x80, 0x80, 0x80, 0x00,
-        0x28, 0x02, 0x00,
-        0x11, 0x00, 0x00, 0x0f, 0x01, 0x01,
-        0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
-        0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
-        0x01, 0x01, 0x01, 0x0b
-      };
       memcpy (splt->contents + h->plt.offset, pltentry,
               0x40);
-
-      if (LAZY) {
-        memcpy (splt->contents + h->plt.offset + 0x40, pltlazystub,
-                0x40);
-      }
 
       struct elf_link_hash_entry *h2;
       h2 = elf_link_hash_lookup (elf_hash_table (info),
@@ -1447,13 +1410,7 @@ elf_wasm32_finish_dynamic_symbol (bfd * output_bfd,
                    plt_index + h2->root.u.def.value,
                    splt->contents + h->plt.offset + 19);
 
-      if (LAZY) {
-        set_uleb128 (output_bfd,
-                     plt_index + h2->root.u.def.value,
-                     splt->contents + h->plt.offset + 0x49);
-      }
-
-      for (int i = 0; i < (LAZY ? 10 : 5); i++)
+      for (int i = 0; i < 5; i++)
         bfd_put_8 (output_bfd,
                    (i % 5 == 4) ? 0x00 : 0x80,
                    spltelem->contents + 5 * plt_index + i);
@@ -1500,41 +1457,7 @@ elf_wasm32_finish_dynamic_symbol (bfd * output_bfd,
           bfd_put_8 (output_bfd, 't', spltname->contents + h4->pltnameoff + 10 + i++);
         }
 
-        if (LAZY) {
-          for (i = 0; i < 5; i++)
-            bfd_put_8 (output_bfd,
-                       (i % 5 == 4) ? 0x00 : 0x80,
-                       spltname->contents + h4->lazynameoff + i);
-
-          set_uleb128 (output_bfd,
-                       len + 5,
-                       spltname->contents + h4->lazynameoff);
-
-          for (i = 0; str[i]; i++)
-            bfd_put_8 (output_bfd,
-                       str[i],
-                       spltname->contents + h4->lazynameoff + 5 + i);
-
-          if (str[0]) {
-            bfd_put_8 (output_bfd, '@', spltname->contents + h4->lazynameoff + 5 + i++);
-            bfd_put_8 (output_bfd, 'l', spltname->contents + h4->lazynameoff + 5 + i++);
-            bfd_put_8 (output_bfd, 'a', spltname->contents + h4->lazynameoff + 5 + i++);
-            bfd_put_8 (output_bfd, 'z', spltname->contents + h4->lazynameoff + 5 + i++);
-            bfd_put_8 (output_bfd, 'y', spltname->contents + h4->lazynameoff + 5 + i++);
-          }
-        }
       }
-
-      if (LAZY)
-        {
-          set_uleb128 (output_bfd,
-                       plt_index + 1 + h2->root.u.def.value,
-                       spltelem->contents + 5 * (plt_index + 1));
-
-          set_uleb128 (output_bfd,
-                       12416,
-                       splt->contents + h->plt.offset + 0x40 + 30);
-        }
 
       /* Fill in the entry in the .rela.plt section.  */
       rel.r_offset = plt_index + h2->root.u.def.value;
@@ -1543,16 +1466,6 @@ elf_wasm32_finish_dynamic_symbol (bfd * output_bfd,
       loc = srel->contents + (/*2 **/ plt_index /*+ 1*/) * sizeof (Elf32_External_Rela);
       bfd_elf32_swap_reloca_out (output_bfd, &rel, loc);
       BFD_ASSERT (srel->size >= loc - srel->contents + sizeof (Elf32_External_Rela));
-
-      if (LAZY)
-        {
-          rel.r_offset = plt_index + h2->root.u.def.value + 1;
-          rel.r_info = ELF32_R_INFO (h->dynindx, R_ASMJS_PLT_LAZY);
-          rel.r_addend = 0;
-          loc = srel->contents + (/*2 **/ plt_index + 1) * sizeof (Elf32_External_Rela);
-          bfd_elf32_swap_reloca_out (output_bfd, &rel, loc);
-          BFD_ASSERT (srel->size >= loc - srel->contents + sizeof (Elf32_External_Rela));
-        }
 
       if (!h->def_regular)
         {

@@ -980,8 +980,8 @@ wasm32_create_dynamic_sections (bfd * abfd, struct bfd_link_info *info)
                                                       SEC_READONLY | SEC_ALLOC | SEC_LOAD | SEC_HAS_CONTENTS | SEC_IN_MEMORY | SEC_LINKER_CREATED);
       ds.spltelem = bfd_get_section_by_name (dynobj, ".wasm.payload.element.plt");
       ds.spltelemspace = bfd_get_section_by_name (dynobj, ".wasm.chars.element.plt");
-      ds.spltname = bfd_get_section_by_name (dynobj, ".wasm.payload.name.plt");
-      ds.spltnamespace = bfd_get_section_by_name (dynobj, ".wasm.chars.name.plt");
+      ds.spltname = bfd_get_section_by_name (dynobj, ".wasm.payload.name.function.plt");
+      ds.spltnamespace = bfd_get_section_by_name (dynobj, ".wasm.chars.name.function.plt");
     }
 
   if (htab->dynamic_sections_created)
@@ -1023,7 +1023,7 @@ add_symbol_to_plt (bfd *output_bfd, struct bfd_link_info *info,
   if (PLTNAME) {
     struct elf_wasm32_link_hash_entry *h2 = (struct elf_wasm32_link_hash_entry *)h;
     h2->pltnameoff = ds.spltname->size;
-    ds.spltname->size += 5 + (h->root.root.string ? (strlen(h->root.root.string) + strlen ("@plt")) : 0) + 1;
+    ds.spltname->size += 5 + 5 + (h->root.root.string ? (strlen(h->root.root.string) + strlen ("@plt")) : 0);
     ds.spltnamespace->size++;
   }
 
@@ -1464,6 +1464,8 @@ elf_wasm32_finish_dynamic_symbol (bfd * output_bfd,
 
       if (PLTNAME) {
         struct elf_wasm32_link_hash_entry *h4 = (struct elf_wasm32_link_hash_entry *)h;
+
+        bfd_vma index = h->plt.offset/0x40 + h2->root.u.def.value;
         const char *str = h->root.root.string ? h->root.root.string : "";;
         size_t len = strlen(str);
         int i;
@@ -1474,19 +1476,28 @@ elf_wasm32_finish_dynamic_symbol (bfd * output_bfd,
                      spltname->contents + h4->pltnameoff + i);
 
         set_uleb128 (output_bfd,
-                     len + 4,
+                     index,
                      spltname->contents + h4->pltnameoff);
+
+        for (i = 0; i < 5; i++)
+          bfd_put_8 (output_bfd,
+                     (i % 5 == 4) ? 0x00 : 0x80,
+                     spltname->contents + h4->pltnameoff + 5 + i);
+
+        set_uleb128 (output_bfd,
+                     len + 4,
+                     spltname->contents + h4->pltnameoff + 5);
 
         for (i = 0; str[i]; i++)
           bfd_put_8 (output_bfd,
                      str[i],
-                     spltname->contents + h4->pltnameoff + 5 + i);
+                     spltname->contents + h4->pltnameoff + 10 + i);
 
         if (str[0]) {
-          bfd_put_8 (output_bfd, '@', spltname->contents + h4->pltnameoff + 5 + i++);
-          bfd_put_8 (output_bfd, 'p', spltname->contents + h4->pltnameoff + 5 + i++);
-          bfd_put_8 (output_bfd, 'l', spltname->contents + h4->pltnameoff + 5 + i++);
-          bfd_put_8 (output_bfd, 't', spltname->contents + h4->pltnameoff + 5 + i++);
+          bfd_put_8 (output_bfd, '@', spltname->contents + h4->pltnameoff + 10 + i++);
+          bfd_put_8 (output_bfd, 'p', spltname->contents + h4->pltnameoff + 10 + i++);
+          bfd_put_8 (output_bfd, 'l', spltname->contents + h4->pltnameoff + 10 + i++);
+          bfd_put_8 (output_bfd, 't', spltname->contents + h4->pltnameoff + 10 + i++);
         }
 
         if (LAZY) {

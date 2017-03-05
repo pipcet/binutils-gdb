@@ -139,19 +139,29 @@ SECTIONS
        .wasm.pc_end = .;
   }
   . = 0x80000000;
-  .wasm.chars.name (NOLOAD) :
+  .wasm.chars.name.function (NOLOAD) :
   {
-       *(.wasm.chars.name)
-       *(.wasm.chars.name.a);
-       *(.wasm.chars.name.b);
-       *(.wasm.chars.name.plt);
+       *(.wasm.chars.name.function)
   }
-  .wasm.payload.name :
+  .wasm.payload.name.function :
   {
-       *(.wasm.payload.name)
-       *(.wasm.payload.name.a);
-       *(.wasm.payload.name.b);
-       *(.wasm.payload.name.plt);
+       *(.wasm.payload.name.function)
+  }
+  .wasm.chars.name.function.plt (NOLOAD) :
+  {
+       *(.wasm.chars.name.function.plt)
+  }
+  .wasm.payload.name.function.plt :
+  {
+       *(.wasm.payload.name.function.plt)
+  }
+  .wasm.chars.name.local (NOLOAD) :
+  {
+       *(.wasm.chars.name.local)
+  }
+  .wasm.payload.name.local :
+  {
+       *(.wasm.payload.name.local)
   }
   .wasm.chars.code (NOLOAD) :
   {

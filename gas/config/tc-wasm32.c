@@ -272,24 +272,6 @@ extract_word (char *from, char *to, int limit)
   return op_end;
 }
 
-static expressionS wasm32_get_constant(char **line)
-{
-  expressionS ex;
-  char *str = *line;
-  char *t = input_line_pointer;
-
-  str = skip_space (str);
-  input_line_pointer = str;
-  expression (& ex);
-  *line = input_line_pointer;
-  input_line_pointer = t;
-
-  if (ex.X_op != O_constant)
-    as_bad (_("constant value required"));
-
-  return ex;
-}
-
 static void wasm32_put_long_uleb128(int bits, unsigned long value)
 {
   unsigned char c;
@@ -414,15 +396,6 @@ static void wasm32_uleb128(char **line, int bits)
 static void wasm32_sleb128(char **line, int bits)
 {
   wasm32_leb128(line, bits, 1);
-}
-
-static void wasm32_u32(char **line)
-{
-  char *t = input_line_pointer;
-  input_line_pointer = *line;
-  cons (4);
-  *line = input_line_pointer;
-  input_line_pointer = t;
 }
 
 static void wasm32_f32(char **line)
@@ -613,20 +586,11 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
       break;
     case wasm_break_table:
       {
-        unsigned long count = 0;
-        char *pstr = str;
         do {
-          wasm32_get_constant(&pstr);
-          count++;
-          pstr  = skip_space (pstr);
-        } while (pstr[0]);
+          wasm32_uleb128(&str, 32);
+          str = skip_space (str);
+        } while (str[0]);
 
-        count++;
-        while (count--)
-          {
-            wasm32_u32(&str);
-            str = skip_space (str);
-          }
         break;
       }
     case wasm_signature:

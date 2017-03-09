@@ -151,6 +151,7 @@
 #include "elf/v850.h"
 #include "elf/vax.h"
 #include "elf/visium.h"
+#include "elf/wasm32.h"
 #include "elf/x86-64.h"
 #include "elf/xc16x.h"
 #include "elf/xgate.h"
@@ -1509,6 +1510,10 @@ dump_relocations (FILE * file,
 	case EM_TI_PRU:
 	  rtype = elf_pru_reloc_type (type);
 	  break;
+
+        case EM_WASM32:
+          rtype = elf_wasm32_reloc_type (type);
+          break;
 	}
 
       if (rtype == NULL)

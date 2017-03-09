@@ -810,12 +810,30 @@ wasm32_elf32_bfd_reloc_type_lookup (bfd *abfd ATTRIBUTE_UNUSED,
     return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_ABS32");
   case BFD_RELOC_16:
     return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_ABS16");
+  case BFD_RELOC_ASMJS_HEX16:
+    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_HEX16");
+  case BFD_RELOC_ASMJS_HEX16R4:
+    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_HEX16R4");
+  case BFD_RELOC_ASMJS_HEX16R12:
+    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_HEX16R12");
+  case BFD_RELOC_ASMJS_LEB128:
+    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_LEB128");
+  case BFD_RELOC_ASMJS_LEB128R32:
+    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_LEB128R32");
   case BFD_RELOC_ASMJS_LEB128_GOT:
     return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_LEB128_GOT");
   case BFD_RELOC_ASMJS_LEB128_GOT_CODE:
     return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_LEB128_GOT_CODE");
   case BFD_RELOC_ASMJS_LEB128_PLT:
     return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_LEB128_PLT");
+  case BFD_RELOC_ASMJS_PLT_INDEX:
+    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_PLT_INDEX");
+  case BFD_RELOC_ASMJS_ABS32_CODE:
+    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_ABS32_CODE");
+  case BFD_RELOC_ASMJS_COPY:
+    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_COPY");
+  case BFD_RELOC_ASMJS_LAZY:
+    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_LAZY");
   default:
     return NULL;
   }

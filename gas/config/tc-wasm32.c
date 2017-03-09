@@ -623,6 +623,8 @@ md_assemble (char *str)
       return;
     }
 
+  dwarf2_emit_insn (0);
+
   t = input_line_pointer;
   wasm32_operands (opcode, &str);
   input_line_pointer = t;

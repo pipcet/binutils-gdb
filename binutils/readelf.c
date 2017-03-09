@@ -12060,6 +12060,8 @@ is_32bit_abs_reloc (unsigned int reloc_type)
       return reloc_type == 1; /* R_VAX_32.  */
     case EM_VISIUM:
       return reloc_type == 3;  /* R_VISIUM_32. */
+    case EM_WASM:
+      return reloc_type == 3;
     case EM_X86_64:
     case EM_L1OM:
     case EM_K1OM:

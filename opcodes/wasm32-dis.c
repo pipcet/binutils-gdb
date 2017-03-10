@@ -1,6 +1,6 @@
-/* "Instruction" printing code for the asm.js target
+/* Opcode printing mode for the WebAssembly target
    Copyright (C) 1994-2015 Free Software Foundation, Inc.
-   Copyright (C) 2016 Pip Cet <pipcet@gmail.com>
+   Copyright (C) 2016-2017 Pip Cet <pipcet@gmail.com>
 
    This file is NOT part of libopcodes.
 
@@ -44,14 +44,55 @@
 
 
 
-enum wasm_clas { wasm_typed, wasm_special, wasm_special1, wasm_break, wasm_fakebreak, wasm_break_if, wasm_break_table,
-                 wasm_return, wasm_call, wasm_call_import, wasm_call_indirect, wasm_get_local, wasm_set_local, wasm_tee_local, wasm_drop,
-                 wasm_constant_i32, wasm_constant_i64, wasm_constant_f32, wasm_constant_f64, wasm_unary, wasm_binary,
-wasm_conv, wasm_load, wasm_store, wasm_select, wasm_relational, wasm_eqz, wasm_signature };
+enum wasm_clas
+  {
+    wasm_typed,
+    wasm_special,
+    wasm_special1,
+    wasm_break,
+    wasm_fakebreak,
+    wasm_break_if,
+    wasm_break_table,
+    wasm_return,
+    wasm_call,
+    wasm_call_import,
+    wasm_call_indirect,
+    wasm_get_local,
+    wasm_set_local,
+    wasm_tee_local,
+    wasm_drop,
+    wasm_constant_i32,
+    wasm_constant_i64,
+    wasm_constant_f32,
+    wasm_constant_f64,
+    wasm_unary,
+    wasm_binary,
+    wasm_conv,
+    wasm_load,
+    wasm_store,
+    wasm_select,
+    wasm_relational,
+    wasm_eqz,
+    wasm_signature
+  };
 
-enum wasm_signedness { wasm_signed, wasm_unsigned, wasm_agnostic, wasm_floating };
+enum wasm_signedness
+  {
+    wasm_signed,
+    wasm_unsigned,
+    wasm_agnostic,
+    wasm_floating
+  };
 
-enum wasm_type { wasm_void, wasm_any, wasm_i32, wasm_i64, wasm_f32, wasm_f64 };
+enum wasm_type
+  {
+    wasm_void,
+    wasm_any,
+    wasm_i32,
+    wasm_i64,
+    wasm_f32,
+    wasm_f64
+  };
 
 #define WASM_OPCODE(name, intype, outtype, clas, signedness, opcode) \
   { name, wasm_ ## intype, wasm_ ## outtype, wasm_ ## clas, wasm_ ## signedness, opcode },
@@ -103,6 +144,7 @@ parse_wasm32_disassembler_option (char *option)
 /* Parse the string of disassembler options, spliting it at whitespaces
    or commas.  (Whitespace separators supported for backwards compatibility).  */
 
+/* XXX these assume host integers/floats are WASM integers/floats */
 extern
 int read_uleb128(long *value, bfd_vma pc, struct disassemble_info *info);
 

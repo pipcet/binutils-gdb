@@ -84,7 +84,8 @@ case $target_triplet in {
 gas_test "eqv-ok.s" "" "" ".eqv support"
 gas_test_error "eqv-bad.s" "" ".eqv for symbol already set"
 
-if { ![istarget "bfin-*-*"] } then {
+if {    ![istarget "bfin-*-*"]
+     && ![istarget "wasm32-*-*"] } then {
     gas_test "assign-ok.s" "" "" "== assignment support"
 }
 gas_test_error "assign-bad.s" "" "== assignment for symbol already set"

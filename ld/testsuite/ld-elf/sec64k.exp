@@ -32,7 +32,8 @@ if ![is_elf_format] {
 if { [istarget "d30v-*-*"]
      || [istarget "dlx-*-*"]
      || [istarget "i960-*-*"]
-     || [istarget "pj*-*-*"] } {
+     || [istarget "pj*-*-*"]
+     || [istarget "wasm32*-*-*"] } {
     return
 }
 

@@ -184,6 +184,9 @@ proc supports_gnu_unique {} {
     if { [istarget "arm*-*-*eabi*"] } {
 	return 1
     }
+    if { [istarget "wasm32*-*-*"] } {
+        return 1
+    }
     if { ![istarget "*-*-elf*"] } {
 	return 0
     }

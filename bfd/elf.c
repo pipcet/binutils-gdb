@@ -1406,14 +1406,17 @@ copy_special_section_fields (const bfd *ibfd,
 bfd_boolean
 _bfd_elf_copy_private_bfd_data (bfd *ibfd, bfd *obfd)
 {
-  const Elf_Internal_Shdr **iheaders = (const Elf_Internal_Shdr **) elf_elfsections (ibfd);
-  Elf_Internal_Shdr **oheaders = elf_elfsections (obfd);
+  const Elf_Internal_Shdr **iheaders;
+  Elf_Internal_Shdr **oheaders;
   const struct elf_backend_data *bed;
   unsigned int i;
 
   if (bfd_get_flavour (ibfd) != bfd_target_elf_flavour
     || bfd_get_flavour (obfd) != bfd_target_elf_flavour)
     return TRUE;
+
+  iheaders = (const Elf_Internal_Shdr **) elf_elfsections (ibfd);
+  oheaders = elf_elfsections (obfd);
 
   if (!elf_flags_init (obfd))
     {

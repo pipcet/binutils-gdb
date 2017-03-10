@@ -94,6 +94,12 @@ enum wasm_type
     wasm_f64
   };
 
+struct wasm32_private_data
+{
+  bfd_boolean print_registers;
+  bfd_boolean print_well_known_globals;
+};
+
 #define WASM_OPCODE(name, intype, outtype, clas, signedness, opcode) \
   { name, wasm_ ## intype, wasm_ ## outtype, wasm_ ## clas, wasm_ ## signedness, opcode },
 
@@ -141,10 +147,37 @@ parse_wasm32_disassembler_option (char *option)
   return;
 }
 
-/* Parse the string of disassembler options, spliting it at whitespaces
-   or commas.  (Whitespace separators supported for backwards compatibility).  */
+static void
+parse_wasm32_disassembler_options (char *options __attribute__((unused)))
+{
+}
 
 /* XXX these assume host integers/floats are WASM integers/floats */
+extern
+int read_sleb128(long *value, bfd_vma pc, struct disassemble_info *info);
+
+int read_sleb128(long *value, bfd_vma pc, struct disassemble_info *info)
+{
+  bfd_byte buffer[16];
+  int len = 1;
+
+  if (info->read_memory_func (pc, buffer, 1, info))
+    return -1;
+
+  if (buffer[0] & 0x80)
+    {
+      len = read_sleb128(value, pc + 1, info) + 1;
+    }
+  else if (buffer[0] & 0x40)
+    {
+      *value |= -1L;
+    }
+  *value <<= 7;
+  *value |= buffer[0]&0x7f;
+
+  return len;
+}
+
 extern
 int read_uleb128(long *value, bfd_vma pc, struct disassemble_info *info);
 
@@ -232,6 +265,7 @@ print_insn_little_wasm32 (bfd_vma pc, struct disassemble_info *info)
   bfd_byte buffer[16];
   void *stream = info->stream;
   fprintf_ftype prin = info->fprintf_func;
+  struct wasm32_private_data *private_data = info->private_data;
   long constant = 0;
   double fconstant = 0.0;
   long flags = 0;
@@ -255,6 +289,23 @@ print_insn_little_wasm32 (bfd_vma pc, struct disassemble_info *info)
   };
   int nglobals = sizeof(globals) / sizeof(globals[0]);
   (void) nglobals;
+
+  if (info->disassembler_options)
+    {
+      parse_wasm32_disassembler_options (info->disassembler_options);
+
+      info->disassembler_options = NULL;
+    }
+
+  if (info->private_data == NULL)
+    {
+      static struct wasm32_private_data private;
+
+      private.print_registers = TRUE;
+      private.print_well_known_globals = TRUE;
+
+      info->private_data = &private;
+    }
 
   if (info->read_memory_func (pc, buffer, 1, info))
     return -1;
@@ -383,8 +434,8 @@ print_insn_little_wasm32 (bfd_vma pc, struct disassemble_info *info)
           break;
         case wasm_constant_i32:
         case wasm_constant_i64:
-          len += read_uleb128(&constant, pc + len, info);
-          prin (stream, " %lx", constant);
+          len += read_sleb128(&constant, pc + len, info);
+          prin (stream, " %ld", constant);
           break;
         case wasm_constant_f32:
           len += read_f32(&fconstant, pc + len, info);
@@ -412,12 +463,14 @@ print_insn_little_wasm32 (bfd_vma pc, struct disassemble_info *info)
           prin (stream, " %ld", constant);
           if (strcmp (op->name + 4, "local") == 0)
             {
-              if (constant >= 0 && constant < nlocals)
+              if (private_data->print_registers &&
+                  constant >= 0 && constant < nlocals)
                 prin (stream, " <%s>", locals[constant]);
             }
           else
             {
-              if (constant >= 0 && constant < nglobals)
+              if (private_data->print_well_known_globals &&
+                  constant >= 0 && constant < nglobals)
                 prin (stream, " <%s>", globals[constant]);
             }
           break;

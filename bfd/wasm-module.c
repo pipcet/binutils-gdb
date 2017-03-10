@@ -145,6 +145,7 @@ wasm_get_uleb128 (bfd* abfd, bfd_boolean* error)
   return (bfd_vma)-1;
 }
 
+#if 0
 static bfd_boolean
 wasm_skip_custom_section (bfd* abfd, bfd_boolean* error)
 {
@@ -178,6 +179,7 @@ wasm_skip_custom_section (bfd* abfd, bfd_boolean* error)
 
   return FALSE;
 }
+#endif
 
 static bfd_boolean
 bfd_wasm_read_header (bfd* abfd, bfd_boolean* error)
@@ -209,33 +211,57 @@ wasm_scan (bfd *abfd)
 
   while ((section_code = wasm_get_byte (abfd, &error)) != (bfd_byte)EOF)
     {
-      if (section_code) {
-        const char *name = wasm_section_code_to_name (section_code, &error);
-        char *secname;
-        asprintf (&secname, ".wasm.%s", name);
+      asection *bfdsec;
+      if (section_code)
+        {
+          const char *name = wasm_section_code_to_name (section_code, &error);
+          char *secname;
+          asprintf (&secname, ".wasm.%s", name);
 
-        asection *bfdsec;
-        bfdsec = bfd_make_section_anyway_with_flags (abfd, secname, SEC_HAS_CONTENTS);
-        if (bfdsec == NULL)
-          goto error_return;
+          bfdsec = bfd_make_section_anyway_with_flags (abfd, secname, SEC_HAS_CONTENTS);
+          if (bfdsec == NULL)
+            goto error_return;
 
-        bfdsec->vma = vma;
-        bfdsec->lma = vma;
-        bfdsec->size = wasm_get_uleb128 (abfd, &error);
-        bfdsec->filepos = bfd_tell (abfd);
-        bfdsec->alignment_power = 0;
+          bfdsec->vma = vma;
+          bfdsec->lma = vma;
+          bfdsec->size = wasm_get_uleb128 (abfd, &error);
+          bfdsec->filepos = bfd_tell (abfd);
+          bfdsec->alignment_power = 0;
+        }
+      else
+        {
+          bfd_vma payload_len = wasm_get_uleb128 (abfd, &error);
+          file_ptr section_start = bfd_tell (abfd);
+          bfd_vma namelen = wasm_get_uleb128 (abfd, &error);
+          if (namelen == (bfd_vma)-1)
+            goto error_return;
+          char *name = xmalloc(namelen+1);
+          name[namelen] = 0;
+          if (bfd_bread (name, namelen, abfd) != namelen)
+            goto error_return;
 
-        bfdsec->contents = xmalloc (bfdsec->size);
-        if (bfdsec->size && !bfdsec->contents)
-          goto error_return;
+          char *secname;
+          asprintf (&secname, ".wasm.%s", name);
 
-        if (bfd_bread (bfdsec->contents, bfdsec->size, abfd) != bfdsec->size)
-          goto error_return;
+          bfdsec = bfd_make_section_anyway_with_flags (abfd, secname, SEC_HAS_CONTENTS);
+          if (bfdsec == NULL)
+            goto error_return;
 
-        vma += bfdsec->size;
-      } else {
-        wasm_skip_custom_section (abfd, &error);
-      }
+          bfdsec->vma = vma;
+          bfdsec->lma = vma;
+          bfdsec->size = payload_len - bfd_tell (abfd) + section_start;
+          bfdsec->filepos = bfd_tell (abfd);
+          bfdsec->alignment_power = 0;
+        }
+
+      bfdsec->contents = xmalloc (bfdsec->size);
+      if (bfdsec->size && !bfdsec->contents)
+        goto error_return;
+
+      if (bfd_bread (bfdsec->contents, bfdsec->size, abfd) != bfdsec->size)
+        goto error_return;
+
+      vma += bfdsec->size;
     }
 
   return TRUE;
@@ -304,7 +330,7 @@ wasm_get_symbol_info (bfd *abfd ATTRIBUTE_UNUSED,
   bfd_symbol_info (symbol, ret);
 }
 
-#define wasm_get_symbol_version_string	    _bfd_nosymbols_get_symbol_version_string
+#define wasm_get_symbol_version_string      _bfd_nosymbols_get_symbol_version_string
 #define wasm_bfd_is_local_label_name               bfd_generic_is_local_label_name
 #define wasm_bfd_is_target_special_symbol ((bfd_boolean (*) (bfd *, asymbol *)) bfd_false)
 
@@ -312,7 +338,7 @@ wasm_get_symbol_info (bfd *abfd ATTRIBUTE_UNUSED,
 #define wasm_section_already_linked      _bfd_generic_section_already_linked
 #define wasm_bfd_define_common_symbol     bfd_generic_define_common_symbol
 #define wasm_bfd_discard_group            bfd_generic_discard_group
-#define wasm_bfd_lookup_section_flags	  bfd_generic_lookup_section_flags
+#define wasm_bfd_lookup_section_flags     bfd_generic_lookup_section_flags
 #define wasm_bfd_final_link              _bfd_generic_final_link
 #define wasm_bfd_link_split_section      _bfd_generic_link_split_section
 #define wasm_bfd_link_check_relocs       _bfd_generic_link_check_relocs
@@ -364,13 +390,13 @@ const bfd_target wasm_vec =
   0,				/* match priority.  */
   /* Routines to byte-swap various sized integers from the data sections */
   bfd_getl64, bfd_getl_signed_64, bfd_putl64,
-    bfd_getl32, bfd_getl_signed_32, bfd_putl32,
-    bfd_getl16, bfd_getl_signed_16, bfd_putl16,
+  bfd_getl32, bfd_getl_signed_32, bfd_putl32,
+  bfd_getl16, bfd_getl_signed_16, bfd_putl16,
 
   /* Routines to byte-swap various sized integers from the file headers */
   bfd_getl64, bfd_getl_signed_64, bfd_putl64,
-    bfd_getl32, bfd_getl_signed_32, bfd_putl32,
-    bfd_getl16, bfd_getl_signed_16, bfd_putl16,
+  bfd_getl32, bfd_getl_signed_32, bfd_putl32,
+  bfd_getl16, bfd_getl_signed_16, bfd_putl16,
 
   {
     _bfd_dummy_target,

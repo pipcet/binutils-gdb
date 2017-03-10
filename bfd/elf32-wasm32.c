@@ -1833,6 +1833,11 @@ elf_wasm32_size_dynamic_sections (bfd * output_bfd,
       if (strcmp (s->name, ".dynamic") == 0)
         continue;
 
+      /* XXX this might still be reallocating sections which have valuable
+       * data, as it used to do for .version_d. */
+      if ((s->flags & SEC_HAS_CONTENTS) && s->contents)
+        continue;
+
       if (s->size != 0)
         s->contents = (bfd_byte *) bfd_zalloc (dynobj, s->size);
 

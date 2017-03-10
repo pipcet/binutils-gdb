@@ -40,7 +40,7 @@
 #define TARGET_LITTLE_NAME	"elf32-wasm32"
 
 #define elf_info_to_howto                    wasm32_elf32_info_to_howto
-#define elf_backend_can_gc_sections          1
+#define elf_backend_can_gc_sections          0
 #define elf_backend_rela_normal              1
 
 #define bfd_elf32_bfd_reloc_type_lookup wasm32_elf32_bfd_reloc_type_lookup

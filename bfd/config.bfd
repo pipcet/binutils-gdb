@@ -1802,10 +1802,12 @@ case "${targ}" in
 
   wasm32-*-*)
     targ_defvec=wasm32_elf32_vec
+    targ_selvecs="wasm_vec"
     ;;
 
   wasm64-*-*)
     targ_defvec=wasm64_elf64_vec
+    targ_selvecs="wasm_vec"
     ;;
 
   we32k-*-*)

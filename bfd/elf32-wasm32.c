@@ -774,6 +774,21 @@ static reloc_howto_type wasm32_elf32_howto_table[] =
          0xffffffffffffffff,	/* dst_mask */
          FALSE),		/* pcrel_offset */
 
+  /* standard 32bit pc-relative reloc */
+  HOWTO (R_ASMJS_ABS8,		/* type */
+         0,			/* rightshift */
+         0,			/* size (0 = byte, 1 = short, 2 = long) */
+         8,			/* bitsize */
+         FALSE,			/* pc_relative */
+         0,			/* bitpos */
+         complain_overflow_bitfield,/* complain_on_overflow */
+         bfd_elf_generic_reloc,	/* special_function */
+         "R_ASMJS_ABS8",	/* name */
+         FALSE,			/* partial_inplace */
+         0xff,			/* src_mask */
+         0xff,			/* dst_mask */
+         FALSE),		/* pcrel_offset */
+
 };
 
 reloc_howto_type *
@@ -810,6 +825,8 @@ wasm32_elf32_bfd_reloc_type_lookup (bfd *abfd ATTRIBUTE_UNUSED,
     return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_ABS32");
   case BFD_RELOC_16:
     return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_ABS16");
+  case BFD_RELOC_8:
+    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_ABS8");
   case BFD_RELOC_ASMJS_HEX16:
     return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_HEX16");
   case BFD_RELOC_ASMJS_HEX16R4:

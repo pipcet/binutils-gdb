@@ -46,6 +46,7 @@ START_RELOC_NUMBERS (elf_wasm32_reloc_type)
   RELOC_NUMBER (R_ASMJS_COPY,                    17)
   RELOC_NUMBER (R_ASMJS_LEB128_GOT_CODE,         18)
   RELOC_NUMBER (R_ASMJS_PLT_LAZY,                19)
-END_RELOC_NUMBERS (R_ASMJS_max = 19)
+  RELOC_NUMBER (R_ASMJS_ABS8,           	 20)
+END_RELOC_NUMBERS (R_ASMJS_max = 20)
 
 #endif /* _ELF_ASMJS_H */

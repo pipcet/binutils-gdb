@@ -12318,6 +12318,8 @@ is_16bit_abs_reloc (unsigned int reloc_type)
       return reloc_type == 2; /* R_XC16C_ABS_16.  */
     case EM_XGATE:
       return reloc_type == 3; /* R_XGATE_16.  */
+    case EM_WASM:
+      return reloc_type == 7;
     default:
       return FALSE;
     }

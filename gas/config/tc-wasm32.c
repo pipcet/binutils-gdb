@@ -27,43 +27,53 @@
 #include "dw2gencfi.h"
 #include "elf/wasm32.h"
 
-enum wasm_clas {
-  wasm_typed, /* a typed opcode: block, loop, and if */
-  wasm_special, /* a special opcode: unreachable, nop, else, end */
-  wasm_break, /* "br" */
-  wasm_fakebreak, /* XXX remove this */
-  wasm_break_if, /* "br_if" opcode */
-  wasm_break_table, /* "br_table" opcode */
-  wasm_return, /* "return" opcode */
-  wasm_call, /* "call" opcode */
-  wasm_call_indirect, /* "call_indirect" opcode */
-  wasm_get_local, /* "get_local" and "get_global" */
-  wasm_set_local, /* "set_local" and "set_global" */
-  wasm_tee_local, /* "tee_local" */
-  wasm_drop, /* "drop" */
-  wasm_constant_i32, /* "i32.const" */
-  wasm_constant_i64, /* "i64.const" */
-  wasm_constant_f32, /* "f32.const" */
-  wasm_constant_f64, /* "f64.const" */
-  wasm_unary, /* unary ops */
-  wasm_binary, /* binary ops */
-  wasm_conv, /* conversion ops */
-  wasm_load, /* load ops */
-  wasm_store, /* store ops */
-  wasm_select, /* "select" */
-  wasm_relational, /* comparison ops */
-  wasm_eqz, /* "eqz" */
-  wasm_signature /* "signature", which isn't an opcode */
-};
+enum wasm_clas
+  {
+    wasm_typed, /* a typed opcode: block, loop, and if */
+    wasm_special, /* a special opcode: unreachable, nop, else, end */
+    wasm_break, /* "br" */
+    wasm_fakebreak, /* XXX remove this */
+    wasm_break_if, /* "br_if" opcode */
+    wasm_break_table, /* "br_table" opcode */
+    wasm_return, /* "return" opcode */
+    wasm_call, /* "call" opcode */
+    wasm_call_indirect, /* "call_indirect" opcode */
+    wasm_get_local, /* "get_local" and "get_global" */
+    wasm_set_local, /* "set_local" and "set_global" */
+    wasm_tee_local, /* "tee_local" */
+    wasm_drop, /* "drop" */
+    wasm_constant_i32, /* "i32.const" */
+    wasm_constant_i64, /* "i64.const" */
+    wasm_constant_f32, /* "f32.const" */
+    wasm_constant_f64, /* "f64.const" */
+    wasm_unary, /* unary ops */
+    wasm_binary, /* binary ops */
+    wasm_conv, /* conversion ops */
+    wasm_load, /* load ops */
+    wasm_store, /* store ops */
+    wasm_select, /* "select" */
+    wasm_relational, /* comparison ops */
+    wasm_eqz, /* "eqz" */
+    wasm_signature /* "signature", which isn't an opcode */
+  };
 
-enum wasm_signedness {
-  wasm_signed,
-  wasm_unsigned,
-  wasm_agnostic,
-  wasm_floating
-};
+enum wasm_signedness
+  {
+    wasm_signed,
+    wasm_unsigned,
+    wasm_agnostic,
+    wasm_floating
+  };
 
-enum wasm_type { wasm_void, wasm_any, wasm_i32, wasm_i64, wasm_f32, wasm_f64 };
+enum wasm_type
+  {
+    wasm_void,
+    wasm_any,
+    wasm_i32,
+    wasm_i64,
+    wasm_f32,
+    wasm_f64
+  };
 
 #define WASM_OPCODE(name, intype, outtype, clas, signedness, opcode) \
   { name, wasm_ ## intype, wasm_ ## outtype, wasm_ ## clas, wasm_ ## signedness, opcode },

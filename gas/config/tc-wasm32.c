@@ -226,7 +226,13 @@ wasm32_validate_fix_sub (fixS *fix ATTRIBUTE_UNUSED)
 static void
 apply_full_field_fix (fixS *fixP, char *buf ATTRIBUTE_UNUSED, bfd_vma val, int size ATTRIBUTE_UNUSED)
 {
-  fixP->fx_addnumber = val;
+  if (fixP->fx_addsy != NULL || fixP->fx_pcrel)
+    {
+      fixP->fx_addnumber = val;
+
+      return;
+    }
+  number_to_chars_littleendian (buf, val, size);
 }
 
 void
@@ -240,6 +246,9 @@ md_apply_fix (fixS *fixP, valueT * valP ATTRIBUTE_UNUSED, segT seg ATTRIBUTE_UNU
       apply_full_field_fix (fixP, buf, val, 4);
       break;
     }
+
+  if (fixP->fx_addsy == 0 && fixP->fx_pcrel == 0)
+    fixP->fx_done = 1;
 }
 
 static inline char *

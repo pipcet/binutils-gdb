@@ -34,7 +34,7 @@
 #define ELF_ARCH		bfd_arch_wasm32
 #define ELF_TARGET_ID		0x4157
 #define ELF_MACHINE_CODE	0x4157
-#define ELF_MAXPAGESIZE		1
+#define ELF_MAXPAGESIZE		4096
 
 #define TARGET_LITTLE_SYM       wasm32_elf32_vec
 #define TARGET_LITTLE_NAME	"elf32-wasm32"

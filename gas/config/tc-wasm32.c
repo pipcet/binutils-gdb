@@ -184,7 +184,7 @@ md_begin (void)
   for (opcode = wasm32_opcodes; opcode->name; opcode++)
     hash_insert (wasm32_hash, opcode->name, (char *) opcode);
 
-  linkrelax = 1;
+  linkrelax = 0;
   flag_sectname_subst = 1;
   flag_no_comments = 0;
   flag_keep_locals = 1;

@@ -207,10 +207,6 @@ SECTIONS
   {
     *(.interp)
   }
-  .dynstr :
-  {
-    *(.dynstr)
-  }
   .hash : { *(.hash) }
   .rela.dyn :
   {
@@ -219,6 +215,10 @@ SECTIONS
   .dynsym :
   {
     *(.dynsym)
+  }
+  .dynstr :
+  {
+    *(.dynstr)
   }
 EOF
 

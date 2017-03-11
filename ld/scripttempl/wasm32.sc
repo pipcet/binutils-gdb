@@ -224,8 +224,14 @@ EOF
 
 . $srcdir/scripttempl/DWARF.sc
 
+# This is for testing only. For your WebAssembly module to work, you must
+# use the macros in wasm32-macros.s rather than simply specifying .text */
 cat <<EOF
-  /DISCARD/ : { *(.text) *(.init) *(.fini) }
+  . = 0xf0000000;
+  .text : { *(.text) }
+  .init : { *(.init) }
+  .fini : { *(.fini) }
+/*  /DISCARD/ : { *(.text) *(.init) *(.fini) } */
 }
 EOF
 fi

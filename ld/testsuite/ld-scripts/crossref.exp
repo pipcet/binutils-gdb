@@ -94,6 +94,10 @@ set exec_output [prune_warnings $exec_output]
 
 regsub -all "(^|\n)($ld: warning: cannot find entry symbol\[^\n\]*\n?)" $exec_output "\\1" exec_output
 
+# discarding section .wasm.chars.function_index.b, which is referenced
+# from .data.
+setup_xfail wasm32-*-*
+
 if [string match "" $exec_output] then {
     fail $test1
 } else {
@@ -118,6 +122,10 @@ set exec_output [run_host_cmd "$ld" "$flags -o tmpdir/cross2 -T $srcdir/$subdir/
 set exec_output [prune_warnings $exec_output]
 
 regsub -all "(^|\n)($ld: warning: cannot find entry symbol\[^\n\]*\n?)" $exec_output "\\1" exec_output
+
+# discarding section .wasm.chars.function_index.b, which is referenced
+# from .data.
+setup_xfail wasm32-*-*
 
 if [string match "" $exec_output] then {
     fail $test2
@@ -152,6 +160,10 @@ set exec_output [prune_warnings $exec_output]
 
 regsub -all "(^|\n)($ld: warning: cannot find entry symbol\[^\n\]*\n?)" $exec_output "\\1" exec_output
 
+# discarding section .wasm.chars.function_index.b, which is referenced
+# from .data.
+setup_xfail wasm32-*-*
+
 if [string match "" $exec_output] then {
     pass $test3
 } else {
@@ -164,6 +176,10 @@ set exec_output [prune_warnings $exec_output]
 
 regsub -all "(^|\n)($ld: warning: cannot find entry symbol\[^\n\]*\n?)" $exec_output "\\1" exec_output
 
+# discarding section .wasm.chars.function_index.b, which is referenced
+# from .data.
+setup_xfail wasm32-*-*
+
 if [string match "" $exec_output] then {
     pass $test4
 } else {
@@ -175,6 +191,10 @@ set exec_output [run_host_cmd "$ld" "$flags -o tmpdir/cross5 -T $srcdir/$subdir/
 set exec_output [prune_warnings $exec_output]
 
 regsub -all "(^|\n)($ld: warning: cannot find entry symbol\[^\n\]*\n?)" $exec_output "\\1" exec_output
+
+# discarding section .wasm.chars.function_index.b, which is referenced
+# from .data.
+setup_xfail wasm32-*-*
 
 if [string match "" $exec_output] then {
     fail $test5
@@ -203,6 +223,10 @@ set exec_output [run_host_cmd "$ld" "$flags -o tmpdir/cross7 -T $srcdir/$subdir/
 set exec_output [prune_warnings $exec_output]
 
 regsub -all "(^|\n)($ld: warning: cannot find entry symbol\[^\n\]*\n?)" $exec_output "\\1" exec_output
+
+# reference isn't from the .text section, but from .wasm.payload.code,
+# which is discarded.
+setup_xfail wasm32-*-*
 
 if [string match "" $exec_output] then {
     fail $test7

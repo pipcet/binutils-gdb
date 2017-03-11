@@ -36,9 +36,11 @@ if { ![is_elf_format] || ![check_gc_sections_available] } {
 # Note: ld_nm trims leading `_' from _start
 #
 # FIXME: Instead of table, read settings from each source-file.
+
+# wasm32 xfail: no -ffunction-sections yet.
 set seltests {
-  {selective1 C   1.c  {}       {}    {dropme1 dropme2} {}}
-  {selective2 C   2.c  {}       {}    {foo} {}}
+  {selective1 C   1.c  {}       {}    {dropme1 dropme2} {wasm32-*-*}}
+  {selective2 C   2.c  {}       {}    {foo} {wasm32-*-*}}
   {selective3 C   2.c  {-u foo} {foo} {{foo 0}} {}}
   {selective4 C++ 3.cc {}       {start a A::foo() B::foo()} {A::bar()} {mips*-*}}
   {selective5 C++ 4.cc {}       {start a A::bar()} {A::foo() B::foo()} {mips*-*}}

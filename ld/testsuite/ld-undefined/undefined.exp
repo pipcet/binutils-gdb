@@ -75,6 +75,9 @@ checkund $mu $testund
 # line" tests fail.
 setup_xfail xtensa*-*-linux*
 
+# FIXME: lack of proper debug information
+setup_xfail wasm32*-*-*
+
 set mf "tmpdir/undefined.o* In function `function':"
 checkund $mf $testfn
 
@@ -143,5 +146,8 @@ setup_xfail s390-*-*
 # See comments above for Xtensa.
 setup_xfail xtensa*-*-linux*
 setup_xfail hppa*64*-*-*
+
+# FIXME: lack of proper debug information
+setup_xfail wasm32*-*-*
 
 checkund $ml $testline

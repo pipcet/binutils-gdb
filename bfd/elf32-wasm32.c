@@ -40,7 +40,7 @@
 #define TARGET_LITTLE_NAME	"elf32-wasm32"
 
 #define elf_info_to_howto                    wasm32_elf32_info_to_howto
-#define elf_backend_can_gc_sections          0
+#define elf_backend_can_gc_sections          1
 #define elf_backend_rela_normal              1
 
 #define bfd_elf32_bfd_reloc_type_lookup wasm32_elf32_bfd_reloc_type_lookup
@@ -1991,8 +1991,9 @@ elf_wasm32_finish_dynamic_sections (bfd * output_bfd,
         }
 
       /* TODO: Validate this.  */
-      elf_section_data (htab->srelplt->output_section)->this_hdr.sh_entsize
-        = 0xc;
+      if (elf_section_data (htab->srelplt->output_section))
+        elf_section_data (htab->srelplt->output_section)->this_hdr.sh_entsize
+          = 0xc;
     }
 
   return TRUE;

@@ -851,6 +851,8 @@ wasm32_elf32_bfd_reloc_type_lookup (bfd *abfd ATTRIBUTE_UNUSED,
     return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_COPY");
   case BFD_RELOC_ASMJS_LAZY:
     return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_LAZY");
+  case BFD_RELOC_NONE:
+    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_NONE");
   default:
     return NULL;
   }

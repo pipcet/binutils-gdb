@@ -111,7 +111,7 @@ if { $can_compile && !$failed_compile } {
     # Find out if symbols have prefix on this platform before setting tests.
     catch "exec $NM tmpdir/func.o" plugin_nm_output
     if { [regexp "_func" "$plugin_nm_output"] } {
-	set _ "_"
+	set _ ""
     }
     if { [regexp "\\.func" "$plugin_nm_output"] } {
 	set dotsym 1

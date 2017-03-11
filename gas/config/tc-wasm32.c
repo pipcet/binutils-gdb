@@ -253,7 +253,7 @@ md_apply_fix (fixS *fixP, valueT * valP ATTRIBUTE_UNUSED, segT seg ATTRIBUTE_UNU
   switch (fixP->fx_r_type)
     {
     default:
-      apply_full_field_fix (fixP, buf, val, 4);
+      apply_full_field_fix (fixP, buf, val, fixP->fx_size);
       break;
     }
 

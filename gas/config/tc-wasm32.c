@@ -1,7 +1,7 @@
 /* tc-wasm32.c -- Assembler code for the wasm32 target.
 
    Copyright (C) 1999-2015 Free Software Foundation, Inc.
-   Copyright (C) 2016 Pip Cet <pipcet@gmail.com>
+   Copyright (C) 2016-2017 Pip Cet <pipcet@gmail.com>
 
    This file is NOT part of GAS, the GNU Assembler.
 
@@ -26,13 +26,13 @@
 #include "dwarf2dbg.h"
 #include "dw2gencfi.h"
 #include "elf/wasm32.h"
+#include <float.h>
 
 enum wasm_clas
   {
     wasm_typed, /* a typed opcode: block, loop, and if */
     wasm_special, /* a special opcode: unreachable, nop, else, end */
     wasm_break, /* "br" */
-    wasm_fakebreak, /* XXX remove this */
     wasm_break_if, /* "br_if" opcode */
     wasm_break_table, /* "br_table" opcode */
     wasm_return, /* "return" opcode */
@@ -54,6 +54,8 @@ enum wasm_clas
     wasm_select, /* "select" */
     wasm_relational, /* comparison ops */
     wasm_eqz, /* "eqz" */
+    wasm_current_memory, /* "current_memory" */
+    wasm_grow_memory, /* "grow_memory" */
     wasm_signature /* "signature", which isn't an opcode */
   };
 
@@ -118,15 +120,12 @@ static struct hash_control *wasm32_hash;
 
 enum options
 {
-  OPTION_INCLUDE = OPTION_MD_BASE + 1,
+  OPTION_SYMBOLIC_INDEX = OPTION_MD_BASE + 1,
 };
 
 struct option md_longopts[] =
 {
-  { "isystem", required_argument, NULL, OPTION_INCLUDE },
-  { "isysroot", required_argument, NULL, OPTION_INCLUDE },
-  { "iprefix", required_argument, NULL, OPTION_INCLUDE },
-  { "imultilib", required_argument, NULL, OPTION_INCLUDE },
+  { "symbolic-index", no_argument, NULL, OPTION_SYMBOLIC_INDEX },
   { NULL, no_argument, NULL, 0 }
 };
 
@@ -145,19 +144,13 @@ md_show_usage (FILE *stream)
 {
   fprintf (stream,
       _("WASM32 Assembler options:\n"
-        "None so far.\n"));
+        "  symbolic-index         use symbolic rather than numeric indices\n"
+        ));
 }
 
 int
-md_parse_option (int c, const char *arg)
+md_parse_option (int c ATTRIBUTE_UNUSED, const char *arg ATTRIBUTE_UNUSED)
 {
-  switch (c)
-    {
-    case OPTION_INCLUDE:
-      add_include_dir ((char *)arg);
-      return 1;
-    }
-
   return 0;
 }
 
@@ -577,9 +570,12 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
     case wasm_tee_local:
       wasm32_uleb128(&str, 32);
       break;
-    case wasm_fakebreak:
     case wasm_break:
     case wasm_break_if:
+      wasm32_uleb128(&str, 32);
+      break;
+    case wasm_current_memory:
+    case wasm_grow_memory:
       wasm32_uleb128(&str, 32);
       break;
     case wasm_return:

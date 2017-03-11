@@ -25,6 +25,7 @@
 #include "opintl.h"
 #include "safe-ctype.h"
 #include "floatformat.h"
+#include <float.h>
 
 /* FIXME: This shouldn't be done here.  */
 #include "coff/internal.h"
@@ -73,6 +74,8 @@ enum wasm_clas
     wasm_select,
     wasm_relational,
     wasm_eqz,
+    wasm_current_memory,
+    wasm_grow_memory,
     wasm_signature
   };
 
@@ -352,6 +355,8 @@ print_insn_little_wasm32 (bfd_vma pc, struct disassemble_info *info)
             }
           break;
         case wasm_special:
+        case wasm_grow_memory:
+        case wasm_current_memory:
           break;
         case wasm_special1:
           break;
@@ -439,11 +444,11 @@ print_insn_little_wasm32 (bfd_vma pc, struct disassemble_info *info)
           break;
         case wasm_constant_f32:
           len += read_f32(&fconstant, pc + len, info);
-          prin (stream, " %f", fconstant);
+          prin (stream, " %.*g", DECIMAL_DIG, fconstant);
           break;
         case wasm_constant_f64:
           len += read_f64(&fconstant, pc + len, info);
-          prin (stream, " %f", fconstant);
+          prin (stream, " %.*g", DECIMAL_DIG, fconstant);
           break;
         case wasm_call:
           len += read_uleb128(&index, pc + len, info);
@@ -473,6 +478,11 @@ print_insn_little_wasm32 (bfd_vma pc, struct disassemble_info *info)
                   constant >= 0 && constant < nglobals)
                 prin (stream, " <%s>", globals[constant]);
             }
+          break;
+        case wasm_grow_memory:
+        case wasm_current_memory:
+          len += read_uleb128(&constant, pc + len, info);
+          prin (stream, " %ld", constant);
           break;
         case wasm_load:
         case wasm_store:

@@ -16,6 +16,9 @@ determine based on the section name whether to use a numeric section
 id, a named section header, or to include the section verbatim,
 assuming it already contains any necessary header.
 
+Function names are supported as symbols; local names and WebAssembly
+relocation sections are currently unsupported.
+
 @menu
 * File layout::
 @end menu

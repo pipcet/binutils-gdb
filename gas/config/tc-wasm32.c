@@ -243,6 +243,22 @@ md_apply_fix (fixS *fixP, valueT * valP ATTRIBUTE_UNUSED, segT seg ATTRIBUTE_UNU
 {
   char *buf = fixP->fx_where + fixP->fx_frag->fr_literal;
   long val = (long) *valP;
+
+
+  if (fixP->fx_pcrel)
+    {
+      switch (fixP->fx_r_type)
+        {
+        default:
+          bfd_set_error (bfd_error_bad_value);
+          return;
+
+        case BFD_RELOC_32:
+          fixP->fx_r_type = BFD_RELOC_32_PCREL;
+          return;
+        }
+    }
+
   switch (fixP->fx_r_type)
     {
     default:

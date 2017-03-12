@@ -820,6 +820,8 @@ wasm32_elf32_bfd_reloc_type_lookup (bfd *abfd ATTRIBUTE_UNUSED,
   switch (code) {
   case BFD_RELOC_32:
     return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_ABS32");
+  case BFD_RELOC_32_PCREL:
+    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_REL32");
   case BFD_RELOC_16:
     return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_ABS16");
   case BFD_RELOC_8:

@@ -25,10 +25,7 @@
 #include "elf-bfd.h"
 #include "bfd_stdint.h"
 
-#include "bfd_stdint.h"
 #include "elf-bfd.h"
-#include "elf-nacl.h"
-#include "elf-vxworks.h"
 #include "elf/wasm32.h"
 
 #define ELF_ARCH		bfd_arch_wasm32

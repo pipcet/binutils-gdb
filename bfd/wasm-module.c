@@ -461,6 +461,11 @@ wasm_compute_custom_section_file_position (bfd *abfd, sec_ptr asect,
         goto error_return;
       fs->pos = asect->filepos = bfd_tell (abfd);
     }
+  else
+    {
+      asect->filepos = fs->pos;
+    }
+
 
   fs->pos += asect->size;
 
@@ -512,8 +517,6 @@ wasm_compute_section_file_positions (bfd *abfd)
 
   if (fs.failed)
     return FALSE;
-
-  fprintf (stderr, "mapped sections of length %lld\n", (long long)fs.pos);
 
   return TRUE;
 }

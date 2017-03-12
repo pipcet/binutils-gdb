@@ -613,7 +613,8 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
   str = skip_space (str);
   if (str[0] == '[')
     {
-      if (opcode->clas == wasm_typed)
+      if (opcode->clas == wasm_typed ||
+          opcode->clas == wasm_return)
         {
           str++;
           block_type = 0x40;
@@ -650,8 +651,9 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
               str++;
             }
         }
-      else
+      else if (opcode->clas)
         {
+          /* FIXME: stop emitting return[] for return in gcc. */
           as_bad (_("instruction does not take a block type"));
         }
     }
@@ -742,7 +744,8 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
   str = skip_space (str);
 
   if (*str)
-    as_bad (_("junk at end of line"));
+    as_bad (_("junk at end of line, first unrecognized character is `%s'"),
+            str);
 
   *line = str;
 

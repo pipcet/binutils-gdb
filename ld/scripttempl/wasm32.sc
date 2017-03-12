@@ -231,6 +231,8 @@ cat <<EOF
   .text : { *(.text) }
   .init : { *(.init) }
   .fini : { *(.fini) }
+  _etext = .;
+  PROVIDE (etext = .);
 /*  /DISCARD/ : { *(.text) *(.init) *(.fini) } */
 }
 EOF

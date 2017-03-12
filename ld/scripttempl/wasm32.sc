@@ -6,7 +6,7 @@ SECTIONS
 EOF
 else
 cat <<EOF
-ENTRY(_start)
+ENTRY("0")
 SECTIONS
 {
   . = 16384;

@@ -343,10 +343,11 @@ static void wasm32_put_uleb128(unsigned long value)
   } while (value);
 }
 
-static void wasm32_leb128(char **line, int bits, int sign)
+static bfd_boolean wasm32_leb128(char **line, int bits, int sign)
 {
   char *t = input_line_pointer;
   char *str = *line;
+  char *str0 = str;
   struct reloc_list *reloc;
   expressionS ex;
   int gotrel = 0;
@@ -358,7 +359,7 @@ static void wasm32_leb128(char **line, int bits, int sign)
 
   if (ex.X_op == O_constant && strncmp(input_line_pointer, "@", 1))
     {
-      unsigned long value = ex.X_add_number;
+      long value = ex.X_add_number;
 
       str = input_line_pointer;
       str = skip_space (str);
@@ -366,9 +367,13 @@ static void wasm32_leb128(char **line, int bits, int sign)
       if (sign)
         wasm32_put_sleb128(value);
       else
-        wasm32_put_uleb128(value);
+        {
+          if (value < 0)
+            as_bad (_("unexpected negative constant"));
+          wasm32_put_uleb128(value);
+        }
       input_line_pointer = t;
-      return;
+      return str != str0;
     }
 
   reloc = XNEW (struct reloc_list);
@@ -414,16 +419,101 @@ static void wasm32_leb128(char **line, int bits, int sign)
   *line = str;
   wasm32_put_long_uleb128(bits, 0);
   input_line_pointer = t;
+
+  return str != str0;
 }
 
-static void wasm32_uleb128(char **line, int bits)
+#if 0
+/* From elf-eh-frame.c: */
+/* If *ITER hasn't reached END yet, read the next byte into *RESULT and
+   move onto the next byte.  Return true on success.  */
+
+static inline bfd_boolean
+read_byte (bfd_byte **iter, bfd_byte *end, unsigned char *result)
 {
-  wasm32_leb128(line, bits, 0);
+  if (*iter >= end)
+    return FALSE;
+  *result = *((*iter)++);
+  return TRUE;
 }
 
-static void wasm32_sleb128(char **line, int bits)
+/* Move *ITER over LENGTH bytes, or up to END, whichever is closer.
+   Return true it was possible to move LENGTH bytes.  */
+
+static inline bfd_boolean
+skip_bytes (bfd_byte **iter, bfd_byte *end, bfd_size_type length)
 {
-  wasm32_leb128(line, bits, 1);
+  if ((bfd_size_type) (end - *iter) < length)
+    {
+      *iter = end;
+      return FALSE;
+    }
+  *iter += length;
+  return TRUE;
+}
+
+/* Move *ITER over an leb128, stopping at END.  Return true if the end
+   of the leb128 was found.  */
+
+static bfd_boolean
+skip_leb128 (bfd_byte **iter, bfd_byte *end)
+{
+  unsigned char byte;
+  do
+    if (!read_byte (iter, end, &byte))
+      return FALSE;
+  while (byte & 0x80);
+  return TRUE;
+}
+
+/* Like skip_leb128, but treat the leb128 as an unsigned value and
+   store it in *VALUE.  */
+
+static bfd_boolean
+read_uleb128 (bfd_byte **iter, bfd_byte *end, bfd_vma *value)
+{
+  bfd_byte *start, *p;
+
+  start = *iter;
+  if (!skip_leb128 (iter, end))
+    return FALSE;
+
+  p = *iter;
+  *value = *--p;
+  while (p > start)
+    *value = (*value << 7) | (*--p & 0x7f);
+
+  return TRUE;
+}
+
+/* Like read_uleb128, but for signed values.  */
+
+static bfd_boolean
+read_sleb128 (bfd_byte **iter, bfd_byte *end, bfd_signed_vma *value)
+{
+  bfd_byte *start, *p;
+
+  start = *iter;
+  if (!skip_leb128 (iter, end))
+    return FALSE;
+
+  p = *iter;
+  *value = ((*--p & 0x7f) ^ 0x40) - 0x40;
+  while (p > start)
+    *value = (*value << 7) | (*--p & 0x7f);
+
+  return TRUE;
+}
+#endif
+
+static bfd_boolean wasm32_uleb128(char **line, int bits)
+{
+  return wasm32_leb128(line, bits, 0);
+}
+
+static bfd_boolean wasm32_sleb128(char **line, int bits)
+{
+  return wasm32_leb128(line, bits, 1);
 }
 
 static void wasm32_f32(char **line)
@@ -514,7 +604,7 @@ static void wasm32_signature(char **line)
   *line = str;
 }
 
-static unsigned
+static void
 wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
 {
   char *str = *line;
@@ -523,39 +613,53 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
   str = skip_space (str);
   if (str[0] == '[')
     {
-      str++;
-      block_type = 0x40;
-      if (str[0] != ']') {
-        str = skip_space (str);
-        switch (str[0])
-          {
-          case 'i':
-            block_type = 0x7f;
-            str++;
-            break;
-          case 'l':
-            block_type = 0x7e;
-            str++;
-            break;
-          case 'f':
-            block_type = 0x7d;
-            str++;
-            break;
-          case 'd':
-            block_type = 0x7c;
-            str++;
-            break;
-          }
-        while (str[0] == ':' || (str[0] >= '0' && str[0] <= '9'))
+      if (opcode->clas == wasm_typed)
+        {
           str++;
-        if (str[0] == ']')
-          str++;
-        str = skip_space (str);
-      }
+          block_type = 0x40;
+          if (str[0] != ']')
+            {
+              str = skip_space (str);
+              switch (str[0])
+                {
+                case 'i':
+                  block_type = 0x7f;
+                  str++;
+                  break;
+                case 'l':
+                  block_type = 0x7e;
+                  str++;
+                  break;
+                case 'f':
+                  block_type = 0x7d;
+                  str++;
+                  break;
+                case 'd':
+                  block_type = 0x7c;
+                  str++;
+                  break;
+                }
+              while (str[0] == ':' || (str[0] >= '0' && str[0] <= '9'))
+                str++;
+              if (str[0] == ']')
+                str++;
+              str = skip_space (str);
+            }
+          else
+            {
+              str++;
+            }
+        }
+      else
+        {
+          as_bad (_("instruction does not take a block type"));
+        }
     }
   switch (opcode->clas)
     {
     case wasm_typed:
+      if (block_type == 0)
+        as_bad (_("missing block type"));
       FRAG_APPEND_1_CHAR (block_type);
       break;
     case wasm_drop:
@@ -572,36 +676,44 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
       if (str[0] == 'a' && str[1] == '=')
         {
           str += 2;
-          wasm32_uleb128(&str, 32);
+          if (!wasm32_uleb128(&str, 32))
+            as_bad (_("missing alignment hint"));
         }
       else
         {
           as_bad (_("missing alignment hint"));
         }
       str = skip_space (str);
-      wasm32_uleb128(&str, 32);
+      if (!wasm32_uleb128(&str, 32))
+        as_bad (_("missing offset"));
       break;
     case wasm_set_local:
     case wasm_get_local:
     case wasm_tee_local:
-      wasm32_uleb128(&str, 32);
+      if (!wasm32_uleb128(&str, 32))
+        as_bad (_("missing local index"));
       break;
     case wasm_break:
     case wasm_break_if:
-      wasm32_uleb128(&str, 32);
+      if (!wasm32_uleb128(&str, 32))
+        as_bad (_("missing break count"));
       break;
     case wasm_current_memory:
     case wasm_grow_memory:
-      wasm32_uleb128(&str, 32);
+      if (!wasm32_uleb128(&str, 32))
+        as_bad (_("missing reserved current_memory/grow_memory argument"));
       break;
     case wasm_return:
       break;
     case wasm_call:
-      wasm32_uleb128(&str, 32);
+      if (!wasm32_uleb128(&str, 32))
+        as_bad (_("missing call argument"));
       break;
     case wasm_call_indirect:
-      wasm32_uleb128(&str, 32);
-      wasm32_uleb128(&str, 32);
+      if (!wasm32_uleb128(&str, 32))
+        as_bad (_("missing call signature"));
+      if (!wasm32_uleb128(&str, 32))
+        as_bad (_("missing table index"));
       break;
     case wasm_constant_i32:
       wasm32_sleb128(&str, 32);
@@ -611,10 +723,10 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
       break;
     case wasm_constant_f32:
       wasm32_f32(&str);
-      break;
+      return;
     case wasm_constant_f64:
       wasm32_f64(&str);
-      break;
+      return;
     case wasm_break_table:
       {
         do {
@@ -629,9 +741,12 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
     }
   str = skip_space (str);
 
+  if (*str)
+    as_bad (_("junk at end of line"));
+
   *line = str;
 
-  return 0;
+  return;
 }
 
 void

@@ -31,12 +31,18 @@
 #define ELF_ARCH		bfd_arch_wasm32
 #define ELF_TARGET_ID		0x4157
 #define ELF_MACHINE_CODE	0x4157
+/* See https://github.com/pipcet/binutils-gdb/issues/4 */
 #define ELF_MAXPAGESIZE		4096
 
 #define TARGET_LITTLE_SYM       wasm32_elf32_vec
 #define TARGET_LITTLE_NAME	"elf32-wasm32"
 
 #define elf_info_to_howto                    wasm32_elf32_info_to_howto
+/* We can GC sections, it just doesn't do what you want: at present,
+ *  using a function doesn't pull in the .wasm.payload.code section. We
+ *  could probably fix that with a bogus relocation living in
+ *  .space.function which pulls in things for us, but for now just
+ *  don't use --gc-sections */
 #define elf_backend_can_gc_sections          1
 #define elf_backend_rela_normal              1
 

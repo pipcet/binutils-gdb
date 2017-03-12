@@ -1926,6 +1926,10 @@ proc check_lto_available { } {
 	    set lto_available_saved 0
 	    return 0
 	}
+        if [istarget "wasm32-*-*"] {
+            set lto_available_saved 0
+            return 0
+        }
 	# This test will hide LTO bugs in ld.  Since GCC 4.9 adds
 	# -ffat-lto-objects, we always run LTO tests on Linux with
 	# GCC 4.9 or newer.
@@ -1966,9 +1970,13 @@ proc check_lto_fat_available { } {
 
     if {![info exists lto_fat_available_saved]} {
         if { ![check_gcc_plugin_enabled] } {
-	    set lto_fat_available_saved 0
+	    set lto_shared_available_saved 0
 	    return 0
 	}
+        if [istarget "wasm32-*-*"] {
+            set lto_shared_available_saved 0
+            return 0
+        }
 	# This test will hide LTO bugs in ld.  Since GCC 4.9 adds
 	# -ffat-lto-objects, we always run LTO tests on Linux with
 	# GCC 4.9 or newer.
@@ -2012,6 +2020,10 @@ proc check_lto_shared_available { } {
 	    set lto_shared_available_saved 0
 	    return 0
 	}
+        if [istarget "wasm32-*-*"] {
+            set lto_shared_available_saved 0
+            return 0
+        }
 	# This test will hide LTO bugs in ld.  Since GCC 4.9 adds
 	# -ffat-lto-objects, we always run LTO tests on Linux with
 	# GCC 4.9 or newer.

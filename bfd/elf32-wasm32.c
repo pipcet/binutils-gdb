@@ -908,15 +908,15 @@ wasm32_elf_link_hash_newfunc (struct bfd_hash_entry *entry,
      subclass.  */
   if (ret == (struct elf_wasm32_link_hash_entry *) NULL)
     ret = ((struct elf_wasm32_link_hash_entry *)
-	   bfd_hash_allocate (table,
-			      sizeof (struct elf_wasm32_link_hash_entry)));
+           bfd_hash_allocate (table,
+                              sizeof (struct elf_wasm32_link_hash_entry)));
   if (ret == (struct elf_wasm32_link_hash_entry *) NULL)
     return (struct bfd_hash_entry *) ret;
 
   /* Call the allocation method of the superclass.  */
   ret = ((struct elf_wasm32_link_hash_entry *)
-	 _bfd_elf_link_hash_newfunc ((struct bfd_hash_entry *) ret,
-				     table, string));
+         _bfd_elf_link_hash_newfunc ((struct bfd_hash_entry *) ret,
+                                     table, string));
   if (ret != (struct elf_wasm32_link_hash_entry *) NULL)
     {
       ret->pltnameoff = (bfd_vma)-1;
@@ -938,9 +938,9 @@ wasm32_elf_link_hash_table_create (bfd *abfd)
     return NULL;
 
   if (!_bfd_elf_link_hash_table_init (&ret->root, abfd,
-				      wasm32_elf_link_hash_newfunc,
-				      sizeof (struct elf_wasm32_link_hash_entry),
-				      SH_ELF_DATA))
+                                      wasm32_elf_link_hash_newfunc,
+                                      sizeof (struct elf_wasm32_link_hash_entry),
+                                      SH_ELF_DATA))
     {
       free (ret);
       return NULL;
@@ -2316,9 +2316,12 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
         }
       if (sec != NULL && discarded_section (sec))
         {
-          continue; /* XXX */
-          RELOC_AGAINST_DISCARDED_SECTION (info, input_bfd, input_section,
-                                         rel, 1, relend, howto, 0, contents);
+          _bfd_clear_contents (howto, input_bfd, input_section,
+                               contents + rel->r_offset);
+          rel->r_info = 0;
+          rel->r_addend = 0;
+
+          continue;
         }
 
       if (bfd_link_relocatable (info))
@@ -2624,5 +2627,5 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
 #define elf_backend_got_header_size 0
 
 #define bfd_elf32_bfd_link_hash_table_create \
-					wasm32_elf_link_hash_table_create
+                                        wasm32_elf_link_hash_table_create
 #include "elf32-target.h"

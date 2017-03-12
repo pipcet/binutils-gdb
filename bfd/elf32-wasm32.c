@@ -1713,6 +1713,7 @@ allocate_dynrelocs (struct elf_link_hash_entry *h, void *inf)
         }
     }
 
+  if (FALSE)
     {
       /* Make sure this symbol is output as a dynamic symbol.
          Undefined weak syms won't yet be marked as dynamic.  */

@@ -43,6 +43,7 @@ sexp-style expressions are not supported as input.
 
 @menu
 * WebAssembly-Chars::                Special Characters
+* WebAssembly Opcodes::              Regular Opcodes
 * WebAssembly-Regs::                 Register Names
 * WebAssembly-Relocs::               Relocations
 @end menu
@@ -57,33 +58,59 @@ sexp-style expressions are not supported as input.
 logical line number directive (@pxref{Comments}) or a preprocessor
 control command (@pxref{Preprocessing}).
 
+@node WebAssembly-Opcodes
+@subsection Regular Opcodes
+@cindex opcodes, WebAssembly
+@cindex WebAssembly opcodes
+Ordinary instructions are encoded with the WebAssembly mnemonics as
+listed at
+@url{https://github.com/WebAssembly/design/blob/master/BinaryEncoding.md},
+with the exception that conversion and reinterpretation opcodes
+substitute a @samp{_} character for the @samp{/} character.
+
+Opcodes are written directly in the order in which they are encoded,
+without going through an intermediate sexp-style expression as in the
+@code{wast} format.
+
 @node WebAssembly-Relocs
 @subsection Relocations
 @cindex WebAssembly relocations
 @cindex relocations, WebAssembly
 
-Special relocations are available by using the @samp{@@@var{plt}}, @samp{@@@var{got}}, or @samp{@@@var{got}} suffixes after a constant expression, which correspond to the R_ASMJS_LEB128_PLT, R_ASMJS_LEB128_GOT, and R_ASMJS_LEB128_GOT_CODE relocations, respectively.
+Special relocations are available by using the @samp{@@@var{plt}},
+@samp{@@@var{got}}, or @samp{@@@var{got}} suffixes after a constant
+expression, which correspond to the R_ASMJS_LEB128_PLT,
+R_ASMJS_LEB128_GOT, and R_ASMJS_LEB128_GOT_CODE relocations,
+respectively.
 
 @node WebAssembly-Signatures
 @subsection Signatures
 @cindex WebAssembly signatures
 @cindex signatures, WebAssembly
 
-Function signatures are specified with the @code{signature} pseudo-opcode, followed by a simple C++-mangled function signature: @code{F} followed by an optional @code{v}, then a sequence of @code{i}, @code{l}, @code{f}, and @code{d} characters to mark i32, i64, f32, and f64 parameters, respectively; followed by a final @code{E} to mark the end of the function signature.
+Function signatures are specified with the @code{signature}
+pseudo-opcode, followed by a simple C++-mangled function signature:
+@code{F} followed by an optional @code{v}, then a sequence of
+@code{i}, @code{l}, @code{f}, and @code{d} characters to mark i32,
+i64, f32, and f64 parameters, respectively; followed by a final
+@code{E} to mark the end of the function signature.
 
 @node WebAssembly Floating Point
 @section Floating Point
 @cindex floating point, WebAssembly (@sc{ieee})
 @cindex WebAssembly floating point (@sc{ieee})
-The WebAssembly family uses @sc{ieee} floating-point numbers.
+WebAssembly uses @sc{ieee} floating-point numbers.
+
+@node WebAssembly module layout
+@section WebAssembly Module Layout
+@cindex module layout, WebAssembly
+@cindex WebAssembly module layout
+@code{@value{AS}} will only produce ELF output, not a valid
+WebAssembly module. It is possible to make @code{@value{AS}} produce
+output in a single ELF section which becomes a valid WebAssembly
+module, but a linker script to do so may be preferrable, as it doesn't
+require running the entire module through the assembler at once.
 
 @node WebAssembly Directives
 @section WebAssembly Assembler Directives
-
-@command{@value{AS}} for the WebAssembly supports many additional directives for
-compatibility with the native assembler.  This section describes them only
-briefly.
-
-@cindex WebAssembly-only directives
-These are the additional directives in @code{@value{AS}} for the WebAssembly:
 

@@ -11,6 +11,11 @@ backend aims to enable the opposite: reading a WebAssembly module and
 producing an ELF file containing the same information, which can then
 be manipulated and inspected with standard tools.
 
+When writing WebAssembly modules, the WebAssembly backend attempts to
+determine based on the section name whether to use a numeric section
+id, a named section header, or to include the section verbatim,
+assuming it already contains any necessary header.
+
 @menu
 * File layout::
 @end menu

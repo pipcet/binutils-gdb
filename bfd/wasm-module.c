@@ -10,7 +10,6 @@
 #include "libbfd.h"
 
 /* From elf-eh-frame.c: */
-#if 0
 /* If *ITER hasn't reached END yet, read the next byte into *RESULT and
    move onto the next byte.  Return true on success.  */
 
@@ -74,6 +73,7 @@ read_uleb128 (bfd_byte **iter, bfd_byte *end, bfd_vma *value)
 
 /* Like read_uleb128, but for signed values.  */
 
+#if 0
 static bfd_boolean
 read_sleb128 (bfd_byte **iter, bfd_byte *end, bfd_signed_vma *value)
 {
@@ -91,6 +91,12 @@ read_sleb128 (bfd_byte **iter, bfd_byte *end, bfd_signed_vma *value)
   return TRUE;
 }
 #endif
+
+typedef struct
+{
+  asymbol *symbols;
+  bfd_size_type symcount;
+} tdata_type;
 
 #define bfd_wasm_close_and_cleanup                   _bfd_generic_close_and_cleanup
 #define bfd_wasm_bfd_free_cached_info                _bfd_generic_bfd_free_cached_info
@@ -293,7 +299,7 @@ wasm_skip_custom_section (bfd* abfd, bfd_boolean* error)
 #endif
 
 static bfd_boolean
-bfd_wasm_read_header (bfd* abfd, bfd_boolean* error)
+bfd_wasm_read_header (bfd *abfd, bfd_boolean *error)
 {
   if (!wasm_get_magic (abfd, error))
     goto error_return;
@@ -305,6 +311,96 @@ bfd_wasm_read_header (bfd* abfd, bfd_boolean* error)
 
  error_return:
   return FALSE;
+}
+
+static bfd_boolean
+wasm_scan_name_function_section (bfd *abfd, sec_ptr asect,
+                                 void *data ATTRIBUTE_UNUSED)
+{
+  if (!asect)
+    return FALSE;
+
+  if (strcmp (asect->name, ".wasm.name") != 0)
+    return FALSE;
+
+  bfd_byte *p = asect->contents;
+  bfd_byte *end = asect->contents + asect->size;
+
+  while (p && p < end)
+    {
+      if (*p++ == 1)
+        break;
+      bfd_vma payload_size;
+      if (!read_uleb128 (&p, end, &payload_size))
+        return FALSE;
+
+      p += payload_size;
+    }
+
+  if (!p)
+    return FALSE;
+
+  bfd_vma payload_size;
+  if (!read_uleb128 (&p, end, &payload_size))
+    return FALSE;
+
+  end = p + payload_size;
+
+  bfd_vma symcount = 0;
+  if (!read_uleb128 (&p, end, &symcount))
+    return FALSE;
+
+  tdata_type *tdata = abfd->tdata.any;
+  tdata->symcount = symcount;
+  symcount = 0;
+
+  bfd_size_type symallocated = 0;
+  asymbol *symbols = NULL;
+  sec_ptr space_function = bfd_make_section_with_flags (abfd, ".space.function", SEC_READONLY | SEC_CODE);
+  if (!space_function)
+    space_function = bfd_get_section_by_name (abfd, ".space.function");
+
+  for (bfd_vma i = 0; p < end && i < tdata->symcount; i++)
+    {
+      bfd_vma index;
+      bfd_vma len;
+      char *name;
+
+      if (!read_uleb128 (&p, end, &index) ||
+          !read_uleb128 (&p, end, &len))
+        return FALSE;
+
+      name = bfd_alloc (abfd, len + 1);
+
+      name[len] = 0;
+
+      memcpy (name, p, len);
+
+      p += len;
+
+      if (symcount == symallocated)
+        {
+          symallocated *= 2;
+          if (symallocated == 0)
+            symallocated = 512;
+
+          symbols = bfd_realloc (symbols, symallocated * sizeof (asymbol));
+        }
+
+      asymbol *sym = &symbols[symcount++];
+      sym->the_bfd = abfd;
+      sym->name = name;
+      sym->value = index;
+      sym->flags = BSF_GLOBAL | BSF_FUNCTION;
+      sym->section = space_function;
+      sym->udata.p = NULL;
+    }
+
+  tdata->symbols = symbols;
+  tdata->symcount = symcount;
+  abfd->symcount = symcount;
+
+  return TRUE;
 }
 
 static bfd_boolean
@@ -378,6 +474,9 @@ wasm_scan (bfd *abfd)
 
       vma += bfdsec->size;
     }
+
+  if (!wasm_scan_name_function_section (abfd, bfd_get_section_by_name (abfd, ".wasm.name"), NULL))
+    return FALSE;
 
   return TRUE;
 
@@ -562,6 +661,16 @@ _bfd_wasm_write_object_contents (bfd* abfd __attribute__((unused)))
 static bfd_boolean
 wasm_mkobject (bfd *abfd __attribute__((unused)))
 {
+  tdata_type *tdata = (tdata_type *) bfd_alloc (abfd, sizeof (tdata_type));
+
+  if (!tdata)
+    return FALSE;
+
+  tdata->symbols = NULL;
+  tdata->symcount = 0;
+
+  abfd->tdata.any = tdata;
+
   return TRUE;
 }
 
@@ -575,14 +684,22 @@ wasm_sizeof_headers (bfd *abfd ATTRIBUTE_UNUSED,
 static long
 wasm_get_symtab_upper_bound (bfd *abfd)
 {
-  return (abfd->symcount + 1) * (sizeof (asymbol));
+  tdata_type *tdata = abfd->tdata.any;
 
+  return (tdata->symcount + 1) * (sizeof (asymbol));
 }
 
 static long
-wasm_canonicalize_symtab (bfd *abfd, asymbol **table ATTRIBUTE_UNUSED)
+wasm_canonicalize_symtab (bfd *abfd, asymbol **alocation)
 {
-  return bfd_get_symcount (abfd);
+  tdata_type *tdata = abfd->tdata.any;
+  size_t i;
+
+  for (i = 0; i < tdata->symcount; i++)
+    alocation[i] = &tdata->symbols[i];
+  alocation[i] = NULL;
+
+  return tdata->symcount;
 }
 
 static asymbol *
@@ -598,11 +715,23 @@ wasm_make_empty_symbol (bfd *abfd ATTRIBUTE_UNUSED)
 }
 
 static void
-wasm_print_symbol (bfd *abfd ATTRIBUTE_UNUSED,
-                   void * filep ATTRIBUTE_UNUSED,
-                   asymbol *symbol ATTRIBUTE_UNUSED,
-                   bfd_print_symbol_type how ATTRIBUTE_UNUSED)
+wasm_print_symbol (bfd *abfd,
+                   void * filep,
+                   asymbol *symbol,
+                   bfd_print_symbol_type how)
 {
+  FILE *file = (FILE *) filep;
+
+  switch (how)
+    {
+    case bfd_print_symbol_name:
+      fprintf (file, "%s", symbol->name);
+      break;
+
+    default:
+      bfd_print_symbol_vandf (abfd, filep, symbol);
+      fprintf (file, " %-5s %s", symbol->section->name, symbol->name);
+    }
 }
 
 static void
@@ -655,6 +784,9 @@ wasm_object_p (bfd *abfd)
 
   if (! wasm_mkobject (abfd) || ! wasm_scan (abfd))
     return NULL;
+
+  if (abfd->symcount > 0)
+    abfd->flags |= HAS_SYMS;
 
   return abfd->xvec;
 }

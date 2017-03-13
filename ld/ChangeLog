@@ -1,3 +1,73 @@
+2017-03-11  Alan Modra  <amodra@gmail.com>
+
+	* emultempl/elf32.em (gld${EMULATION_NAME}_after_open): Add
+	sysroot for -rpath search.
+
+2017-03-11  Alan Modra  <amodra@gmail.com>
+
+	* emultempl/elf32.em (gld${EMULATION_NAME}_add_sysroot): Rewrite.
+	Only prefix absolute paths with sysroot.  Handle DOS paths.
+	(gld${EMULATION_NAME}_check_ld_elf_hints): Constify variable.
+	(gld${EMULATION_NAME}_check_ld_so_conf): Likewise.
+	(gld${EMULATION_NAME}_after_open): Short-circuit NULL path
+	searches.  Rename variable.  Simplify get_runpath search.
+
+2017-03-11  Alan Modra  <amodra@gmail.com>
+
+	* testsuite/ld-elf/shared.exp: Use -Wl,-export-dynamic rather
+	than -rdynamic.
+
+2017-03-11  Alan Modra  <amodra@gmail.com>
+
+	* ld.texinfo (Orphan Sections): Mention that not all targets
+	handle orphans well.
+	* testsuite/ld-elf/orphan-9.d: Don't run for i860 and i960.
+	* testsuite/ld-elf/orphan-10.d: Likewise.
+
+2017-03-09  Andrew Burgess  <andrew.burgess@embecosm.com>
+
+	* ldlang.c (lang_size_sections_1): Shortcut loop only after
+	tracking changes to the default regions LMA.
+	* testsuite/ld-elf/orphan-9.ld: Extend header comment.
+	* testsuite/ld-elf/orphan-10.d: New file.
+	* testsuite/ld-elf/orphan-10.s: New file.
+	* NEWS: Mention change in behaviour.
+
+2017-03-09  Andrew Burgess  <andrew.burgess@embecosm.com>
+
+	* ldlang.c (lang_leave_output_section_statement): Move lma_region
+	logic to...
+	(lang_propagate_lma_regions): ...this new function.
+	(lang_process): Call new function.
+	* testsuite/ld-elf/orphan-9.d: New file.
+	* testsuite/ld-elf/orphan-9.ld: New file.
+	* testsuite/ld-elf/orphan-9.s: New file.
+	* NEWS: Mention change in behaviour.
+
+2017-03-07  Alan Modra  <amodra@gmail.com>
+
+	* ldlang.c (open_input_bfds): Check that lang_assignment_statement
+	is not an assert before referencing defsym.
+
+2017-03-05  Alan Modra  <amodra@gmail.com>
+
+	* testsuite/ld-elf/eh3.d: Adjust for eh_frame alignment change.
+	* testsuite/ld-elf/eh6.d: Likewise.
+	* testsuite/ld-alpha/tlsbin.dd: Likewise.
+	* testsuite/ld-alpha/tlsbin.td: Likewise.
+	* testsuite/ld-alpha/tlsbinr.dd: Likewise.
+	* testsuite/ld-alpha/tlspic.dd: Likewise.
+	* testsuite/ld-alpha/tlspic.rd: Likewise.
+	* testsuite/ld-alpha/tlspic.sd: Likewise.
+	* testsuite/ld-alpha/tlspic.td: Likewise.
+	* testsuite/ld-mips-elf/eh-frame1-n64.d: Likewise.
+	* testsuite/ld-mips-elf/eh-frame2-n64.d: Likewise.
+	* testsuite/ld-mips-elf/eh-frame3.d: Likewise.
+	* testsuite/ld-x86-64/pr20830a.d: Likewise.
+	* testsuite/ld-x86-64/pr21038a.d: Likewise.
+	* testsuite/ld-x86-64/pr21038b.d: Likewise.
+	* testsuite/ld-x86-64/pr21038c.d: Likewise.
+
 2017-03-03  Max Bolingbroke  <batterseapower@hotmail.com>
 
 	PR 12969

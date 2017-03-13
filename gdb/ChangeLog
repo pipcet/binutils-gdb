@@ -1,3 +1,94 @@
+2017-03-10  Keith Seitz  <keiths@redhat.com>
+
+	PR c++/8218
+	* c-typeprint.c (cp_type_print_method_args): Skip artificial arguments.
+
+2017-03-08  Pedro Alves  <palves@redhat.com>
+
+	PR gdb/18360
+	* infrun.c (start_step_over, do_target_resume, resume)
+	(restart_threads): Assert we're not resuming a thread that is
+	meant to be stopped.
+	(infrun_thread_stop_requested_callback): Delete.
+	(infrun_thread_stop_requested): If the thread is internally
+	stopped, queue a pending stop event and clear the thread's
+	inline-frame state.
+	(handle_stop_requested): New function.
+	(handle_syscall_event, handle_inferior_event_1): Use
+	handle_stop_requested.
+	(handle_stop_requested): New function.
+	(handle_signal_stop): Set the thread's stop_signal here instead of
+	at caller.
+	(finish_step_over): Clear step over info unconditionally.
+	(handle_signal_stop): If the user had interrupted the event
+	thread, consider the stop a random signal.
+	(handle_signal_stop) <signal arrived while stepping over
+	breakpoint>: Don't restart threads here.
+	(stop_waiting): Don't clear step-over info here.
+
+2017-03-08  Pedro Alves  <palves@redhat.com>
+
+	PR 21206
+	* common/gdb_unlinker.h (unlinker::unlinker): Attribute nonnull
+	goes to argument 2, not 1.
+
+2017-03-08  Pedro Alves  <palves@redhat.com>
+
+	PR cli/21218
+	* top.c (gdb_readline_wrapper): Avoid passing NULL to
+	display_gdb_prompt.
+	(command_line_input): Add comment.
+
+2017-03-08  Pedro Alves  <palves@redhat.com>
+
+	PR tui/21216
+	* tui/tui-file.c (tui_file::write): New.
+	* tui/tui-file.h (tui_file): Override "write".
+	* tui/tui-io.c (do_tui_putc, update_start_line): New functions,
+	factored out from ...
+	(tui_puts): ... here.
+	(tui_putc): Use them.
+	(tui_write): New function.
+	* tui/tui-io.h (tui_write): Declare.
+
+2017-03-07  Sergio Durigan Junior  <sergiodj@redhat.com>
+
+	* Makefile.in (SFILES): Replace "environ.c" with
+	"common/environ.c".
+	(HFILES_NO_SRCDIR): Likewise, for "environ.h".
+	* environ.c: Include "common-defs.h" instead of "defs.h.  Moved
+	to...
+	* common/environ.c: ... here.
+	* environ.h: Moved to...
+	* common/environ.h: ... here.
+
+2017-03-07  Peter Bergner  <bergner@vnet.ibm.com>
+
+	* gdbarch.sh (pstring_ptr): New static function.
+	(gdbarch_disassembler_options): Use it.
+	(gdbarch_verify_disassembler_options): Print valid_disassembler_options,
+	not valid_disassembler_option->name.
+	* gdbarch.c: Regenerate.
+
+2017-03-07  Peter Bergner  <bergner@vnet.ibm.com>
+
+	* config/powerpc/ppc64-linux.mh (MH_CFLAGS): Delete.
+
+2017-03-07  Pedro Alves  <palves@redhat.com>
+
+	* tui/tui-regs.c (tui_restore_gdbout): Don't delete gdb_stdout.
+
+2017-03-07  Walfred Tedeschi  <walfred.tedeschi@intel.com>
+
+	* i387-tdep.h (i387_reset_bnd_regs): Add function definition.
+	* i387-tdep.c (i387_reset_bnd_regs): Add function implementation.
+	* i386-tdep.c (i386_push_dummy_call): Call i387_reset_bnd_regs.
+	* amd64-tdep.c (amd64_push_dummy_call): Call i387_reset_bnd_regs.
+
+2017-03-06  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* xtensa-linux-nat.c (fetch_gregs): Remove const.
+
 2017-03-03  Simon Marchi  <simon.marchi@ericsson.com>
 
 	* remote.c (remote_add_target_side_commands): Use range-based
@@ -638,7 +729,7 @@
 	(build_command_line): Make args a constant pointer.
 
 2017-02-08  Jerome Guitton  <guitton@adacore.com>
-	
+
 	* cli-decode.c (lookup_cmd_1, lookup_cmd_composition):
 	Remove case-insensitive search.
 
@@ -2121,7 +2212,7 @@
 
 2017-01-01  Joel Brobecker  <brobecker@adacore.com>
 
-        Update copyright year range in all GDB files.
+	Update copyright year range in all GDB files.
 
 2017-01-01  Joel Brobecker  <brobecker@adacore.com>
 

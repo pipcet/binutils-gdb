@@ -1,3 +1,86 @@
+2017-03-10  Keith Seitz  <keiths@redhat.com>
+
+	PR c++/8128
+	* gdb.cp/templates.exp (test_ptype_of_templates): Remove argument
+	type from destructor regexps.
+	Add a branch which actually passes the test.
+	Adjust "ptype t5i" test names.
+
+2017-03-08  Pedro Alves  <palves@redhat.com>
+
+	* gdb.base/step-over-exit.exp: Add explicit test message.
+
+2017-03-08  Pedro Alves  <palves@redhat.com>
+
+	PR gdb/18360
+	* gdb.threads/interrupt-while-step-over.c: New file.
+	* gdb.threads/interrupt-while-step-over.exp: New file.
+
+2017-03-08  Pedro Alves  <palves@redhat.com>
+
+	* gdb.arch/amd64-entry-value-param-dwarf5.exp: Use with_test_prefix.
+	* gdb.arch/amd64-entry-value-param.exp: Use with_test_prefix.
+
+2017-03-08  Pedro Alves  <palves@redhat.com>
+
+	* gdb.arch/i386-pkru.exp (probe PKRU support): Handle detecting
+	PKRU as not supported as a PASS.
+
+2017-03-08  Pedro Alves  <palves@redhat.com>
+
+	* gdb.base/break-fun-addr.exp: Use $testfile1/$testfile2 for test
+	prefix instead of $binfile1/$binfile2.
+	* gdb.btrace/gcore.exp: Use "core" instead of unstable path name
+	in test message.
+	* gdb.python/py-completion.exp: Use "load python file" as test
+	messages instead of unstable path names.
+
+2017-03-08  Pedro Alves  <palves@redhat.com>
+	    Jan Kratochvil  <jan.kratochvil@redhat.com>
+
+	PR cli/21218
+	* gdb.base/commands.exp (backslash_in_multi_line_command_test):
+	New proc.
+	(top level): Call it.
+
+2017-03-08  Pedro Alves  <palves@redhat.com>
+
+	PR tui/21216
+	* gdb.tui/tui-nl-filtered-output.exp: New file.
+
+2017-03-08  Pedro Alves  <palves@redhat.com>
+
+	* gdb.base/completion.exp: Move TUI completion tests to ...
+	* gdb.tui/completion.exp: ... this new file.
+
+2017-03-08  Pedro Alves  <palves@redhat.com>
+
+	* gdb.base/tui-disasm-long-lines.c,
+	gdb.base/tui-disasm-long-lines.exp, gdb.base/tui-layout.c,
+	gdb.base/tui-layout.exp: Move to ...
+	* gdb.tui/: ... this new directory.
+
+2017-03-07  Pedro Alves  <palves@redhat.com>
+
+	* gdb.base/tui-layout.c: New file.
+	* gdb.base/tui-layout.exp: New file.
+
+2017-03-07  Pedro Alves  <palves@redhat.com>
+
+	* gdb.base/tui-layout.c: Rename to ...
+	* gdb.base/tui-disasm-long-lines.c: ... this.
+	* gdb.base/tui-layout.exp: Rename to ...
+	* gdb.base/tui-disasm-long-lines.exp: ... this.
+
+2017-03-07  Pedro Alves  <palves@redhat.com>
+
+	* gdb.base/tui-layout.exp: Add intro comment and fix typo.
+
+2017-03-07  Walfred Tedeschi  <walfred.tedeschi@intel.com>
+
+	* i386-mpx-call.c: New file.
+	* i386-mpx-call.exp: New file.
+
 2017-02-28  Peter Bergner  <bergner@vnet.ibm.com>
 
 	* gdb.arch/powerpc-power.exp: Delete test.

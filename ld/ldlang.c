@@ -3374,7 +3374,8 @@ open_input_bfds (lang_statement_union_type *s, enum open_bfd_mode mode)
 #endif
 	  break;
 	case lang_assignment_statement_enum:
-	  if (s->assignment_statement.exp->assign.defsym)
+	  if (s->assignment_statement.exp->type.node_class != etree_assert
+	      && s->assignment_statement.exp->assign.defsym)
 	    /* This is from a --defsym on the command line.  */
 	    exp_fold_tree_no_dot (s->assignment_statement.exp);
 	  break;
@@ -5196,9 +5197,6 @@ lang_size_sections_1
 	      }
 	    os->processed_lma = TRUE;
 
-	    if (bfd_is_abs_section (os->bfd_section) || os->ignored)
-	      break;
-
 	    /* Keep track of normal sections using the default
 	       lma region.  We use this to set the lma for
 	       following sections.  Overlays or other linker
@@ -5206,7 +5204,13 @@ lang_size_sections_1
 	       default lma == vma is incorrect.
 	       To avoid warnings about dot moving backwards when using
 	       -Ttext, don't start tracking sections until we find one
-	       of non-zero size or with lma set differently to vma.  */
+	       of non-zero size or with lma set differently to vma.
+	       Do this tracking before we short-cut the loop so that we
+	       track changes for the case where the section size is zero,
+	       but the lma is set differently to the vma.  This is
+	       important, if an orphan section is placed after an
+	       otherwise empty output section that has an explicit lma
+	       set, we want that lma reflected in the orphans lma.  */
 	    if (!IGNORE_SECTION (os->bfd_section)
 		&& (os->bfd_section->size != 0
 		    || (r->last_os == NULL
@@ -5217,6 +5221,9 @@ lang_size_sections_1
 		&& os->lma_region == NULL
 		&& !bfd_link_relocatable (&link_info))
 	      r->last_os = s;
+
+	    if (bfd_is_abs_section (os->bfd_section) || os->ignored)
+	      break;
 
 	    /* .tbss sections effectively have zero size.  */
 	    if (!IS_TBSS (os->bfd_section)
@@ -6843,6 +6850,27 @@ lang_check_relocs (void)
     }
 }
 
+/* Look through all output sections looking for places where we can
+   propagate forward the lma region.  */
+
+static void
+lang_propagate_lma_regions (void)
+{
+  lang_output_section_statement_type *os;
+
+  for (os = &lang_output_section_statement.head->output_section_statement;
+       os != NULL;
+       os = os->next)
+    {
+      if (os->prev != NULL
+	  && os->lma_region == NULL
+	  && os->load_base == NULL
+	  && os->addr_tree == NULL
+	  && os->region == os->prev->region)
+	os->lma_region = os->prev->lma_region;
+    }
+}
+
 void
 lang_process (void)
 {
@@ -7020,6 +7048,9 @@ lang_process (void)
 	    found->flags &= ~SEC_READONLY;
 	}
     }
+
+  /* Copy forward lma regions for output sections in same lma region.  */
+  lang_propagate_lma_regions ();
 
   /* Do anything special before sizing sections.  This is where ELF
      and other back-ends size dynamic sections.  */
@@ -7300,16 +7331,6 @@ lang_leave_output_section_statement (fill_type *fill, const char *memspec,
 		    memspec, lma_memspec,
 		    current_section->load_base != NULL,
 		    current_section->addr_tree != NULL);
-
-  /* If this section has no load region or base, but uses the same
-     region as the previous section, then propagate the previous
-     section's load region.  */
-
-  if (current_section->lma_region == NULL
-      && current_section->load_base == NULL
-      && current_section->addr_tree == NULL
-      && current_section->region == current_section->prev->region)
-    current_section->lma_region = current_section->prev->lma_region;
 
   current_section->fill = fill;
   current_section->phdrs = phdrs;

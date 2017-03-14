@@ -10,6 +10,13 @@ ENTRY("0")
 SECTIONS
 {
   . = 16384;
+  . = DATA_SEGMENT_ALIGN (4096, 4096);
+  .data.rel.ro :
+  {
+    *(.data.rel.ro.local* .gnu.linkonce.d.rel.ro.local.*);
+    *(.data.rel.ro .data.rel.ro.* .gnu.linkonce.d.rel.ro.*);
+  }
+  . = DATA_SEGMENT_RELRO_END(0, .);
   .wasm.data = .;
   .asmjs.header :
   {
@@ -77,11 +84,6 @@ SECTIONS
     KEEP (*(.fini_array EXCLUDE_FILE (*crtbegin.o *crtbegin?.o *crtend.o *crtend?.o ) .dtors))
     PROVIDE_HIDDEN (__fini_array_end = .);
      . = ALIGN(., 16);
-  }
-  .data.rel.ro :
-  {
-    *(.data.rel.ro.local* .gnu.linkonce.d.rel.ro.local.*);
-    *(.data.rel.ro .data.rel.ro.* .gnu.linkonce.d.rel.ro.*);
   }
   .eh_frame_hdr :
   {
@@ -233,6 +235,7 @@ SECTIONS
   {
     *(.dynstr)
   }
+  . = DATA_SEGMENT_END (.);
 EOF
 
 . $srcdir/scripttempl/DWARF.sc

@@ -1,7 +1,7 @@
 @section WebAssembly backend
 The WebAssembly module file format, at present, is a very simple
 object file format with up to 11 numbered sections plus named
-``custom'' subsections. At present, there is no standard for
+``custom'' sections. At present, there is no standard for
 relocations or symbols, though a @code{"name"} subsection can assign
 names to function indices and local variables.
 

@@ -147,6 +147,8 @@ extern int wasm32_validate_fix_sub (struct fix *);
 /* 32 bit addresses are used on WASM32.  */
 #define DWARF2_ADDR_SIZE(bfd) 4
 
+#define TC_ADDRESS_BYTES() 4
+
 /* Enable cfi directives.  */
 #define TARGET_USE_CFIPOP 1
 

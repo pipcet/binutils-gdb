@@ -77,7 +77,7 @@ setup_xfail "arm*-*-*" "ld/13802"
 # them where possible in favour to dynamic relocs in the relevant
 # loadable sections; see also the "-z nocopyreloc" command-line
 # option and the ELIMINATE_COPY_RELOCS macro some backends use.
-set copy_reloc [expr [istarget mn10300-*-*] || [istarget vax-*-*]]
+set copy_reloc [expr [istarget mn10300-*-*] || [istarget vax-*-*] || [istarget wasm32-*-*]]
 
 # Verify that a common symbol has been converted to an undefined
 # reference to the global symbol of the same name defined above

@@ -29,8 +29,8 @@
 #include "elf/wasm32.h"
 
 #define ELF_ARCH		bfd_arch_wasm32
-#define ELF_TARGET_ID		0x4157
-#define ELF_MACHINE_CODE	0x4157
+#define ELF_TARGET_ID		0x4157 // 'WA'
+#define ELF_MACHINE_CODE	0x4157 // 'WA'
 /* See https://github.com/pipcet/binutils-gdb/issues/4 */
 #define ELF_MAXPAGESIZE		4096
 
@@ -45,6 +45,7 @@
  *  don't use --gc-sections */
 #define elf_backend_can_gc_sections          1
 #define elf_backend_rela_normal              1
+/* For testing. */
 #define elf_backend_want_dynrelro            1
 
 #define bfd_elf32_bfd_reloc_type_lookup wasm32_elf32_bfd_reloc_type_lookup
@@ -109,28 +110,6 @@ const char * dyn_section_names[DYN_SECTION_TYPES_END] =
     s = bfd_get_linker_section (dynobj, SECTION);		\
   break;
 
-static ATTRIBUTE_UNUSED bfd_boolean
-is_reloc_PC_relative (reloc_howto_type *howto)
-{
-  return (strstr (howto->name, "PC") != NULL) ? TRUE : FALSE;
-}
-
-#if 0
-static bfd_boolean
-is_reloc_for_GOT (reloc_howto_type * howto)
-{
-  if (strstr (howto->name, "TLS") != NULL)
-    return FALSE;
-  return (strstr (howto->name, "GOT") != NULL) ? TRUE : FALSE;
-}
-
-static bfd_boolean
-is_reloc_for_PLT (reloc_howto_type * howto)
-{
-  return (strstr (howto->name, "PLT") != NULL) ? TRUE : FALSE;
-}
-#endif
-
 struct elf_wasm32_link_hash_entry
 {
   struct elf_link_hash_entry root;
@@ -139,28 +118,6 @@ struct elf_wasm32_link_hash_entry
 };
 
 #define wasm32_elf_hash_entry(ent) ((struct elf_wasm32_link_hash_entry *)(ent))
-
-struct wasm32_relocation_data
-{
-  bfd_signed_vma  reloc_offset;
-  bfd_signed_vma  reloc_addend;
-  bfd_signed_vma  got_offset_value;
-
-  bfd_signed_vma  sym_value;
-  asection *      sym_section;
-
-  reloc_howto_type *howto;
-
-  asection *      input_section;
-
-  bfd_signed_vma  sdata_begin_symbol_vma;
-  bfd_boolean     sdata_begin_symbol_vma_set;
-  bfd_signed_vma  got_symbol_vma;
-
-  bfd_boolean     should_relocate;
-
-  const char *    symbol_name;
-};
 
 struct dynamic_sections
 {
@@ -182,22 +139,6 @@ struct dynamic_sections
   asection *      spltelemspace;
   asection *      spltname;
   asection *      spltnamespace;
-};
-
-struct wasm32_got_entry
-{
-  struct wasm32_elf_link_hash_entry *h;
-  long gotidx;
-};
-
-struct wasm32_got_info
-{
-  /* The number of global .got entries.  */
-  unsigned int global_gotno;
-  /* The number of relocations needed for the GOT entries.  */
-  unsigned int relocs;
-  /* A hash table holding members of the got.  */
-  struct htab *got_entries;
 };
 
 struct plt_entry
@@ -921,9 +862,6 @@ wasm32_elf32_info_to_howto (bfd *abfd ATTRIBUTE_UNUSED, arelent *cache_ptr,
 struct elf_wasm32_link_hash_table
 {
   struct elf_link_hash_table root;
-
-  /* Short-cuts to get to dynamic linker sections.  */
-  asection *srelbss;
 };
 
 static struct bfd_hash_entry *
@@ -1385,6 +1323,7 @@ elf_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec, c
         case R_ASMJS_LEB128:
           if (h != NULL && ! bfd_link_pic (info))
             {
+              /* This probably needs ELIMINATE_COPY_RELOCS code below. */
               h->non_got_ref = 1;
             }
 
@@ -1395,6 +1334,7 @@ elf_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec, c
         case R_ASMJS_ABS32:
           if (h != NULL && bfd_link_executable (info))
             {
+              /* This probably needs ELIMINATE_COPY_RELOCS code below. */
               h->non_got_ref = 1;
             }
 
@@ -1609,16 +1549,6 @@ elf_wasm32_finish_dynamic_symbol (bfd * output_bfd,
       bfd_elf32_swap_reloca_out (output_bfd, &rel, loc);
       BFD_ASSERT (srel->size >= loc - srel->contents + sizeof (Elf32_External_Rela));
     }
-
-
-  /* This function traverses list of GOT entries and
-     create respective dynamic relocs.  */
-  /* TODO: Make function to get list and not access the list directly.  */
-  /* TODO: Move function to relocate_section create this relocs eagerly.  */
-  /* create_got_dynrelocs_for_got_info (&h->got.glist, */
-  /*                                 output_bfd, */
-  /*                                 info, */
-  /*                                 h); */
 
   if (h->needs_copy)
     {
@@ -2254,7 +2184,6 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
   bfd_vma *local_got_offsets = NULL;
   asection *sgot = NULL;
   asection *splt = NULL;
-  //asection *splt;
   asection *sreloc = NULL;
 
   symtab_hdr = &elf_tdata (input_bfd)->symtab_hdr;

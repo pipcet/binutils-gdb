@@ -10,13 +10,6 @@ ENTRY("0")
 SECTIONS
 {
   . = 16384;
-  . = DATA_SEGMENT_ALIGN (4096, 4096);
-  .data.rel.ro :
-  {
-    *(.data.rel.ro.local* .gnu.linkonce.d.rel.ro.local.*);
-    *(.data.rel.ro .data.rel.ro.* .gnu.linkonce.d.rel.ro.*);
-  }
-  . = DATA_SEGMENT_RELRO_END(0, .);
   .wasm.data = .;
   .asmjs.header :
   {
@@ -62,6 +55,8 @@ SECTIONS
      . = ALIGN(., 16);
      *(.gcc_except_table*)
      . = ALIGN(., 16);
+     *(.eh_frame*)
+     . = ALIGN(., 16);
      __start___libc_atexit = .;
      *(__libc_atexit)
      __stop___libc_atexit = .;
@@ -83,16 +78,6 @@ SECTIONS
     KEEP (*(SORT_BY_INIT_PRIORITY(.fini_array.*) SORT_BY_INIT_PRIORITY(.dtors.*)))
     KEEP (*(.fini_array EXCLUDE_FILE (*crtbegin.o *crtbegin?.o *crtend.o *crtend?.o ) .dtors))
     PROVIDE_HIDDEN (__fini_array_end = .);
-     . = ALIGN(., 16);
-  }
-  .eh_frame_hdr :
-  {
-     *(.eh_frame_hdr) *(.eh_frame_entry .eh_frame_entry.*)
-     . = ALIGN(., 16);
-  }
-  .eh_frame :
-  {
-     *(.eh_frame*)
      . = ALIGN(., 16);
   }
   .bss :
@@ -235,7 +220,6 @@ SECTIONS
   {
     *(.dynstr)
   }
-  . = DATA_SEGMENT_END (.);
 EOF
 
 . $srcdir/scripttempl/DWARF.sc

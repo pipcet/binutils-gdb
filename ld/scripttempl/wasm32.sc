@@ -164,6 +164,22 @@ SECTIONS
   } :data
   . = ALIGN(., 16);
   .wasm.data_end = .;
+  .dynamic :
+  {
+    *(.dynamic)
+  } :dynamic :dynamic_data
+  .rela.dyn :
+  {
+    *(.rela.dyn)
+  } :dynamic :dynamic_data
+  .dynsym :
+  {
+    *(.dynsym)
+  } :dynamic :dynamic_data
+  .dynstr :
+  {
+    *(.dynstr)
+  } :dynamic :dynamic_data
   . = 0;
   .space.function_index 0 (NOLOAD) :
   {
@@ -347,27 +363,11 @@ SECTIONS
   {
     *(.rela.plt);
   }
-  .dynamic :
-  {
-    *(.dynamic)
-  } :dynamic :dynamic_data
   .interp :
   {
     *(.interp)
   }
   .hash : { *(.hash) }
-  .rela.dyn :
-  {
-    *(.rela.dyn)
-  } :dynamic :dynamic_data
-  .dynsym :
-  {
-    *(.dynsym)
-  } :dynamic :dynamic_data
-  .dynstr :
-  {
-    *(.dynstr)
-  } :dynamic :dynamic_data
 EOF
 
 . $srcdir/scripttempl/DWARF.sc
@@ -375,10 +375,9 @@ EOF
 # This is for testing only. For your WebAssembly module to work, you must
 # use the macros in wasm32-macros.s rather than simply specifying .text
 cat <<EOF
-  . = 0xf0000000;
-  .text : { *(.text) }
-  .init : { *(.init) }
-  .fini : { *(.fini) }
+  .text (NOLOAD) : { *(.text) }
+  .init (NOLOAD) : { *(.init) }
+  .fini (NOLOAD) : { *(.fini) }
   PROVIDE (_etext = .);
   PROVIDE (etext = .);
   /*   /DISCARD/ : { *(*) } */

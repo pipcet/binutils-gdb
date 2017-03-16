@@ -386,41 +386,45 @@ _bfd_elf_create_dynamic_sections (bfd *abfd, struct bfd_link_info *info)
   if (bed->plt_readonly)
     pltflags |= SEC_READONLY;
 
-  s = bfd_make_section_anyway_with_flags (abfd, ".wasm.chars.code.plt", pltflags & ~ (SEC_CODE | SEC_LOAD | SEC_HAS_CONTENTS));
+  s = bfd_make_section_anyway_with_flags (abfd, ".space.code_.plt", pltflags & ~ (SEC_CODE | SEC_LOAD | SEC_HAS_CONTENTS));
   if (s == NULL)
     return FALSE;
   htab->spltspace = s;
 
-  s = bfd_make_section_anyway_with_flags (abfd, ".wasm.chars.function.plt", pltflags & ~ (SEC_CODE | SEC_LOAD | SEC_HAS_CONTENTS));
+  s = bfd_make_section_anyway_with_flags (abfd, ".space.function_.plt", pltflags & ~ (SEC_CODE | SEC_LOAD | SEC_HAS_CONTENTS));
   if (s == NULL)
     return FALSE;
 
-  s = bfd_make_section_anyway_with_flags (abfd, ".wasm.chars.function_index", pltflags & ~ (SEC_ALLOC | SEC_CODE | SEC_LOAD | SEC_HAS_CONTENTS));
+  s = bfd_make_section_anyway_with_flags (abfd, ".space.function_index_.plt", pltflags & ~ (SEC_CODE | SEC_LOAD | SEC_HAS_CONTENTS));
   if (s == NULL)
     return FALSE;
 
-  s = bfd_make_section_anyway_with_flags (abfd, ".wasm.chars.element.plt", pltflags & ~ (SEC_ALLOC | SEC_CODE | SEC_LOAD | SEC_HAS_CONTENTS));
+  s = bfd_make_section_anyway_with_flags (abfd, ".space.function_index..text", pltflags & ~ (SEC_ALLOC | SEC_CODE | SEC_LOAD | SEC_HAS_CONTENTS));
   if (s == NULL)
     return FALSE;
 
-  s = bfd_make_section_anyway_with_flags (abfd, ".wasm.chars.name.function.plt", pltflags & ~ (SEC_ALLOC | SEC_CODE | SEC_LOAD | SEC_HAS_CONTENTS));
+  s = bfd_make_section_anyway_with_flags (abfd, ".space.element_.plt", pltflags & ~ (SEC_ALLOC | SEC_CODE | SEC_LOAD | SEC_HAS_CONTENTS));
   if (s == NULL)
     return FALSE;
 
-  s = bfd_make_section_anyway_with_flags (abfd, ".wasm.payload.function.plt", pltflags & ~SEC_CODE);
+  s = bfd_make_section_anyway_with_flags (abfd, ".space.name.function_.plt", pltflags & ~ (SEC_ALLOC | SEC_CODE | SEC_LOAD | SEC_HAS_CONTENTS));
   if (s == NULL)
     return FALSE;
 
-  s = bfd_make_section_anyway_with_flags (abfd, ".wasm.payload.element.plt", pltflags & ~SEC_CODE);
+  s = bfd_make_section_anyway_with_flags (abfd, ".wasm.function_.plt", pltflags & ~SEC_CODE);
   if (s == NULL)
     return FALSE;
 
-  s = bfd_make_section_anyway_with_flags (abfd, ".wasm.payload.code.plt", pltflags);
+  s = bfd_make_section_anyway_with_flags (abfd, ".wasm.element_.plt", pltflags & ~SEC_CODE);
+  if (s == NULL)
+    return FALSE;
+
+  s = bfd_make_section_anyway_with_flags (abfd, ".wasm.code_.plt", pltflags);
   if (s == NULL)
     return FALSE;
   htab->splt = s;
 
-  s = bfd_make_section_anyway_with_flags (abfd, ".wasm.payload.name.function.plt", pltflags & ~SEC_CODE);
+  s = bfd_make_section_anyway_with_flags (abfd, ".wasm.name.function_.plt", pltflags & ~SEC_CODE);
   if (s == NULL)
     return FALSE;
 

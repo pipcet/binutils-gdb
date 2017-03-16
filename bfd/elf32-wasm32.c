@@ -39,7 +39,7 @@
 
 #define elf_info_to_howto                    wasm32_elf32_info_to_howto
 /* We can GC sections, it just doesn't do what you want: at present,
- *  using a function doesn't pull in the .wasm.payload.code section. We
+ *  using a function doesn't pull in the .wasm.code section. We
  *  could probably fix that with a bogus relocation living in
  *  .space.function which pulls in things for us, but for now just
  *  don't use --gc-sections */
@@ -80,18 +80,18 @@ const char * dyn_section_names[DYN_SECTION_TYPES_END] =
   ".rela.got",
   ".got.plt",
   ".dynamic",
-  ".wasm.payload.code.plt",
-  ".wasm.chars.code.plt",
-  ".wasm.payload.function.plt",
-  ".wasm.chars.function.plt",
-  ".wasm.chars.function_index.plt",
+  ".space.code_.plt",
+  ".wasm.code_.plt",
+  ".wasm.function_.plt",
+  ".space.function_.plt",
+  ".space.function_index_.plt",
   ".rela.plt",
   ".dynbss"
   ".rela.bss",
-  ".wasm.payload.element.plt",
-  ".wasm.chars.element.plt"
-  ".wasm.payload.name.plt",
-  ".wasm.chars.name.plt"
+  ".wasm.element_.plt",
+  ".space.element_.plt"
+  ".wasm.name.function_.plt",
+  ".space.name.function_.plt"
 };
 
 #define ADD_DYNAMIC_SYMBOL(NAME, TAG)					\
@@ -959,8 +959,8 @@ wasm32_create_dynamic_sections (bfd * abfd, struct bfd_link_info *info)
       ds.sgotplt = bfd_get_section_by_name (dynobj, ".got.plt");
       ds.srelgotplt = ds.srelplt;
 
-      ds.splt = bfd_get_section_by_name (dynobj, ".wasm.payload.code.plt");
-      ds.spltspace = bfd_get_section_by_name (dynobj, ".wasm.chars.code.plt");
+      ds.splt = bfd_get_section_by_name (dynobj, ".wasm.code_.plt");
+      ds.spltspace = bfd_get_section_by_name (dynobj, ".space.code_.plt");
       if (ds.spltspace == NULL)
         {
           flagword flags, pltflags;
@@ -968,13 +968,13 @@ wasm32_create_dynamic_sections (bfd * abfd, struct bfd_link_info *info)
                    | SEC_LINKER_CREATED);
 
           pltflags = flags;
-          bfd_make_section_anyway_with_flags (dynobj, ".wasm.chars.code.plt", pltflags);
-          ds.spltspace = bfd_get_section_by_name (dynobj, ".wasm.chars.code.plt");
+          bfd_make_section_anyway_with_flags (dynobj, ".space.code_.plt", pltflags);
+          ds.spltspace = bfd_get_section_by_name (dynobj, ".space.code_.plt");
         }
 
-      ds.spltfun = bfd_get_section_by_name (dynobj, ".wasm.payload.function.plt");
-      ds.spltfunspace = bfd_get_section_by_name (dynobj, ".wasm.chars.function.plt");
-      ds.spltidx = bfd_get_section_by_name (dynobj, ".wasm.chars.function_index");
+      ds.spltfun = bfd_get_section_by_name (dynobj, ".wasm.function_.plt");
+      ds.spltfunspace = bfd_get_section_by_name (dynobj, ".space.function_.plt");
+      ds.spltidx = bfd_get_section_by_name (dynobj, ".space.function_index_.plt");
       ds.srelplt = bfd_get_section_by_name (dynobj, ".rela.plt");
 
       ds.sdynbss = bfd_get_section_by_name (dynobj, ".dynbss");
@@ -986,10 +986,10 @@ wasm32_create_dynamic_sections (bfd * abfd, struct bfd_link_info *info)
       if (ds.srelbss == NULL)
       ds.srelbss = bfd_make_section_anyway_with_flags (dynobj, ".rela.bss",
                                                       SEC_READONLY | SEC_ALLOC | SEC_LOAD | SEC_HAS_CONTENTS | SEC_IN_MEMORY | SEC_LINKER_CREATED);
-      ds.spltelem = bfd_get_section_by_name (dynobj, ".wasm.payload.element.plt");
-      ds.spltelemspace = bfd_get_section_by_name (dynobj, ".wasm.chars.element.plt");
-      ds.spltname = bfd_get_section_by_name (dynobj, ".wasm.payload.name.function.plt");
-      ds.spltnamespace = bfd_get_section_by_name (dynobj, ".wasm.chars.name.function.plt");
+      ds.spltelem = bfd_get_section_by_name (dynobj, ".wasm.element_.plt");
+      ds.spltelemspace = bfd_get_section_by_name (dynobj, ".space.element_.plt");
+      ds.spltname = bfd_get_section_by_name (dynobj, ".wasm.name.function_.plt");
+      ds.spltnamespace = bfd_get_section_by_name (dynobj, ".space.name.function_.plt");
     }
 
   if (htab->dynamic_sections_created)
@@ -1609,7 +1609,7 @@ wasm32_elf_create_dynamic_sections (bfd *dynobj, struct bfd_link_info *info)
   if (bed->plt_readonly)
     pltflags |= SEC_READONLY;
 
-  s = bfd_make_section_anyway_with_flags (abfd, ".wasm.payload.code.plt", pltflags);
+  s = bfd_make_section_anyway_with_flags (abfd, ".wasm.code_.plt", pltflags);
   if (s == NULL)
     return FALSE;
 
@@ -1635,7 +1635,7 @@ wasm32_elf_create_dynamic_sections (bfd *dynobj, struct bfd_link_info *info)
         return FALSE;
     }
 
-  s = bfd_make_section_anyway_with_flags (abfd, ".wasm.chars.code.plt", pltflags);
+  s = bfd_make_section_anyway_with_flags (abfd, ".space.code_.plt", pltflags);
   if (s == NULL)
     return FALSE;
 
@@ -1909,7 +1909,7 @@ elf_wasm32_finish_dynamic_sections (bfd * output_bfd,
             {
               GET_SYMBOL_OR_SECTION (DT_INIT, info->init_function, NULL)
               GET_SYMBOL_OR_SECTION (DT_FINI, info->fini_function, NULL)
-              GET_SYMBOL_OR_SECTION (DT_PLTGOT, NULL, ".wasm.payload.code.plt")
+              GET_SYMBOL_OR_SECTION (DT_PLTGOT, NULL, ".wasm.code_.plt")
               GET_SYMBOL_OR_SECTION (DT_JMPREL, NULL, ".rela.plt")
               GET_SYMBOL_OR_SECTION (DT_PLTRELSZ, NULL, ".rela.plt")
               GET_SYMBOL_OR_SECTION (DT_VERSYM, NULL, ".gnu.version")

@@ -750,7 +750,7 @@ static reloc_howto_type wasm32_elf32_howto_table[] =
          FALSE),		/* pcrel_offset */
 
   /* dummy reloc to pull in function types */
-  HOWTO (R_ASMJS_TYPE_POINTER,	/* type */
+  HOWTO (R_ASMJS_INDEX,	        /* type */
          0,			/* rightshift */
          0,			/* size (0 = byte, 1 = short, 2 = long) */
          32,			/* bitsize */
@@ -758,7 +758,7 @@ static reloc_howto_type wasm32_elf32_howto_table[] =
          0,			/* bitpos */
          complain_overflow_bitfield,/* complain_on_overflow */
          bfd_elf_generic_reloc,	/* special_function */
-         "R_ASMJS_TYPE_POINTER",/* name */
+         "R_ASMJS_INDEX",       /* name */
          FALSE,			/* partial_inplace */
          0,			/* src_mask */
          0,			/* dst_mask */

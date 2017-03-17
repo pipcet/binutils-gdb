@@ -481,7 +481,7 @@ wasm_scan (bfd *abfd)
     }
 
   if (!wasm_scan_name_function_section (abfd, bfd_get_section_by_name (abfd, ".wasm.name"), NULL))
-    return FALSE;
+    return TRUE;
 
   return TRUE;
 

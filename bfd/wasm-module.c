@@ -140,6 +140,15 @@ wasm_get_magic (bfd *abfd, bfd_boolean *errorptr)
       return FALSE;
     }
 
+  if (magic[0] != 0 ||
+      magic[1] != 'a' ||
+      magic[2] != 's' ||
+      magic[3] != 'm')
+    {
+      *errorptr = TRUE;
+      return FALSE;
+    }
+
   return TRUE;
 }
 

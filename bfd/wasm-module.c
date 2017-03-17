@@ -823,6 +823,9 @@ wasm_object_p (bfd *abfd)
   if (! wasm_mkobject (abfd) || ! wasm_scan (abfd))
     return NULL;
 
+  if (! bfd_default_set_arch_mach (abfd, bfd_arch_wasm32, 0))
+    return FALSE;
+
   if (abfd->symcount > 0)
     abfd->flags |= HAS_SYMS;
 

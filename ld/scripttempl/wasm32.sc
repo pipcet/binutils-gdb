@@ -7,46 +7,10 @@ EOF
 else
 cat <<EOF
 ENTRY(_start)
-PHDRS
-{
-  headers PT_PHDR PHDRS ;
-  headers_data PT_LOAD PHDRS ;
-  interp PT_INTERP ;
-  text PT_LOAD ;
-  data PT_LOAD ;
-  space_function_index PT_LOAD ;
-  space_pc PT_LOAD ;
-  space_1 PT_LOAD ;
-  space_2 PT_LOAD ;
-  space_3 PT_LOAD ;
-  space_4 PT_LOAD ;
-  space_5 PT_LOAD ;
-  space_6 PT_LOAD ;
-  space_7 PT_LOAD ;
-  space_8 PT_LOAD ;
-  space_9 PT_LOAD ;
-  space_10 PT_LOAD ;
-  space_11 PT_LOAD ;
-  space_name_function PT_LOAD ;
-  space_name_local PT_LOAD ;
-  wasm_1 PT_LOAD ;
-  wasm_2 PT_LOAD ;
-  wasm_3 PT_LOAD ;
-  wasm_4 PT_LOAD ;
-  wasm_5 PT_LOAD ;
-  wasm_6 PT_LOAD ;
-  wasm_7 PT_LOAD ;
-  wasm_8 PT_LOAD ;
-  wasm_9 PT_LOAD ;
-  wasm_10 PT_LOAD ;
-  wasm_11 PT_LOAD ;
-  wasm_name_function PT_LOAD ;
-  wasm_name_local PT_LOAD ;
-  dynamic PT_DYNAMIC ;
-  dynamic_data PT_LOAD ;
-}
 SECTIONS
 {
+  . = 8192;
+  .interp (INFO) : { *(.interp) }
   . = 16384;
   .wasm.data = .;
   .asmjs.header 16384 :
@@ -67,17 +31,17 @@ SECTIONS
      LONG(0);
      LONG(0);
      LONG(0);
-  } :data
+  }
   .got :
   {
      . = ALIGN(., 16);
      __data_start = .;
      *(.got)
-  } :data
+  }
   .got.plt :
   {
     *(.got.plt)
-  } :data
+  }
   .data :
   {
      . = ALIGN(., 16);
@@ -119,20 +83,20 @@ SECTIONS
     KEEP (*(.fini_array EXCLUDE_FILE (*crtbegin.o *crtbegin?.o *crtend.o *crtend?.o ) .dtors))
     PROVIDE_HIDDEN (__fini_array_end = .);
      . = ALIGN(., 16);
-  } :data
+  }
   .bss :
   {
      *(COMMON)
      *(.dynbss)
      *(.bss* .gnu.linkonce.b.*)
      *(.tbss*)
-  } :data
+  }
   .preinit_array     :
   {
     PROVIDE_HIDDEN (__preinit_array_start = .);
     KEEP (*(.preinit_array))
     PROVIDE_HIDDEN (__preinit_array_end = .);
-  } :data
+  }
   .ctors          :
   {
     /* gcc uses crtbegin.o to find the start of
@@ -153,7 +117,7 @@ SECTIONS
     KEEP (*(EXCLUDE_FILE (*crtend.o *crtend?.o ) .ctors))
     KEEP (*(SORT(.ctors.*)))
     KEEP (*(.ctors))
-  } :data
+  }
   .dtors          :
   {
     KEEP (*crtbegin.o(.dtors))
@@ -161,27 +125,27 @@ SECTIONS
     KEEP (*(EXCLUDE_FILE (*crtend.o *crtend?.o ) .dtors))
     KEEP (*(SORT(.dtors.*)))
     KEEP (*(.dtors))
-  } :data
+  }
   . = ALIGN(., 16);
   .wasm.data_end = .;
   .dynamic :
   {
     *(.dynamic)
-  } :dynamic :dynamic_data
+  }
   .rela.dyn :
   {
     *(.rela.dyn)
-  } :dynamic :dynamic_data
+  }
   .dynsym :
   {
     *(.dynsym)
-  } :dynamic :dynamic_data
+  }
   .dynstr :
   {
     *(.dynstr)
-  } :dynamic :dynamic_data
+  }
   . = 0;
-  .space.function_index 0 (NOLOAD) :
+  .space.function_index 0 (INFO) :
   {
        *(.space.function_index.import);
        *(.space.function_index);
@@ -189,93 +153,93 @@ SECTIONS
        .wasm.plt_bias = .;
        *(.space.function_index_.plt);
        .wasm.plt_end = .;
-  } :space_function_index
-  .space.pc 0 (NOLOAD) :
+  }
+  .space.pc 0 (INFO) :
   {
        *(.space.pc.import);
        *(.space.pc);
        *(.space.pc.*);
        *(.space.pc_.plt);
        .wasm.pc_end = .;
-  } :space_pc
-  .space.type 0 (NOLOAD) :
+  }
+  .space.type 0 (INFO) :
   {
        *(.space.type.import);
        *(.space.type);
        *(.space.type.*);
        *(.space.type_.plt);
-  } :space_1
-  .space.import 0 (NOLOAD) :
+  }
+  .space.import 0 (INFO) :
   {
        *(.space.import.import);
        *(.space.import);
        *(.space.import.*);
        *(.space.import_.plt);
        .wasm.pc_end = .;
-  } :space_2
-  .space.function 0 (NOLOAD) :
+  }
+  .space.function 0 (INFO) :
   {
       /* There is no function space for imports */
       *(.space.function);
       *(.space.function.*);
       *(.space.function_.plt);
-  } :space_3
-  .space.table 0 (NOLOAD) :
+  }
+  .space.table 0 (INFO) :
   {
        *(.space.table.import);
        *(.space.table);
        *(.space.table.*);
        *(.space.table_.plt);
-  } :space_4
-  .space.memory 0 (NOLOAD) :
+  }
+  .space.memory 0 (INFO) :
   {
        *(.space.memory.import);
        *(.space.memory);
        *(.space.memory.*);
        *(.space.memory_.plt);
-  } :space_5
-  .space.global 0 (NOLOAD) :
+  }
+  .space.global 0 (INFO) :
   {
        *(.space.global.import);
        *(.space.global);
        *(.space.global.*);
        *(.space.global_.plt);
-  } :space_6
-  .space.export 0 (NOLOAD) :
+  }
+  .space.export 0 (INFO) :
   {
        *(.space.export.import);
        *(.space.export);
        *(.space.export.*);
        *(.space.export_.plt);
-  } :space_7
-  .space.element 0 (NOLOAD) :
+  }
+  .space.element 0 (INFO) :
   {
        *(.space.element.import);
        *(.space.element);
        *(.space.element.*);
        *(.space.element_.plt);
-  } :space_9
-  .space.code 0 (NOLOAD) :
+  }
+  .space.code 0 (INFO) :
   {
       /* There is no code space for imports. */
       *(.space.code);
       *(.space.code.*);
       *(.space.code_.plt);
-  } :space_10
-  .space.name.function 0 (NOLOAD) :
+  }
+  .space.name.function 0 (INFO) :
   {
        *(.space.name.function.import);
        *(.space.name.function);
        *(.space.name.function.*);
        *(.space.name.function_.plt);
-  } :space_name_function
-  .space.name.local 0 (NOLOAD) :
+  }
+  .space.name.local 0 (INFO) :
   {
        *(.space.name.local.import);
        *(.space.name.local);
        *(.space.name.local.*);
        *(.space.name.local_.plt);
-  } :space_name_local
+  }
   . = 0xc0000000;
   .wasm.type :
   {
@@ -283,70 +247,70 @@ SECTIONS
        *(.wasm.type);
        *(.wasm.type.*);
        *(.wasm.type_.plt);
-  } :wasm_1
+  }
   .wasm.import :
   {
        *(.wasm.import.import);
        *(.wasm.import);
        *(.wasm.import.*);
        *(.wasm.import_.plt);
-  } :wasm_2
+  }
   .wasm.function :
   {
        /* There is no function payload for imports */
        *(.wasm.function);
        *(.wasm.function.*);
        *(.wasm.function_.plt);
-  } :wasm_3
+  }
   .wasm.table :
   {
        *(.wasm.table.import);
        *(.wasm.table);
        *(.wasm.table.*);
        *(.wasm.table_.plt);
-  } :wasm_4
+  }
   .wasm.memory :
   {
        *(.wasm.memory.import);
        *(.wasm.memory);
        *(.wasm.memory.*);
        *(.wasm.memory_.plt);
-  } :wasm_5
+  }
   .wasm.global :
   {
        *(.wasm.global.import);
        *(.wasm.global);
        *(.wasm.global.*);
        *(.wasm.global_.plt);
-  } :wasm_6
+  }
   .wasm.export :
   {
        *(.wasm.export.import);
        *(.wasm.export);
        *(.wasm.export.*);
        *(.wasm.export_.plt);
-  } :wasm_7
+  }
   .wasm.element :
   {
        *(.wasm.element.import);
        *(.wasm.element);
        *(.wasm.element.*);
        *(.wasm.element_.plt);
-  } :wasm_9
+  }
   .wasm.code :
   {
       /* There is no code payload for imports */
       *(.wasm.code);
       *(.wasm.code.*);
       *(.wasm.code_.plt);
-  } :wasm_10
+  }
   .wasm.name.function :
   {
        *(.wasm.name.function.import);
        *(.wasm.name.function);
        *(.wasm.name.function.*);
        *(.wasm.name.function_.plt);
-  } :wasm_name_function
+  }
   . = 0x80000000;
   .wasm.name.local :
   {
@@ -354,7 +318,7 @@ SECTIONS
        *(.wasm.name.local);
        *(.wasm.name.local.*);
        *(.wasm.name.local_.plt);
-  } :wasm_name_local
+  }
   .plt :
   {
     *(.plt);
@@ -375,9 +339,9 @@ EOF
 # This is for testing only. For your WebAssembly module to work, you must
 # use the macros in wasm32-macros.s rather than simply specifying .text
 cat <<EOF
-  .text (NOLOAD) : { *(.text) }
-  .init (NOLOAD) : { *(.init) }
-  .fini (NOLOAD) : { *(.fini) }
+  .text (INFO) : { *(.text) }
+  .init (INFO) : { *(.init) }
+  .fini (INFO) : { *(.fini) }
   PROVIDE (_etext = .);
   PROVIDE (etext = .);
   /*   /DISCARD/ : { *(*) } */

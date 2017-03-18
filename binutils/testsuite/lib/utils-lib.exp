@@ -303,6 +303,7 @@ proc run_dump_test { name {extra_options {}} } {
     set opts(not-target) {}
     set opts(skip) {}
     set opts(not-skip) {}
+    set opts(exit) {}
 
     foreach i $opt_array {
 	set opt_name [lindex $i 0]
@@ -523,6 +524,10 @@ proc run_dump_test { name {extra_options {}} } {
 	unset env(LC_ALL)
     }
     if { [lindex $comp_output 0] != 0 } then {
+        if { $opts(exit) == [lindex $comp_output 0] } then {
+            pass $testname
+            return
+        }
 	send_log "$comp_output\n"
 	fail $testname
 	return

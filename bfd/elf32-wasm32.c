@@ -2554,6 +2554,11 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
                                           relocation, addend);
           break;
 
+        case R_ASMJS_CODE_POINTER:
+        case R_ASMJS_INDEX:
+          r = bfd_reloc_ok;
+          break;
+
         default:
           fprintf (stderr, "unknown reloc type %d\n", r_type);
           bfd_set_error (bfd_error_bad_value);

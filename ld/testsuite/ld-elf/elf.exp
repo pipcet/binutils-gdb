@@ -152,7 +152,7 @@ if { [check_shared_lib_support] } then {
     # xfail on arm*-*-eabi*.  The list can be enlarged to those targets that
     # don't support GNU_RELRO.  For more details, please see discussions at:
     #   https://sourceware.org/ml/binutils/2017-01/msg00441.html
-    setup_xfail "arm*-*-eabi*" "hppa*64*-*-hpux*"
+    setup_xfail "arm*-*-eabi*" "hppa*64*-*-hpux*" "wasm32-*-*"
     run_ld_link_tests {
 	{"Build pr20995-2.so"
 	    "-shared -z relro" "" ""
@@ -161,7 +161,7 @@ if { [check_shared_lib_support] } then {
     # These targets don't copy dynamic variables into .bss.
     setup_xfail "alpha-*-*" "bfin-*-*" "ia64-*-*" "xtensa-*-*"
     # or don't have .data.rel.ro
-    setup_xfail "hppa*64*-*-hpux*"
+    setup_xfail "hppa*64*-*-hpux*" "wasm32-*-*"
     run_ld_link_tests [list \
 	[list \
 	    "pr20995" \
@@ -170,7 +170,7 @@ if { [check_shared_lib_support] } then {
     # xfail on arm*-*-eabi* is particularly because of no support of GNU_RELRO.
     # Please see the link above for details.
     setup_xfail "alpha-*-*" "bfin-*-*" "ia64-*-*" "xtensa-*-*" "arm*-*-eabi*"
-    setup_xfail "hppa*64*-*-hpux*"
+    setup_xfail "hppa*64*-*-hpux*" "wasm32-*-*"
     run_ld_link_tests [list \
 	[list \
 	    "pr20995-2" \

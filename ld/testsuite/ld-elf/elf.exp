@@ -210,7 +210,8 @@ run_ld_link_tests [list \
 
 if { [istarget *-*-linux*]
      || [istarget *-*-nacl*]
-     || [istarget *-*-gnu*] } {
+     || [istarget *-*-gnu*]
+     || [istarget wasm32-*-*] } {
     run_ld_link_tests {
 	{"Weak symbols in dynamic objects 1 (support)"
 	    "-shared" "" "" {weak-dyn-1a.s}

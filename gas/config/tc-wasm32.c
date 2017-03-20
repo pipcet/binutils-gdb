@@ -401,6 +401,21 @@ static bfd_boolean wasm32_leb128(char **line, int bits, int sign)
     pltrel = 1;
     code = 1;
     input_line_pointer += 4;
+    char *end_of_sig;
+    if (strncmp(input_line_pointer, "{", 1) == 0 &&
+        (end_of_sig = strchr(input_line_pointer, '}'))) {
+      char *signature = strndup(input_line_pointer+1, end_of_sig - input_line_pointer - 1);
+      struct reloc_list *reloc2;
+      reloc2 = XNEW (struct reloc_list);
+      reloc2->u.a.offset_sym = expr_build_dot ();
+      reloc2->u.a.sym = symbol_find_or_make (signature);
+      reloc2->u.a.addend = 0;
+      reloc2->u.a.howto = bfd_reloc_name_lookup (stdoutput,
+                                                 "R_ASMJS_PLT_SIG");
+      reloc2->next = reloc_list;
+      reloc_list = reloc2;
+      input_line_pointer = end_of_sig + 1;
+    }
   }
   reloc->u.a.howto = bfd_reloc_name_lookup (stdoutput,
                                             gotrel ? (code ? "R_ASMJS_LEB128_GOT_CODE" : "R_ASMJS_LEB128_GOT") :

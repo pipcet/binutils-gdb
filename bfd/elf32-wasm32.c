@@ -763,6 +763,21 @@ static reloc_howto_type wasm32_elf32_howto_table[] =
          0,			/* src_mask */
          0,			/* dst_mask */
          FALSE),		/* pcrel_offset */
+
+  /* dummy reloc to pull in function types */
+  HOWTO (R_ASMJS_PLT_SIG,        /* type */
+         0,			/* rightshift */
+         0,			/* size (0 = byte, 1 = short, 2 = long) */
+         32,			/* bitsize */
+         FALSE,			/* pc_relative */
+         0,			/* bitpos */
+         complain_overflow_bitfield,/* complain_on_overflow */
+         bfd_elf_generic_reloc,	/* special_function */
+         "R_ASMJS_PLT_SIG",       /* name */
+         FALSE,			/* partial_inplace */
+         0,			/* src_mask */
+         0,			/* dst_mask */
+         FALSE),		/* pcrel_offset */
 };
 
 reloc_howto_type *
@@ -821,6 +836,8 @@ wasm32_elf32_bfd_reloc_type_lookup (bfd *abfd ATTRIBUTE_UNUSED,
     return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_LEB128_PLT");
   case BFD_RELOC_ASMJS_PLT_INDEX:
     return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_PLT_INDEX");
+  case BFD_RELOC_ASMJS_PLT_SIG:
+    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_PLT_SIG");
   case BFD_RELOC_ASMJS_ABS32_CODE:
     return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_ABS32_CODE");
   case BFD_RELOC_ASMJS_COPY:
@@ -2556,6 +2573,7 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
 
         case R_ASMJS_CODE_POINTER:
         case R_ASMJS_INDEX:
+        case R_ASMJS_PLT_SIG:
           r = bfd_reloc_ok;
           break;
 

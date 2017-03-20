@@ -6482,6 +6482,7 @@ assembler and not (currently) written to any object files.  */
   BFD_RELOC_ASMJS_ABS32_CODE,
   BFD_RELOC_ASMJS_COPY,
   BFD_RELOC_ASMJS_LAZY,
+  BFD_RELOC_ASMJS_PLT_SIG,
   BFD_RELOC_UNUSED };
 
 typedef enum bfd_reloc_code_real bfd_reloc_code_real_type;

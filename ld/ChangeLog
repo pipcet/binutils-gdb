@@ -1,3 +1,37 @@
+2017-03-17  Alan Modra  <amodra@gmail.com>
+
+	* testsuite/ld-elf/sec64k.exp: Don't run on h8300 and ip2k.
+
+2017-03-15  Tristan Gingold  <gingold@adacore.com>
+
+	* testsuite/ld-checks/checks.exp (overflow_check): Disable for
+	non-elf targets.
+
+2017-03-14  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* ldlang.c (lang_check_section_addresses): Use addr_mask to
+	check VMA and LMA.
+
+2017-03-13  Nick Clifton  <nickc@redhat.com>
+
+	PR binutils/21202
+	* testsuite/ld-aarch64/ifunc-5r-local.d: Update regexp.
+
+2017-03-13  Tristan Gingold  <gingold@adacore.com>
+
+	* ldlang.c (lang_check_section_addresses): Check for address space
+	overflow.
+	* testsuite/ld-checks/checks.exp (overflow_check): New procedure
+	* testsuite/ld-checks/over.s: New test source.
+	* testsuite/ld-checks/over.d: New test.
+	* testsuite/ld-checks/over2.s: New test source.
+	* testsuite/ld-checks/over2.d: New test.
+
+2017-03-13  Alexey Neyman  <stilor@att.net>
+
+	* emulparams/elf32ppccommon.sh (LIBPATH_SUFFIX): Set from target
+	cpu, not host.
+
 2017-03-11  Alan Modra  <amodra@gmail.com>
 
 	* emultempl/elf32.em (gld${EMULATION_NAME}_after_open): Add

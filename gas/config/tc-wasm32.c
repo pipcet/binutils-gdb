@@ -125,7 +125,6 @@ enum options
 
 struct option md_longopts[] =
 {
-  { "symbolic-index", no_argument, NULL, OPTION_SYMBOLIC_INDEX },
   { NULL, no_argument, NULL, 0 }
 };
 
@@ -143,8 +142,7 @@ void
 md_show_usage (FILE *stream)
 {
   fprintf (stream,
-      _("WASM32 Assembler options:\n"
-        "  symbolic-index         use symbolic rather than numeric indices\n"
+      _("wasm32 assembler options:\n"
         ));
 }
 
@@ -181,9 +179,9 @@ md_begin (void)
 
   wasm32_hash = hash_new ();
 
-  /* Insert unique names into hash table.  This hash table then provides a
-     quick index to the first opcode with a particular name in the opcode
-     table.  */
+  /* Insert unique names into hash table.  This hash table then
+   * provides a quick index to the first opcode with a particular name
+   * in the opcode table.  */
   for (opcode = wasm32_opcodes; opcode->name; opcode++)
     hash_insert (wasm32_hash, opcode->name, (char *) opcode);
 
@@ -388,35 +386,44 @@ static bfd_boolean wasm32_leb128(char **line, int bits, int sign)
       reloc->u.a.sym = make_expr_symbol (&ex);
       reloc->u.a.addend = 0;
     }
-  if (strncmp(input_line_pointer, "@gotcode", 8) == 0) {
-    gotrel = 1;
-    code = 1;
-    input_line_pointer += 8;
-  }
-  if (strncmp(input_line_pointer, "@got", 4) == 0) {
-    gotrel = 1;
-    input_line_pointer += 4;
-  }
-  if (strncmp(input_line_pointer, "@plt", 4) == 0) {
-    pltrel = 1;
-    code = 1;
-    input_line_pointer += 4;
-    char *end_of_sig;
-    if (strncmp(input_line_pointer, "{", 1) == 0 &&
-        (end_of_sig = strchr(input_line_pointer, '}'))) {
-      char *signature = strndup(input_line_pointer+1, end_of_sig - input_line_pointer - 1);
-      struct reloc_list *reloc2;
-      reloc2 = XNEW (struct reloc_list);
-      reloc2->u.a.offset_sym = expr_build_dot ();
-      reloc2->u.a.sym = symbol_find_or_make (signature);
-      reloc2->u.a.addend = 0;
-      reloc2->u.a.howto = bfd_reloc_name_lookup (stdoutput,
-                                                 "R_ASMJS_PLT_SIG");
-      reloc2->next = reloc_list;
-      reloc_list = reloc2;
-      input_line_pointer = end_of_sig + 1;
+  if (strncmp(input_line_pointer, "@gotcode", 8) == 0)
+    {
+      gotrel = 1;
+      code = 1;
+      input_line_pointer += 8;
     }
-  }
+  if (strncmp(input_line_pointer, "@got", 4) == 0)
+    {
+      gotrel = 1;
+      input_line_pointer += 4;
+    }
+  if (strncmp(input_line_pointer, "@plt", 4) == 0)
+    {
+      pltrel = 1;
+      code = 1;
+      input_line_pointer += 4;
+      char *end_of_sig;
+      if (strncmp(input_line_pointer, "{", 1) == 0 &&
+          (end_of_sig = strchr(input_line_pointer, '}')))
+        {
+          char *signature = strndup(input_line_pointer+1, end_of_sig - input_line_pointer - 1);
+          struct reloc_list *reloc2;
+          reloc2 = XNEW (struct reloc_list);
+          reloc2->u.a.offset_sym = expr_build_dot ();
+          reloc2->u.a.sym = symbol_find_or_make (signature);
+          reloc2->u.a.addend = 0;
+          reloc2->u.a.howto = bfd_reloc_name_lookup (stdoutput,
+                                                     "R_ASMJS_PLT_SIG");
+          reloc2->next = reloc_list;
+          reloc_list = reloc2;
+          input_line_pointer = end_of_sig + 1;
+        }
+      else
+        {
+          as_bad (_("no function type on PLT reloc"));
+        }
+    }
+
   reloc->u.a.howto = bfd_reloc_name_lookup (stdoutput,
                                             gotrel ? (code ? "R_ASMJS_LEB128_GOT_CODE" : "R_ASMJS_LEB128_GOT") :
                                             pltrel ? "R_ASMJS_LEB128_PLT" :
@@ -437,89 +444,6 @@ static bfd_boolean wasm32_leb128(char **line, int bits, int sign)
 
   return str != str0;
 }
-
-#if 0
-/* From elf-eh-frame.c: */
-/* If *ITER hasn't reached END yet, read the next byte into *RESULT and
-   move onto the next byte.  Return true on success.  */
-
-static inline bfd_boolean
-read_byte (bfd_byte **iter, bfd_byte *end, unsigned char *result)
-{
-  if (*iter >= end)
-    return FALSE;
-  *result = *((*iter)++);
-  return TRUE;
-}
-
-/* Move *ITER over LENGTH bytes, or up to END, whichever is closer.
-   Return true it was possible to move LENGTH bytes.  */
-
-static inline bfd_boolean
-skip_bytes (bfd_byte **iter, bfd_byte *end, bfd_size_type length)
-{
-  if ((bfd_size_type) (end - *iter) < length)
-    {
-      *iter = end;
-      return FALSE;
-    }
-  *iter += length;
-  return TRUE;
-}
-
-/* Move *ITER over an leb128, stopping at END.  Return true if the end
-   of the leb128 was found.  */
-
-static bfd_boolean
-skip_leb128 (bfd_byte **iter, bfd_byte *end)
-{
-  unsigned char byte;
-  do
-    if (!read_byte (iter, end, &byte))
-      return FALSE;
-  while (byte & 0x80);
-  return TRUE;
-}
-
-/* Like skip_leb128, but treat the leb128 as an unsigned value and
-   store it in *VALUE.  */
-
-static bfd_boolean
-read_uleb128 (bfd_byte **iter, bfd_byte *end, bfd_vma *value)
-{
-  bfd_byte *start, *p;
-
-  start = *iter;
-  if (!skip_leb128 (iter, end))
-    return FALSE;
-
-  p = *iter;
-  *value = *--p;
-  while (p > start)
-    *value = (*value << 7) | (*--p & 0x7f);
-
-  return TRUE;
-}
-
-/* Like read_uleb128, but for signed values.  */
-
-static bfd_boolean
-read_sleb128 (bfd_byte **iter, bfd_byte *end, bfd_signed_vma *value)
-{
-  bfd_byte *start, *p;
-
-  start = *iter;
-  if (!skip_leb128 (iter, end))
-    return FALSE;
-
-  p = *iter;
-  *value = ((*--p & 0x7f) ^ 0x40) - 0x40;
-  while (p > start)
-    *value = (*value << 7) | (*--p & 0x7f);
-
-  return TRUE;
-}
-#endif
 
 static bfd_boolean wasm32_uleb128(char **line, int bits)
 {
@@ -628,8 +552,7 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
   str = skip_space (str);
   if (str[0] == '[')
     {
-      if (opcode->clas == wasm_typed ||
-          opcode->clas == wasm_return)
+      if (opcode->clas == wasm_typed)
         {
           str++;
           block_type = 0x40;
@@ -668,7 +591,6 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
         }
       else if (opcode->clas)
         {
-          /* FIXME: stop emitting return[] for return in gcc. */
           as_bad (_("instruction does not take a block type"));
         }
     }
@@ -759,8 +681,8 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
   str = skip_space (str);
 
   if (*str)
-    as_bad (_("junk at end of line, first unrecognized character is `%s'"),
-            str);
+    as_bad (_("junk at end of line, first unrecognized character is `%c'"),
+            *str);
 
   *line = str;
 

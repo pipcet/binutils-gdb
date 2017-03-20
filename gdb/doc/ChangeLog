@@ -1,3 +1,15 @@
+2017-03-20  Marc-Andre Laperle  <marc-andre.laperle@ericsson.com>
+
+	* gdb.texinfo (gdb/mi Symbol Query Commands): Document new MI
+	command file-list-shared-libraries
+	(GDB/MI Async Records): Update documentation of library-loaded with new
+	field.
+
+2017-03-16  Doug Evans  <dje@google.com>
+
+	* guile.texi (Lazy Strings In Guile): Mention arrays.
+	* python.texi (Lazy Strings In Python): Ditto.
+
 2017-03-08  Jiong Wang  <jiong.wang@arm.com>
 
         * gdb.texinfo (Memory Protection Extensions): Add missing escape

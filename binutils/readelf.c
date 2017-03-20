@@ -5002,12 +5002,6 @@ process_program_headers (FILE * file)
 	     section in the DYNAMIC segment.  */
 	  dynamic_addr = segment->p_offset;
 	  dynamic_size = segment->p_filesz;
-	  /* PR binutils/17512: Avoid corrupt dynamic section info in the segment.  */
-	  if (dynamic_addr + dynamic_size >= current_file_size)
-	    {
-	      error (_("the dynamic segment offset + size exceeds the size of the file\n"));
-	      dynamic_addr = dynamic_size = 0;
-	    }
 
 	  /* Try to locate the .dynamic section. If there is
 	     a section header table, we can easily locate it.  */
@@ -5041,6 +5035,16 @@ process_program_headers (FILE * file)
 	      else if (dynamic_addr > segment->p_offset)
 		warn (_("the .dynamic section is not the first section"
 			" in the dynamic segment.\n"));
+	    }
+
+	  /* PR binutils/17512: Avoid corrupt dynamic section info in the
+	     segment.  Check this after matching against the section headers
+	     so we don't warn on debuginfo file (which have NOBITS .dynamic
+	     sections).  */
+	  if (dynamic_addr + dynamic_size >= current_file_size)
+	    {
+	      error (_("the dynamic segment offset + size exceeds the size of the file\n"));
+	      dynamic_addr = dynamic_size = 0;
 	    }
 	  break;
 
@@ -16609,24 +16613,145 @@ print_ia64_vms_note (Elf_Internal_Note * pnote)
   return TRUE;
 }
 
+/* Print the name of the symbol associated with a build attribute
+   that is attached to address OFFSET.  */
+
+static bfd_boolean
+print_symbol_for_build_attribute (FILE *         file,
+				  unsigned long  offset,
+				  bfd_boolean    is_open_attr)
+{
+  static FILE *             saved_file = NULL;
+  static char *             strtab;
+  static unsigned long      strtablen;
+  static Elf_Internal_Sym * symtab;
+  static unsigned long      nsyms;
+  Elf_Internal_Sym *  saved_sym = NULL;
+  Elf_Internal_Sym *  sym;
+
+  if (saved_file == NULL || file != saved_file)
+    {
+      Elf_Internal_Shdr * symsec;
+
+      /* Load the symbol and string sections.  */
+      for (symsec = section_headers;
+	   symsec < section_headers + elf_header.e_shnum;
+	   symsec ++)
+	{
+	  if (symsec->sh_type == SHT_SYMTAB)
+	    {
+	      symtab = GET_ELF_SYMBOLS (file, symsec, & nsyms);
+
+	      if (symsec->sh_link < elf_header.e_shnum)
+		{
+		  Elf_Internal_Shdr * strtab_sec = section_headers + symsec->sh_link;
+
+		  strtab = (char *) get_data (NULL, file, strtab_sec->sh_offset,
+					      1, strtab_sec->sh_size,
+					      _("string table"));
+		  strtablen = strtab != NULL ? strtab_sec->sh_size : 0;
+		}
+	    }
+	}
+      saved_file = file;
+    }
+
+  if (symtab == NULL || strtab == NULL)
+    {
+      printf ("\n");
+      return FALSE;
+    }
+
+  /* Find a symbol whose value matches offset.  */
+  for (sym = symtab; sym < symtab + nsyms; sym ++)
+    if (sym->st_value == offset)
+      {
+	if (sym->st_name >= strtablen)
+	  /* Huh ?  This should not happen.  */
+	  continue;
+
+	if (strtab[sym->st_name] == 0)
+	  continue;
+
+	if (is_open_attr)
+	  {
+	    /* For OPEN attributes we prefer GLOBAL over LOCAL symbols
+	       and FILE or OBJECT symbols over NOTYPE symbols.  We skip
+	       FUNC symbols entirely.  */
+	    switch (ELF_ST_TYPE (sym->st_info))
+	      {
+	      case STT_FILE:
+		saved_sym = sym;
+		/* We can stop searching now.  */
+		sym = symtab + nsyms;
+		continue;
+
+	      case STT_OBJECT:
+		saved_sym = sym;
+		continue;
+
+	      case STT_FUNC:
+		/* Ignore function symbols.  */
+		continue;
+
+	      default:
+		break;
+	      }
+
+	    switch (ELF_ST_BIND (sym->st_info))
+	      {
+	      case STB_GLOBAL:
+		if (saved_sym == NULL
+		    || ELF_ST_TYPE (saved_sym->st_info) != STT_OBJECT)
+		  saved_sym = sym;
+		break;
+
+	      case STB_LOCAL:
+		if (saved_sym == NULL)
+		  saved_sym = sym;
+		break;
+
+	      default:
+		break;
+	      }
+	  }
+	else
+	  {
+	    if (ELF_ST_TYPE (sym->st_info) != STT_FUNC)
+	      continue;
+
+	    saved_sym = sym;
+	    break;
+	  }
+      }
+
+  printf (" (%s: %s)\n",
+	  is_open_attr ? _("file") : _("func"),
+	  saved_sym ? strtab + saved_sym->st_name : _("<no symbol found>)"));
+  return TRUE;
+}
+
 static bfd_boolean
 print_gnu_build_attribute_description (Elf_Internal_Note * pnote,
-				       FILE *              file,
-				       Elf_Internal_Shdr * section ATTRIBUTE_UNUSED)
+				       FILE *              file)
 {
   static unsigned long global_offset = 0;
-  unsigned long       i;
-  unsigned long       strtab_size = 0;
-  char *              strtab = NULL;
-  Elf_Internal_Sym *  symtab = NULL;
-  unsigned long       nsyms = 0;
-  Elf_Internal_Shdr * symsec = NULL;
-  unsigned int        desc_size = is_32bit_elf ? 4 : 8;
+  unsigned long        offset;
+  unsigned int         desc_size = is_32bit_elf ? 4 : 8;
+  bfd_boolean          is_open_attr = pnote->type == NT_GNU_BUILD_ATTRIBUTE_OPEN;
 
-  if (pnote->descsz  == 0)
+  if (pnote->descsz == 0)
     {
-      printf (_("    Applies from offset %#lx\n"), global_offset);
-      return TRUE;
+      if (is_open_attr)
+	{
+	  printf (_("    Applies from offset %#lx\n"), global_offset);
+	  return TRUE;
+	}
+      else
+	{
+	  printf (_("    Applies to func at %#lx"), global_offset);
+	  return print_symbol_for_build_attribute (file, global_offset, is_open_attr);
+	}
     }
 
   if (pnote->descsz != desc_size)
@@ -16636,88 +16761,19 @@ print_gnu_build_attribute_description (Elf_Internal_Note * pnote,
       return FALSE;
     }
 
-  /* Load the symbols.  */
-  for (symsec = section_headers;
-       symsec < section_headers + elf_header.e_shnum;
-       symsec ++)
+  offset = byte_get ((unsigned char *) pnote->descdata, desc_size);
+
+  if (is_open_attr)
     {
-      if (symsec->sh_type == SHT_SYMTAB)
-	{
-	  symtab = GET_ELF_SYMBOLS (file, symsec, & nsyms);
-
-	  if (symsec->sh_link < elf_header.e_shnum)
-	    {
-	      Elf_Internal_Shdr * strtab_sec = section_headers + symsec->sh_link;
-
-	      strtab = (char *) get_data (NULL, file, strtab_sec->sh_offset,
-					  1, strtab_sec->sh_size,
-					  _("string table"));
-	      strtab_size = strtab != NULL ? strtab_sec->sh_size : 0;
-	    }
-	}
+      printf (_("    Applies from offset %#lx"), offset);
+      global_offset = offset;
+    }
+  else
+    {
+      printf (_("    Applies to func at %#lx"), offset);
     }
 
-  printf (_("    Applies from offset"));
-
-  for (i = 0; i < pnote->descsz; i += desc_size)
-    {
-      Elf_Internal_Sym * saved_sym = NULL;
-      Elf_Internal_Sym * sym;
-      unsigned long offset;
-
-      offset = byte_get ((unsigned char *) pnote->descdata + i, desc_size);
-
-      if (i + desc_size == pnote->descsz)
-	printf (_(" %#lx"), offset);
-      else
-	printf (_(" %#lx, "), offset);
-
-      if (pnote->type == NT_GNU_BUILD_ATTRIBUTE_OPEN)
-	global_offset = offset;
-
-      if (symtab == NULL || strtab == NULL)
-	continue;
-
-      /* Find a symbol whose value matches offset.  */
-      for (sym = symtab; sym < symtab + nsyms; sym ++)
-	if (sym->st_value == offset)
-	  {
-	    if (sym->st_name < strtab_size)
-	      {
-		if (strtab[sym->st_name] == 0)
-		  continue;
-
-		if (pnote->type == NT_GNU_BUILD_ATTRIBUTE_OPEN)
-		  {
-		    /* For OPEN attributes we prefer GLOBAL symbols, if there
-		       is one that matches.  But keep a record of a matching
-		       LOCAL symbol, just in case that is all that we can find.  */
-		    if (ELF_ST_BIND (sym->st_info) == STB_LOCAL)
-		      {
-			saved_sym = sym;
-			continue;
-		      }
-		    printf (_(" (file: %s)"), strtab + sym->st_name);
-		  }
-		else if (ELF_ST_TYPE (sym->st_info) != STT_FUNC)
-		  continue;
-		else
-		  printf (_(" (function: %s)"), strtab + sym->st_name);
-		break;
-	      }
-	  }
-
-      if (sym == symtab + nsyms)
-	{
-	  if (saved_sym)
-	    printf (_(" (file: %s)"), strtab + saved_sym->st_name);
-	  else
-	    printf (_(" (<symbol name unknown>)"));
-	}
-    }
-
-  printf ("\n");
-  return TRUE;
+  return print_symbol_for_build_attribute (file, offset, is_open_attr);
 }
 
 static bfd_boolean
@@ -16792,6 +16848,11 @@ print_gnu_build_attribute_name (Elf_Internal_Note * pnote)
       expected_types = "*";
       ++ name;
       break;
+    case GNU_BUILD_ATTRIBUTE_SHORT_ENUM:
+      text = _("<short enum>");
+      expected_types = "!+";
+      ++ name;
+      break;
 
     default:
       if (ISPRINT (* name))
@@ -16802,7 +16863,7 @@ print_gnu_build_attribute_name (Elf_Internal_Note * pnote)
 	    len = left;
 	  printf ("%.*s ", len, name);
 	  left -= len;
-	  name += len + 1;
+	  name += len;
 	}
       else
 	{
@@ -16904,8 +16965,7 @@ print_gnu_build_attribute_name (Elf_Internal_Note * pnote)
 
 static bfd_boolean
 process_note (Elf_Internal_Note *  pnote,
-	      FILE *               file,
-	      Elf_Internal_Shdr *  section)
+	      FILE *               file)
 {
   const char * name = pnote->namesz ? pnote->namedata : "(NONE)";
   const char * nt;
@@ -16973,7 +17033,7 @@ process_note (Elf_Internal_Note *  pnote,
     return print_core_note (pnote);
   else if (pnote->type == NT_GNU_BUILD_ATTRIBUTE_OPEN
 	   || pnote->type == NT_GNU_BUILD_ATTRIBUTE_FUNC)
-    return print_gnu_build_attribute_description (pnote, file, section);
+    return print_gnu_build_attribute_description (pnote, file);
 
   if (pnote->descsz)
     {
@@ -17127,7 +17187,7 @@ process_notes_at (FILE *              file,
 	  inote.namedata = temp;
 	}
 
-      if (! process_note (& inote, file, section))
+      if (! process_note (& inote, file))
 	res = FALSE;
 
       if (temp != NULL)

@@ -70,7 +70,9 @@ substitute a @samp{_} character for the @samp{/} character.
 
 Opcodes are written directly in the order in which they are encoded,
 without going through an intermediate sexp-style expression as in the
-@code{wast} format.
+@code{was} format.
+
+For ``typed'' opcodes (block, if, etc.), the type of the block is specified in square brackets following the opcode: if[i], if[].
 
 @node WebAssembly-Relocs
 @subsection Relocations
@@ -82,6 +84,8 @@ Special relocations are available by using the @samp{@@@var{plt}},
 expression, which correspond to the R_ASMJS_LEB128_PLT,
 R_ASMJS_LEB128_GOT, and R_ASMJS_LEB128_GOT_CODE relocations,
 respectively.
+
+The @samp{@@@var{plt}} suffix is followed by a symbol name in braces; the symbol value is used to determine the function signature for which a PLT stub is generated. Currently, the symbol @em{name} is parsed from its last @samp{F} character to determine the argument count of the function, which is also necessary for generating a PLT stub.
 
 @node WebAssembly-Signatures
 @subsection Signatures
@@ -114,3 +118,4 @@ require running the entire module through the assembler at once.
 @node WebAssembly Directives
 @section WebAssembly Assembler Directives
 
+@code{.QI}, @code{.qi} encode an 8-bit integer. @code{.HI}, @code{.hi} encode a 16-bit integer. @code{.SI}, @code{.si} encode a 32-bit integer. @code{.DI}, @code{.di} encode a 64-bit integer.

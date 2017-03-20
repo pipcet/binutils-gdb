@@ -1,6 +1,8 @@
-/* This testcase is part of GDB, the GNU debugger.
+/* MI Interpreter Definitions and Commands for GDB, the GNU debugger.
 
-   Copyright 2015-2017 Free Software Foundation, Inc.
+   Copyright (C) 2017 Free Software Foundation, Inc.
+
+   This file is part of GDB.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -15,15 +17,11 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
-typedef const char* pointer;
+#ifndef MI_INTERP_H
+#define MI_INTERP_H
 
-int
-main ()
-{
-  const char *ptr = "pointer";
-  const char array[] = "array";
-  pointer typedef_ptr = "typedef pointer";
-  const char *null = 0;
+/* Output the shared object attributes to UIOUT.  */
 
-  return 0; /* break here */
-}
+void mi_output_solib_attribs (ui_out *uiout, struct so_list *solib);
+
+#endif

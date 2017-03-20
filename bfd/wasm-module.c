@@ -378,7 +378,7 @@ wasm_scan (bfd *abfd)
 {
   bfd_boolean error = FALSE;
   bfd_vma vma = 0x80000000;
-  bfd_byte section_code;
+  int section_code;
 
   if (bfd_seek (abfd, (file_ptr) 0, SEEK_SET) != 0)
     goto error_return;

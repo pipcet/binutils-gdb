@@ -877,6 +877,8 @@ struct elf_wasm32_link_hash_entry
   bfd_byte *pltstub;
   bfd_vma pltstub_size;
   bfd_vma pltstub_pltoff;
+  bfd_vma pltstub_sigoff;
+  bfd_vma pltfunction;
   struct elf_link_hash_entry *pltsig;
 };
 
@@ -1035,7 +1037,7 @@ wasm32_create_dynamic_sections (bfd * abfd, struct bfd_link_info *info)
 static bfd_byte *
 build_plt_stub (bfd *output_bfd,
                 bfd_vma signature, bfd_vma nargs, bfd_vma pltindex,
-                bfd_vma *size, bfd_vma *pltstub_pltoff)
+                bfd_vma *size, bfd_vma *pltstub_pltoff, bfd_vma *pltstub_sigoff)
 {
   bfd_byte *ret = malloc (5 + 3 + nargs * 6 + 3 + 5 + 2 + 5 + 3);
   bfd_byte *p = ret;
@@ -1072,6 +1074,7 @@ build_plt_stub (bfd *output_bfd,
   set_uleb128 (output_bfd, *size - 5, ret);
 
   *pltstub_pltoff = *size - 15;
+  *pltstub_sigoff = *size - 8;
 
   return ret;
 }
@@ -1097,7 +1100,7 @@ add_symbol_to_plt (bfd *output_bfd, struct bfd_link_info *info,
 
   if (pltsig)
     {
-      bfd_vma signature = pltsig->root.u.def.value;
+      bfd_vma signature = pltsig->root.u.def.section->output_offset + pltsig->root.u.def.value;
       bfd_vma nargs = 0;
       /* Yes, we parse the name of the PLT_SIG symbol. */
       const char *p = strrchr(pltsig->root.root.string, 'F');
@@ -1130,7 +1133,7 @@ add_symbol_to_plt (bfd *output_bfd, struct bfd_link_info *info,
 
       h2->pltstub = build_plt_stub (output_bfd, signature, nargs,
                                     h2->plt_index, &size,
-                                    &h2->pltstub_pltoff);
+                                    &h2->pltstub_pltoff, &h2->pltstub_sigoff);
       h2->pltstub_size = size;
     }
   else
@@ -1167,7 +1170,7 @@ add_symbol_to_plt (bfd *output_bfd, struct bfd_link_info *info,
 
       h2->pltstub = build_plt_stub (output_bfd, signature, nargs,
                                     h2->plt_index, &size,
-                                    &h2->pltstub_pltoff);
+                                    &h2->pltstub_pltoff, &h2->pltstub_sigoff);
       h2->pltstub_size = size;
     }
 
@@ -1177,7 +1180,8 @@ add_symbol_to_plt (bfd *output_bfd, struct bfd_link_info *info,
   htab->srelplt->size += 1 * sizeof (Elf32_External_Rela);
 
   ds.spltspace->size++;
-  ds.spltfun->size++;
+  h2->pltfunction = ds.spltfun->size;
+  ds.spltfun->size += 5;
   ds.spltfunspace->size++;
   ds.spltidx->size++;
   ds.spltelemspace->size++;
@@ -1597,6 +1601,18 @@ elf_wasm32_finish_dynamic_symbol (bfd * output_bfd,
       set_uleb128 (output_bfd,
                    plt_index + h2->root.u.def.value,
                    spltelem->contents + 5 * plt_index);
+
+      for (int i = 0; i < 5; i++)
+        bfd_put_8 (output_bfd,
+                   (i % 5 == 4) ? 0x00 : 0x80,
+                   ds.spltfun->contents + hh->pltfunction + i);
+
+      set_uleb128 (output_bfd,
+                   hh->pltsig ? (hh->pltsig->root.u.def.section->output_offset + hh->pltsig->root.u.def.value) : 0,
+                   ds.spltfun->contents + hh->pltfunction);
+      set_uleb128 (output_bfd,
+                   hh->pltsig ? (hh->pltsig->root.u.def.section->output_offset + hh->pltsig->root.u.def.value) : 0,
+                   splt->contents + h->plt.offset + hh->pltstub_sigoff);
 
       if (PLTNAME) {
         struct elf_wasm32_link_hash_entry *h4 = (struct elf_wasm32_link_hash_entry *)h;

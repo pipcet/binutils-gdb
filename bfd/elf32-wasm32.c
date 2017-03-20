@@ -110,13 +110,6 @@ const char * dyn_section_names[DYN_SECTION_TYPES_END] =
     s = bfd_get_linker_section (dynobj, SECTION);		\
   break;
 
-struct elf_wasm32_link_hash_entry
-{
-  struct elf_link_hash_entry root;
-
-  bfd_vma pltnameoff;
-};
-
 #define wasm32_elf_hash_entry(ent) ((struct elf_wasm32_link_hash_entry *)(ent))
 
 struct dynamic_sections
@@ -875,6 +868,20 @@ wasm32_elf32_info_to_howto (bfd *abfd ATTRIBUTE_UNUSED, arelent *cache_ptr,
   cache_ptr->howto = wasm32_elf32_info_to_howto_ptr (r_type);
 }
 
+struct elf_wasm32_link_hash_entry
+{
+  struct elf_link_hash_entry root;
+
+  bfd_vma plt_index;
+  bfd_vma pltnameoff;
+  bfd_byte *pltstub;
+  bfd_vma pltstub_size;
+  bfd_vma pltstub_pltoff;
+  struct elf_link_hash_entry *pltsig;
+};
+
+#define wasm32_elf_hash_entry(ent) ((struct elf_wasm32_link_hash_entry *)(ent))
+
 /* WASM32 ELF linker hash table.  */
 struct elf_wasm32_link_hash_table
 {
@@ -905,12 +912,13 @@ wasm32_elf_link_hash_newfunc (struct bfd_hash_entry *entry,
   if (ret != (struct elf_wasm32_link_hash_entry *) NULL)
     {
       ret->pltnameoff = (bfd_vma)-1;
+      ret->plt_index = (bfd_vma)-1;
     }
 
   return (struct bfd_hash_entry *) ret;
 }
 
-/* Create an sh ELF linker hash table.  */
+/* Create a wasm32 ELF linker hash table.  */
 
 static struct bfd_link_hash_table *
 wasm32_elf_link_hash_table_create (bfd *abfd)
@@ -1019,6 +1027,58 @@ wasm32_create_dynamic_sections (bfd * abfd, struct bfd_link_info *info)
   return ds;
 }
 
+/* WebAssembly has no easy way to forward control to another function,
+   so we have to build a special plt stub for each function based on
+   the number of arguments it takes, its signature index, and its plt
+   index. */
+
+static bfd_byte *
+build_plt_stub (bfd *output_bfd,
+                bfd_vma signature, bfd_vma nargs, bfd_vma pltindex,
+                bfd_vma *size, bfd_vma *pltstub_pltoff)
+{
+  bfd_byte *ret = malloc (5 + 3 + nargs * 6 + 3 + 5 + 2 + 5 + 3);
+  bfd_byte *p = ret;
+
+  /* size. fill in later. */
+  *p++ = 0x80; *p++ = 0x80; *p++ = 0x80; *p++ = 0x80; *p++ = 0;
+  *p++ = 0x01; /* 1 local block */
+  *p++ = 0x11; /* 17 */
+  *p++ = 0x7f; /* i32 */
+
+  for (bfd_vma i = 0; i < nargs; i++)
+    {
+      *p++ = 0x20; /* get_local */
+      *p++ = 0x80; *p++ = 0x80; *p++ = 0x80; *p++ = 0x80; *p++ = 0;
+      set_uleb128 (output_bfd, i, p - 5);
+    }
+
+  *p++ = 0x23; /* get_global */
+  *p++ = 0x01; /* plt */
+  *p++ = 0x41; /* i32.const */
+  *p++ = 0x80; *p++ = 0x80; *p++ = 0x80; *p++ = 0x80; *p++ = 0;
+  set_uleb128 (output_bfd, pltindex, p - 5);
+  *p++ = 0x6a; /* add */
+  *p++ = 0x11; /* call_indirect */
+  *p++ = 0x80; *p++ = 0x80; *p++ = 0x80; *p++ = 0x80; *p++ = 0;
+  set_uleb128 (output_bfd, signature, p - 5);
+  *p++ = 0x00; /* reserved */
+  *p++ = 0x0f; /* return */
+  *p++ = 0x0b; /* end */
+
+  *size = p - ret;
+  ret = realloc (ret, *size);
+
+  set_uleb128 (output_bfd, *size - 5, ret);
+
+  *pltstub_pltoff = *size - 15;
+
+  return ret;
+}
+
+/* build a plt stub for h, based on its plt sig, and save it. Also
+   resize plt sections */
+
 #define PLTNAME 1
 
 static bfd_vma
@@ -1027,13 +1087,91 @@ add_symbol_to_plt (bfd *output_bfd, struct bfd_link_info *info,
 {
   struct elf_link_hash_table *htab = elf_hash_table (info);
   struct dynamic_sections ds = wasm32_create_dynamic_sections (output_bfd, info);
+  struct elf_wasm32_link_hash_entry *h2 = (struct elf_wasm32_link_hash_entry *)h;
+  struct elf_link_hash_entry *pltsig = h2->pltsig;
   bfd_vma ret;
-
-  (void)h;
+  bfd_vma size;
 
   ret = htab->splt->size;
+  h2->plt_index = ds.spltspace->size;
 
-  htab->splt->size += 0x40;
+  if (pltsig)
+    {
+      bfd_vma signature = pltsig->root.u.def.value;
+      bfd_vma nargs = 0;
+      /* Yes, we parse the name of the PLT_SIG symbol. */
+      const char *p = strrchr(pltsig->root.root.string, 'F');
+      if (p)
+        {
+          p++;
+          int done = 0;
+          do
+            {
+              int c = *p++;
+              switch (c)
+                {
+                case 'i':
+                case 'l':
+                case 'f':
+                case 'd':
+                case 'v':
+                  nargs++;
+                  break;
+                case 'E':
+                  done = 1;
+                  break;
+                default:
+                  abort ();
+                }
+            }
+          while (!done);
+          nargs--;
+        }
+
+      h2->pltstub = build_plt_stub (output_bfd, signature, nargs,
+                                    h2->plt_index, &size,
+                                    &h2->pltstub_pltoff);
+      h2->pltstub_size = size;
+    }
+  else
+    {
+      bfd_vma signature = 0;
+      bfd_vma nargs = 0;
+      const char *p = "FiiiiiiiE";
+      if (p)
+        {
+          p++;
+          int done = 0;
+          do
+            {
+              int c = *p++;
+              switch (c)
+                {
+                case 'i':
+                case 'l':
+                case 'f':
+                case 'd':
+                case 'v':
+                  nargs++;
+                  break;
+                case 'E':
+                  done = 1;
+                  break;
+                default:
+                  abort ();
+                }
+            }
+          while (!done);
+          nargs--;
+        }
+
+      h2->pltstub = build_plt_stub (output_bfd, signature, nargs,
+                                    h2->plt_index, &size,
+                                    &h2->pltstub_pltoff);
+      h2->pltstub_size = size;
+    }
+
+  htab->splt->size += size;
 
   htab->sgotplt->size += /* 4 */ 0;
   htab->srelplt->size += 1 * sizeof (Elf32_External_Rela);
@@ -1045,7 +1183,6 @@ add_symbol_to_plt (bfd *output_bfd, struct bfd_link_info *info,
   ds.spltelemspace->size++;
   ds.spltelem->size+=5;
   if (PLTNAME) {
-    struct elf_wasm32_link_hash_entry *h2 = (struct elf_wasm32_link_hash_entry *)h;
     h2->pltnameoff = ds.spltname->size;
     ds.spltname->size += 5 + 5 + (h->root.root.string ? (strlen(h->root.root.string) + strlen ("@plt")) : 0);
     ds.spltnamespace->size++;
@@ -1059,7 +1196,7 @@ add_symbol_to_plt (bfd *output_bfd, struct bfd_link_info *info,
 
 static bfd_boolean
 elf_wasm32_adjust_dynamic_symbol (struct bfd_link_info *info,
-                              struct elf_link_hash_entry *h)
+                                  struct elf_link_hash_entry *h)
 {
   asection *s;
   bfd *dynobj = (elf_hash_table (info))->dynobj;
@@ -1192,6 +1329,7 @@ elf_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec, c
   bfd_vma *local_got_offsets;
   asection *sgot;
   asection *srelgot;
+  struct elf_link_hash_entry *pltsig = NULL;
 
   if (bfd_link_relocatable (info))
     return TRUE;
@@ -1254,6 +1392,9 @@ elf_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec, c
         default:
           break;
         }
+
+      if (r_type != R_ASMJS_LEB128_PLT)
+        pltsig = NULL;
 
       switch (r_type)
         {
@@ -1335,8 +1476,17 @@ elf_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec, c
 
         case R_ASMJS_LEB128_PLT:
           if (h)
-            h->needs_plt = 1;
+            {
+              h->needs_plt = 1;
+              ((struct elf_wasm32_link_hash_entry *)h)->pltsig = pltsig;
+              pltsig = NULL;
+            }
+
           break;
+        case R_ASMJS_PLT_SIG:
+          pltsig = h;
+          break;
+
         case R_ASMJS_LEB128:
           if (h != NULL && ! bfd_link_pic (info))
             {
@@ -1426,24 +1576,9 @@ elf_wasm32_finish_dynamic_symbol (bfd * output_bfd,
       /* Get the index in the procedure linkage table which
          corresponds to this symbol.  This is the index of this symbol
          in all the symbols for which we are making plt entries. */
-      plt_index = h->plt.offset / 0x40;
-
-      /* Fill in the entry in the procedure linkage table.  */
-      uint8_t pltentry[] = {
-        0x3f, 0x01, 0x11, 0x7f,
-        0x20, 0x00, 0x20, 0x01, 0x20, 0x02,
-        0x20, 0x03, 0x20, 0x04, 0x20, 0x05,
-        0x23, 0x01, 0x41, 0x80, 0x80, 0x80,
-        0x80, 0x00, 0x6a, 0x11, 0x80, 0x80,
-        0x80, 0x80, 0x00, 0x00, 0x0f,
-        0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
-        0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
-        0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
-        0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x0b
-      };
-
-      memcpy (splt->contents + h->plt.offset, pltentry,
-              0x40);
+      struct elf_wasm32_link_hash_entry *hh = (struct elf_wasm32_link_hash_entry *)h;
+      plt_index = hh->plt_index;
+      memcpy (splt->contents + h->plt.offset, hh->pltstub, hh->pltstub_size);
 
       struct elf_link_hash_entry *h2;
       h2 = elf_link_hash_lookup (elf_hash_table (info),
@@ -1452,7 +1587,7 @@ elf_wasm32_finish_dynamic_symbol (bfd * output_bfd,
 
       set_uleb128 (output_bfd,
                    plt_index + h2->root.u.def.value,
-                   splt->contents + h->plt.offset + 19);
+                   splt->contents + h->plt.offset + hh->pltstub_pltoff);
 
       for (int i = 0; i < 5; i++)
         bfd_put_8 (output_bfd,
@@ -1466,7 +1601,7 @@ elf_wasm32_finish_dynamic_symbol (bfd * output_bfd,
       if (PLTNAME) {
         struct elf_wasm32_link_hash_entry *h4 = (struct elf_wasm32_link_hash_entry *)h;
 
-        bfd_vma index = h->plt.offset/0x40 + h2->root.u.def.value;
+        bfd_vma index = plt_index + h2->root.u.def.value;
         const char *str = h->root.root.string ? h->root.root.string : "";;
         size_t len = strlen(str);
         int i;
@@ -2354,9 +2489,13 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
                                      ".wasm.plt_bias", FALSE, FALSE, TRUE);
           BFD_ASSERT (h2 != NULL);
 
-          if (0) fprintf (stderr, "creating reloc at %s:%ld for PLT (2)\n",
-                   splt->name, h->plt.offset / 0x40);
-          relocation = h->plt.offset/0x40 + h2->root.u.def.value;
+          bfd_vma plt_index;
+          {
+            struct elf_wasm32_link_hash_entry *h9 = (struct elf_wasm32_link_hash_entry *)h;
+            plt_index = h9->plt_index;
+          }
+
+          relocation = plt_index + h2->root.u.def.value;
           addend = rel->r_addend;
 
           goto final_link_relocate;

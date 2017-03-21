@@ -1174,9 +1174,9 @@ elf_wasm32_adjust_dynamic_symbol (struct bfd_link_info *info,
   bfd *dynobj = (elf_hash_table (info))->dynobj;
   struct elf_link_hash_table *htab = elf_hash_table (info);
 
-  if (h->type == STT_FUNC
+  if (/* h->type == STT_FUNC
       || h->type == STT_GNU_IFUNC
-      || h->needs_plt == 1)
+      || */ h->needs_plt == 1)
     {
       if (FALSE && !bfd_link_pic (info) && !h->def_dynamic && !h->ref_dynamic)
         {

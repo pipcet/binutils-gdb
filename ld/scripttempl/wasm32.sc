@@ -19,17 +19,17 @@ SECTIONS
      LONG(0);
      LONG(0);
      LONG(0);
+     LONG(ABSOLUTE(__preinit_array_start));
      LONG(0);
+     LONG(ABSOLUTE(__preinit_array_end));
      LONG(0);
+     LONG(ABSOLUTE(__init_array_start));
      LONG(0);
+     LONG(ABSOLUTE(__init_array_end));
      LONG(0);
+     LONG(ABSOLUTE(__fini_array_start));
      LONG(0);
-     LONG(0);
-     LONG(0);
-     LONG(0);
-     LONG(0);
-     LONG(0);
-     LONG(0);
+     LONG(ABSOLUTE(__fini_array_end));
      LONG(0);
   }
   .got :

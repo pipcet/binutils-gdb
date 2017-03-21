@@ -386,17 +386,20 @@ static bfd_boolean wasm32_leb128(char **line, int bits, int sign)
       reloc->u.a.sym = make_expr_symbol (&ex);
       reloc->u.a.addend = 0;
     }
+  /* i32.const fpointer@gotcode */
   if (strncmp(input_line_pointer, "@gotcode", 8) == 0)
     {
       gotrel = 1;
       code = 1;
       input_line_pointer += 8;
     }
+  /* i32.const data@got */
   if (strncmp(input_line_pointer, "@got", 4) == 0)
     {
       gotrel = 1;
       input_line_pointer += 4;
     }
+  /* call f@plt{__sigchar_FiiiiE} */
   if (strncmp(input_line_pointer, "@plt", 4) == 0)
     {
       pltrel = 1;

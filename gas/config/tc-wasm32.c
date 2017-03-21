@@ -413,7 +413,7 @@ static bfd_boolean wasm32_leb128(char **line, int bits, int sign)
           reloc2->u.a.sym = symbol_find_or_make (signature);
           reloc2->u.a.addend = 0;
           reloc2->u.a.howto = bfd_reloc_name_lookup (stdoutput,
-                                                     "R_ASMJS_PLT_SIG");
+                                                     "R_WASM32_PLT_SIG");
           reloc2->next = reloc_list;
           reloc_list = reloc2;
           input_line_pointer = end_of_sig + 1;
@@ -425,9 +425,9 @@ static bfd_boolean wasm32_leb128(char **line, int bits, int sign)
     }
 
   reloc->u.a.howto = bfd_reloc_name_lookup (stdoutput,
-                                            gotrel ? (code ? "R_ASMJS_LEB128_GOT_CODE" : "R_ASMJS_LEB128_GOT") :
-                                            pltrel ? "R_ASMJS_LEB128_PLT" :
-                                            "R_ASMJS_LEB128");
+                                            gotrel ? (code ? "R_WASM32_LEB128_GOT_CODE" : "R_WASM32_LEB128_GOT") :
+                                            pltrel ? "R_WASM32_LEB128_PLT" :
+                                            "R_WASM32_LEB128");
   if (!reloc->u.a.howto)
     {
       as_bad (_("couldn't find relocation to use"));
@@ -749,8 +749,8 @@ void wasm32_elf_final_processing (void)
 int
 wasm32_force_relocation (fixS *f ATTRIBUTE_UNUSED)
 {
-  if (f->fx_r_type == BFD_RELOC_ASMJS_LEB128_PLT ||
-      f->fx_r_type == BFD_RELOC_ASMJS_LEB128_GOT)
+  if (f->fx_r_type == BFD_RELOC_WASM32_LEB128_PLT ||
+      f->fx_r_type == BFD_RELOC_WASM32_LEB128_GOT)
     return 1;
 
   return 0;
@@ -761,8 +761,8 @@ bfd_boolean wasm32_fix_adjustable (fixS * fixP)
   if (fixP->fx_addsy == NULL)
     return TRUE;
 
-  if (fixP->fx_r_type == BFD_RELOC_ASMJS_LEB128_PLT ||
-      fixP->fx_r_type == BFD_RELOC_ASMJS_LEB128_GOT)
+  if (fixP->fx_r_type == BFD_RELOC_WASM32_LEB128_PLT ||
+      fixP->fx_r_type == BFD_RELOC_WASM32_LEB128_GOT)
     return FALSE;
 
   return TRUE;

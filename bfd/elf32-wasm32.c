@@ -427,7 +427,7 @@ static inline void set_uleb128 (bfd *abfd, unsigned long long value,
 
 static reloc_howto_type wasm32_elf32_howto_table[] =
   {
-  HOWTO (R_ASMJS_NONE,		/* type */
+  HOWTO (R_WASM32_NONE,		/* type */
          0,			/* rightshift */
          3,			/* size (0 = byte, 1 = short, 2 = long) */
          0,			/* bitsize */
@@ -435,13 +435,13 @@ static reloc_howto_type wasm32_elf32_howto_table[] =
          0,			/* bitpos */
          complain_overflow_dont,/* complain_on_overflow */
          bfd_elf_generic_reloc,	/* special_function */
-         "R_ASMJS_NONE",	/* name */
+         "R_WASM32_NONE",	/* name */
          FALSE,			/* partial_inplace */
          0,			/* src_mask */
          0,			/* dst_mask */
          FALSE),		/* pcrel_offset */
 
-  HOWTO (R_ASMJS_HEX16,		/* type */
+  HOWTO (R_WASM32_HEX16,		/* type */
          0,			/* rightshift */
          8,			/* size - 16 bytes*/
          32,			/* bitsize */
@@ -449,13 +449,13 @@ static reloc_howto_type wasm32_elf32_howto_table[] =
          0,			/* bitpos */
          complain_overflow_signed,/* complain_on_overflow */
          wasm32_elf32_hex16_reloc,/* special_function */
-         "R_ASMJS_HEX16",	/* name */
+         "R_WASM32_HEX16",	/* name */
          FALSE,			/* partial_inplace */
          0xffffffffffffffff,	/* src_mask */
          0xffffffffffffffff,	/* dst_mask */
          FALSE),		/* pcrel_offset */
 
-  HOWTO (R_ASMJS_HEX16R4,	/* type */
+  HOWTO (R_WASM32_HEX16R4,	/* type */
          4,			/* rightshift */
          8,			/* size - 16 bytes*/
          32,			/* bitsize */
@@ -463,14 +463,14 @@ static reloc_howto_type wasm32_elf32_howto_table[] =
          0,			/* bitpos */
          complain_overflow_signed,/* complain_on_overflow */
          wasm32_elf32_hex16_reloc,/* special_function */
-         "R_ASMJS_HEX16R4",	/* name */
+         "R_WASM32_HEX16R4",	/* name */
          FALSE,			/* partial_inplace */
          0xffffffffffffffffLL,	/* src_mask */
          0xffffffffffffffffLL,	/* dst_mask */
          FALSE),		/* pcrel_offset */
 
   /* 32 bit absolute */
-  HOWTO (R_ASMJS_ABS32,		/* type */
+  HOWTO (R_WASM32_ABS32,		/* type */
          0,			/* rightshift */
          2,			/* size (0 = byte, 1 = short, 2 = long) */
          32,			/* bitsize */
@@ -478,14 +478,14 @@ static reloc_howto_type wasm32_elf32_howto_table[] =
          0,			/* bitpos */
          complain_overflow_bitfield,/* complain_on_overflow */
          bfd_elf_generic_reloc,	/* special_function */
-         "R_ASMJS_ABS32",	/* name */
+         "R_WASM32_ABS32",	/* name */
          FALSE,			/* partial_inplace */
          0xffffffff,		/* src_mask */
          0xffffffff,		/* dst_mask */
          FALSE),		/* pcrel_offset */
 
   /* standard 32bit pc-relative reloc */
-  HOWTO (R_ASMJS_REL32,		/* type */
+  HOWTO (R_WASM32_REL32,		/* type */
          0,			/* rightshift */
          2,			/* size (0 = byte, 1 = short, 2 = long) */
          32,			/* bitsize */
@@ -493,13 +493,13 @@ static reloc_howto_type wasm32_elf32_howto_table[] =
          0,			/* bitpos */
          complain_overflow_bitfield,/* complain_on_overflow */
          bfd_elf_generic_reloc,	/* special_function */
-         "R_ASMJS_REL32",	/* name */
+         "R_WASM32_REL32",	/* name */
          FALSE,			/* partial_inplace */
          0xffffffff,		/* src_mask */
          0xffffffff,		/* dst_mask */
          TRUE),			/* pcrel_offset */
 
-    HOWTO (R_ASMJS_HEX16R12,	/* type */
+    HOWTO (R_WASM32_HEX16R12,	/* type */
          12,			/* rightshift */
          8,			/* size - 16 bytes*/
          32,			/* bitsize */
@@ -507,14 +507,14 @@ static reloc_howto_type wasm32_elf32_howto_table[] =
          0,			/* bitpos */
          complain_overflow_signed,/* complain_on_overflow */
          wasm32_elf32_hex16_reloc,/* special_function */
-         "R_ASMJS_HEX16R12",	/* name */
+         "R_WASM32_HEX16R12",	/* name */
          FALSE,			/* partial_inplace */
          0xffffffffffffffffLL,	/* src_mask */
          0xffffffffffffffffLL,	/* dst_mask */
          FALSE),		/* pcrel_offset */
 
   /* standard 32bit pc-relative reloc */
-  HOWTO (R_ASMJS_REL16,		/* type */
+  HOWTO (R_WASM32_REL16,		/* type */
          0,			/* rightshift */
          1,			/* size (0 = byte, 1 = short, 2 = long) */
          16,			/* bitsize */
@@ -522,14 +522,14 @@ static reloc_howto_type wasm32_elf32_howto_table[] =
          0,			/* bitpos */
          complain_overflow_bitfield,/* complain_on_overflow */
          bfd_elf_generic_reloc,	/* special_function */
-         "R_ASMJS_REL16",	/* name */
+         "R_WASM32_REL16",	/* name */
          FALSE,			/* partial_inplace */
          0xffff,		/* src_mask */
          0xffff,		/* dst_mask */
          TRUE),			/* pcrel_offset */
 
   /* standard 32bit pc-relative reloc */
-  HOWTO (R_ASMJS_ABS16,		/* type */
+  HOWTO (R_WASM32_ABS16,		/* type */
          0,			/* rightshift */
          1,			/* size (0 = byte, 1 = short, 2 = long) */
          16,			/* bitsize */
@@ -537,14 +537,14 @@ static reloc_howto_type wasm32_elf32_howto_table[] =
          0,			/* bitpos */
          complain_overflow_bitfield,/* complain_on_overflow */
          bfd_elf_generic_reloc,	/* special_function */
-         "R_ASMJS_ABS16",	/* name */
+         "R_WASM32_ABS16",	/* name */
          FALSE,			/* partial_inplace */
          0xffff,		/* src_mask */
          0xffff,		/* dst_mask */
          FALSE),		/* pcrel_offset */
 
   /* 64 bit absolute */
-  HOWTO (R_ASMJS_ABS64,		/* type */
+  HOWTO (R_WASM32_ABS64,		/* type */
          0,			/* rightshift */
          4,			/* size (0 = byte, 1 = short, 2 = long) */
          64,			/* bitsize */
@@ -552,14 +552,14 @@ static reloc_howto_type wasm32_elf32_howto_table[] =
          0,			/* bitpos */
          complain_overflow_bitfield,/* complain_on_overflow */
          bfd_elf_generic_reloc,	/* special_function */
-         "R_ASMJS_ABS64",	/* name */
+         "R_WASM32_ABS64",	/* name */
          FALSE,			/* partial_inplace */
          0xffffffffffffffffLL,  /* src_mask */
          0xffffffffffffffffLL,	/* dst_mask */
          FALSE),		/* pcrel_offset */
 
   /* standard 64bit pc-relative reloc */
-  HOWTO (R_ASMJS_REL64,		/* type */
+  HOWTO (R_WASM32_REL64,		/* type */
          0,			/* rightshift */
          4,			/* size (0 = byte, 1 = short, 2 = long) */
          64,			/* bitsize */
@@ -567,13 +567,13 @@ static reloc_howto_type wasm32_elf32_howto_table[] =
          0,			/* bitpos */
          complain_overflow_bitfield,/* complain_on_overflow */
          bfd_elf_generic_reloc,	/* special_function */
-         "R_ASMJS_REL64",	/* name */
+         "R_WASM32_REL64",	/* name */
          FALSE,			/* partial_inplace */
          0xffffffffffffffffLL,	/* src_mask */
          0xffffffffffffffffLL,	/* dst_mask */
          TRUE),			/* pcrel_offset */
 
-  HOWTO (R_ASMJS_LEB128,	/* type */
+  HOWTO (R_WASM32_LEB128,	/* type */
          0,			/* rightshift */
          8,			/* size - 16 bytes*/
          32,			/* bitsize */
@@ -581,13 +581,13 @@ static reloc_howto_type wasm32_elf32_howto_table[] =
          0,			/* bitpos */
          complain_overflow_signed,/* complain_on_overflow */
          wasm32_elf32_leb128_reloc,/* special_function */
-         "R_ASMJS_LEB128",	/* name */
+         "R_WASM32_LEB128",	/* name */
          FALSE,			/* partial_inplace */
          0xffffffffffffffff,	/* src_mask */
          0xffffffffffffffff,	/* dst_mask */
          FALSE),		/* pcrel_offset */
 
-  HOWTO (R_ASMJS_LEB128R32,	/* type */
+  HOWTO (R_WASM32_LEB128_R32,	/* type */
          32,			/* rightshift */
          8,			/* size - 16 bytes*/
          32,			/* bitsize */
@@ -595,13 +595,13 @@ static reloc_howto_type wasm32_elf32_howto_table[] =
          0,			/* bitpos */
          complain_overflow_signed,/* complain_on_overflow */
          wasm32_elf32_leb128_reloc,/* special_function */
-         "R_ASMJS_LEB128_R32",	/* name */
+         "R_WASM32_LEB128_R32",	/* name */
          FALSE,			/* partial_inplace */
          0xffffffffffffffff,	/* src_mask */
          0xffffffffffffffff,	/* dst_mask */
          FALSE),		/* pcrel_offset */
 
-  HOWTO (R_ASMJS_LEB128_GOT,	/* type */
+  HOWTO (R_WASM32_LEB128_GOT,	/* type */
          0,			/* rightshift */
          8,			/* size - 16 bytes*/
          32,			/* bitsize */
@@ -609,13 +609,13 @@ static reloc_howto_type wasm32_elf32_howto_table[] =
          0,			/* bitpos */
          complain_overflow_signed,/* complain_on_overflow */
          wasm32_elf32_leb128_reloc,/* special_function */
-         "R_ASMJS_LEB128_GOT",	/* name */
+         "R_WASM32_LEB128_GOT",	/* name */
          FALSE,			/* partial_inplace */
          0xffffffffffffffff,	/* src_mask */
          0xffffffffffffffff,	/* dst_mask */
          FALSE),		/* pcrel_offset */
 
-  HOWTO (R_ASMJS_LEB128_PLT,	/* type */
+  HOWTO (R_WASM32_LEB128_PLT,	/* type */
          0,			/* rightshift */
          8,			/* size - 16 bytes*/
          32,			/* bitsize */
@@ -623,13 +623,13 @@ static reloc_howto_type wasm32_elf32_howto_table[] =
          0,			/* bitpos */
          complain_overflow_signed,/* complain_on_overflow */
          wasm32_elf32_leb128_reloc,/* special_function */
-         "R_ASMJS_LEB128_PLT",	/* name */
+         "R_WASM32_LEB128_PLT",	/* name */
          FALSE,			/* partial_inplace */
          0xffffffffffffffff,	/* src_mask */
          0xffffffffffffffff,	/* dst_mask */
          FALSE),		/* pcrel_offset */
 
-  HOWTO (R_ASMJS_PLT_INDEX,     /* type */
+  HOWTO (R_WASM32_PLT_INDEX,     /* type */
          0,			/* rightshift */
          8,			/* size - 16 bytes*/
          32,			/* bitsize */
@@ -637,13 +637,13 @@ static reloc_howto_type wasm32_elf32_howto_table[] =
          0,			/* bitpos */
          complain_overflow_signed,/* complain_on_overflow */
          wasm32_elf32_leb128_reloc,/* special_function */
-         "R_ASMJS_PLT_INDEX",   /* name */
+         "R_WASM32_PLT_INDEX",   /* name */
          FALSE,			/* partial_inplace */
          0xffffffffffffffff,	/* src_mask */
          0xffffffffffffffff,	/* dst_mask */
          FALSE),		/* pcrel_offset */
 
-  HOWTO (R_ASMJS_ABS32_CODE,	/* type */
+  HOWTO (R_WASM32_ABS32_CODE,	/* type */
          0,			/* rightshift */
          2,			/* size (0 = byte, 1 = short, 2 = long) */
          32,			/* bitsize */
@@ -651,13 +651,13 @@ static reloc_howto_type wasm32_elf32_howto_table[] =
          0,			/* bitpos */
          complain_overflow_bitfield,/* complain_on_overflow */
          bfd_elf_generic_reloc,	/* special_function */
-         "R_ASMJS_ABS32_CODE",	/* name */
+         "R_WASM32_ABS32_CODE",	/* name */
          FALSE,			/* partial_inplace */
          0xffffffff,		/* src_mask */
          0xffffffff,		/* dst_mask */
          FALSE),		/* pcrel_offset */
 
-  HOWTO (R_ASMJS_ABS64_CODE,	/* type */
+  HOWTO (R_WASM32_ABS64_CODE,	/* type */
          0,			/* rightshift */
          2,			/* size (0 = byte, 1 = short, 2 = long) */
          32,			/* bitsize */
@@ -665,13 +665,13 @@ static reloc_howto_type wasm32_elf32_howto_table[] =
          0,			/* bitpos */
          complain_overflow_bitfield,/* complain_on_overflow */
          bfd_elf_generic_reloc,	/* special_function */
-         "R_ASMJS_ABS64_CODE",	/* name */
+         "R_WASM32_ABS64_CODE",	/* name */
          FALSE,			/* partial_inplace */
          0xffffffff,		/* src_mask */
          0xffffffff,		/* dst_mask */
          FALSE),		/* pcrel_offset */
 
-  HOWTO (R_ASMJS_COPY,		/* type */
+  HOWTO (R_WASM32_COPY,		/* type */
          0,			/* rightshift */
          2,			/* size (0 = byte, 1 = short, 2 = long) */
          32,			/* bitsize */
@@ -679,13 +679,13 @@ static reloc_howto_type wasm32_elf32_howto_table[] =
          0,			/* bitpos */
          complain_overflow_bitfield,/* complain_on_overflow */
          bfd_elf_generic_reloc,	/* special_function */
-         "R_ASMJS_COPY",	/* name */
+         "R_WASM32_COPY",	/* name */
          FALSE,			/* partial_inplace */
          0xffffffff,		/* src_mask */
          0xffffffff,		/* dst_mask */
          FALSE),		/* pcrel_offset */
 
-  HOWTO (R_ASMJS_LEB128_GOT_CODE, /* type */
+  HOWTO (R_WASM32_LEB128_GOT_CODE, /* type */
          0,			/* rightshift */
          8,			/* size - 16 bytes*/
          32,			/* bitsize */
@@ -693,13 +693,13 @@ static reloc_howto_type wasm32_elf32_howto_table[] =
          0,			/* bitpos */
          complain_overflow_signed,/* complain_on_overflow */
          wasm32_elf32_leb128_reloc,/* special_function */
-         "R_ASMJS_LEB128_GOT_CODE",/* name */
+         "R_WASM32_LEB128_GOT_CODE",/* name */
          FALSE,			/* partial_inplace */
          0xffffffffffffffff,	/* src_mask */
          0xffffffffffffffff,	/* dst_mask */
          FALSE),		/* pcrel_offset */
 
-  HOWTO (R_ASMJS_PLT_LAZY,      /* type */
+  HOWTO (R_WASM32_PLT_LAZY,      /* type */
          0,			/* rightshift */
          8,			/* size - 16 bytes*/
          32,			/* bitsize */
@@ -707,14 +707,14 @@ static reloc_howto_type wasm32_elf32_howto_table[] =
          0,			/* bitpos */
          complain_overflow_signed,/* complain_on_overflow */
          wasm32_elf32_leb128_reloc,/* special_function */
-         "R_ASMJS_PLT_LAZY",    /* name */
+         "R_WASM32_PLT_LAZY",    /* name */
          FALSE,			/* partial_inplace */
          0xffffffffffffffff,	/* src_mask */
          0xffffffffffffffff,	/* dst_mask */
          FALSE),		/* pcrel_offset */
 
   /* standard 32bit pc-relative reloc */
-  HOWTO (R_ASMJS_ABS8,		/* type */
+  HOWTO (R_WASM32_ABS8,		/* type */
          0,			/* rightshift */
          0,			/* size (0 = byte, 1 = short, 2 = long) */
          8,			/* bitsize */
@@ -722,14 +722,14 @@ static reloc_howto_type wasm32_elf32_howto_table[] =
          0,			/* bitpos */
          complain_overflow_bitfield,/* complain_on_overflow */
          bfd_elf_generic_reloc,	/* special_function */
-         "R_ASMJS_ABS8",	/* name */
+         "R_WASM32_ABS8",	/* name */
          FALSE,			/* partial_inplace */
          0xff,			/* src_mask */
          0xff,			/* dst_mask */
          FALSE),		/* pcrel_offset */
 
   /* dummy reloc to pull in code */
-  HOWTO (R_ASMJS_CODE_POINTER,	/* type */
+  HOWTO (R_WASM32_CODE_POINTER,	/* type */
          0,			/* rightshift */
          0,			/* size (0 = byte, 1 = short, 2 = long) */
          32,			/* bitsize */
@@ -737,14 +737,14 @@ static reloc_howto_type wasm32_elf32_howto_table[] =
          0,			/* bitpos */
          complain_overflow_bitfield,/* complain_on_overflow */
          bfd_elf_generic_reloc,	/* special_function */
-         "R_ASMJS_CODE_POINTER",/* name */
+         "R_WASM32_CODE_POINTER",/* name */
          FALSE,			/* partial_inplace */
          0,			/* src_mask */
          0,			/* dst_mask */
          FALSE),		/* pcrel_offset */
 
   /* dummy reloc to pull in function types */
-  HOWTO (R_ASMJS_INDEX,	        /* type */
+  HOWTO (R_WASM32_INDEX,	        /* type */
          0,			/* rightshift */
          0,			/* size (0 = byte, 1 = short, 2 = long) */
          32,			/* bitsize */
@@ -752,14 +752,14 @@ static reloc_howto_type wasm32_elf32_howto_table[] =
          0,			/* bitpos */
          complain_overflow_bitfield,/* complain_on_overflow */
          bfd_elf_generic_reloc,	/* special_function */
-         "R_ASMJS_INDEX",       /* name */
+         "R_WASM32_INDEX",       /* name */
          FALSE,			/* partial_inplace */
          0,			/* src_mask */
          0,			/* dst_mask */
          FALSE),		/* pcrel_offset */
 
   /* dummy reloc to pull in function types */
-  HOWTO (R_ASMJS_PLT_SIG,        /* type */
+  HOWTO (R_WASM32_PLT_SIG,        /* type */
          0,			/* rightshift */
          0,			/* size (0 = byte, 1 = short, 2 = long) */
          32,			/* bitsize */
@@ -767,7 +767,7 @@ static reloc_howto_type wasm32_elf32_howto_table[] =
          0,			/* bitpos */
          complain_overflow_bitfield,/* complain_on_overflow */
          bfd_elf_generic_reloc,	/* special_function */
-         "R_ASMJS_PLT_SIG",       /* name */
+         "R_WASM32_PLT_SIG",       /* name */
          FALSE,			/* partial_inplace */
          0,			/* src_mask */
          0,			/* dst_mask */
@@ -805,41 +805,45 @@ wasm32_elf32_bfd_reloc_type_lookup (bfd *abfd ATTRIBUTE_UNUSED,
 {
   switch (code) {
   case BFD_RELOC_32:
-    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_ABS32");
+    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_WASM32_ABS32");
   case BFD_RELOC_32_PCREL:
-    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_REL32");
+    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_WASM32_REL32");
   case BFD_RELOC_16:
-    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_ABS16");
+    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_WASM32_ABS16");
   case BFD_RELOC_8:
-    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_ABS8");
-  case BFD_RELOC_ASMJS_HEX16:
-    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_HEX16");
-  case BFD_RELOC_ASMJS_HEX16R4:
-    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_HEX16R4");
-  case BFD_RELOC_ASMJS_HEX16R12:
-    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_HEX16R12");
-  case BFD_RELOC_ASMJS_LEB128:
-    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_LEB128");
-  case BFD_RELOC_ASMJS_LEB128R32:
-    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_LEB128R32");
-  case BFD_RELOC_ASMJS_LEB128_GOT:
-    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_LEB128_GOT");
-  case BFD_RELOC_ASMJS_LEB128_GOT_CODE:
-    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_LEB128_GOT_CODE");
-  case BFD_RELOC_ASMJS_LEB128_PLT:
-    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_LEB128_PLT");
-  case BFD_RELOC_ASMJS_PLT_INDEX:
-    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_PLT_INDEX");
-  case BFD_RELOC_ASMJS_PLT_SIG:
-    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_PLT_SIG");
-  case BFD_RELOC_ASMJS_ABS32_CODE:
-    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_ABS32_CODE");
-  case BFD_RELOC_ASMJS_COPY:
-    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_COPY");
-  case BFD_RELOC_ASMJS_LAZY:
-    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_LAZY");
+    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_WASM32_ABS8");
+  case BFD_RELOC_WASM32_HEX16:
+    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_WASM32_HEX16");
+  case BFD_RELOC_WASM32_HEX16R4:
+    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_WASM32_HEX16R4");
+  case BFD_RELOC_WASM32_HEX16R12:
+    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_WASM32_HEX16R12");
+  case BFD_RELOC_WASM32_LEB128:
+    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_WASM32_LEB128");
+  case BFD_RELOC_WASM32_LEB128_R32:
+    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_WASM32_LEB128_R32");
+  case BFD_RELOC_WASM32_LEB128_GOT:
+    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_WASM32_LEB128_GOT");
+  case BFD_RELOC_WASM32_LEB128_GOT_CODE:
+    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_WASM32_LEB128_GOT_CODE");
+  case BFD_RELOC_WASM32_LEB128_PLT:
+    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_WASM32_LEB128_PLT");
+  case BFD_RELOC_WASM32_PLT_INDEX:
+    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_WASM32_PLT_INDEX");
+  case BFD_RELOC_WASM32_PLT_SIG:
+    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_WASM32_PLT_SIG");
+  case BFD_RELOC_WASM32_ABS32_CODE:
+    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_WASM32_ABS32_CODE");
+  case BFD_RELOC_WASM32_COPY:
+    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_WASM32_COPY");
+  case BFD_RELOC_WASM32_LAZY:
+    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_WASM32_LAZY");
+  case BFD_RELOC_WASM32_CODE_POINTER:
+    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_WASM32_CODE_POINTER");
+  case BFD_RELOC_WASM32_INDEX:
+    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_WASM32_INDEX");
   case BFD_RELOC_NONE:
-    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_ASMJS_NONE");
+    return wasm32_elf32_bfd_reloc_name_lookup(abfd, "R_WASM32_NONE");
   default:
     return NULL;
   }
@@ -851,7 +855,7 @@ wasm32_elf32_info_to_howto_ptr (unsigned int r_type);
 reloc_howto_type *
 wasm32_elf32_info_to_howto_ptr (unsigned int r_type)
 {
-  if (r_type > R_ASMJS_max)
+  if (r_type > R_WASM32_max)
     r_type = 0;
 
   return &wasm32_elf32_howto_table[r_type];
@@ -1322,9 +1326,9 @@ elf_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec, c
       //howto = wasm32_elf_howto (r_type);
 
       if (dynobj == NULL
-          && (r_type == R_ASMJS_LEB128_PLT ||
-              r_type == R_ASMJS_LEB128_GOT ||
-              r_type == R_ASMJS_LEB128_GOT_CODE))
+          && (r_type == R_WASM32_LEB128_PLT ||
+              r_type == R_WASM32_LEB128_GOT ||
+              r_type == R_WASM32_LEB128_GOT_CODE))
         {
           dynobj = elf_hash_table (info)->dynobj = abfd;
           if (! _bfd_elf_create_got_section (abfd, info))
@@ -1350,9 +1354,9 @@ elf_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec, c
       if (dynobj == NULL)
       switch (r_type)
         {
-        case R_ASMJS_LEB128_GOT:
-        case R_ASMJS_LEB128_GOT_CODE:
-        case R_ASMJS_LEB128_PLT:
+        case R_WASM32_LEB128_GOT:
+        case R_WASM32_LEB128_GOT_CODE:
+        case R_WASM32_LEB128_PLT:
           elf_hash_table (info)->dynobj = dynobj = abfd;
           if (! _bfd_elf_create_got_section (dynobj, info))
             return FALSE;
@@ -1361,13 +1365,13 @@ elf_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec, c
           break;
         }
 
-      if (r_type != R_ASMJS_LEB128_PLT)
+      if (r_type != R_WASM32_LEB128_PLT)
         pltsig = NULL;
 
       switch (r_type)
         {
-        case R_ASMJS_LEB128_GOT:
-        case R_ASMJS_LEB128_GOT_CODE:
+        case R_WASM32_LEB128_GOT:
+        case R_WASM32_LEB128_GOT_CODE:
           /* This symbol requires a GOT entry. */
 
           sgot = elf_hash_table (info)->sgot;
@@ -1382,7 +1386,7 @@ elf_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec, c
                   /* We have already allocated space in the .got.  */
                   break;
                 }
-              h->got.offset = sgot->size + (r_type == R_ASMJS_LEB128_GOT_CODE ? 2 : 0);
+              h->got.offset = sgot->size + (r_type == R_WASM32_LEB128_GOT_CODE ? 2 : 0);
 
               /* Make sure this symbol is output as a dynamic symbol.  */
               if (h->dynindx == -1)
@@ -1442,22 +1446,22 @@ elf_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec, c
           break;
 
 
-        case R_ASMJS_LEB128_PLT:
+        case R_WASM32_LEB128_PLT:
           if (h)
             {
               h->needs_plt = 1;
               if (!pltsig)
                 abort ();
               ((struct elf_wasm32_link_hash_entry *)h)->pltsig = pltsig;
-              pltsig = NULL;
             }
+          pltsig = NULL;
 
           break;
-        case R_ASMJS_PLT_SIG:
+        case R_WASM32_PLT_SIG:
           pltsig = h;
           break;
 
-        case R_ASMJS_LEB128:
+        case R_WASM32_LEB128:
           if (h != NULL && ! bfd_link_pic (info))
             {
               /* This probably needs ELIMINATE_COPY_RELOCS code below. */
@@ -1465,10 +1469,10 @@ elf_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec, c
             }
 
           break;
-        case R_ASMJS_HEX16:
+        case R_WASM32_HEX16:
           /* It's intentional that there are no dynamic relocs for these */
           break;
-        case R_ASMJS_ABS32:
+        case R_WASM32_ABS32:
           if (h != NULL && bfd_link_executable (info))
             {
               /* This probably needs ELIMINATE_COPY_RELOCS code below. */
@@ -1496,7 +1500,7 @@ elf_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec, c
             }
         }
 
-      if (r_type == R_ASMJS_LEB128_PLT)
+      if (r_type == R_WASM32_LEB128_PLT)
         {
           if (h == NULL)
             continue;
@@ -1623,7 +1627,7 @@ elf_wasm32_finish_dynamic_symbol (bfd * output_bfd,
 
       /* Fill in the entry in the .rela.plt section.  */
       rel.r_offset = plt_index + bfd_asymbol_value (&h_plt_bias->root.u.def);
-      rel.r_info = ELF32_R_INFO (h->dynindx, R_ASMJS_PLT_INDEX);
+      rel.r_info = ELF32_R_INFO (h->dynindx, R_WASM32_PLT_INDEX);
       rel.r_addend = 0;
       loc = srel->contents + plt_index * sizeof (Elf32_External_Rela);
       bfd_elf32_swap_reloca_out (output_bfd, &rel, loc);
@@ -1665,7 +1669,7 @@ elf_wasm32_finish_dynamic_symbol (bfd * output_bfd,
           && (info->symbolic || h->dynindx == -1)
           && h->def_regular)
         {
-          rel.r_info = ELF32_R_INFO (0, R_ASMJS_REL32);
+          rel.r_info = ELF32_R_INFO (0, R_WASM32_REL32);
           rel.r_addend = (h->root.u.def.value
                           + h->root.u.def.section->output_section->vma
                           + h->root.u.def.section->output_offset);
@@ -1673,7 +1677,7 @@ elf_wasm32_finish_dynamic_symbol (bfd * output_bfd,
       else
         {
           bfd_put_32 (output_bfd, (bfd_vma) 0, sgot->contents + (h->got.offset & -4));
-          rel.r_info = ELF32_R_INFO (h->dynindx, (h->got.offset & 2) ? R_ASMJS_ABS32_CODE : R_ASMJS_ABS32);
+          rel.r_info = ELF32_R_INFO (h->dynindx, (h->got.offset & 2) ? R_WASM32_ABS32_CODE : R_WASM32_ABS32);
           rel.r_addend = 0;
         }
 
@@ -1707,7 +1711,7 @@ elf_wasm32_finish_dynamic_symbol (bfd * output_bfd,
       rel.r_offset = (h->root.u.def.value
                       + h->root.u.def.section->output_section->vma
                       + h->root.u.def.section->output_offset);
-      rel.r_info = ELF32_R_INFO (h->dynindx, R_ASMJS_COPY);
+      rel.r_info = ELF32_R_INFO (h->dynindx, R_WASM32_COPY);
       rel.r_addend = 0;
       loc = s->contents + s->reloc_count++ * sizeof (Elf32_External_Rela);
       bfd_elf32_swap_reloca_out (output_bfd, &rel, loc);
@@ -2331,7 +2335,7 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
 
       r_type = ELF32_R_TYPE (rel->r_info);
 
-      if (r_type == (int) R_ASMJS_NONE)
+      if (r_type == (int) R_WASM32_NONE)
         continue;
 
       howto = wasm32_elf32_howto_table + r_type;
@@ -2431,7 +2435,7 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
 
       switch ((int)r_type)
         {
-        case R_ASMJS_LEB128_PLT:
+        case R_WASM32_LEB128_PLT:
           /* Relocation is to the entry for this symbol in the
              procedure linkage table.  */
 
@@ -2470,8 +2474,8 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
 
           goto final_link_relocate;
 
-        case R_ASMJS_LEB128_GOT:
-        case R_ASMJS_LEB128_GOT_CODE:
+        case R_WASM32_LEB128_GOT:
+        case R_WASM32_LEB128_GOT_CODE:
           /* Relocation is to the entry for this symbol in the global
              offset table.  */
           sgot = elf_hash_table (info)->sgot;
@@ -2487,7 +2491,7 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
                 {
                   //fprintf(stderr, "that should have happened earlier\n");
                   // I think it's too late to do the right thing at this point.
-                  off = h->got.offset = sgot->size + (r_type == R_ASMJS_LEB128_GOT_CODE ? 2 : 0);
+                  off = h->got.offset = sgot->size + (r_type == R_WASM32_LEB128_GOT_CODE ? 2 : 0);
 
                   if (h->dynindx == -1)
                     if (! bfd_elf_link_record_dynamic_symbol (info, h))
@@ -2571,7 +2575,7 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
                     outrel.r_offset = (sgot->output_section->vma
                                        + sgot->output_offset
                                        + (off & -4));
-                    outrel.r_info = ELF32_R_INFO (0, (r_type == R_ASMJS_LEB128_GOT_CODE) ? R_ASMJS_ABS32_CODE : R_ASMJS_REL32);
+                    outrel.r_info = ELF32_R_INFO (0, (r_type == R_WASM32_LEB128_GOT_CODE) ? R_WASM32_ABS32_CODE : R_WASM32_REL32);
                     outrel.r_addend = relocation;
                     loc = s->contents;
                     loc += s->reloc_count++ * sizeof (Elf32_External_Rela);
@@ -2590,9 +2594,9 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
           relocation += 0x40;
           goto final_link_relocate;
 
-        case R_ASMJS_ABS32:
-        case R_ASMJS_ABS32_CODE:
-        case R_ASMJS_LEB128:
+        case R_WASM32_ABS32:
+        case R_WASM32_ABS32_CODE:
+        case R_WASM32_LEB128:
           if (bfd_link_pic (info)
               && (h == NULL
                   || ELF_ST_VISIBILITY (h->other) == STV_DEFAULT
@@ -2670,8 +2674,8 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
               if (! relocate)
                 continue;
             }
-        case R_ASMJS_HEX16:
-        case R_ASMJS_REL32:
+        case R_WASM32_HEX16:
+        case R_WASM32_REL32:
           addend = rel->r_addend;
           /* Fall through.  */
         final_link_relocate:
@@ -2680,9 +2684,9 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
                                           relocation, addend);
           break;
 
-        case R_ASMJS_CODE_POINTER:
-        case R_ASMJS_INDEX:
-        case R_ASMJS_PLT_SIG:
+        case R_WASM32_CODE_POINTER:
+        case R_WASM32_INDEX:
+        case R_WASM32_PLT_SIG:
           r = bfd_reloc_ok;
           break;
 

@@ -1579,10 +1579,12 @@ elf_wasm32_finish_dynamic_symbol (bfd * output_bfd,
                    ds.spltfun->contents + hh->pltfunction + i);
 
       set_uleb128 (output_bfd,
-                   bfd_asymbol_value (&hh->pltsig->root.u.def),
+                   bfd_asymbol_value (&hh->pltsig->root.u.def) +
+                   hh->pltsig->root.u.def.section->output_offset,
                    ds.spltfun->contents + hh->pltfunction);
       set_uleb128 (output_bfd,
-                   bfd_asymbol_value (&hh->pltsig->root.u.def),
+                   bfd_asymbol_value (&hh->pltsig->root.u.def) +
+                   hh->pltsig->root.u.def.section->output_offset,
                    splt->contents + h->plt.offset + hh->pltstub_sigoff);
 
       if (PLTNAME) {

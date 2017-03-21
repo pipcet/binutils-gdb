@@ -1,8 +1,7 @@
-/* BFD support for the asm.js target
-   Copyright (C) 1994-2015 Free Software Foundation, Inc.
-   Copyright (C) 2016 Pip Cet <pipcet@gmail.com>
+/* BFD support for the WebAssembly target
+   Copyright (C) 1994-2017 Free Software Foundation, Inc.
 
-   This file is NOT part of BFD, the Binary File Descriptor library.
+   This file is part of BFD, the Binary File Descriptor library.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by

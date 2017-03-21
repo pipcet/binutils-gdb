@@ -30,8 +30,6 @@
 #include "bfd.h"
 #include "sysdep.h"
 #include <limits.h>
-
-#include "bfd.h"
 #include "bfd_stdint.h"
 #include "libiberty.h"
 #include "libbfd.h"
@@ -324,7 +322,7 @@ wasm_scan_name_function_section (bfd *abfd, sec_ptr asect,
   tdata->symcount = symcount;
   symcount = 0;
 
-  bfd_size_type symallocated = 0;
+  bfd_size_type sym_allocated = 0;
   asymbol *symbols = NULL;
   sec_ptr space_function_index = bfd_make_section_with_flags (abfd, ".space.function_index", SEC_READONLY | SEC_CODE);
   if (!space_function_index)
@@ -348,13 +346,13 @@ wasm_scan_name_function_section (bfd *abfd, sec_ptr asect,
 
       p += len;
 
-      if (symcount == symallocated)
+      if (symcount == sym_allocated)
         {
-          symallocated *= 2;
-          if (symallocated == 0)
-            symallocated = 512;
+          sym_allocated *= 2;
+          if (sym_allocated == 0)
+            sym_allocated = 512;
 
-          symbols = bfd_realloc (symbols, symallocated * sizeof (asymbol));
+          symbols = bfd_realloc (symbols, sym_allocated * sizeof (asymbol));
         }
 
       asymbol *sym = &symbols[symcount++];
@@ -416,7 +414,7 @@ wasm_scan (bfd *abfd)
           bfd_vma namelen = wasm_get_uleb128 (abfd, &error);
           if (namelen == (bfd_vma)-1)
             goto error_return;
-          char *name = xmalloc(namelen+1);
+          char *name = bfd_zalloc (abfd, namelen+1);
           name[namelen] = 0;
           if (bfd_bread (name, namelen, abfd) != namelen)
             goto error_return;
@@ -435,7 +433,7 @@ wasm_scan (bfd *abfd)
           bfdsec->alignment_power = 0;
         }
 
-      bfdsec->contents = xmalloc (bfdsec->size);
+      bfdsec->contents = bfd_zalloc (abfd, bfdsec->size);
       if (bfdsec->size && !bfdsec->contents)
         goto error_return;
 
@@ -494,9 +492,9 @@ wasm_compute_custom_section_file_position (bfd *abfd, sec_ptr asect,
 
   if (CONST_STRNEQ (asect->name, ".wasm."))
     {
-      const char *name = asect->name + strlen(".wasm.");
+      const char *name = asect->name + strlen (".wasm.");
       bfd_size_type payload_len = asect->size;
-      bfd_size_type name_len = strlen(name);
+      bfd_size_type name_len = strlen (name);
       bfd_size_type nl = name_len;
 
       payload_len += name_len;
@@ -718,7 +716,7 @@ wasm_object_p (bfd *abfd)
     return NULL;
 
   if (! bfd_default_set_arch_mach (abfd, bfd_arch_wasm32, 0))
-    return FALSE;
+    return NULL;
 
   if (abfd->symcount > 0)
     abfd->flags |= HAS_SYMS;

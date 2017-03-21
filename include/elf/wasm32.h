@@ -1,8 +1,5 @@
-/* ELF support for BFD for the asm.js target.
-   Copyright (C) 1998-2015 Free Software Foundation, Inc.
-   Copyright (C) 2016 Pip Cet <pipcet@gmail.com>
-
-   This file is NOT part of BFD, the Binary File Descriptor library.
+/* ELF support for BFD for the WebAssembly target
+   Copyright (C) 1998-2017 Free Software Foundation, Inc.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -18,8 +15,8 @@
    along with this program; if not, write to the Free Software Foundation,
    Inc., 51 Franklin Street - Fifth Floor, Boston, MA 02110-1301, USA.  */
 
-#ifndef _ELF_ASMJS_H
-#define _ELF_ASMJS_H
+#ifndef _ELF_WASM32_H
+#define _ELF_WASM32_H
 
 #include "elf/reloc-macros.h"
 
@@ -50,6 +47,6 @@ START_RELOC_NUMBERS (elf_wasm32_reloc_type)
   RELOC_NUMBER (R_ASMJS_CODE_POINTER,            21)
   RELOC_NUMBER (R_ASMJS_INDEX,                   22)
   RELOC_NUMBER (R_ASMJS_PLT_SIG,                 23)
-END_RELOC_NUMBERS (R_ASMJS_max = 23)
+END_RELOC_NUMBERS (R_WASM32_max = 1)
 
-#endif /* _ELF_ASMJS_H */
+#endif /* _ELF_WASM32_H */

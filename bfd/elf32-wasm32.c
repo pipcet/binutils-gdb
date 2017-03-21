@@ -1,8 +1,7 @@
-/* 32-bit ELF for the asm.js target
-   Copyright (C) 1999-2015 Free Software Foundation, Inc.
-   Copyright (C) 2016 Pip Cet <pipcet@gmail.com>
+/* 32-bit ELF for the WebAssembly target
+   Copyright (C) 1999-2017 Free Software Foundation, Inc.
 
-   This file is NOT part of BFD, the Binary File Descriptor library.
+   This file is part of BFD, the Binary File Descriptor library.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -24,14 +23,13 @@
 #include "libbfd.h"
 #include "elf-bfd.h"
 #include "bfd_stdint.h"
-
-#include "elf-bfd.h"
 #include "elf/wasm32.h"
 
 #define ELF_ARCH		bfd_arch_wasm32
-#define ELF_TARGET_ID		0x4157 // 'WA'
-#define ELF_MACHINE_CODE	0x4157 // 'WA'
-/* See https://github.com/pipcet/binutils-gdb/issues/4 */
+#define ELF_TARGET_ID		0x4157 /* 'WA' */
+#define ELF_MACHINE_CODE	0x4157 /* 'WA' */
+/* FIXME we don't have paged executables, see
+ * https://github.com/pipcet/binutils-gdb/issues/4 */
 #define ELF_MAXPAGESIZE		4096
 
 #define TARGET_LITTLE_SYM       wasm32_elf32_vec

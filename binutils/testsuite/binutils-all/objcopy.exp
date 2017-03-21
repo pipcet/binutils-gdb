@@ -575,7 +575,7 @@ proc copy_setup { } {
 	return 1
     }
 
-    if { [istarget *-*-wasm32*] } {
+    if { [istarget wasm32-*-*] } {
         # work around https://github.com/pipcet/binutils-gdb/issues/4
         set flags "-static $flags"
     }

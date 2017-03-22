@@ -1,5 +1,5 @@
 /* BFD support for the WebAssembly target
-   Copyright (C) 1994-2017 Free Software Foundation, Inc.
+   Copyright (C) 2017 Free Software Foundation, Inc.
 
    This file is part of BFD, the Binary File Descriptor library.
 
@@ -29,7 +29,7 @@
 
 static const bfd_arch_info_type arch_info_struct[] =
 {
-  N (bfd_mach_wasm32,      "wasm32",   TRUE, NULL)
+  N (bfd_mach_wasm32, "wasm32", TRUE, NULL)
 };
 
 const bfd_arch_info_type bfd_wasm32_arch =

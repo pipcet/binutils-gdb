@@ -2436,11 +2436,9 @@ tilepro_elf_omit_section_dynsym (bfd *output_bfd,
 #define ELF32_DYNAMIC_INTERPRETER "/lib/ld.so.1"
 
 static bfd_boolean
-tilepro_elf_size_dynamic_sections (bfd *output_bfd,
+tilepro_elf_size_dynamic_sections (bfd *output_bfd ATTRIBUTE_UNUSED,
 				      struct bfd_link_info *info)
 {
-  (void)output_bfd;
-
   struct tilepro_elf_link_hash_table *htab;
   bfd *dynobj;
   asection *s;
@@ -3605,6 +3603,10 @@ tilepro_elf_relocate_section (bfd *output_bfd, struct bfd_link_info *info,
       }
       else
       {
+        bfd_byte *data;
+        tilepro_bundle_bits mask;
+        tilepro_bundle_bits value;
+
         if (howto->pc_relative)
         {
           relocation -=
@@ -3612,8 +3614,6 @@ tilepro_elf_relocate_section (bfd *output_bfd, struct bfd_link_info *info,
           if (howto->pcrel_offset)
             relocation -= rel->r_offset;
         }
-
-        bfd_byte *data;
 
         /* Add the relocation addend if any to the final target value */
         relocation += rel->r_addend;
@@ -3629,8 +3629,8 @@ tilepro_elf_relocate_section (bfd *output_bfd, struct bfd_link_info *info,
          * Write the relocated value out into the raw section data.
          * Don't put a relocation out in the .rela section.
          */
-        tilepro_bundle_bits mask = create_func(-1);
-        tilepro_bundle_bits value = create_func(relocation >> howto->rightshift);
+        mask = create_func(-1);
+        value = create_func(relocation >> howto->rightshift);
 
         /* Only touch bytes while the mask is not 0, so we
            don't write to out of bounds memory if this is actually

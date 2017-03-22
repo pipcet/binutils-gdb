@@ -235,10 +235,10 @@ arc_fill_got_info_for_reloc (enum tls_type_e type,
 
       case GOT_TLS_GD:
 	{
-	  bfd_vma offset
-	    = ADD_SYMBOL_REF_SEC_AND_RELOC (got, TRUE, h);
-	  bfd_vma ATTRIBUTE_UNUSED notneeded
-	    = ADD_SYMBOL_REF_SEC_AND_RELOC (got, TRUE, h);
+	  bfd_vma offset;
+	  bfd_vma ATTRIBUTE_UNUSED notneeded;
+          offset = ADD_SYMBOL_REF_SEC_AND_RELOC (got, TRUE, h);
+          notneeded = ADD_SYMBOL_REF_SEC_AND_RELOC (got, TRUE, h);
 	  new_got_entry_to_list (list, type, offset, TLS_GOT_MOD_AND_OFF);
 	}
 	break;
@@ -324,8 +324,9 @@ relocate_fix_got_relocs_for_got_info (struct got_entry **          list_p,
 	    {
 	    case GOT_TLS_GD:
 	      {
+		bfd_vma sec_vma;
 		BFD_ASSERT (tls_sec && tls_sec->output_section);
-		bfd_vma sec_vma = tls_sec->output_section->vma;
+		sec_vma = tls_sec->output_section->vma;
 
 		bfd_put_32 (output_bfd,
 			    sym_value - sec_vma,
@@ -349,9 +350,9 @@ relocate_fix_got_relocs_for_got_info (struct got_entry **          list_p,
 
 	    case GOT_TLS_IE:
 	      {
+		bfd_vma ATTRIBUTE_UNUSED sec_vma;
 		BFD_ASSERT (tls_sec && tls_sec->output_section);
-		bfd_vma ATTRIBUTE_UNUSED sec_vma
-		  = tls_sec->output_section->vma;
+		sec_vma = tls_sec->output_section->vma;
 
 		bfd_put_32 (output_bfd,
 			    sym_value - sec_vma,
@@ -421,10 +422,12 @@ create_got_dynrelocs_for_single_entry (struct got_entry *list,
 				       struct bfd_link_info *  info,
 				       struct elf_link_hash_entry *h)
 {
+  bfd_vma got_offset;
+
   if (list == NULL)
     return;
 
-  bfd_vma got_offset = list->offset;
+  got_offset = list->offset;
 
   if (list->type == GOT_NORMAL
       && list->created_dyn_relocation == FALSE)
@@ -455,11 +458,12 @@ create_got_dynrelocs_for_single_entry (struct got_entry *list,
 	  work for local symbols.  */
       struct elf_link_hash_table *htab = elf_hash_table (info);
       enum tls_got_entries e = list->existing_entries;
+      bfd_vma dynindx;
 
       BFD_ASSERT (list->type != GOT_TLS_GD
     	      || list->existing_entries == TLS_GOT_MOD_AND_OFF);
 
-      bfd_vma dynindx = (h == NULL || h->dynindx == -1) ? 0 : h->dynindx;
+      dynindx = (h == NULL || h->dynindx == -1) ? 0 : h->dynindx;
 
       if (e == TLS_GOT_MOD_AND_OFF || e == TLS_GOT_MOD)
 	{
@@ -506,10 +510,11 @@ create_got_dynrelocs_for_got_info (struct got_entry **list_p,
 				   struct bfd_link_info *  info,
 			     	   struct elf_link_hash_entry *h)
 {
+  struct got_entry *list;
+
   if (list_p == NULL)
     return;
-
-  struct got_entry *list = *list_p;
+  list = *list_p;
   /* Traverse the list of got entries for this symbol.  */
   while (list)
     {

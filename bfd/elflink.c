@@ -8760,6 +8760,7 @@ elf_link_sort_relocs (bfd *abfd, struct bfd_link_info *info, asection **psec)
   struct bfd_link_order *lo;
   bfd_vma r_sym_mask;
   bfd_boolean use_rela;
+  struct elf_link_hash_table *htab = elf_hash_table (info);
 
   /* Find a dynamic reloc section.  */
   rela_dyn = bfd_get_section_by_name (abfd, ".rela.dyn");
@@ -8995,7 +8996,7 @@ elf_link_sort_relocs (bfd *abfd, struct bfd_link_info *info, asection **psec)
 
   qsort (s_non_relative, count - ret, sort_elt, elf_link_sort_cmp2);
 
-  struct elf_link_hash_table *htab = elf_hash_table (info);
+  htab = elf_hash_table (info);
   if (htab->srelplt && htab->srelplt->output_section == dynamic_relocs)
     {
       /* We have plt relocs in .rela.dyn.  */

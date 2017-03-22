@@ -6359,11 +6359,11 @@ elf32_arm_size_stubs (bfd *output_bfd,
 		      if (hash->root.root.type == bfd_link_hash_defined
 			  || hash->root.root.type == bfd_link_hash_defweak)
 			{
-			  sym_sec = hash->root.root.u.def.section;
-			  sym_value = hash->root.root.u.def.value;
-
 			  struct elf32_arm_link_hash_table *globals =
 						  elf32_arm_hash_table (info);
+
+			  sym_sec = hash->root.root.u.def.section;
+			  sym_value = hash->root.root.u.def.value;
 
 			  /* For a destination in a shared library,
 			     use the PLT stub as target address to
@@ -10607,6 +10607,7 @@ elf32_arm_final_link_relocate (reloc_howto_type *           howto,
 	int bitsize;
 	const int thumb2 = using_thumb2 (globals);
 	const int thumb2_bl = using_thumb2_bl (globals);
+	enum elf32_arm_stub_type stub_type = arm_stub_none;
 
 	/* A branch to an undefined weak symbol is turned into a jump to
 	   the next instruction unless a PLT entry will be created.
@@ -10692,7 +10693,6 @@ elf32_arm_final_link_relocate (reloc_howto_type *           howto,
 	      }
 	  }
 
-	enum elf32_arm_stub_type stub_type = arm_stub_none;
 	if (r_type == R_ARM_THM_CALL || r_type == R_ARM_THM_JUMP24)
 	  {
 	    /* Check if a stub has to be inserted because the destination
@@ -11421,8 +11421,10 @@ elf32_arm_final_link_relocate (reloc_howto_type *           howto,
 	    bfd_signed_vma offset;
 	    /* TLS stubs are arm mode.  The original symbol is a
 	       data object, so branch_type is bogus.  */
+	    enum elf32_arm_stub_type stub_type;
+
 	    branch_type = ST_BRANCH_TO_ARM;
-	    enum elf32_arm_stub_type stub_type
+	    stub_type
 	      = arm_type_of_stub (info, input_section, rel,
 				  st_type, &branch_type,
 				  (struct elf32_arm_link_hash_entry *)h,
@@ -12869,6 +12871,8 @@ elf32_arm_final_link (bfd *abfd, struct bfd_link_info *info)
 {
   struct elf32_arm_link_hash_table *globals = elf32_arm_hash_table (info);
   asection *sec, *osec;
+  struct elf32_arm_link_hash_table *htab;
+  unsigned int i;
 
   if (globals == NULL)
     return FALSE;
@@ -12878,8 +12882,7 @@ elf32_arm_final_link (bfd *abfd, struct bfd_link_info *info)
     return FALSE;
 
   /* Process stub sections (eg BE8 encoding, ...).  */
-  struct elf32_arm_link_hash_table *htab = elf32_arm_hash_table (info);
-  unsigned int i;
+  htab = elf32_arm_hash_table (info);
   for (i=0; i<htab->top_id; i++)
     {
       sec = htab->stub_group[i].stub_sec;
@@ -17713,11 +17716,12 @@ create_instruction_branch_absolute (int branch_offset)
   int s = ((branch_offset & 0x1000000) >> 24);
   int j1 = s ^ !((branch_offset & 0x800000) >> 23);
   int j2 = s ^ !((branch_offset & 0x400000) >> 22);
+  bfd_vma patched_inst;
 
   if (branch_offset < -(1 << 24) || branch_offset >= (1 << 24))
     BFD_ASSERT (0 && "Error: branch out of range.  Cannot create branch.");
 
-  bfd_vma patched_inst = 0xf0009000
+  patched_inst = 0xf0009000
     | s << 26 /* S.  */
     | (((unsigned long) (branch_offset) >> 12) & 0x3ff) << 16 /* imm10.  */
     | j1 << 13 /* J1.  */

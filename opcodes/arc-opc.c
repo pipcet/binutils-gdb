@@ -655,12 +655,13 @@ extract_g_s (unsigned long long insn ATTRIBUTE_UNUSED,
 	     bfd_boolean * invalid ATTRIBUTE_UNUSED)
 {
   int value = 0;
+  int signbit;
 
   value |= ((insn >> 8) & 0x0007) << 0;
   value |= ((insn >> 3) & 0x0003) << 3;
 
   /* Extend the sign.  */
-  int signbit = 1 << (6 - 1);
+  signbit = 1 << (6 - 1);
   value = (value ^ signbit) - signbit;
 
   return value;

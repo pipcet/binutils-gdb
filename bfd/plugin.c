@@ -194,11 +194,12 @@ try_claim (bfd *abfd)
 {
   int claimed = 0;
   struct ld_plugin_input_file file;
+  off_t cur_offset;
 
   if (!bfd_plugin_open_input (abfd, &file))
     return 0;
   file.handle = abfd;
-  off_t cur_offset = lseek (file.fd, 0, SEEK_CUR);
+  cur_offset = lseek (file.fd, 0, SEEK_CUR);
   claim_file (&file, &claimed);
   lseek (file.fd, cur_offset, SEEK_SET);
   return claimed;

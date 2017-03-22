@@ -4255,6 +4255,11 @@ elf32_tic6x_write_section (bfd *output_bfd,
   struct elf32_tic6x_link_hash_table *globals
     = elf32_tic6x_hash_table (link_info);
   bfd_vma offset = sec->output_section->vma + sec->output_offset;
+  tic6x_unwind_table_edit *edit_node;
+  bfd_byte *edited_contents;
+  unsigned int input_size;
+  unsigned int in_index, out_index;
+  bfd_vma add_to_offsets = 0;
 
   if (globals == NULL)
     return FALSE;
@@ -4268,16 +4273,13 @@ elf32_tic6x_write_section (bfd *output_bfd,
   if (tic6x_data->elf.this_hdr.sh_type != SHT_C6000_UNWIND)
     return FALSE;
 
-  tic6x_unwind_table_edit *edit_node
-    = tic6x_data->u.exidx.unwind_edit_list;
+  edit_node = tic6x_data->u.exidx.unwind_edit_list;
   /* Now, sec->size is the size of the section we will write.  The original
      size (before we merged duplicate entries and inserted EXIDX_CANTUNWIND
      markers) was sec->rawsize.  (This isn't the case if we perform no
      edits, then rawsize will be zero and we should use size).  */
-  bfd_byte *edited_contents = (bfd_byte *) bfd_malloc (sec->size);
-  unsigned int input_size = sec->rawsize ? sec->rawsize : sec->size;
-  unsigned int in_index, out_index;
-  bfd_vma add_to_offsets = 0;
+  edited_contents = (bfd_byte *) bfd_malloc (sec->size);
+  input_size = sec->rawsize ? sec->rawsize : sec->size;
 
   for (in_index = 0, out_index = 0; in_index * 8 < input_size || edit_node;)
     {

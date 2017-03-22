@@ -100,12 +100,12 @@ extract_simm12_20 (unsigned long long insn ATTRIBUTE_UNUSED,
 		   bfd_boolean * invalid ATTRIBUTE_UNUSED)
 {
   int value = 0;
+  int signbit = 1 << (12 - 1);
 
   value |= ((insn >> 6) & 0x003f) << 0;
   value |= ((insn >> 0) & 0x003f) << 6;
 
   /* Extend the sign.  */
-  int signbit = 1 << (12 - 1);
   value = (value ^ signbit) - signbit;
 
   return value;
@@ -136,11 +136,11 @@ extract_simm3_5_s (unsigned long long insn ATTRIBUTE_UNUSED,
 		   bfd_boolean * invalid ATTRIBUTE_UNUSED)
 {
   int value = 0;
+  int signbit = 1 << (3 - 1);
 
   value |= ((insn >> 8) & 0x0007) << 0;
 
   /* Extend the sign.  */
-  int signbit = 1 << (3 - 1);
   value = (value ^ signbit) - signbit;
 
   return value;
@@ -294,11 +294,11 @@ extract_simm11_a32_7_s (unsigned long long insn ATTRIBUTE_UNUSED,
 			bfd_boolean * invalid ATTRIBUTE_UNUSED)
 {
   int value = 0;
+  int signbit = 1 << (11 - 1);
 
   value |= ((insn >> 0) & 0x01ff) << 2;
 
   /* Extend the sign.  */
-  int signbit = 1 << (11 - 1);
   value = (value ^ signbit) - signbit;
 
   return value;
@@ -396,12 +396,12 @@ extract_simm9_a16_8 (unsigned long long insn ATTRIBUTE_UNUSED,
 		     bfd_boolean * invalid ATTRIBUTE_UNUSED)
 {
   int value = 0;
+  int signbit = 1 << (9 - 1);
 
   value |= ((insn >> 17) & 0x007f) << 1;
   value |= ((insn >> 15) & 0x0001) << 8;
 
   /* Extend the sign.  */
-  int signbit = 1 << (9 - 1);
   value = (value ^ signbit) - signbit;
 
   return value;
@@ -466,12 +466,12 @@ extract_simm21_a16_5 (unsigned long long insn ATTRIBUTE_UNUSED,
 		      bfd_boolean * invalid ATTRIBUTE_UNUSED)
 {
   int value = 0;
+  int signbit = 1 << (21 - 1);
 
   value |= ((insn >> 17) & 0x03ff) << 1;
   value |= ((insn >> 6) & 0x03ff) << 11;
 
   /* Extend the sign.  */
-  int signbit = 1 << (21 - 1);
   value = (value ^ signbit) - signbit;
 
   return value;
@@ -506,13 +506,13 @@ extract_simm25_a16_5 (unsigned long long insn ATTRIBUTE_UNUSED,
 		      bfd_boolean * invalid ATTRIBUTE_UNUSED)
 {
   int value = 0;
+  int signbit = 1 << (25 - 1);
 
   value |= ((insn >> 17) & 0x03ff) << 1;
   value |= ((insn >> 6) & 0x03ff) << 11;
   value |= ((insn >> 0) & 0x000f) << 21;
 
   /* Extend the sign.  */
-  int signbit = 1 << (25 - 1);
   value = (value ^ signbit) - signbit;
 
   return value;
@@ -545,11 +545,11 @@ extract_simm10_a16_7_s (unsigned long long insn ATTRIBUTE_UNUSED,
 			bfd_boolean * invalid ATTRIBUTE_UNUSED)
 {
   int value = 0;
+  int signbit = 1 << (10 - 1);
 
   value |= ((insn >> 0) & 0x01ff) << 1;
 
   /* Extend the sign.  */
-  int signbit = 1 << (10 - 1);
   value = (value ^ signbit) - signbit;
 
   return value;
@@ -582,11 +582,11 @@ extract_simm7_a16_10_s (unsigned long long insn ATTRIBUTE_UNUSED,
 			bfd_boolean * invalid ATTRIBUTE_UNUSED)
 {
   int value = 0;
+  int signbit = 1 << (7 - 1);
 
   value |= ((insn >> 0) & 0x003f) << 1;
 
   /* Extend the sign.  */
-  int signbit = 1 << (7 - 1);
   value = (value ^ signbit) - signbit;
 
   return value;
@@ -620,12 +620,12 @@ extract_simm21_a32_5 (unsigned long long insn ATTRIBUTE_UNUSED,
 		      bfd_boolean * invalid ATTRIBUTE_UNUSED)
 {
   int value = 0;
+  int signbit = 1 << (21 - 1);
 
   value |= ((insn >> 18) & 0x01ff) << 2;
   value |= ((insn >> 6) & 0x03ff) << 11;
 
   /* Extend the sign.  */
-  int signbit = 1 << (21 - 1);
   value = (value ^ signbit) - signbit;
 
   return value;
@@ -660,13 +660,13 @@ extract_simm25_a32_5 (unsigned long long insn ATTRIBUTE_UNUSED,
 		      bfd_boolean * invalid ATTRIBUTE_UNUSED)
 {
   int value = 0;
+  int signbit = 1 << (25 - 1);
 
   value |= ((insn >> 18) & 0x01ff) << 2;
   value |= ((insn >> 6) & 0x03ff) << 11;
   value |= ((insn >> 0) & 0x000f) << 21;
 
   /* Extend the sign.  */
-  int signbit = 1 << (25 - 1);
   value = (value ^ signbit) - signbit;
 
   return value;
@@ -699,11 +699,11 @@ extract_simm13_a32_5_s (unsigned long long insn ATTRIBUTE_UNUSED,
 			bfd_boolean * invalid ATTRIBUTE_UNUSED)
 {
   int value = 0;
+  int signbit = 1 << (13 - 1);
 
   value |= ((insn >> 0) & 0x07ff) << 2;
 
   /* Extend the sign.  */
-  int signbit = 1 << (13 - 1);
   value = (value ^ signbit) - signbit;
 
   return value;
@@ -736,11 +736,11 @@ extract_simm8_a16_9_s (unsigned long long insn ATTRIBUTE_UNUSED,
 		       bfd_boolean * invalid ATTRIBUTE_UNUSED)
 {
   int value = 0;
+  int signbit = 1 << (8 - 1);
 
   value |= ((insn >> 0) & 0x007f) << 1;
 
   /* Extend the sign.  */
-  int signbit = 1 << (8 - 1);
   value = (value ^ signbit) - signbit;
 
   return value;
@@ -867,12 +867,12 @@ extract_simm9_8 (unsigned long long insn ATTRIBUTE_UNUSED,
 		 bfd_boolean * invalid ATTRIBUTE_UNUSED)
 {
   int value = 0;
+  int signbit = 1 << (9 - 1);
 
   value |= ((insn >> 16) & 0x00ff) << 0;
   value |= ((insn >> 15) & 0x0001) << 8;
 
   /* Extend the sign.  */
-  int signbit = 1 << (9 - 1);
   value = (value ^ signbit) - signbit;
 
   return value;
@@ -936,11 +936,11 @@ extract_simm9_7_s (unsigned long long insn ATTRIBUTE_UNUSED,
 		   bfd_boolean * invalid ATTRIBUTE_UNUSED)
 {
   int value = 0;
+  int signbit = 1 << (9 - 1);
 
   value |= ((insn >> 0) & 0x01ff) << 0;
 
   /* Extend the sign.  */
-  int signbit = 1 << (9 - 1);
   value = (value ^ signbit) - signbit;
 
   return value;
@@ -1042,12 +1042,12 @@ extract_simm11_a32_13_s (unsigned long long insn ATTRIBUTE_UNUSED,
 			 bfd_boolean * invalid ATTRIBUTE_UNUSED)
 {
   int value = 0;
+  int signbit = 1 << (11 - 1);
 
   value |= ((insn >> 0) & 0x0007) << 2;
   value |= ((insn >> 5) & 0x003f) << 5;
 
   /* Extend the sign.  */
-  int signbit = 1 << (11 - 1);
   value = (value ^ signbit) - signbit;
 
   return value;
@@ -1213,12 +1213,12 @@ extract_simm13_a16_20 (unsigned long long insn ATTRIBUTE_UNUSED,
 		       bfd_boolean * invalid ATTRIBUTE_UNUSED)
 {
   int value = 0;
+  int signbit = 1 << (13 - 1);
 
   value |= ((insn >> 6) & 0x003f) << 1;
   value |= ((insn >> 0) & 0x003f) << 7;
 
   /* Extend the sign.  */
-  int signbit = 1 << (13 - 1);
   value = (value ^ signbit) - signbit;
 
   return value;

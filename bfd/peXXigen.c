@@ -1406,6 +1406,7 @@ pe_print_idata (bfd * abfd, void * vfile)
       int idx = 0;
       bfd_size_type j;
       char *dll;
+      bfd_size_type maxlen;
 
       /* Print (i + extra->DataDirectory[PE_IMPORT_TABLE].VirtualAddress).  */
       fprintf (file, " %08lx\t", (unsigned long) (i + adj));
@@ -1430,7 +1431,7 @@ pe_print_idata (bfd * abfd, void * vfile)
 
       dll = (char *) data + dll_name - adj;
       /* PR 17512 file: 078-12277-0.004.  */
-      bfd_size_type maxlen = (char *)(data + datasize) - dll - 1;
+      maxlen = (char *)(data + datasize) - dll - 1;
       fprintf (file, _("\n\tDLL Name: %.*s\n"), (int) maxlen, dll);
 
       if (hint_addr != 0)
@@ -3111,6 +3112,7 @@ rsrc_count_entries (bfd *          abfd,
   if (is_name)
     {
       bfd_byte * name;
+      unsigned int len;
 
       entry = (long) bfd_get_32 (abfd, data);
 
@@ -3122,7 +3124,7 @@ rsrc_count_entries (bfd *          abfd,
       if (name + 2 >= dataend || name < datastart)
 	return dataend + 1;
 
-      unsigned int len = bfd_get_16 (abfd, name);
+      len = bfd_get_16 (abfd, name);
       if (len == 0 || len > 256)
 	return dataend + 1;
     }

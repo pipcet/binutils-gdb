@@ -239,9 +239,9 @@ pru_disassemble (bfd_vma address, unsigned long opcode,
 
   if (op != NULL)
     {
+      const char *argstr = op->args;
       (*info->fprintf_func) (info->stream, "%s", op->name);
 
-      const char *argstr = op->args;
       if (argstr != NULL && *argstr != '\0')
 	{
 	  (*info->fprintf_func) (info->stream, "\t");

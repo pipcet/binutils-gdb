@@ -2261,15 +2261,14 @@ write_dwarf_eh_frame_hdr (bfd *abfd, struct bfd_link_info *info)
   struct eh_frame_hdr_info *hdr_info;
   asection *sec;
   bfd_boolean retval = TRUE;
-
-  htab = elf_hash_table (info);
-  hdr_info = &htab->eh_info;
-  sec = hdr_info->hdr_sec;
   bfd_byte *contents;
   asection *eh_frame_sec;
   bfd_size_type size;
   bfd_vma encoded_eh_frame;
 
+  htab = elf_hash_table (info);
+  hdr_info = &htab->eh_info;
+  sec = hdr_info->hdr_sec;
   size = EH_FRAME_HDR_SIZE;
   if (hdr_info->u.dwarf.array
       && hdr_info->array_count == hdr_info->u.dwarf.fde_count)

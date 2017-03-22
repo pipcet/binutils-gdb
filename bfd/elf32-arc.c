@@ -1266,9 +1266,10 @@ elf_arc_relocate_section (bfd *		          output_bfd,
 			(reloc_data.sym_section->output_offset
 			 + reloc_data.sym_section->output_section->vma)
 		      : 0);
+		  bfd_vma got_offset;
 
 		  BFD_ASSERT (h->got.glist);
-		  bfd_vma got_offset = h->got.glist->offset;
+		  got_offset = h->got.glist->offset;
 		  bfd_put_32 (output_bfd, relocation,
 			      htab->sgot->contents + got_offset);
 		}
@@ -1336,10 +1337,11 @@ elf_arc_relocate_section (bfd *		          output_bfd,
       if ((is_reloc_for_GOT (howto)
 	   || is_reloc_for_TLS (howto)))
 	{
+	  struct got_entry **list;
 	  reloc_data.should_relocate = TRUE;
 
-	  struct got_entry **list
-	    = get_got_entry_list_for_symbol (output_bfd, r_symndx, h);
+	  list =
+            get_got_entry_list_for_symbol (output_bfd, r_symndx, h);
 
 	  reloc_data.got_offset_value
 	    = relocate_fix_got_relocs_for_got_info (list,
@@ -2028,6 +2030,9 @@ elf_arc_finish_dynamic_symbol (bfd * output_bfd,
   if (h->needs_copy)
     {
       struct elf_arc_link_hash_table *arc_htab = elf_arc_hash_table (info);
+      bfd_vma rel_offset;
+      bfd_byte * loc;
+      Elf_Internal_Rela rel;
 
       if (h->dynindx == -1
 	  || (h->root.type != bfd_link_hash_defined
@@ -2035,15 +2040,14 @@ elf_arc_finish_dynamic_symbol (bfd * output_bfd,
 	  || arc_htab->elf.srelbss == NULL)
 	abort ();
 
-      bfd_vma rel_offset = (h->root.u.def.value
-			    + h->root.u.def.section->output_section->vma
-			    + h->root.u.def.section->output_offset);
+      rel_offset = (h->root.u.def.value
+                    + h->root.u.def.section->output_section->vma
+                    + h->root.u.def.section->output_offset);
 
-      bfd_byte * loc = arc_htab->elf.srelbss->contents
+      loc = arc_htab->elf.srelbss->contents
 	+ (arc_htab->elf.srelbss->reloc_count * sizeof (Elf32_External_Rela));
       arc_htab->elf.srelbss->reloc_count++;
 
-      Elf_Internal_Rela rel;
       rel.r_addend = 0;
       rel.r_offset = rel_offset;
 

@@ -130,11 +130,11 @@ extract_fields (aarch64_insn code, aarch64_insn mask, ...)
   const aarch64_field *field;
   enum aarch64_field_kind kind;
   va_list va;
+  aarch64_insn value = 0x0;
 
   va_start (va, mask);
   num = va_arg (va, uint32_t);
   assert (num <= 5);
-  aarch64_insn value = 0x0;
   while (num--)
     {
       kind = va_arg (va, enum aarch64_field_kind);
@@ -298,9 +298,10 @@ aarch64_ext_reglane (const aarch64_operand *self, aarch64_opnd_info *info,
 	  && inst->opcode->operands[0] == AARCH64_OPND_Ed)
 	{
 	  unsigned shift;
+	  aarch64_insn value = extract_field (FLD_imm4, code, 0);
+
 	  /* index2 for e.g. INS <Vd>.<Ts>[<index1>], <Vn>.<Ts>[<index2>].  */
 	  assert (info->idx == 1);	/* Vn */
-	  aarch64_insn value = extract_field (FLD_imm4, code, 0);
 	  /* Depend on AARCH64_OPND_Ed to determine the qualifier.  */
 	  info->qualifier = get_expected_qualifier (inst, info->idx);
 	  shift = get_logsz (aarch64_get_qualifier_esize (info->qualifier));

@@ -2522,8 +2522,9 @@ coff_pointerize_aux_hook (bfd *abfd ATTRIBUTE_UNUSED,
 			  unsigned int indaux,
 			  combined_entry_type *aux)
 {
+  int n_sclass;
   BFD_ASSERT (symbol->is_sym);
-  int n_sclass = symbol->u.syment.n_sclass;
+  n_sclass = symbol->u.syment.n_sclass;
 
   if (CSECT_SYM_P (n_sclass)
       && indaux + 1 == symbol->u.syment.n_numaux)

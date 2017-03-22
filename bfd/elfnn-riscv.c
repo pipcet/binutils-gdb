@@ -1484,6 +1484,8 @@ perform_relocation (const reloc_howto_type *howto,
 		    bfd *input_bfd,
 		    bfd_byte *contents)
 {
+  bfd_vma word;
+
   if (howto->pc_relative)
     value -= sec_addr (input_section) + rel->r_offset;
   value += rel->r_addend;
@@ -1578,7 +1580,7 @@ perform_relocation (const reloc_howto_type *howto,
       return bfd_reloc_notsupported;
     }
 
-  bfd_vma word = bfd_get (howto->bitsize, input_bfd, contents + rel->r_offset);
+  word = bfd_get (howto->bitsize, input_bfd, contents + rel->r_offset);
   word = (word & ~howto->dst_mask) | (value & howto->dst_mask);
   bfd_put (howto->bitsize, input_bfd, word, contents + rel->r_offset);
 
@@ -2932,12 +2934,15 @@ _bfd_riscv_relax_align (bfd *abfd, asection *sec,
 {
   bfd_byte *contents = elf_section_data (sec)->this_hdr.contents;
   bfd_vma alignment = 1, pos;
+  bfd_vma aligned_addr;
+  bfd_vma nop_bytes;
+
   while (alignment <= rel->r_addend)
     alignment *= 2;
 
   symval -= rel->r_addend;
-  bfd_vma aligned_addr = ((symval - 1) & ~(alignment - 1)) + alignment;
-  bfd_vma nop_bytes = aligned_addr - symval;
+  aligned_addr = ((symval - 1) & ~(alignment - 1)) + alignment;
+  nop_bytes = aligned_addr - symval;
 
   /* Once we've handled an R_RISCV_ALIGN, we can't relax anything else.  */
   sec->sec_flg0 = TRUE;

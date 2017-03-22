@@ -10806,10 +10806,12 @@ get_r2off (struct bfd_link_info *info,
       /* Support linking -R objects.  Get the toc pointer from the
 	 opd entry.  */
       char buf[8];
+      asection *opd;
+      bfd_vma opd_off;
       if (!htab->opd_abi)
 	return r2off;
-      asection *opd = stub_entry->h->elf.root.u.def.section;
-      bfd_vma opd_off = stub_entry->h->elf.root.u.def.value;
+      opd = stub_entry->h->elf.root.u.def.section;
+      opd_off = stub_entry->h->elf.root.u.def.value;
 
       if (strcmp (opd->name, ".opd") != 0
 	  || opd->reloc_count != 0)

@@ -522,10 +522,9 @@ print_insn_score48 (struct disassemble_info *info, bfd_vma given)
       /* Using insn->mask &0xff00000000 to distinguish 48/32 bit.  */
       if (((insn->mask & 0xff0000000000LL)!=0) && (given & insn->mask) == insn->value)
         {
-           info->bytes_per_chunk = 2;
-           info->bytes_per_line =6;
-
           char *c;
+          info->bytes_per_chunk = 2;
+          info->bytes_per_line =6;
 
           for (c = insn->assembler; *c; c++)
             {
@@ -680,6 +679,7 @@ print_insn_score32 (bfd_vma pc, struct disassemble_info *info, long given)
     {
       if (((insn->mask & 0xff0000000000LL)==0)&&(insn->mask & 0xffff0000) && (given & insn->mask) == insn->value)
         {
+          char *c;
           /* check for bcmpeq / bcmpeqz / bcmpne / bcmpnez */
             /* given &0x7c00 is for to test if rb is zero  ,
                  rb_equal_zero =1 : index to bcmpeqz
@@ -692,7 +692,6 @@ print_insn_score32 (bfd_vma pc, struct disassemble_info *info, long given)
                continue;
              }
 
-          char *c;
 
           for (c = insn->assembler; *c; c++)
             {
@@ -736,11 +735,12 @@ print_insn_score32 (bfd_vma pc, struct disassemble_info *info, long given)
                                long reg;
                                int bitstart = 10;
                                int bitend = 14;
-                               reg = given >> bitstart;
-                               reg &= (2 << (bitend - bitstart)) - 1;
                                /* Sign-extend a 20-bit number.  */
                                int disp = (given&1)<<1 |((given>>7)&7)<<2 |((given>>20)&0x1f)<<5;
                                int target = (pc + SEXT10 (disp));
+
+                               reg = given >> bitstart;
+                               reg &= (2 << (bitend - bitstart)) - 1;
                                func (stream, "%s ,", score_regnames[reg] );
                                   (*info->print_address_func) (target, info);
 

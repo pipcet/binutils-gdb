@@ -120,8 +120,7 @@ avr_operand (unsigned int insn, unsigned int insn2, unsigned int pc, int constra
       *buf++ = 'Z';
 
       /* Check for post-increment. */
-      char *s;
-      for (s = opcode_str; *s; ++s)
+      for (char *s = opcode_str; *s; ++s)
         {
           if (*s == '+')
             {

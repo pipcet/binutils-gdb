@@ -1977,6 +1977,7 @@ microblaze_elf_relax_section (bfd *abfd,
 		    {
 		      bfd_vma immediate;
 		      bfd_vma target_address;
+		      unsigned long instr;
 
 		      if (ocontents == NULL)
 			{
@@ -2000,7 +2001,7 @@ microblaze_elf_relax_section (bfd *abfd,
 			    }
 			}
 
-		      unsigned long instr = bfd_get_32 (abfd, ocontents + irelscan->r_offset);
+		      instr = bfd_get_32 (abfd, ocontents + irelscan->r_offset);
 		      immediate = instr & 0x0000ffff;
 		      target_address = immediate;
 		      offset = calc_fixup (target_address, 0, sec);
@@ -2020,6 +2021,7 @@ microblaze_elf_relax_section (bfd *abfd,
 		      && (ELF32_ST_TYPE (isym->st_info) == STT_SECTION))
 		    {
 		      bfd_vma immediate;
+                      unsigned long instr_hi, instr_lo;
 
 		      if (ocontents == NULL)
 			{
@@ -2043,11 +2045,11 @@ microblaze_elf_relax_section (bfd *abfd,
 			      elf_section_data (o)->this_hdr.contents = ocontents;
 			    }
 			}
-          unsigned long instr_hi =  bfd_get_32 (abfd, ocontents
-                                                + irelscan->r_offset);
-          unsigned long instr_lo =  bfd_get_32 (abfd, ocontents
-                                                + irelscan->r_offset
-                                                + INST_WORD_SIZE);
+                      instr_hi =  bfd_get_32 (abfd, ocontents
+                                              + irelscan->r_offset);
+                      instr_lo =  bfd_get_32 (abfd, ocontents
+                                              + irelscan->r_offset
+                                              + INST_WORD_SIZE);
           immediate = (instr_hi & 0x0000ffff) << 16;
           immediate |= (instr_lo & 0x0000ffff);
 		      offset = calc_fixup (irelscan->r_addend, 0, sec);
@@ -2065,6 +2067,7 @@ microblaze_elf_relax_section (bfd *abfd,
 		    {
 		      bfd_vma immediate;
 		      bfd_vma target_address;
+                      unsigned long instr_hi, instr_lo;
 
 		      if (ocontents == NULL)
 			{
@@ -2087,11 +2090,11 @@ microblaze_elf_relax_section (bfd *abfd,
 			      elf_section_data (o)->this_hdr.contents = ocontents;
 			    }
 			}
-          unsigned long instr_hi =  bfd_get_32 (abfd, ocontents
-                                                + irelscan->r_offset);
-          unsigned long instr_lo =  bfd_get_32 (abfd, ocontents
-                                                + irelscan->r_offset
-                                                + INST_WORD_SIZE);
+                      instr_hi =  bfd_get_32 (abfd, ocontents
+                                              + irelscan->r_offset);
+                      instr_lo =  bfd_get_32 (abfd, ocontents
+                                              + irelscan->r_offset
+                                              + INST_WORD_SIZE);
           immediate = (instr_hi & 0x0000ffff) << 16;
           immediate |= (instr_lo & 0x0000ffff);
 		      target_address = immediate;

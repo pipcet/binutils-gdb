@@ -886,6 +886,10 @@ elf32_pru_adjust_diff_reloc_value (bfd *abfd,
 {
   unsigned char *reloc_contents = NULL;
   unsigned char *isec_contents = elf_section_data (isec)->this_hdr.contents;
+  bfd_signed_vma x = 0;
+  bfd_vma end_address;
+  bfd_vma start_address;
+
   if (isec_contents == NULL)
   {
     if (! bfd_malloc_and_get_section (abfd, isec, &isec_contents))
@@ -897,7 +901,6 @@ elf32_pru_adjust_diff_reloc_value (bfd *abfd,
   reloc_contents = isec_contents + irel->r_offset;
 
   /* Read value written in object file.  */
-  bfd_signed_vma x = 0;
   switch (ELF32_R_TYPE (irel->r_info))
   {
   case R_PRU_GNU_DIFF8:
@@ -936,8 +939,8 @@ elf32_pru_adjust_diff_reloc_value (bfd *abfd,
      symval (<start_of_section>) + reloc addend.  Compute the start and end
      addresses and check if the shrinked insn falls between sym1 and sym2.  */
 
-  bfd_vma end_address = symval + irel->r_addend;
-  bfd_vma start_address = end_address - x;
+  end_address = symval + irel->r_addend;
+  start_address = end_address - x;
 
   /* Shrink the absolute DIFF value (get the to labels "closer"
      together), because we have removed data between labels.  */

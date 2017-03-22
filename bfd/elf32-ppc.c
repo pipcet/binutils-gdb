@@ -3815,10 +3815,11 @@ elf_allocate_pointer_linker_section (bfd *abfd,
     }
   else
     {
+      elf_linker_section_pointers_t **ptr = elf_local_ptr_offsets (abfd);
       BFD_ASSERT (is_ppc_elf (abfd));
 
       /* Allocation of a pointer to a local symbol.  */
-      elf_linker_section_pointers_t **ptr = elf_local_ptr_offsets (abfd);
+      ptr = elf_local_ptr_offsets (abfd);
 
       /* Allocate a table to hold the local symbols if first time.  */
       if (!ptr)

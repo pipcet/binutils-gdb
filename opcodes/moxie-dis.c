@@ -44,10 +44,11 @@ print_insn_moxie (bfd_vma addr, struct disassemble_info * info)
 {
   int length = 2;
   int status;
-  stream = info->stream;
   const moxie_opc_info_t * opcode;
   bfd_byte buffer[4];
   unsigned short iword;
+
+  stream = info->stream;
   fpr = info->fprintf_func;
 
   if ((status = info->read_memory_func (addr, buffer, 2, info)))

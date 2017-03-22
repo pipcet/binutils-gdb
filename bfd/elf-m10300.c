@@ -1876,7 +1876,7 @@ mn10300_elf_final_link_relocate (reloc_howto_type *howto,
 
 	      if (bfd_link_pic (info))
 		{
-		  asection *srelgot = htab->root.srelgot;;
+		  asection *srelgot = htab->root.srelgot;
 		  Elf_Internal_Rela outrel;
 
 		  BFD_ASSERT (srelgot != NULL);

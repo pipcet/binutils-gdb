@@ -3634,6 +3634,9 @@ _bfd_aarch64_erratum_843419_p (bfd_byte *contents, bfd_vma vma,
 			       bfd_vma *p_veneer_i)
 {
   uint32_t insn_1 = bfd_getl32 (contents + i);
+  uint32_t insn_2;
+  uint32_t insn_3;
+  uint32_t insn_4;
 
   if (!_bfd_aarch64_adrp_p (insn_1))
     return FALSE;
@@ -3641,8 +3644,8 @@ _bfd_aarch64_erratum_843419_p (bfd_byte *contents, bfd_vma vma,
   if (span_end < i + 12)
     return FALSE;
 
-  uint32_t insn_2 = bfd_getl32 (contents + i + 4);
-  uint32_t insn_3 = bfd_getl32 (contents + i + 8);
+  insn_2 = bfd_getl32 (contents + i + 4);
+  insn_3 = bfd_getl32 (contents + i + 8);
 
   if ((vma & 0xfff) != 0xff8 && (vma & 0xfff) != 0xffc)
     return FALSE;
@@ -3656,7 +3659,7 @@ _bfd_aarch64_erratum_843419_p (bfd_byte *contents, bfd_vma vma,
   if (span_end < i + 16)
     return FALSE;
 
-  uint32_t insn_4 = bfd_getl32 (contents + i + 12);
+  insn_4 = bfd_getl32 (contents + i + 12);
 
   if (_bfd_aarch64_erratum_843419_sequence_p (insn_1, insn_2, insn_4))
     {
@@ -4624,12 +4627,13 @@ static bfd_vma
 tpoff_base (struct bfd_link_info *info)
 {
   struct elf_link_hash_table *htab = elf_hash_table (info);
+  bfd_vma base;
 
   /* If tls_sec is NULL, we should have signalled an error already.  */
   BFD_ASSERT (htab->tls_sec != NULL);
 
-  bfd_vma base = align_power ((bfd_vma) TCB_SIZE,
-			      htab->tls_sec->alignment_power);
+  base = align_power ((bfd_vma) TCB_SIZE,
+                      htab->tls_sec->alignment_power);
   return htab->tls_sec->vma - base;
 }
 
@@ -4803,6 +4807,7 @@ _bfd_aarch64_erratum_843419_branch_to_stub (struct bfd_hash_entry *gen_entry,
   bfd *abfd;
   bfd_vma place;
   uint32_t insn;
+  bfd_signed_vma imm;
 
   info = data->info;
   contents = data->contents;
@@ -4825,10 +4830,9 @@ _bfd_aarch64_erratum_843419_branch_to_stub (struct bfd_hash_entry *gen_entry,
   if ((insn & AARCH64_ADRP_OP_MASK) !=  AARCH64_ADRP_OP)
     abort ();
 
-  bfd_signed_vma imm =
-    (_bfd_aarch64_sign_extend
-     ((bfd_vma) _bfd_aarch64_decode_adrp_imm (insn) << 12, 33)
-     - (place & 0xfff));
+  imm = (_bfd_aarch64_sign_extend
+         ((bfd_vma) _bfd_aarch64_decode_adrp_imm (insn) << 12, 33)
+         - (place & 0xfff));
 
   if (htab->fix_erratum_843419_adr
       && (imm >= AARCH64_MIN_ADRP_IMM  && imm <= AARCH64_MAX_ADRP_IMM))
@@ -5258,6 +5262,7 @@ elfNN_aarch64_final_link_relocate (reloc_howto_type *howto,
 	asection *splt = globals->root.splt;
 	bfd_boolean via_plt_p =
 	  splt != NULL && h != NULL && h->plt.offset != (bfd_vma) - 1;
+	struct elf_aarch64_stub_hash_entry *stub_entry = NULL;
 
 	/* A call to an undefined weak symbol is converted to a jump to
 	   the next instruction unless a PLT entry will be created.
@@ -5277,7 +5282,6 @@ elfNN_aarch64_final_link_relocate (reloc_howto_type *howto,
 
 	/* Check if a stub has to be inserted because the destination
 	   is too far away.  */
-	struct elf_aarch64_stub_hash_entry *stub_entry = NULL;
 
 	/* If the branch destination is directed to plt stub, "value" will be
 	   the final destination, otherwise we should plus signed_addend, it may
@@ -5385,6 +5389,7 @@ elfNN_aarch64_final_link_relocate (reloc_howto_type *howto,
 	bfd_vma addend = 0;
 	struct elf_aarch64_local_symbol *locals
 	  = elf_aarch64_locals (input_bfd);
+	bfd_vma got_entry_addr;
 
 	if (locals == NULL)
 	  {
@@ -5399,8 +5404,8 @@ elfNN_aarch64_final_link_relocate (reloc_howto_type *howto,
 
 	off = symbol_got_offset (input_bfd, h, r_symndx);
 	base_got = globals->root.sgot;
-	bfd_vma got_entry_addr = (base_got->output_section->vma
-				  + base_got->output_offset + off);
+	got_entry_addr = (base_got->output_section->vma
+                          + base_got->output_offset + off);
 
 	if (!symbol_got_offset_mark_p (input_bfd, h, r_symndx))
 	  {
@@ -5454,6 +5459,7 @@ elfNN_aarch64_final_link_relocate (reloc_howto_type *howto,
 	{
 	  struct elf_aarch64_local_symbol *locals
 	    = elf_aarch64_locals (input_bfd);
+	  bfd_vma got_entry_addr;
 
 	  if (locals == NULL)
 	    {
@@ -5471,8 +5477,8 @@ elfNN_aarch64_final_link_relocate (reloc_howto_type *howto,
 	  if (base_got == NULL)
 	    abort ();
 
-	  bfd_vma got_entry_addr = (base_got->output_section->vma
-				    + base_got->output_offset + off);
+	  got_entry_addr = (base_got->output_section->vma
+                            + base_got->output_offset + off);
 
 	  if (!symbol_got_offset_mark_p (input_bfd, h, r_symndx))
 	    {
@@ -6266,6 +6272,7 @@ elfNN_aarch64_relocate_section (bfd *output_bfd,
 	      if (need_relocs)
 		{
 		  Elf_Internal_Rela rela;
+		  bfd_reloc_code_real_type real_type;
 		  rela.r_info = ELFNN_R_INFO (indx, AARCH64_R (TLS_DTPMOD));
 		  rela.r_addend = 0;
 		  rela.r_offset = globals->root.sgot->output_section->vma +
@@ -6277,8 +6284,8 @@ elfNN_aarch64_relocate_section (bfd *output_bfd,
 		    * RELOC_SIZE (htab);
 		  bfd_elfNN_swap_reloca_out (output_bfd, &rela, loc);
 
-		  bfd_reloc_code_real_type real_type =
-		    elfNN_aarch64_bfd_reloc_from_type (r_type);
+		  real_type =
+                    elfNN_aarch64_bfd_reloc_from_type (r_type);
 
 		  if (real_type == BFD_RELOC_AARCH64_TLSLD_ADR_PREL21
 		      || real_type == BFD_RELOC_AARCH64_TLSLD_ADR_PAGE21

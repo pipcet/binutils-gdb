@@ -1864,6 +1864,8 @@ msp430_elf_relax_section (bfd * abfd, asection * sec,
   for (irel = internal_relocs; irel < irelend; irel++)
     {
       bfd_vma symval;
+      bfd_signed_vma value;
+      int opcode;
 
       /* If this isn't something that can be relaxed, then ignore
          this reloc.  */
@@ -1947,8 +1949,7 @@ msp430_elf_relax_section (bfd * abfd, asection * sec,
          that would be more work, but would require less memory when
          the linker is run.  */
 
-      bfd_signed_vma value = symval;
-      int opcode;
+      value = symval;
 
       /* Compute the value that will be relocated.  */
       value += irel->r_addend;

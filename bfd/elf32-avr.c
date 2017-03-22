@@ -1731,6 +1731,12 @@ elf32_avr_adjust_diff_reloc_value (bfd *abfd,
 {
   unsigned char *reloc_contents = NULL;
   unsigned char *isec_contents = elf_section_data (isec)->this_hdr.contents;
+  bfd_signed_vma x = 0;
+  bfd_vma sym2_address;
+  bfd_vma sym1_address;
+  bfd_vma start_address;
+  bfd_vma end_address;
+
   if (isec_contents == NULL)
   {
     if (! bfd_malloc_and_get_section (abfd, isec, &isec_contents))
@@ -1742,7 +1748,6 @@ elf32_avr_adjust_diff_reloc_value (bfd *abfd,
   reloc_contents = isec_contents + irel->r_offset;
 
   /* Read value written in object file. */
-  bfd_signed_vma x = 0;
   switch (ELF32_R_TYPE (irel->r_info))
   {
   case R_AVR_DIFF8:
@@ -1771,16 +1776,16 @@ elf32_avr_adjust_diff_reloc_value (bfd *abfd,
      symval (<start_of_section>) + reloc addend. Compute the start and end
      addresses and check if the shrinked insn falls between sym1 and sym2. */
 
-  bfd_vma sym2_address = symval + irel->r_addend;
-  bfd_vma sym1_address = sym2_address - x;
+  sym2_address = symval + irel->r_addend;
+  sym1_address = sym2_address - x;
 
   /* Don't assume sym2 is bigger than sym1 - the difference
      could be negative. Compute start and end addresses, and
      use those to see if they span shrinked_insn_address. */
 
-  bfd_vma start_address = sym1_address < sym2_address
+  start_address = sym1_address < sym2_address
     ? sym1_address : sym2_address;
-  bfd_vma end_address = sym1_address > sym2_address
+  end_address = sym1_address > sym2_address
     ? sym1_address : sym2_address;
 
 
@@ -2428,6 +2433,7 @@ elf32_avr_relax_section (bfd *abfd,
   Elf_Internal_Sym *isymbuf = NULL;
   struct elf32_avr_link_hash_table *htab;
   static bfd_boolean relaxation_initialised = FALSE;
+  bfd_boolean shrinkable = TRUE;
 
   if (!relaxation_initialised)
     {
@@ -2441,7 +2447,6 @@ elf32_avr_relax_section (bfd *abfd,
      relaxing. Such shrinking can cause issues for the sections such
      as .vectors and .jumptables. Instead the unused bytes should be
      filled with nop instructions. */
-  bfd_boolean shrinkable = TRUE;
 
   if (!strcmp (sec->name,".vectors")
       || !strcmp (sec->name,".jumptables"))

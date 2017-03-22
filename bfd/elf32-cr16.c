@@ -704,10 +704,10 @@ cr16_elf_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec,
   bfd_vma *  local_got_offsets;
   asection * sgot;
   asection * srelgot;
+  bfd_boolean result = FALSE;
 
   sgot    = NULL;
   srelgot = NULL;
-  bfd_boolean result = FALSE;
 
   if (bfd_link_relocatable (info))
     return TRUE;

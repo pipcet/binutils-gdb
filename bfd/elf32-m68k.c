@@ -1152,8 +1152,8 @@ elf32_m68k_merge_private_bfd_data (bfd *ibfd, struct bfd_link_info *info)
     }
   else
     {
-      out_flags = elf_elfheader (obfd)->e_flags;
       unsigned int variant_mask;
+      out_flags = elf_elfheader (obfd)->e_flags;
 
       if ((in_flags & EF_M68K_ARCH_MASK) == EF_M68K_M68000)
 	variant_mask = 0;

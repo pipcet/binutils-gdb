@@ -267,6 +267,7 @@ rx_decode_opcode (unsigned long pc AU,
 {
   LocalData lds, * ld = &lds;
   unsigned char op[20] = {0};
+  int val;
 
   lds.rx = rx;
   lds.getbyte = getbyte;
@@ -567,7 +568,7 @@ rx_decode_opcode (unsigned long pc AU,
 /* MAX									*/
 
 /** 1111 1101 0111 im00 0100rdst	max	#%1, %0 */
-  int val = IMMex (im);
+  val = IMMex (im);
   if (im == 0 && (unsigned) val == 0x80000000 && rdst == 0)
     {
       ID (nop7);
@@ -621,7 +622,7 @@ rx_decode_opcode (unsigned long pc AU,
   DR(rdst); SC(immm); F_____;
 
 /** 0111 01im 0001rdst			mul	#%1, %0 */
-  int val = IMMex(im);
+  val = IMMex(im);
   if (val == 1 && rdst == 0)
     {
       SYNTAX("nop\t; mul\t#1, r0");

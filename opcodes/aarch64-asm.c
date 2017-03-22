@@ -103,9 +103,10 @@ aarch64_ins_reglane (const aarch64_operand *self, const aarch64_opnd_info *info,
       if (info->type == AARCH64_OPND_En
 	  && inst->opcode->operands[0] == AARCH64_OPND_Ed)
 	{
+	  aarch64_insn value;
 	  /* index2 for e.g. INS <Vd>.<Ts>[<index1>], <Vn>.<Ts>[<index2>].  */
 	  assert (info->idx == 1);	/* Vn */
-	  aarch64_insn value = info->reglane.index << pos;
+	  value = info->reglane.index << pos;
 	  insert_field (FLD_imm4, code, value, 0);
 	}
       else
@@ -1052,8 +1053,9 @@ aarch64_ins_sve_quad_index (const aarch64_operand *self,
 			    const aarch64_inst *inst ATTRIBUTE_UNUSED)
 {
   unsigned int reg_bits = get_operand_specific_data (self);
+  unsigned int val;
   assert (info->reglane.regno < (1U << reg_bits));
-  unsigned int val = (info->reglane.index << reg_bits) + info->reglane.regno;
+  val = (info->reglane.index << reg_bits) + info->reglane.regno;
   insert_all_fields (self, code, val);
   return NULL;
 }
@@ -1819,6 +1821,7 @@ aarch64_opcode_encode (const aarch64_opcode *opcode,
   int i;
   const aarch64_opcode *aliased;
   aarch64_inst copy, *inst;
+  aarch64_opnd_info *info;
 
   DEBUG_TRACE ("enter with %s", opcode->name);
 
@@ -1872,7 +1875,7 @@ aarch64_opcode_encode (const aarch64_opcode *opcode,
       opcode = aliased;
     }
 
-  aarch64_opnd_info *info = inst->operands;
+  info = inst->operands;
 
   /* Call the inserter of each operand.  */
   for (i = 0; i < AARCH64_MAX_OPND_NUM; ++i, ++info)

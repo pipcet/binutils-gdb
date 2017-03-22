@@ -2559,11 +2559,12 @@ lm32_elf_always_size_sections (bfd *output_bfd, struct bfd_link_info *info)
 {
   if (!bfd_link_relocatable (info))
     {
+      asection *sec;
       if (!bfd_elf_stack_segment_size (output_bfd, info,
 				       "__stacksize", DEFAULT_STACK_SIZE))
 	return FALSE;
 
-      asection *sec = bfd_get_section_by_name (output_bfd, ".stack");
+      sec = bfd_get_section_by_name (output_bfd, ".stack");
       if (sec)
 	sec->size = info->stacksize >= 0 ? info->stacksize : 0;
     }

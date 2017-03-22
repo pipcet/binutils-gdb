@@ -6047,14 +6047,18 @@ duplicate:
     }
   else if (i.tm.opcode_modifier.implicitquadgroup)
     {
+      unsigned int regnum;
+      unsigned int first_reg_in_group;
+      unsigned int last_reg_in_group;
+
       /* The second operand must be {x,y,z}mmN, where N is a multiple of 4. */
       gas_assert (i.operands >= 2
           && (operand_type_equal (&i.types[1], &regxmm)
               || operand_type_equal (&i.types[1], &regymm)
               || operand_type_equal (&i.types[1], &regzmm)));
-      unsigned int regnum = register_number (i.op[1].regs);
-      unsigned int first_reg_in_group = regnum & ~3;
-      unsigned int last_reg_in_group = first_reg_in_group + 3;
+      regnum = register_number (i.op[1].regs);
+      first_reg_in_group = regnum & ~3;
+      last_reg_in_group = first_reg_in_group + 3;
       if (regnum != first_reg_in_group) {
         as_warn (_("the second source register `%s%s' implicitly denotes"
             " `%s%.3s%d' to `%s%.3s%d' source group in `%s'"),

@@ -36,10 +36,11 @@ int
 print_insn_ft32 (bfd_vma addr, struct disassemble_info *info)
 {
   int status;
-  stream = info->stream;
   bfd_byte buffer[4];
   unsigned int iword;
   const ft32_opc_info_t *oo;
+
+  stream = info->stream;
 
   fpr = info->fprintf_func;
 

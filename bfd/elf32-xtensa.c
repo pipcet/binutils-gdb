@@ -5434,6 +5434,7 @@ static text_action *
 find_fill_action (text_action_list *l, asection *sec, bfd_vma offset)
 {
   text_action a;
+  splay_tree_node node;
 
   /* It is not necessary to fill at the end of a section.  */
   if (sec->size == offset)
@@ -5442,7 +5443,7 @@ find_fill_action (text_action_list *l, asection *sec, bfd_vma offset)
   a.offset = offset;
   a.action = ta_fill;
 
-  splay_tree_node node = splay_tree_lookup (l->tree, (splay_tree_key)&a);
+  node = splay_tree_lookup (l->tree, (splay_tree_key)&a);
   if (node)
     return (text_action *)node->value;
   return NULL;

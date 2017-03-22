@@ -3992,6 +3992,10 @@ tilegx_elf_relocate_section (bfd *output_bfd, struct bfd_link_info *info,
       }
       else
       {
+        bfd_byte *data;
+        tilegx_bundle_bits mask;
+        tilegx_bundle_bits value;
+
         if (howto->pc_relative)
         {
           relocation -=
@@ -3999,8 +4003,6 @@ tilegx_elf_relocate_section (bfd *output_bfd, struct bfd_link_info *info,
           if (howto->pcrel_offset)
             relocation -= rel->r_offset;
         }
-
-        bfd_byte *data;
 
         /* Add the relocation addend if any to the final target value */
         relocation += rel->r_addend;
@@ -4016,8 +4018,8 @@ tilegx_elf_relocate_section (bfd *output_bfd, struct bfd_link_info *info,
          * Write the relocated value out into the raw section data.
          * Don't put a relocation out in the .rela section.
          */
-        tilegx_bundle_bits mask = create_func(-1);
-        tilegx_bundle_bits value = create_func(relocation >> howto->rightshift);
+        mask = create_func(-1);
+        value = create_func(relocation >> howto->rightshift);
 
         /* Only touch bytes while the mask is not 0, so we
            don't write to out of bounds memory if this is actually

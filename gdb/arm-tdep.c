@@ -3391,6 +3391,7 @@ arm_type_align (struct type *t)
     case TYPE_CODE_SET:
     case TYPE_CODE_RANGE:
     case TYPE_CODE_REF:
+    case TYPE_CODE_RVALUE_REF:
     case TYPE_CODE_CHAR:
     case TYPE_CODE_BOOL:
       return TYPE_LENGTH (t);
@@ -7987,7 +7988,7 @@ arm_extract_return_value (struct type *type, struct regcache *regs,
 	   || TYPE_CODE (type) == TYPE_CODE_CHAR
 	   || TYPE_CODE (type) == TYPE_CODE_BOOL
 	   || TYPE_CODE (type) == TYPE_CODE_PTR
-	   || TYPE_CODE (type) == TYPE_CODE_REF
+	   || TYPE_IS_REFERENCE (type)
 	   || TYPE_CODE (type) == TYPE_CODE_ENUM)
     {
       /* If the type is a plain integer, then the access is
@@ -8192,7 +8193,7 @@ arm_store_return_value (struct type *type, struct regcache *regs,
 	   || TYPE_CODE (type) == TYPE_CODE_CHAR
 	   || TYPE_CODE (type) == TYPE_CODE_BOOL
 	   || TYPE_CODE (type) == TYPE_CODE_PTR
-	   || TYPE_CODE (type) == TYPE_CODE_REF
+	   || TYPE_IS_REFERENCE (type)
 	   || TYPE_CODE (type) == TYPE_CODE_ENUM)
     {
       if (TYPE_LENGTH (type) <= 4)
@@ -12951,6 +12952,7 @@ thumb2_record_decode_insn_handler (insn_decode_record *thumb2_insn_r)
   return -1;
 }
 
+namespace {
 /* Abstract memory reader.  */
 
 class abstract_memory_reader
@@ -12975,6 +12977,8 @@ class instruction_reader : public abstract_memory_reader
       return true;
   }
 };
+
+} // namespace
 
 /* Extracts arm/thumb/thumb2 insn depending on the size, and returns 0 on success 
 and positive val on fauilure.  */

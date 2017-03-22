@@ -1,3 +1,309 @@
+2017-03-22  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* inf-ptrace.c (inf_ptrace_xfer_partial): Get pid from ptid
+	using get_ptrace_pid.
+	* linux-nat.c (linux_nat_xfer_partial): Don't set/restore
+	inferior_ptid.
+	(linux_proc_xfer_partial, linux_proc_xfer_spu): Use lwp of
+	inferior_ptid instead of pid.
+
+2017-03-22  Yao Qi  <yao.qi@linaro.org>
+
+	* aarch64-tdep.c: Wrap locally used classes in anonymous
+	namespace.
+	* arm-tdep.c: Likewise.
+	* linespec.c: Likewise.
+	* ui-out.c: Likewise.
+
+2017-03-22  Jonah Graham  <jonah@kichwacoders.com>
+
+	PR gdb/19637
+	* python/lib/gdb/printer/bound_registers.py: Import sys.
+
+2017-03-21  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* windows-nat.c (do_windows_fetch_inferior_registers): Add
+	windows_thread_info parameter and use it instead of
+	current_thread.
+	(windows_fetch_inferior_registers): Don't set current_thread,
+	pass the thread to do_windows_fetch_inferior_registers.  Use
+	ptid from regcache instead of inferior_ptid.
+	(do_windows_store_inferior_registers): Add windows_thread_info
+	parameter and use it instead of current_thread.
+	(windows_store_inferior_registers): Don't set current_thread,
+	pass the thread to do_windows_store_inferior_registers.  Use
+	ptid from regcache instead of inferior_ptid.
+
+2017-03-21  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* ser-mingw.c (ser_windows_raw): Remove reference to
+	struct serial::current_timeout.
+
+2017-03-21  Ivo Raisr  <ivo.raisr@oracle.com>
+
+	PR tdep/20928
+	* gdb/sparc-tdep.h (gdbarch_tdep) <sparc64_ccr_type>: New field.
+	* gdb/sparc64-tdep.c (sparc64_ccr_type): New function.
+	(sparc64_fsr_type): Fix %fsr decoding.
+
+2017-03-21  Tim Wiederhake  <tim.wiederhake@intel.com>
+
+	* python/py-record-btrace.c (btpy_insn_data): Change return type
+	for Python 2.
+
+2017-03-20  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* spu-linux-nat.c (spu_fetch_inferior_registers,
+	spu_store_inferior_registers): Use ptid from regcache, set and
+	restore inferior_ptid.
+	* spu-multiarch.c (spu_fetch_registers, spu_store_registers):
+	Likewise.
+
+2017-03-20  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* i386-linux-nat.c (fetch_register, store_register,
+	i386_linux_fetch_inferior_registers,
+	i386_linux_store_inferior_registers): Use ptid from regcache.
+	* ia64-linux-nat.c (ia64_linux_fetch_register,
+	ia64_linux_store_register): Likewise.
+	* inf-ptrace.c (inf_ptrace_fetch_register,
+	inf_ptrace_store_register): Likewise.
+	* m32r-linux-nat.c (m32r_linux_fetch_inferior_registers,
+	m32r_linux_store_inferior_registers): Likewise.
+	* m68k-bsd-nat.c (m68kbsd_fetch_inferior_registers,
+	m68kbsd_store_inferior_registers): Likewise.
+	* m68k-linux-nat.c (fetch_register, store_register,
+	m68k_linux_fetch_inferior_registers,
+	m68k_linux_store_inferior_registers): Likewise.
+	* m88k-bsd-nat.c (m88kbsd_fetch_inferior_registers,
+	m88kbsd_store_inferior_registers): Likewise.
+	* mips-fbsd-nat.c (mips_fbsd_fetch_inferior_registers,
+	mips_fbsd_store_inferior_registers): Likewise.
+	* mips-linux-nat.c (mips64_linux_regsets_fetch_registers,
+	mips64_linux_regsets_store_registers): Likewise.
+	* mips-nbsd-nat.c (mipsnbsd_fetch_inferior_registers,
+	mipsnbsd_store_inferior_registers): Likewise.
+	* mips-obsd-nat.c (mips64obsd_fetch_inferior_registers,
+	mips64obsd_store_inferior_registers): Likewise.
+	* nto-procfs.c (procfs_fetch_registers, procfs_store_registers):
+	Likewise.
+	* ppc-fbsd-nat.c (ppcfbsd_fetch_inferior_registers,
+	ppcfbsd_store_inferior_registers): Likewise.
+	* ppc-linux-nat.c (ppc_linux_fetch_inferior_registers,
+	ppc_linux_store_inferior_registers): Likewise.
+	* ppc-nbsd-nat.c (ppcnbsd_fetch_inferior_registers,
+	ppcnbsd_store_inferior_registers): Likewise.
+	* ppc-obsd-nat.c (ppcobsd_fetch_registers,
+	ppcobsd_store_registers): Likewise.
+	* procfs.c (procfs_fetch_registers, procfs_store_registers):
+	Likewise.
+	* ravenscar-thread.c (ravenscar_fetch_registers,
+	ravenscar_store_registers, ravenscar_prepare_to_store):
+	Likewise.
+	* record-btrace.c (record_btrace_fetch_registers,
+	record_btrace_store_registers, record_btrace_prepare_to_store):
+	Likewise.
+	* remote-sim.c (gdbsim_fetch_register, gdbsim_store_register):
+	Lookup inferior using ptid from regcache, instead of
+	current_inferior.
+	* remote.c (remote_fetch_registers, remote_store_registers): Use
+	ptid from regcache.
+	* rs6000-nat.c (fetch_register, store_register): Likewise.
+	* s390-linux-nat.c (s390_linux_fetch_inferior_registers,
+	s390_linux_store_inferior_registers): Likewise.
+	* sh-nbsd-nat.c (shnbsd_fetch_inferior_registers,
+	shnbsd_store_inferior_registers): Likewise.
+	* sol-thread.c (sol_thread_fetch_registers,
+	sol_thread_store_registers): Likewise.
+	* sparc-nat.c (sparc_fetch_inferior_registers,
+	sparc_store_inferior_registers): Likewise.
+	* tilegx-linux-nat.c (fetch_inferior_registers,
+	store_inferior_registers): Likewise.
+	* vax-bsd-nat.c (vaxbsd_fetch_inferior_registers,
+	vaxbsd_store_inferior_registers): Likewise.
+	* xtensa-linux-nat.c (fetch_gregs, store_gregs, fetch_xtregs,
+	store_xtregs): Likewise.
+
+2017-03-20  Artemiy Volkov  <artemiyv@acm.org>
+
+	PR gdb/14441
+	* NEWS: Mention support for rvalue references in GDB and python.
+	* doc/gdb.texinfo (C Plus Plus Expressions): Mention that GDB
+	supports both lvalue and rvalue references.
+
+2017-03-20  Artemiy Volkov  <artemiyv@acm.org>
+
+	PR gdb/14441
+	* gdbtypes.c (rank_one_type): Implement overloading
+	resolution rules regarding rvalue references.
+
+2017-03-20  Artemiy Volkov  <artemiyv@acm.org>
+
+	PR gdb/14441
+	* aarch64-tdep.c (aarch64_type_align)
+	(aarch64_extract_return_value, aarch64_store_return_value): Change
+	lvalue reference type checks to general reference type checks.
+	* amd64-tdep.c (amd64_classify): Likewise.
+	* amd64-windows-tdep.c (amd64_windows_passed_by_integer_register):
+	Likewise.
+	* arm-tdep.c (arm_type_align, arm_extract_return_value)
+	(arm_store_return_value): Likewise.
+	* ax-gdb.c (gen_fetch, gen_cast): Likewise.
+	* c-typeprint.c (c_print_type): Likewise.
+	* c-varobj.c (adjust_value_for_child_access, c_value_of_variable)
+	(cplus_number_of_children, cplus_describe_child): Likewise.
+	* compile/compile-c-symbols.c (generate_vla_size): Likewise.
+	* completer.c (expression_completer): Likewise.
+	* cp-support.c (make_symbol_overload_list_adl_namespace):
+	Likewise.
+	* darwin-nat-info.c (info_mach_region_command): Likewise.
+	* dwarf2loc.c (entry_data_value_coerce_ref)
+	(value_of_dwarf_reg_entry): Likewise.
+	* eval.c (ptrmath_type_p, evaluate_subexp_standard)
+	(evaluate_subexp_for_address, evaluate_subexp_for_sizeof):
+	Likewise.
+	* findvar.c (extract_typed_address, store_typed_address):
+	Likewise.
+	* gdbtypes.c (rank_one_type): Likewise.
+	* hppa-tdep.c (hppa64_integral_or_pointer_p): Likewise.
+	* infcall.c (value_arg_coerce): Likewise.
+	* language.c (pointer_type): Likewise.
+	* m32c-tdep.c (m32c_reg_arg_type, m32c_m16c_address_to_pointer):
+	Likewise.
+	* m88k-tdep.c (m88k_integral_or_pointer_p): Likewise.
+	* mn10300-tdep.c (mn10300_type_align): Likewise.
+	* msp430-tdep.c (msp430_push_dummy_call): Likewise.
+	* ppc-sysv-tdep.c (do_ppc_sysv_return_value)
+	(ppc64_sysv_abi_push_param, ppc64_sysv_abi_return_value):
+	Likewise.
+	* printcmd.c (print_formatted, x_command): Likewise.
+	* python/py-type.c (typy_get_composite, typy_template_argument):
+	Likewise.
+	* python/py-value.c (valpy_referenced_value)
+	(valpy_get_dynamic_type, value_has_field): Likewise.
+	* s390-linux-tdep.c (s390_function_arg_integer): Likewise.
+	* sparc-tdep.c (sparc_integral_or_pointer_p): Likewise.
+	* sparc64-tdep.c (sparc64_integral_or_pointer_p): Likewise.
+	* spu-tdep.c (spu_scalar_value_p): Likewise.
+	* symtab.c (lookup_symbol_aux): Likewise.
+	* typeprint.c (whatis_exp, print_type_scalar): Likewise.
+	* valarith.c (binop_types_user_defined_p, unop_user_defined_p):
+	Likewise.
+	* valops.c (value_cast_pointers, value_cast)
+	(value_reinterpret_cast, value_dynamic_cast, value_addr, typecmp)
+	(value_struct_elt, value_struct_elt_bitpos)
+	(value_find_oload_method_list, find_overload_match)
+	(value_rtti_indirect_type): Likewise.
+	* valprint.c (val_print_scalar_type_p, generic_val_print):
+	Likewise.
+	* value.c (value_actual_type, value_as_address, unpack_long)
+	(pack_long, pack_unsigned_long, coerce_ref_if_computed)
+	(coerce_ref): Likewise.
+	* varobj.c (varobj_get_value_type): Likewise.
+
+2017-03-20  Artemiy Volkov  <artemiyv@acm.org>
+
+	PR gdb/14441
+	* doc/python.texi (Types in Python): Add TYPE_CODE_RVALUE_REF to
+	table of constants.
+	* python/lib/gdb/command/explore.py: Support exploring values
+	of rvalue reference types.
+	* python/lib/gdb/types.py: Implement get_basic_type() for
+	rvalue reference types.
+	* python/py-type.c (pyty_codes) <TYPE_CODE_RVALUE_REF>: New
+	constant.
+	* python/py-value.c (valpy_getitem): Add an rvalue reference
+	check.
+	(valpy_reference_value): Add new parameter "refcode".
+	(valpy_lvalue_reference_value, valpy_rvalue_reference_value):
+	New wrappers for valpy_reference_value().
+	* python/py-xmethods.c (gdbpy_get_xmethod_result_type)
+	(gdbpy_invoke_xmethod): Likewise.
+
+2017-03-20  Artemiy Volkov  <artemiyv@acm.org>
+
+	PR gdb/14441
+	* dwarf2read.c (process_die, read_type_die_1): Handle the
+	DW_TAG_rvalue_reference_type DIE.
+	(read_tag_reference_type): Add new parameter "refcode".
+
+2017-03-20  Artemiy Volkov  <artemiyv@acm.org>
+
+	PR gdb/14441
+	* c-typeprint.c (c_print_type, c_type_print_varspec_prefix)
+	(c_type_print_modifier, c_type_print_varspec_suffix)
+	(c_type_print_base): Support printing rvalue reference types.
+	* c-valprint.c (c_val_print, c_value_print): Support printing
+	rvalue reference values.
+
+2017-03-20  Artemiy Volkov  <artemiyv@acm.org>
+
+	PR gdb/14441
+	* cp-name-parser.y (ptr_operator): Handle the '&&' token in
+	typename.
+	* cp-support.c (replace_typedefs): Handle
+	DEMANGLE_COMPONENT_RVALUE_REFERENCE.
+	* python/py-type.c (typy_lookup_type): Likewise.
+
+2017-03-20  Artemiy Volkov  <artemiyv@acm.org>
+
+	PR gdb/14441
+	* c-exp.y (ptr_operator): Handle the '&&' token in the typename.
+	* parse.c (insert_type): Change assert statement.
+	(follow_types): Handle rvalue reference types.
+	* parser-defs.h (enum type_pieces) <tp_rvalue_reference>: New
+	constant.
+
+2017-03-20  Artemiy Volkov  <artemiyv@acm.org>
+
+	PR gdb/14441
+	* ada-lang.c (ada_evaluate_subexp): Adhere to the new
+	value_ref() interface.
+	* c-valprint.c (c_value_print): Likewise.
+	* infcall.c (value_arg_coerce): Likewise.
+	* python/py-value.c (valpy_reference_value): Likewise.
+	* valops.c (value_cast, value_reinterpret_cast)
+	(value_dynamic_cast, typecmp): Likewise.
+	(value_ref): Parameterize by kind of return value reference type.
+	* value.h (value_ref): Add new parameter "refcode".
+
+2017-03-20  Artemiy Volkov  <artemiyv@acm.org>
+
+	PR gdb/14441
+	* dwarf2read.c (read_tag_reference_type): Use
+	lookup_lvalue_reference_type() instead of lookup_reference_type().
+	* eval.c (evaluate_subexp_standard): Likewise.
+	* f-exp.y: Likewise.
+	* gdbtypes.c (make_reference_type, lookup_reference_type):
+	Generalize with rvalue reference types.
+	(lookup_lvalue_reference_type, lookup_rvalue_reference_type): New
+	convenience wrappers for lookup_reference_type().
+	* gdbtypes.h (make_reference_type, lookup_reference_type): Add a
+	reference kind parameter.
+	(lookup_lvalue_reference_type, lookup_rvalue_reference_type): Add
+	wrappers for lookup_reference_type().
+	* guile/scm-type.c (gdbscm_type_reference): Use
+	lookup_lvalue_reference_type() instead of lookup_reference_type().
+	* guile/scm-value.c (gdbscm_value_dynamic_type): Likewise.
+	* parse.c (follow_types): Likewise.
+	* python/py-type.c (typy_reference, typy_lookup_type): Likewise.
+	* python/py-value.c (valpy_get_dynamic_type, valpy_getitem):
+	Likewise.
+	* python/py-xmethods.c (gdbpy_get_xmethod_result_type)
+	(gdbpy_invoke_xmethod): Likewise.
+	* stabsread.c: Provide extra argument to make_reference_type()
+	call.
+	* valops.c (value_ref, value_rtti_indirect_type): Use
+	lookup_lvalue_reference_type() instead of lookup_reference_type().
+
+2017-03-20  Artemiy Volkov  <artemiyv@acm.org>
+
+	PR gdb/14441
+	* gdbtypes.h (enum type_code) <TYPE_CODE_RVALUE_REF>: New constant.
+	(TYPE_IS_REFERENCE): New macro.
+	(struct type): Add rvalue_reference_type field.
+	(TYPE_RVALUE_REFERENCE_TYPE): New macro.
+
 2017-03-20  Marc-Andre Laperle  <marc-andre.laperle@ericsson.com>
 
 	* NEWS: Add an entry about new '-file-list-shared-libraries' command.

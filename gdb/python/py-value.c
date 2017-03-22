@@ -217,6 +217,7 @@ valpy_referenced_value (PyObject *self, PyObject *args)
           res_val = value_ind (self_val);
           break;
         case TYPE_CODE_REF:
+        case TYPE_CODE_RVALUE_REF:
           res_val = coerce_ref (self_val);
           break;
         default:
@@ -238,7 +239,7 @@ valpy_referenced_value (PyObject *self, PyObject *args)
 /* Return a value which is a reference to the value.  */
 
 static PyObject *
-valpy_reference_value (PyObject *self, PyObject *args)
+valpy_reference_value (PyObject *self, PyObject *args, enum type_code refcode)
 {
   PyObject *result = NULL;
 
@@ -248,7 +249,7 @@ valpy_reference_value (PyObject *self, PyObject *args)
       scoped_value_mark free_values;
 
       self_val = ((value_object *) self)->value;
-      result = value_to_value_object (value_ref (self_val));
+      result = value_to_value_object (value_ref (self_val, refcode));
     }
   CATCH (except, RETURN_MASK_ALL)
     {
@@ -257,6 +258,18 @@ valpy_reference_value (PyObject *self, PyObject *args)
   END_CATCH
 
   return result;
+}
+
+static PyObject *
+valpy_lvalue_reference_value (PyObject *self, PyObject *args)
+{
+  return valpy_reference_value (self, args, TYPE_CODE_REF);
+}
+
+static PyObject *
+valpy_rvalue_reference_value (PyObject *self, PyObject *args)
+{
+  return valpy_reference_value (self, args, TYPE_CODE_RVALUE_REF);
 }
 
 /* Return a "const" qualified version of the value.  */
@@ -351,8 +364,7 @@ valpy_get_dynamic_type (PyObject *self, void *closure)
       type = value_type (val);
       type = check_typedef (type);
 
-      if (((TYPE_CODE (type) == TYPE_CODE_PTR)
-	   || (TYPE_CODE (type) == TYPE_CODE_REF))
+      if (((TYPE_CODE (type) == TYPE_CODE_PTR) || TYPE_IS_REFERENCE (type))
 	  && (TYPE_CODE (TYPE_TARGET_TYPE (type)) == TYPE_CODE_STRUCT))
 	{
 	  struct value *target;
@@ -369,7 +381,7 @@ valpy_get_dynamic_type (PyObject *self, void *closure)
 	      if (was_pointer)
 		type = lookup_pointer_type (type);
 	      else
-		type = lookup_reference_type (type);
+		type = lookup_lvalue_reference_type (type);
 	    }
 	}
       else if (TYPE_CODE (type) == TYPE_CODE_STRUCT)
@@ -645,8 +657,7 @@ value_has_field (struct value *v, PyObject *field)
     {
       val_type = value_type (v);
       val_type = check_typedef (val_type);
-      if (TYPE_CODE (val_type) == TYPE_CODE_REF
-	  || TYPE_CODE (val_type) == TYPE_CODE_PTR)
+      if (TYPE_IS_REFERENCE (val_type) || TYPE_CODE (val_type) == TYPE_CODE_PTR)
       val_type = check_typedef (TYPE_TARGET_TYPE (val_type));
 
       type_code = TYPE_CODE (val_type);
@@ -801,7 +812,11 @@ valpy_getitem (PyObject *self, PyObject *key)
 	  if (TYPE_CODE (val_type) == TYPE_CODE_PTR)
 	    res_val = value_cast (lookup_pointer_type (base_class_type), tmp);
 	  else if (TYPE_CODE (val_type) == TYPE_CODE_REF)
-	    res_val = value_cast (lookup_reference_type (base_class_type), tmp);
+	    res_val = value_cast (lookup_lvalue_reference_type (base_class_type),
+	                          tmp);
+	  else if (TYPE_CODE (val_type) == TYPE_CODE_RVALUE_REF)
+	    res_val = value_cast (lookup_rvalue_reference_type (base_class_type),
+	                          tmp);
 	  else
 	    res_val = value_cast (base_class_type, tmp);
 	}
@@ -1039,7 +1054,7 @@ enum valpy_opcode
 
 /* If TYPE is a reference, return the target; otherwise return TYPE.  */
 #define STRIP_REFERENCE(TYPE) \
-  ((TYPE_CODE (TYPE) == TYPE_CODE_REF) ? (TYPE_TARGET_TYPE (TYPE)) : (TYPE))
+  (TYPE_IS_REFERENCE (TYPE) ? (TYPE_TARGET_TYPE (TYPE)) : (TYPE))
 
 /* Helper for valpy_binop.  Returns a value object which is the result
    of applying the operation specified by OPCODE to the given
@@ -1783,8 +1798,10 @@ reinterpret_cast operator."
   { "dereference", valpy_dereference, METH_NOARGS, "Dereferences the value." },
   { "referenced_value", valpy_referenced_value, METH_NOARGS,
     "Return the value referenced by a TYPE_CODE_REF or TYPE_CODE_PTR value." },
-  { "reference_value", valpy_reference_value, METH_NOARGS,
+  { "reference_value", valpy_lvalue_reference_value, METH_NOARGS,
     "Return a value of type TYPE_CODE_REF referencing this value." },
+  { "rvalue_reference_value", valpy_rvalue_reference_value, METH_NOARGS,
+    "Return a value of type TYPE_CODE_RVALUE_REF referencing this value." },
   { "const_value", valpy_const_value, METH_NOARGS,
     "Return a 'const' qualied version of the same value." },
   { "lazy_string", (PyCFunction) valpy_lazy_string,

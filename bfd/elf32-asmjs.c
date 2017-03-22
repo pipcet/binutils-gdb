@@ -168,16 +168,20 @@ asmjs_elf32_hex16_reloc (bfd *abfd ATTRIBUTE_UNUSED,
 			       bfd_arch_bits_per_address (abfd),
 			       relocation);
 
-  unsigned long long value = relocation;
+  {
+    unsigned long long value = relocation;
 
-  char buf[17];
-  memset(buf, ' ', 16);
-  int len = snprintf(buf, 16, "%llx", value);
-  buf[len] = ' ';
+    char buf[17];
+    int len;
+    int i;
 
-  int i;
-  for (i = 0; i < 16; i++) {
-    bfd_put_8 (abfd, buf[i], data + octets + i);
+    memset(buf, ' ', 16);
+    len = snprintf(buf, 16, "%llx", value);
+    buf[len] = ' ';
+
+    for (i = 0; i < 16; i++) {
+      bfd_put_8 (abfd, buf[i], data + octets + i);
+    }
   }
 
   return flag;

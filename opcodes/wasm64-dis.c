@@ -44,14 +44,57 @@
 
 
 
-enum wasm_clas { wasm_typed, wasm_special, wasm_special1, wasm_break, wasm_break_if, wasm_break_table,
-                 wasm_return, wasm_call, wasm_call_import, wasm_call_indirect, wasm_get_local, wasm_set_local, wasm_tee_local, wasm_drop,
-wasm_constant, wasm_constant_f32, wasm_constant_f64, wasm_unary, wasm_binary,
-wasm_conv, wasm_load, wasm_store, wasm_select, wasm_relational, wasm_eqz, wasm_signature };
+enum wasm_clas
+  {
+    wasm_typed,
+    wasm_special,
+    wasm_special1,
+    wasm_break,
+    wasm_fakebreak,
+    wasm_break_if,
+    wasm_break_table,
+    wasm_return,
+    wasm_call,
+    wasm_call_import,
+    wasm_call_indirect,
+    wasm_get_local,
+    wasm_set_local,
+    wasm_tee_local,
+    wasm_drop,
+    wasm_constant_i32,
+    wasm_constant_i64,
+    wasm_constant_f32,
+    wasm_constant_f64,
+    wasm_unary,
+    wasm_binary,
+    wasm_conv,
+    wasm_load,
+    wasm_store,
+    wasm_select,
+    wasm_relational,
+    wasm_eqz,
+    wasm_current_memory,
+    wasm_grow_memory,
+    wasm_signature
+  };
 
-enum wasm_signedness { wasm_signed, wasm_unsigned, wasm_agnostic, wasm_floating };
+enum wasm_signedness
+  {
+    wasm_signed,
+    wasm_unsigned,
+    wasm_agnostic,
+    wasm_floating
+  };
 
-enum wasm_type { wasm_void, wasm_any, wasm_i32, wasm_i64, wasm_f32, wasm_f64 };
+enum wasm_type
+  {
+    wasm_void,
+    wasm_any,
+    wasm_i32,
+    wasm_i64,
+    wasm_f32,
+    wasm_f64
+  };
 
 #define WASM_OPCODE(name, intype, outtype, clas, signedness, opcode) \
   { name, wasm_ ## intype, wasm_ ## outtype, wasm_ ## clas, wasm_ ## signedness, opcode },
@@ -100,9 +143,7 @@ parse_wasm64_disassembler_option (char *option)
 /* Parse the string of disassembler options, spliting it at whitespaces
    or commas.  (Whitespace separators supported for backwards compatibility).  */
 
-extern
-int read_uleb128(long *value, bfd_vma pc, struct disassemble_info *info);
-
+static
 int read_uleb128(long *value, bfd_vma pc, struct disassemble_info *info)
 {
   bfd_byte buffer[16];
@@ -121,20 +162,7 @@ int read_uleb128(long *value, bfd_vma pc, struct disassemble_info *info)
   return len;
 }
 
-int read_u32(long *value, bfd_vma pc, struct disassemble_info *info);
-int read_u32(long *value, bfd_vma pc, struct disassemble_info *info)
-{
-  int ret;
-
-  if (info->read_memory_func (pc, (bfd_byte*)&ret, 4, info))
-    return -1;
-
-  *value = ret;
-
-  return 4;
-}
-
-int read_f32(double *value, bfd_vma pc, struct disassemble_info *info);
+static
 int read_f32(double *value, bfd_vma pc, struct disassemble_info *info)
 {
   float ret;
@@ -147,7 +175,7 @@ int read_f32(double *value, bfd_vma pc, struct disassemble_info *info)
   return 4;
 }
 
-int read_f64(double *value, bfd_vma pc, struct disassemble_info *info);
+static
 int read_f64(double *value, bfd_vma pc, struct disassemble_info *info)
 {
   double ret;
@@ -158,23 +186,6 @@ int read_f64(double *value, bfd_vma pc, struct disassemble_info *info)
   *value = ret;
 
   return 8;
-}
-
-const char *print_type(enum wasm_type);
-const char *print_type(enum wasm_type type)
-{
-  switch (type) {
-  case wasm_i32:
-    return "i32";
-  case wasm_f32:
-    return "f32";
-  case wasm_i64:
-    return "i64";
-  case wasm_f64:
-    return "f64";
-  default:
-    return NULL;
-  }
 }
 
 int
@@ -288,17 +299,19 @@ print_insn_little_wasm64 (bfd_vma pc, struct disassemble_info *info)
           prin (stream, "[%ld]", argument_count+1);
           argument_count = 0;
           break;
-        case wasm_constant:
+        case wasm_constant_i32:
         case wasm_constant_f32:
         case wasm_constant_f64:
         case wasm_get_local:
           prin (stream, "[0]");
         case wasm_signature:
+        default:
           break;
         }
 
       switch (op->clas)
         {
+        default:
         case wasm_special:
         case wasm_special1:
         case wasm_eqz:
@@ -333,7 +346,7 @@ print_insn_little_wasm64 (bfd_vma pc, struct disassemble_info *info)
           len += read_uleb128(&argument_count, pc + len, info);
           //prin (stream, " %ld", argument_count);
           break;
-        case wasm_constant:
+        case wasm_constant_i32:
           len += read_uleb128(&constant, pc + len, info);
           prin (stream, " %lx", constant);
           break;

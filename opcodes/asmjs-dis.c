@@ -50,11 +50,10 @@ print_insn_asmjsl (bfd_vma pc ATTRIBUTE_UNUSED,
                   unsigned long off0, unsigned long off1)
 {
   fprintf_ftype func = info->fprintf_func;
+  unsigned long off;
 
   if (off1 - off0 >= 1024)
     return;
-
-  unsigned long off;
 
   func (info->stream, "\n");
   for (off = off0; off < off1; off++) {

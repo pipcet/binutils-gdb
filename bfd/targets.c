@@ -1423,6 +1423,10 @@ static const bfd_target * const _bfd_target_vector[] =
 
 	&visium_elf32_vec,
 
+        &wasm_vec,
+        &wasm32_elf32_vec,
+        &wasm64_elf64_vec,
+
 	&w65_coff_vec,
 
 	&we32k_coff_vec,

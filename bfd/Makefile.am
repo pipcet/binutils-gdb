@@ -390,6 +390,7 @@ BFD32_BACKENDS = \
 	elf32-v850.lo \
 	elf32-vax.lo \
 	elf32-visium.lo \
+	elf32-wasm32.lo \
 	elf32-xc16x.lo \
 	elf32-xgate.lo \
 	elf32-xstormy16.lo \
@@ -463,6 +464,7 @@ BFD32_BACKENDS = \
 	versados.lo \
 	vms-lib.lo \
 	vms-misc.lo \
+	wasm-module.lo \
 	xcofflink.lo \
 	xsym.lo \
 	xtensa-isa.lo \
@@ -584,6 +586,7 @@ BFD32_BACKENDS_CFILES = \
 	elf32-v850.c \
 	elf32-vax.c \
 	elf32-visium.c \
+	elf32-wasm32.c \
 	elf32-xc16x.c \
 	elf32-xgate.c \
 	elf32-xstormy16.c \
@@ -656,6 +659,7 @@ BFD32_BACKENDS_CFILES = \
 	versados.c \
 	vms-lib.c \
 	vms-misc.c \
+	wasm-module.c \
 	xcofflink.c \
 	xsym.c \
 	xtensa-isa.c \

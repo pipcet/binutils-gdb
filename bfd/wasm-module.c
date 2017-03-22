@@ -35,68 +35,6 @@
 #include "libbfd.h"
 #include "wasm-module.h"
 
-/* From elf-eh-frame.c: */
-/* If *ITER hasn't reached END yet, read the next byte into *RESULT and
-   move onto the next byte.  Return true on success.  */
-
-static inline bfd_boolean
-read_byte (bfd_byte **iter, bfd_byte *end, unsigned char *result)
-{
-  if (*iter >= end)
-    return FALSE;
-  *result = *((*iter)++);
-  return TRUE;
-}
-
-/* Move *ITER over LENGTH bytes, or up to END, whichever is closer.
-   Return true it was possible to move LENGTH bytes.  */
-
-static inline bfd_boolean
-skip_bytes (bfd_byte **iter, bfd_byte *end, bfd_size_type length)
-{
-  if ((bfd_size_type) (end - *iter) < length)
-    {
-      *iter = end;
-      return FALSE;
-    }
-  *iter += length;
-  return TRUE;
-}
-
-/* Move *ITER over an leb128, stopping at END.  Return true if the end
-   of the leb128 was found.  */
-
-static bfd_boolean
-skip_leb128 (bfd_byte **iter, bfd_byte *end)
-{
-  unsigned char byte;
-  do
-    if (!read_byte (iter, end, &byte))
-      return FALSE;
-  while (byte & 0x80);
-  return TRUE;
-}
-
-/* Like skip_leb128, but treat the leb128 as an unsigned value and
-   store it in *VALUE.  */
-
-static bfd_boolean
-read_uleb128 (bfd_byte **iter, bfd_byte *end, bfd_vma *value)
-{
-  bfd_byte *start, *p;
-
-  start = *iter;
-  if (!skip_leb128 (iter, end))
-    return FALSE;
-
-  p = *iter;
-  *value = *--p;
-  while (p > start)
-    *value = (*value << 7) | (*--p & 0x7f);
-
-  return TRUE;
-}
-
 /* Read an unsigned leb128 from ABFD, setting ERROR to true if there
    was an error. */
 static bfd_vma
@@ -319,6 +257,8 @@ wasm_scan_name_function_section (bfd *abfd, sec_ptr asect,
   payload_size = _bfd_safe_read_leb128 (abfd, p, &length_read,
                                         FALSE, end);
 
+  p += length_read;
+
   if (length_read == 0)
     return FALSE;
 
@@ -330,8 +270,13 @@ wasm_scan_name_function_section (bfd *abfd, sec_ptr asect,
 
   end = p + payload_size;
 
-  if (!read_uleb128 (&p, end, &symcount))
+  symcount = _bfd_safe_read_leb128 (abfd, p, &length_read,
+                                    FALSE, end);
+
+  if (length_read == 0)
     return FALSE;
+
+  p += length_read;
 
   tdata->symcount = symcount;
   symcount = 0;
@@ -339,6 +284,9 @@ wasm_scan_name_function_section (bfd *abfd, sec_ptr asect,
   space_function_index = bfd_make_section_with_flags (abfd, WASM_SECTION_FUNCTION_INDEX, SEC_READONLY | SEC_CODE);
   if (!space_function_index)
     space_function_index = bfd_get_section_by_name (abfd, WASM_SECTION_FUNCTION_INDEX);
+
+  if (!space_function_index)
+    return FALSE;
 
   for (i = 0; p < end && i < tdata->symcount; i++)
     {

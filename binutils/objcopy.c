@@ -2474,6 +2474,10 @@ copy_object (bfd *ibfd, bfd *obfd, const bfd_arch_info_type *input_arch)
 
       for (pdump = dump_sections; pdump != NULL; pdump = pdump->next)
 	{
+	  bfd_size_type size;
+	  FILE * f;
+	  bfd_byte * contents;
+
 	  osec = bfd_get_section_by_name (ibfd, pdump->name);
 	  if (osec == NULL)
 	    {
@@ -2490,7 +2494,7 @@ copy_object (bfd *ibfd, bfd *obfd, const bfd_arch_info_type *input_arch)
 	      continue;
 	    }
 
-	  bfd_size_type size = bfd_get_section_size (osec);
+	  size = bfd_get_section_size (osec);
 	  if (size == 0)
 	    {
 	      bfd_nonfatal_message (NULL, ibfd, osec,
@@ -2498,7 +2502,6 @@ copy_object (bfd *ibfd, bfd *obfd, const bfd_arch_info_type *input_arch)
 	      continue;
 	    }
 
-	  FILE * f;
 	  f = fopen (pdump->filename, FOPEN_WB);
 	  if (f == NULL)
 	    {
@@ -2507,7 +2510,7 @@ copy_object (bfd *ibfd, bfd *obfd, const bfd_arch_info_type *input_arch)
 	      continue;
 	    }
 
-	  bfd_byte * contents = xmalloc (size);
+	  contents = xmalloc (size);
 	  if (bfd_get_section_contents (ibfd, osec, contents, 0, size))
 	    {
 	      if (fwrite (contents, 1, size, f) != size)

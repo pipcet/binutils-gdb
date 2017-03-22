@@ -1262,6 +1262,10 @@ write_build_id (bfd *abfd)
   bfd_size_type size;
   bfd_size_type build_id_size;
   unsigned char *build_id;
+  bfd_vma ib;
+  struct internal_IMAGE_DEBUG_DIRECTORY idd;
+  struct external_IMAGE_DEBUG_DIRECTORY *ext;
+  CODEVIEW_INFO cvinfo;
 
   /* Find the section the .buildid output section has been merged info.  */
   for (asec = abfd->sections; asec != NULL; asec = asec->next)
@@ -1299,10 +1303,9 @@ write_build_id (bfd *abfd)
   build_id = xmalloc (build_id_size);
   generate_build_id (abfd, t->build_id.style, pecoff_checksum_contents, build_id, build_id_size);
 
-  bfd_vma ib = pe_data (link_info.output_bfd)->pe_opthdr.ImageBase;
+  ib = pe_data (link_info.output_bfd)->pe_opthdr.ImageBase;
 
   /* Construct a debug directory entry which points to an immediately following CodeView record.  */
-  struct internal_IMAGE_DEBUG_DIRECTORY idd;
   idd.Characteristics = 0;
   idd.TimeDateStamp = 0;
   idd.MajorVersion = 0;
@@ -1314,7 +1317,7 @@ write_build_id (bfd *abfd)
   idd.PointerToRawData = asec->filepos + link_order->offset
     + sizeof (struct external_IMAGE_DEBUG_DIRECTORY);
 
-  struct external_IMAGE_DEBUG_DIRECTORY *ext = (struct external_IMAGE_DEBUG_DIRECTORY *)contents;
+  ext = (struct external_IMAGE_DEBUG_DIRECTORY *)contents;
   _bfd_XXi_swap_debugdir_out (abfd, &idd, ext);
 
   /* Write the debug directory enttry */
@@ -1325,7 +1328,6 @@ write_build_id (bfd *abfd)
     return 0;
 
   /* Construct the CodeView record.  */
-  CODEVIEW_INFO cvinfo;
   cvinfo.CVSignature = CVINFO_PDB70_CVSIGNATURE;
   cvinfo.Age = 1;
 

@@ -581,8 +581,7 @@ extern asection *section_for_dot
   (void);
 
 #define LANG_FOR_EACH_INPUT_STATEMENT(statement)			\
-  lang_input_statement_type *statement;					\
-  for (statement = (lang_input_statement_type *) file_chain.head;	\
+  for (lang_input_statement_type *statement = (lang_input_statement_type *) file_chain.head;	\
        statement != (lang_input_statement_type *) NULL;			\
        statement = (lang_input_statement_type *) statement->next)	\
 

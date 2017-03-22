@@ -2457,6 +2457,8 @@ load_specific_debug_section (enum dwarf_section_display_enum debug,
 
   if (is_relocatable && debug_displays [debug].relocate)
     {
+      long reloc_size;
+
       bfd_cache_section_contents (sec, section->start);
 
       ret = bfd_simple_get_relocated_section_contents (abfd,
@@ -2471,8 +2473,6 @@ load_specific_debug_section (enum dwarf_section_display_enum debug,
 	          section->name);
           return 0;
         }
-
-      long reloc_size;
 
       reloc_size = bfd_get_reloc_upper_bound (abfd, sec);
       if (reloc_size > 0)

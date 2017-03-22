@@ -768,10 +768,11 @@ wind_MultiByteToWideChar (rc_uint_type cp, const char *mb,
   char tmp[32];
   char *p_tmp;
   const char *iconv_name = wind_iconv_cp (cp);
+  iconv_t cd;
 
   if (!mb || !iconv_name)
     return 0;
-  iconv_t cd = iconv_open ("UTF-16LE", iconv_name);
+  cd = iconv_open ("UTF-16LE", iconv_name);
 
   while (1)
     {
@@ -841,10 +842,11 @@ wind_WideCharToMultiByte (rc_uint_type cp, const unichar *u, char *mb, rc_uint_t
   char tmp[32];
   char *p_tmp;
   const char *iconv_name = wind_iconv_cp (cp);
+  iconv_t cd;
 
   if (!u || !iconv_name)
     return 0;
-  iconv_t cd = iconv_open (iconv_name, "UTF-16LE");
+  cd = iconv_open (iconv_name, "UTF-16LE");
 
   while (1)
     {

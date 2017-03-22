@@ -192,8 +192,8 @@ wasm_get_byte (bfd *abfd, bfd_boolean *errorptr)
 static bfd_boolean
 wasm_get_version (bfd *abfd, bfd_boolean *errorptr)
 {
-  bfd_byte vers[4];n
-  bfd_byte vers_const = WASM_VERSION;
+  bfd_byte vers[4];
+  bfd_byte vers_const[] = WASM_VERSION;
   if (bfd_bread (vers, (bfd_size_type) 4, abfd) != 4)
     {
       *errorptr = TRUE;
@@ -303,7 +303,7 @@ wasm_scan_name_function_section (bfd *abfd, sec_ptr asect,
         break;
 
       payload_size = _bfd_safe_read_leb128 (abfd, p, &length_read,
-                                            false, end);
+                                            FALSE, end);
       if (length_read == 0)
         return FALSE;
 
@@ -317,7 +317,7 @@ wasm_scan_name_function_section (bfd *abfd, sec_ptr asect,
     return FALSE;
 
   payload_size = _bfd_safe_read_leb128 (abfd, p, &length_read,
-                                        false, end);
+                                        FALSE, end);
 
   if (length_read == 0)
     return FALSE;
@@ -348,7 +348,7 @@ wasm_scan_name_function_section (bfd *abfd, sec_ptr asect,
       asymbol *sym;
 
       index = _bfd_safe_read_leb128 (abfd, p, &length_read,
-                                     false, end);
+                                     FALSE, end);
 
       if (length_read == 0)
         goto error_out;
@@ -356,18 +356,17 @@ wasm_scan_name_function_section (bfd *abfd, sec_ptr asect,
       p += length_read;
 
       len = _bfd_safe_read_leb128 (abfd, p, &length_read,
-                                   false, end);
+                                   FALSE, end);
 
       if (length_read == 0)
         goto error_out;
 
       p += length_read;
 
-      if (!read_uleb128 (&p, end, &index)
-          || !read_uleb128 (&p, end, &len))
-        return FALSE;
-
       name = bfd_alloc (abfd, len + 1);
+
+      if (!name)
+        goto error_out;
 
       name[len] = 0;
 
@@ -408,6 +407,8 @@ wasm_scan_name_function_section (bfd *abfd, sec_ptr asect,
   return TRUE;
 
  error_out:
+  for (i = 0; i < symcount; i++)
+    free ((void *)symbols[i].name);
   free (symbols);
   return FALSE;
 }
@@ -756,7 +757,7 @@ wasm_object_p (bfd *abfd)
   if (bfd_seek (abfd, (file_ptr) 0, SEEK_SET) != 0)
     return NULL;
 
-  if (!bfd_wasm_read_header (bfd, &error))
+  if (!bfd_wasm_read_header (abfd, &error))
     {
       bfd_set_error (bfd_error_wrong_format);
       return NULL;

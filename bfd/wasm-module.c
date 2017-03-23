@@ -43,17 +43,17 @@ typedef struct
 
 static const char * const wasm_numbered_sections[] = {
   NULL, /* custom section, different layout */
-  WASM_SECTION( 1, "type"),
-  WASM_SECTION( 2, "import"),
-  WASM_SECTION( 3, "function"),
-  WASM_SECTION( 4, "table"),
-  WASM_SECTION( 5, "memory"),
-  WASM_SECTION( 6, "global"),
-  WASM_SECTION( 7, "export"),
-  WASM_SECTION( 8, "start"),
-  WASM_SECTION( 9, "element"),
-  WASM_SECTION(10, "code"),
-  WASM_SECTION(11, "data"),
+  WASM_SECTION ( 1, "type"),
+  WASM_SECTION ( 2, "import"),
+  WASM_SECTION ( 3, "function"),
+  WASM_SECTION ( 4, "table"),
+  WASM_SECTION ( 5, "memory"),
+  WASM_SECTION ( 6, "global"),
+  WASM_SECTION ( 7, "export"),
+  WASM_SECTION ( 8, "start"),
+  WASM_SECTION ( 9, "element"),
+  WASM_SECTION (10, "code"),
+  WASM_SECTION (11, "data"),
 };
 
 #define WASM_NUMBERED_SECTIONS (sizeof (wasm_numbered_sections) / sizeof (wasm_numbered_sections[0]))

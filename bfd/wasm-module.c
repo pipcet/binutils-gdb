@@ -429,7 +429,7 @@ wasm_scan (bfd *abfd)
           bfd_vma payload_len;
           file_ptr section_start;
           bfd_vma namelen;
-          char *prefix = WASM_SECTION_PREFIX;
+          const char *prefix = WASM_SECTION_PREFIX;
           char *p;
           int ret;
 
@@ -445,7 +445,7 @@ wasm_scan (bfd *abfd)
             goto error_return;
           p = name;
           ret = sprintf (p, "%s", prefix);
-          if (ret < 0 || (bfd_vma) ret != strlen (prefix))
+          if ((bfd_vma) ret != strlen (prefix))
             goto error_return;
           p += ret;
           READ_ALL (p, namelen, abfd);

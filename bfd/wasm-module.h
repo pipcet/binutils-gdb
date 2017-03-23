@@ -24,7 +24,7 @@
 /* WebAssembly module file header. Note that WASM_VERSION is a 32-bit
    little-endian integer, not an LEB128-encoded integer. */
 #define WASM_MAGIC    { 0x00, 'a', 's', 'm' }
-#define WASM_VERSION  { 0x01, 0x00, 0x00, 0x00}
+#define WASM_VERSION  { 0x01, 0x00, 0x00, 0x00 }
 
 /* Prefix to use to form section names. */
 #define WASM_SECTION_PREFIX ".wasm."

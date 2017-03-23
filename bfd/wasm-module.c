@@ -21,9 +21,9 @@
    MA 02110-1301, USA.  */
 
 /* The WebAssembly module format is a simple object file format
- * including up to 11 numbered sections, plus any number of named
- * "custom" sections. It is described at
- * https://github.com/WebAssembly/design/blob/master/BinaryEncoding.md. */
+   including up to 11 numbered sections, plus any number of named
+   "custom" sections. It is described at
+   https://github.com/WebAssembly/design/blob/master/BinaryEncoding.md. */
 
 #include "sysdep.h"
 #include "alloca-conf.h"
@@ -59,7 +59,7 @@ static const char * const wasm_numbered_sections[] = {
 #define WASM_NUMBERED_SECTIONS (sizeof (wasm_numbered_sections) / sizeof (wasm_numbered_sections[0]))
 
 /* Resolve SECTION_CODE to a section name if there is one, NULL
- * otherwise. */
+   otherwise. */
 static const char *
 wasm_section_code_to_name (bfd_byte section_code)
 {
@@ -72,7 +72,7 @@ wasm_section_code_to_name (bfd_byte section_code)
 }
 
 /* Translate section name NAME to a section code, or 0 if it's a
- * custom name. */
+   custom name. */
 static int
 wasm_section_name_to_code (const char *name)
 {
@@ -87,21 +87,21 @@ wasm_section_name_to_code (const char *name)
 }
 
 /* WebAssembly LEB128 integers are sufficiently like DWARF LEB128
- * integers that we use _bfd_safe_read_leb128, but there are two
- * points of difference:
- *
- * - WebAssembly requires a 32-bit value to be encoded in at most 5
- *   bytes, etc.
- * - _bfd_safe_read_leb128 accepts incomplete LEB128 encodings at the
- *   end of the buffer, while these are invalid in WebAssembly.
- *
- * Those differences mean that we will accept some files that are
- * invalid WebAssembly. */
+   integers that we use _bfd_safe_read_leb128, but there are two
+   points of difference:
+
+   - WebAssembly requires a 32-bit value to be encoded in at most 5
+     bytes, etc.
+   - _bfd_safe_read_leb128 accepts incomplete LEB128 encodings at the
+     end of the buffer, while these are invalid in WebAssembly.
+
+   Those differences mean that we will accept some files that are
+   invalid WebAssembly. */
 
 /* Read an LEB128-encoded integer from ABFD's I/O stream, reading one
- * byte at a time. Set ERROR_RETURN if no complete integer could be
- * read, LENGTH_RETURN to the number of bytes read (including bytes in
- * incomplete numbers). SIGN means interpret the number as SLEB128. */
+   byte at a time. Set ERROR_RETURN if no complete integer could be
+   read, LENGTH_RETURN to the number of bytes read (including bytes in
+   incomplete numbers). SIGN means interpret the number as SLEB128. */
 static bfd_vma
 wasm_read_leb128 (bfd *abfd,
                   bfd_boolean *error_return,
@@ -139,7 +139,7 @@ wasm_read_leb128 (bfd *abfd,
   return result;
 }
 
-/* Encode an integer V as LEB128 and write it to ABFD, return true on
+/* Encode an integer V as LEB128 and write it to ABFD, return TRUE on
    success. */
 static bfd_boolean
 wasm_write_uleb128 (bfd *abfd, bfd_vma v)
@@ -161,7 +161,7 @@ wasm_write_uleb128 (bfd *abfd, bfd_vma v)
 }
 
 /* Read COUNT bytes from ABFD into BUF, jumping to error_return on
- * failure. */
+   failure. */
 #define READ_ALL(buf, count, abfd)              \
   do                                            \
     {                                           \
@@ -171,7 +171,7 @@ wasm_write_uleb128 (bfd *abfd, bfd_vma v)
   while (0)
 
 /* Read the LEB128 integer at P, saving it to X; at end of buffer,
- * jump to error_return. */
+   jump to error_return. */
 #define READ_LEB128(x, p, end)                                          \
   do                                                                    \
     {                                                                   \
@@ -185,7 +185,7 @@ wasm_write_uleb128 (bfd *abfd, bfd_vma v)
   while (0)
 
 /* Verify the magic number at the beginning of a WebAssembly module
- * ABFD, setting ERRORPTR if there's a mismatch. */
+   ABFD, setting ERRORPTR if there's a mismatch. */
 static bfd_boolean
 wasm_read_magic (bfd *abfd, bfd_boolean *errorptr)
 {
@@ -204,8 +204,8 @@ wasm_read_magic (bfd *abfd, bfd_boolean *errorptr)
   return FALSE;
 }
 
-/* Read the version number from ABFD, returning true if it's a supported
- * version. Set ERRORPTR otherwise. */
+/* Read the version number from ABFD, returning TRUE if it's a supported
+   version. Set ERRORPTR otherwise. */
 static bfd_boolean
 wasm_read_version (bfd *abfd, bfd_boolean *errorptr)
 {
@@ -215,7 +215,7 @@ wasm_read_version (bfd *abfd, bfd_boolean *errorptr)
   READ_ALL (vers, (bfd_size_type) 4, abfd);
 
   /* Don't attempt to parse newer versions, which are likely to
-   * require code changes. */
+     require code changes. */
   if (memcmp (vers, vers_const, 4) != 0)
     goto error_return;
 
@@ -227,7 +227,7 @@ wasm_read_version (bfd *abfd, bfd_boolean *errorptr)
 }
 
 /* Read the WebAssembly header (magic number plus version number) from
- * ABFD, setting ERRORPTR to true if there is a mismatch. */
+   ABFD, setting ERRORPTR to TRUE if there is a mismatch. */
 static bfd_boolean
 wasm_read_header (bfd *abfd, bfd_boolean *errorptr)
 {
@@ -241,7 +241,7 @@ wasm_read_header (bfd *abfd, bfd_boolean *errorptr)
 }
 
 /* Scan the "function" subsection of the "name" section ASECT in the
- * wasm module ABFD. Create symbols. Return true on success. */
+   wasm module ABFD. Create symbols. Return TRUE on success. */
 static bfd_boolean
 wasm_scan_name_function_section (bfd *abfd, sec_ptr asect)
 {
@@ -272,8 +272,8 @@ wasm_scan_name_function_section (bfd *abfd, sec_ptr asect)
         break;
 
       /* subsection_code is documented to be a varuint7, meaning that
-       * it has to be a single byte in the 0 - 127 range. If it isn't,
-       * the spec must have changed underneath us, so give up. */
+         it has to be a single byte in the 0 - 127 range. If it isn't,
+         the spec must have changed underneath us, so give up. */
       if (subsection_code & 0x80)
         return FALSE;
 
@@ -362,10 +362,10 @@ wasm_scan_name_function_section (bfd *abfd, sec_ptr asect)
 }
 
 /* Read a byte from ABFD and return it, or EOF for EOF or error. Set
- * ERRORPTR on non-EOF error.
- *
- * This differs from READ_ALL because we don't know whether there is
- * another section to be read at EOF. */
+   ERRORPTR on non-EOF error.
+
+   This differs from READ_ALL because we don't know whether there is
+   another section to be read at EOF. */
 static int
 wasm_read_byte (bfd *abfd, bfd_boolean *errorptr)
 {
@@ -381,13 +381,13 @@ wasm_read_byte (bfd *abfd, bfd_boolean *errorptr)
 }
 
 /* Scan the wasm module ABFD, creating sections and symbols. Return
- * true on success. */
+   TRUE on success. */
 static bfd_boolean
 wasm_scan (bfd *abfd)
 {
   bfd_boolean error = FALSE;
   /* fake VMAs for now. Choose 0x80000000 as base to avoid clashes
-   * with actual data addresses. */
+     with actual data addresses. */
   bfd_vma vma = 0x80000000;
   int section_code;
   unsigned int bytes_read;
@@ -475,7 +475,7 @@ wasm_scan (bfd *abfd)
     }
 
   /* Make sure we're at actual EOF. There's no indication in the
-   * WebAssembly format of how long the file is supposed to be. */
+     WebAssembly format of how long the file is supposed to be. */
   if (error)
     goto error_return;
 
@@ -492,7 +492,7 @@ wasm_scan (bfd *abfd)
 }
 
 /* Put a numbered section ASECT of ABFD into the table of numbered
- * sections pointed to by FSARG. */
+   sections pointed to by FSARG. */
 static void
 wasm_register_section (bfd *abfd ATTRIBUTE_UNUSED,
                        asection *asect, void *fsarg)
@@ -513,13 +513,13 @@ struct compute_section_arg
 };
 
 /* Compute the file position of ABFD's section ASECT. FSARG is a
- * pointer to the current file position.
- *
- * We allow section names of the form .wasm.%s to encode the numbered
- * section with ID %s, if it exists; otherwise, a custom section with
- * ID %s is produced. Arbitrary section names are for sections that
- * are assumed already to contain a section header; those are appended
- * to the WebAssembly module verbatim. */
+   pointer to the current file position.
+
+   We allow section names of the form .wasm.id to encode the numbered
+   section with ID id, if it exists; otherwise, a custom section with
+   ID "id" is produced. Arbitrary section names are for sections that
+   are assumed already to contain a section header; those are appended
+   to the WebAssembly module verbatim. */
 static void
 wasm_compute_custom_section_file_position (bfd *abfd, sec_ptr asect,
                                            void *fsarg)
@@ -574,8 +574,12 @@ wasm_compute_custom_section_file_position (bfd *abfd, sec_ptr asect,
 }
 
 /* Compute the file positions for the sections of ABFD. Currently,
- * this writes all numbered sections first, in order, then all custom
- * sections, in section order. */
+   this writes all numbered sections first, in order, then all custom
+   sections, in section order.
+
+   The spec says that the numbered sections must appear in order of
+   their ids, but custom sections can appear in any position and any
+   order, and more than once. FIXME: support that. */
 static bfd_boolean
 wasm_compute_section_file_positions (bfd *abfd)
 {
@@ -587,8 +591,8 @@ wasm_compute_section_file_positions (bfd *abfd)
 
   bfd_seek (abfd, (bfd_vma) 0, SEEK_SET);
 
-  if (bfd_bwrite (magic, 4, abfd) != 4
-      || bfd_bwrite (vers, 4, abfd) != 4)
+  if (bfd_bwrite (magic, sizeof (magic), abfd) != (sizeof magic)
+      || bfd_bwrite (vers, sizeof (vers), abfd) != sizeof (vers))
     return FALSE;
 
   for (i = 0; i < WASM_NUMBERED_SECTIONS; i++)
@@ -596,7 +600,7 @@ wasm_compute_section_file_positions (bfd *abfd)
 
   bfd_map_over_sections (abfd, wasm_register_section, numbered_sections);
 
-  fs.pos = 8;
+  fs.pos = bfd_tell (abfd);
   for (i = 0; i < WASM_NUMBERED_SECTIONS; i++)
     {
       sec_ptr sec = numbered_sections[i];
@@ -656,8 +660,8 @@ wasm_write_object_contents (bfd* abfd)
   if (bfd_seek (abfd, 0, SEEK_SET) != 0)
     return FALSE;
 
-  if (bfd_bwrite (magic, 4, abfd) != 4
-      || bfd_bwrite (vers, 4, abfd) != 4)
+  if (bfd_bwrite (magic, sizeof (magic), abfd) != sizeof (magic)
+      || bfd_bwrite (vers, sizeof (vers), abfd) != sizeof (vers))
     return FALSE;
 
   return TRUE;

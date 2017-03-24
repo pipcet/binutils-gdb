@@ -207,29 +207,27 @@ wasm32_validate_fix_sub (fixS *fix ATTRIBUTE_UNUSED)
   return 1;
 }
 
-/* TC_FORCE_RELOCATION hook */
-
-/* GAS will call this for each fixup.  It should store the correct
-   value in the object file.  */
-
-static void
-apply_full_field_fix (fixS *fixP, char *buf ATTRIBUTE_UNUSED, bfd_vma val, int size ATTRIBUTE_UNUSED)
+/* Apply a fixup, return TRUE if done (and no relocation is needed). */
+static bfd_boolean
+apply_full_field_fix (fixS *fixP, char *buf, bfd_vma val,
+                      int size)
 {
   if (fixP->fx_addsy != NULL || fixP->fx_pcrel)
     {
       fixP->fx_addnumber = val;
 
-      return;
+      return FALSE;
     }
   number_to_chars_littleendian (buf, val, size);
+
+  return TRUE;
 }
 
 void
-md_apply_fix (fixS *fixP, valueT * valP ATTRIBUTE_UNUSED, segT seg ATTRIBUTE_UNUSED)
+md_apply_fix (fixS *fixP, valueT * valP, segT seg ATTRIBUTE_UNUSED)
 {
   char *buf = fixP->fx_where + fixP->fx_frag->fr_literal;
   long val = (long) *valP;
-
 
   if (fixP->fx_pcrel)
     {
@@ -245,14 +243,7 @@ md_apply_fix (fixS *fixP, valueT * valP ATTRIBUTE_UNUSED, segT seg ATTRIBUTE_UNU
         }
     }
 
-  switch (fixP->fx_r_type)
-    {
-    default:
-      apply_full_field_fix (fixP, buf, val, fixP->fx_size);
-      break;
-    }
-
-  if (fixP->fx_addsy == 0 && fixP->fx_pcrel == 0)
+  if (apply_full_field_fix (fixP, buf, val, fixP->fx_size))
     fixP->fx_done = 1;
 }
 

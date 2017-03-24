@@ -225,6 +225,7 @@ apply_full_field_fix (fixS *fixP, char *buf, bfd_vma val,
   return TRUE;
 }
 
+/* Apply a fixup (potentially PC-relative), set the fx_done flag if done. */
 void
 md_apply_fix (fixS *fixP, valueT * valP, segT seg ATTRIBUTE_UNUSED)
 {
@@ -264,7 +265,7 @@ is_part_of_opcode (char c)
   return is_part_of_name (c) || (c == '/');
 }
 
-/* Extract an opcode */
+/* Extract an opcode. */
 static char *
 extract_opcode (char *from, char *to, int limit)
 {
@@ -493,16 +494,16 @@ static void wasm32_signature(char **line)
   while (*str != 'E') {
     switch (*str++) {
     case 'i':
-      FRAG_APPEND_1_CHAR(0x7f);
+      FRAG_APPEND_1_CHAR(BLOCK_TYPE_I32);
       break;
     case 'l':
-      FRAG_APPEND_1_CHAR(0x7e);
+      FRAG_APPEND_1_CHAR(BLOCK_TYPE_I64);
       break;
     case 'f':
-      FRAG_APPEND_1_CHAR(0x7d);
+      FRAG_APPEND_1_CHAR(BLOCK_TYPE_F32);
       break;
     case 'd':
-      FRAG_APPEND_1_CHAR(0x7c);
+      FRAG_APPEND_1_CHAR(BLOCK_TYPE_F64);
       break;
     default:
       as_bad (_("Unknown type"));
@@ -511,23 +512,23 @@ static void wasm32_signature(char **line)
   str++;
   switch (*result) {
   case 'v':
-    FRAG_APPEND_1_CHAR(0x00);
+    FRAG_APPEND_1_CHAR(0x00); /* no return value */
     break;
   case 'i':
-    FRAG_APPEND_1_CHAR(0x01);
-    FRAG_APPEND_1_CHAR(0x7f);
+    FRAG_APPEND_1_CHAR(0x01); /* one return value */
+    FRAG_APPEND_1_CHAR(BLOCK_TYPE_I32);
     break;
   case 'l':
-    FRAG_APPEND_1_CHAR(0x01);
-    FRAG_APPEND_1_CHAR(0x7e);
+    FRAG_APPEND_1_CHAR(0x01); /* one return value */
+    FRAG_APPEND_1_CHAR(BLOCK_TYPE_I64);
     break;
   case 'f':
-    FRAG_APPEND_1_CHAR(0x01);
-    FRAG_APPEND_1_CHAR(0x7d);
+    FRAG_APPEND_1_CHAR(0x01); /* one return value */
+    FRAG_APPEND_1_CHAR(BLOCK_TYPE_F32);
     break;
   case 'd':
-    FRAG_APPEND_1_CHAR(0x01);
-    FRAG_APPEND_1_CHAR(0x7c);
+    FRAG_APPEND_1_CHAR(0x01); /* one return value */
+    FRAG_APPEND_1_CHAR(BLOCK_TYPE_F64);
     break;
   default:
     as_bad (_("Unknown type"));

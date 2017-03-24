@@ -1,6 +1,6 @@
 /* This file is tc-wasm32.h
    Copyright (C) 1999-2015 Free Software Foundation, Inc.
-   Copyright (C) 2016 Pip Cet <pipcet@gmail.com>
+   Copyright (C) 2016-2017 Pip Cet <pipcet@gmail.com>
 
    This file is NOT part of GAS, the GNU Assembler.
 
@@ -19,30 +19,13 @@
    Software Foundation, 51 Franklin Street - Fifth Floor, Boston, MA
    02110-1301, USA.  */
 
-/* By convention, you should define this macro in the `.h' file.  For
-   example, `tc-m68k.h' defines `TC_M68K'.  You might have to use this
-   if it is necessary to add CPU specific code to the object format
-   file.  */
 #define TC_WASM32
-
-/* This macro is the BFD target name to use when creating the output
-   file.  This will normally depend upon the `OBJ_FMT' macro.  */
 #define TARGET_FORMAT "elf32-wasm32"
-
-/* This macro is the BFD architecture to pass to `bfd_set_arch_mach'.  */
 #define TARGET_ARCH bfd_arch_wasm32
-
-/* This macro is the BFD machine number to pass to
-   `bfd_set_arch_mach'.  If it is not defined, GAS will use 0.  */
 #define TARGET_MACH 0
 
-/* You should define this macro to be non-zero if the target is big
-   endian, and zero if the target is little endian.  */
+/* WebAssembly is strictly little-endian. */
 #define TARGET_BYTES_BIG_ENDIAN 0
-
-/* If you define this macro, GAS will warn about the use of
-   nonstandard escape sequences in a string.  */
-#define ONLY_STANDARD_ESCAPES
 
 #define DIFF_EXPR_OK    /* .-foo gets turned into PC relative relocs */
 

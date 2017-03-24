@@ -79,14 +79,6 @@
    and define `md_create_long_jump' to create a long jump.  */
 #define WORKING_DOT_WORD
 
-/* If you define this macro, it means that `tc_gen_reloc' may return
-   multiple relocation entries for a single fixup.  In this case, the
-   return value of `tc_gen_reloc' is a pointer to a null terminated
-   array.  */
-#define RELOC_EXPANSION_POSSIBLE 1
-
-#define MAX_RELOC_EXPANSION 3
-
 #define EXTERN_FORCE_RELOC 1
 
 /* If defined, this macro allows control over whether fixups for a

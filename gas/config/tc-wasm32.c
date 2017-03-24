@@ -779,22 +779,16 @@ bfd_boolean wasm32_fix_adjustable (fixS * fixP)
   return TRUE;
 }
 
-arelent **
+arelent *
 tc_gen_reloc (asection *sec ATTRIBUTE_UNUSED,
               fixS *fixp)
 {
-  arelent **ret;
   arelent *reloc;
-
-  ret = xmalloc(3 * sizeof (* ret));
-  ret[1] = ret[2] = NULL;
 
   reloc = (arelent *) xmalloc (sizeof (* reloc));
   reloc->sym_ptr_ptr = (asymbol **) xmalloc (sizeof (asymbol *));
   *reloc->sym_ptr_ptr = symbol_get_bfdsym (fixp->fx_addsy);
   reloc->address = fixp->fx_frag->fr_address + fixp->fx_where;
-
-  ret[0] = reloc;
 
   /* Make sure none of our internal relocations make it this far.
      They'd better have been fully resolved by this point.  */
@@ -811,7 +805,7 @@ tc_gen_reloc (asection *sec ATTRIBUTE_UNUSED,
 
   reloc->addend = fixp->fx_offset;
 
-  return ret;
+  return reloc;
 }
 
 void wasm32_start_line_hook (void)

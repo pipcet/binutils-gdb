@@ -131,9 +131,6 @@ extern long md_pcrel_from_section (struct fix *, segT);
 //#define TC_VALIDATE_FIX_SUB(fix, seg)   wasm32_validate_fix_sub (fix)
 extern int wasm32_validate_fix_sub (struct fix *);
 
-/* This target is buggy, and sets fix size too large.  */
-#define TC_FX_SIZE_SLACK(FIX) 2
-
 #define DWARF2_LINE_MIN_INSN_LENGTH 	1
 
 /* 32 bit addresses are used on WASM32.  */
@@ -182,10 +179,6 @@ struct wasm32_frag_data
 };
 
 #define TC_FRAG_TYPE			struct wasm32_frag_data
-
-#define TC_EQUAL_IN_INSN(c, s) 1
-
-#define TC_CASE_SENSITIVE 1
 
 #define TC_FORCE_RELOCATION_LOCAL(fix) 1
 #define TC_FORCE_RELOCATION_SUB_SAME(fix,seg) wasm32_force_relocation(fix)

@@ -172,6 +172,7 @@ md_convert_frag (bfd *abfd ATTRIBUTE_UNUSED,
   abort ();
 }
 
+/* Set some flags. */
 void
 md_begin (void)
 {
@@ -191,9 +192,7 @@ md_begin (void)
   flag_keep_locals = 1;
 }
 
-/* GAS will call this function for each section at the end of the assembly,
-   to permit the CPU backend to adjust the alignment of a section.  */
-
+/* Do the normal thing for md_section_align */
 valueT
 md_section_align (asection *seg, valueT addr)
 {

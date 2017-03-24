@@ -182,3 +182,9 @@ extern bfd_boolean wasm32_fix_adjustable(struct fix *);
 #define tc_fix_adjustable(FIX) wasm32_fix_adjustable(FIX)
 
 #define TC_KEEP_OPERAND_SPACES
+
+#define BLOCK_TYPE_NONE 0x40
+#define BLOCK_TYPE_I32  0x7f
+#define BLOCK_TYPE_I64  0x7e
+#define BLOCK_TYPE_F32  0x7d
+#define BLOCK_TYPE_F64  0x7c

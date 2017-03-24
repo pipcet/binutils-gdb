@@ -130,6 +130,7 @@ struct option md_longopts[] =
 
 size_t md_longopts_size = sizeof (md_longopts);
 
+/* No relaxation/no machine-dependent frags. */
 int
 md_estimate_size_before_relax (fragS *fragp ATTRIBUTE_UNUSED,
                                asection *seg ATTRIBUTE_UNUSED)
@@ -141,29 +142,31 @@ md_estimate_size_before_relax (fragS *fragp ATTRIBUTE_UNUSED,
 void
 md_show_usage (FILE *stream)
 {
-  fprintf (stream,
-      _("wasm32 assembler options:\n"
-        ));
+  fprintf (stream, _("wasm32 assembler options:\n"));
 }
 
+/* No machine-dependent options. */
 int
 md_parse_option (int c ATTRIBUTE_UNUSED, const char *arg ATTRIBUTE_UNUSED)
 {
   return 0;
 }
 
+/* No machine-dependent symbols. */
 symbolS *
 md_undefined_symbol (char *name ATTRIBUTE_UNUSED)
 {
   return NULL;
 }
 
+/* IEEE little-endian floats. */
 const char *
 md_atof (int type, char *litP, int *sizeP)
 {
   return ieee_md_atof (type, litP, sizeP, FALSE);
 }
 
+/* No machine-dependent frags. */
 void
 md_convert_frag (bfd *abfd ATTRIBUTE_UNUSED,
                  asection *sec ATTRIBUTE_UNUSED,
@@ -172,7 +175,7 @@ md_convert_frag (bfd *abfd ATTRIBUTE_UNUSED,
   abort ();
 }
 
-/* Set some flags. */
+/* Build opcode hash table, set some flags. */
 void
 md_begin (void)
 {
@@ -544,31 +547,29 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
       if (opcode->clas == wasm_typed)
         {
           str++;
-          block_type = 0x40;
+          block_type = BLOCK_TYPE_NONE;
           if (str[0] != ']')
             {
               str = skip_space (str);
               switch (str[0])
                 {
                 case 'i':
-                  block_type = 0x7f;
+                  block_type = BLOCK_TYPE_I32;
                   str++;
                   break;
                 case 'l':
-                  block_type = 0x7e;
+                  block_type = BLOCK_TYPE_I64;
                   str++;
                   break;
                 case 'f':
-                  block_type = 0x7d;
+                  block_type = BLOCK_TYPE_F32;
                   str++;
                   break;
                 case 'd':
-                  block_type = 0x7c;
+                  block_type = BLOCK_TYPE_F64;
                   str++;
                   break;
                 }
-              while (str[0] == ':' || (str[0] >= '0' && str[0] <= '9'))
-                str++;
               if (str[0] == ']')
                 str++;
               str = skip_space (str);
@@ -576,6 +577,7 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
           else
             {
               str++;
+              str = skip_space (str);
             }
         }
       else if (opcode->clas)
@@ -714,9 +716,6 @@ wasm32_allow_local_subtract (expressionS * left ATTRIBUTE_UNUSED,
   return TRUE;
 }
 
-/* This hook is called when alignment is performed, and allows us to
-   capture the details of both .org and .align directives.  */
-
 int
 wasm32_force_relocation (fixS *f ATTRIBUTE_UNUSED)
 {
@@ -739,6 +738,7 @@ bfd_boolean wasm32_fix_adjustable (fixS * fixP)
   return TRUE;
 }
 
+/* Generate a reloc for FIXP. */
 arelent *
 tc_gen_reloc (asection *sec ATTRIBUTE_UNUSED,
               fixS *fixp)

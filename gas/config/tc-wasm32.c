@@ -727,11 +727,6 @@ md_assemble (char *str)
   input_line_pointer = t;
 }
 
-void
-tc_cfi_frame_initial_instructions (void)
-{
-}
-
 bfd_boolean
 wasm32_allow_local_subtract (expressionS * left ATTRIBUTE_UNUSED,
                              expressionS * right ATTRIBUTE_UNUSED,
@@ -742,20 +737,6 @@ wasm32_allow_local_subtract (expressionS * left ATTRIBUTE_UNUSED,
 
 /* This hook is called when alignment is performed, and allows us to
    capture the details of both .org and .align directives.  */
-
-void
-wasm32_handle_align (fragS *fragP ATTRIBUTE_UNUSED)
-{
-}
-
-void
-wasm32_post_relax_hook (void)
-{
-}
-
-void wasm32_elf_final_processing (void)
-{
-}
 
 int
 wasm32_force_relocation (fixS *f ATTRIBUTE_UNUSED)
@@ -806,8 +787,4 @@ tc_gen_reloc (asection *sec ATTRIBUTE_UNUSED,
   reloc->addend = fixp->fx_offset;
 
   return reloc;
-}
-
-void wasm32_start_line_hook (void)
-{
 }

@@ -147,25 +147,17 @@ extern int wasm32_validate_fix_sub (struct fix *);
 #define DWARF2_DEFAULT_RETURN_COLUMN  36
 
 /* Define a hook to setup initial CFI state.  */
-extern void tc_cfi_frame_initial_instructions (void);
-#define tc_cfi_frame_initial_instructions tc_cfi_frame_initial_instructions
+#define tc_cfi_frame_initial_instructions()
 
 /* The difference between same-section symbols may be affected by linker
    relaxation, so do not resolve such expressions in the assembler.  */
 #define md_allow_local_subtract(l,r,s) wasm32_allow_local_subtract (l, r, s)
 extern bfd_boolean wasm32_allow_local_subtract (expressionS *, expressionS *, segT);
 
-#define elf_tc_final_processing 	wasm32_elf_final_processing
-extern void wasm32_elf_final_processing (void);
-
-#define md_post_relax_hook wasm32_post_relax_hook ()
-extern void wasm32_post_relax_hook (void);
-
-extern void wasm32_start_line_hook (void);
-#define md_start_line_hook() wasm32_start_line_hook ()
-
-#define HANDLE_ALIGN(fragP) wasm32_handle_align (fragP)
-extern void wasm32_handle_align (fragS *fragP);
+#define elf_tc_final_processing()
+#define md_post_relax_hook()
+#define md_start_line_hook()
+#define HANDLE_ALIGN(fragP)
 
 struct wasm32_frag_data
 {

@@ -201,18 +201,6 @@ md_section_align (asection *seg, valueT addr)
   return ((addr + (1 << align) - 1) & -(1 << align));
 }
 
-/* If you define this macro, it should return the offset between the
-   address of a PC relative fixup and the position from which the PC
-   relative adjustment should be made.  On many processors, the base
-   of a PC relative instruction is the next instruction, so this
-   macro would return the length of an instruction.  */
-
-long
-md_pcrel_from_section (fixS *fixp ATTRIBUTE_UNUSED, segT sec ATTRIBUTE_UNUSED)
-{
-  return 0;
-}
-
 int
 wasm32_validate_fix_sub (fixS *fix ATTRIBUTE_UNUSED)
 {
@@ -700,6 +688,7 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
   return;
 }
 
+/* Main assembly function. Find the opcode and call wasm32_operands(). */
 void
 md_assemble (char *str)
 {

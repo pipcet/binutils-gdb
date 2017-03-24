@@ -147,7 +147,7 @@ extern int wasm32_validate_fix_sub (struct fix *);
 #define DWARF2_DEFAULT_RETURN_COLUMN  36
 
 /* Define a hook to setup initial CFI state.  */
-#define tc_cfi_frame_initial_instructions()
+#define tc_cfi_frame_initial_instructions() do { } while (0)
 
 /* The difference between same-section symbols may be affected by linker
    relaxation, so do not resolve such expressions in the assembler.  */
@@ -155,7 +155,7 @@ extern int wasm32_validate_fix_sub (struct fix *);
 extern bfd_boolean wasm32_allow_local_subtract (expressionS *, expressionS *, segT);
 
 #define elf_tc_final_processing()
-#define md_post_relax_hook()
+#define md_post_relax_hook
 #define md_start_line_hook()
 #define HANDLE_ALIGN(fragP)
 

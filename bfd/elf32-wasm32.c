@@ -1090,9 +1090,7 @@ build_plt_stub (bfd *output_bfd,
 
   /* size. fill in later. */
   *p++ = 0x80; *p++ = 0x80; *p++ = 0x80; *p++ = 0x80; *p++ = 0;
-  *p++ = 0x01; /* 1 local block */
-  *p++ = 0x11; /* 17 */
-  *p++ = 0x7f; /* i32 */
+  *p++ = 0x00; /* no locals */
 
   for (bfd_vma i = 0; i < nargs; i++)
     {

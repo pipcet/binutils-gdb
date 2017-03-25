@@ -26,104 +26,44 @@
 
 /* WebAssembly is strictly little-endian. */
 #define TARGET_BYTES_BIG_ENDIAN 0
+#define md_number_to_chars number_to_chars_littleendian
 
 #define DIFF_EXPR_OK    /* .-foo gets turned into PC relative relocs */
 
-/* GAS will call this function for any expression that can not be
-   recognized.  When the function is called, `input_line_pointer'
-   will point to the start of the expression.  */
+/* No machine-dependent operand expressions. */
 #define md_operand(x)
 
-/* You may define this macro to parse an expression used in a data
-   allocation pseudo-op such as `.word'.  You can use this to
-   recognize relocation directives that may appear in such directives.  */
-
-/* You may define this macro to generate a fixup for a data
-   allocation pseudo-op.  */
-
-/* This should just call either `number_to_chars_bigendian' or
-   `number_to_chars_littleendian', whichever is appropriate.  On
-   targets like the MIPS which support options to change the
-   endianness, which function to call is a runtime decision.  On
-   other targets, `md_number_to_chars' can be a simple macro.  */
-#define md_number_to_chars number_to_chars_littleendian
-
-/* `md_short_jump_size'
-   `md_long_jump_size'
-   `md_create_short_jump'
-   `md_create_long_jump'
-   If `WORKING_DOT_WORD' is defined, GAS will not do broken word
-   processing (*note Broken words::.).  Otherwise, you should set
-   `md_short_jump_size' to the size of a short jump (a jump that is
-   just long enough to jump around a long jmp) and
-   `md_long_jump_size' to the size of a long jump (a jump that can go
-   anywhere in the function), You should define
-   `md_create_short_jump' to create a short jump around a long jump,
-   and define `md_create_long_jump' to create a long jump.  */
+/* No broken word processing. */
 #define WORKING_DOT_WORD
 
+
+/* Force some relocations. */
 #define EXTERN_FORCE_RELOC 1
-
-/* If defined, this macro allows control over whether fixups for a
-   given section will be processed when the linkrelax variable is
-   set. Define it to zero and handle things in md_apply_fix instead.*/
-#define TC_LINKRELAX_FIXUP(SEG) 0
-
-/* If this macro returns non-zero, it guarantees that a relocation will be emitted
-   even when the value can be resolved locally. Do that if linkrelax is turned on */
-#define TC_FORCE_RELOCATION(fix)	wasm32_force_relocation (fix)
 extern int wasm32_force_relocation (struct fix *);
+#define TC_FORCE_RELOCATION(fix)	wasm32_force_relocation (fix)
+#define TC_FORCE_RELOCATION_LOCAL(fix) 1
+#define TC_FORCE_RELOCATION_SUB_SAME(fix,seg) wasm32_force_relocation(fix)
+#define TC_FORCE_RELOCATION_SUB_ABS(fix,seg) wasm32_force_relocation(fix)
+#define TC_FORCE_RELOCATION_SUB_LOCAL(fix,seg) wasm32_force_relocation(fix)
 
-/* Values passed to md_apply_fix don't include the symbol value.  */
+/* This is ELF, values passed to md_apply_fix don't include the symbol
+   value.  */
 #define MD_APPLY_SYM_VALUE(FIX) 0
 
-/* If you define this macro, it should return the offset between the
-   address of a PC relative fixup and the position from which the PC
-   relative adjustment should be made.  On many processors, the base
-   of a PC relative instruction is the next instruction, so this
-   macro would return the length of an instruction.  */
+/* PC-relative relocations are relative to the fixup's address. */
 #define MD_PCREL_FROM_SECTION(FIX, SEC) 0
-
-/* The number of bytes to put into a word in a listing.  This affects
-   the way the bytes are clumped together in the listing.  For
-   example, a value of 2 might print `1234 5678' where a value of 1
-   would print `12 34 56 78'.  The default value is 4.  */
-#define LISTING_WORD_SIZE 2
-
-/* An `.lcomm' directive with no explicit alignment parameter will
-   use this macro to set P2VAR to the alignment that a request for
-   SIZE bytes will have.  The alignment is expressed as a power of
-   two.  If no alignment should take place, the macro definition
-   should do nothing.  Some targets define a `.bss' directive that is
-   also affected by this macro.  The default definition will set
-   P2VAR to the truncated power of two of sizes up to eight bytes.  */
-#define TC_IMPLICIT_LCOMM_ALIGNMENT(SIZE, P2VAR) (P2VAR) = 0
-
-/* We don't want gas to fixup the following program memory related relocations.
-   We will need them in case that we want to do linker relaxation.
-   We could in principle keep these fixups in gas when not relaxing.
-   However, there is no serious performance penalty when making the linker
-   make the fixup work.  Check also that fx_addsy is not NULL, in order to make
-   sure that the fixup refers to some sort of label.  */
-#define TC_VALIDATE_FIX(FIXP,SEG,SKIP)
-
-/* This macro is evaluated for any fixup with a fx_subsy that
-   fixup_segment cannot reduce to a number.  If the macro returns
-   false an error will be reported. */
-//#define TC_VALIDATE_FIX_SUB(fix, seg)   wasm32_validate_fix_sub (fix)
-extern int wasm32_validate_fix_sub (struct fix *);
 
 #define DWARF2_LINE_MIN_INSN_LENGTH 	1
 
-/* 32 bit addresses are used on WASM32.  */
-#define DWARF2_ADDR_SIZE(bfd) 4
-
+/* WebAssembly uses 32-bit addresses.  */
 #define TC_ADDRESS_BYTES() 4
+#define DWARF2_ADDR_SIZE(bfd) 4
 
 /* Enable cfi directives.  */
 #define TARGET_USE_CFIPOP 1
 
-/* The stack grows down, and is only byte aligned.  */
+/* The stack grows down, and there is no harm in claiming it is only
+   byte aligned.  */
 #define DWARF2_CIE_DATA_ALIGNMENT -1
 
 /* Define the column that represents the PC.  */
@@ -131,11 +71,6 @@ extern int wasm32_validate_fix_sub (struct fix *);
 
 /* Define a hook to setup initial CFI state.  */
 #define tc_cfi_frame_initial_instructions() do { } while (0)
-
-/* The difference between same-section symbols may be affected by linker
-   relaxation, so do not resolve such expressions in the assembler.  */
-#define md_allow_local_subtract(l,r,s) wasm32_allow_local_subtract (l, r, s)
-extern bfd_boolean wasm32_allow_local_subtract (expressionS *, expressionS *, segT);
 
 #define elf_tc_final_processing()
 #define md_post_relax_hook
@@ -153,11 +88,6 @@ struct wasm32_frag_data
 };
 
 #define TC_FRAG_TYPE			struct wasm32_frag_data
-
-#define TC_FORCE_RELOCATION_LOCAL(fix) 1
-#define TC_FORCE_RELOCATION_SUB_SAME(fix,seg) wasm32_force_relocation(fix)
-#define TC_FORCE_RELOCATION_SUB_ABS(fix,seg) wasm32_force_relocation(fix)
-#define TC_FORCE_RELOCATION_SUB_LOCAL(fix,seg) wasm32_force_relocation(fix)
 
 #define TC_VALIDATE_FIX_SUB(fix,seg) wasm32_force_relocation(fix)
 

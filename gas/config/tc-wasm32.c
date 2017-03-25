@@ -203,12 +203,6 @@ md_section_align (asection *seg, valueT addr)
   return ((addr + (1 << align) - 1) & -(1 << align));
 }
 
-int
-wasm32_validate_fix_sub (fixS *fix ATTRIBUTE_UNUSED)
-{
-  return 1;
-}
-
 /* Apply a fixup, return TRUE if done (and no relocation is needed). */
 static bfd_boolean
 apply_full_field_fix (fixS *fixP, char *buf, bfd_vma val,
@@ -707,14 +701,6 @@ md_assemble (char *str)
   t = input_line_pointer;
   wasm32_operands (opcode, &str);
   input_line_pointer = t;
-}
-
-bfd_boolean
-wasm32_allow_local_subtract (expressionS * left ATTRIBUTE_UNUSED,
-                             expressionS * right ATTRIBUTE_UNUSED,
-                             segT section ATTRIBUTE_UNUSED)
-{
-  return TRUE;
 }
 
 int

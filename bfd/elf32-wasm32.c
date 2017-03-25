@@ -1567,12 +1567,12 @@ elf_wasm32_finish_dynamic_symbol (bfd * output_bfd,
 {
   if (h->plt.offset != (bfd_vma) -1)
     {
-      struct dynamic_sections ds = wasm32_create_dynamic_sections (output_bfd, info);
+      struct dynamic_sections *ds = wasm32_create_dynamic_sections (output_bfd, info);
       asection *splt;
       asection *sgot;
       asection *srel;
-      asection *spltelem = ds.spltelem;
-      asection *spltname = ds.spltname;
+      asection *spltelem = ds->spltelem;
+      asection *spltname = ds->spltname;
 
       bfd_vma plt_index;
       Elf_Internal_Rela rel;
@@ -1617,12 +1617,12 @@ elf_wasm32_finish_dynamic_symbol (bfd * output_bfd,
       for (int i = 0; i < 5; i++)
         bfd_put_8 (output_bfd,
                    (i % 5 == 4) ? 0x00 : 0x80,
-                   ds.spltfun->contents + hh->pltfunction + i);
+                   ds->spltfun->contents + hh->pltfunction + i);
 
       set_uleb128 (output_bfd,
                    bfd_asymbol_value (&hh->pltsig->root.u.def) +
                    hh->pltsig->root.u.def.section->output_offset,
-                   ds.spltfun->contents + hh->pltfunction);
+                   ds->spltfun->contents + hh->pltfunction);
       set_uleb128 (output_bfd,
                    bfd_asymbol_value (&hh->pltsig->root.u.def) +
                    hh->pltsig->root.u.def.section->output_offset,

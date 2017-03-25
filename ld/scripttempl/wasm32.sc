@@ -152,6 +152,7 @@ SECTIONS
        *(.space.function_index.*);
        .wasm.plt_bias = .;
        *(.space.function_index_.plt);
+       *(.space.function_index_.pplt);
        .wasm.plt_end = .;
   }
   .space.pc 0 (INFO) :
@@ -160,6 +161,7 @@ SECTIONS
        *(.space.pc);
        *(.space.pc.*);
        *(.space.pc_.plt);
+       *(.space.pc_.pplt);
        .wasm.pc_end = .;
   }
   .space.type 0 (INFO) :
@@ -168,6 +170,7 @@ SECTIONS
        *(.space.type);
        *(.space.type.*);
        *(.space.type_.plt);
+       *(.space.type_.pplt);
   }
   .space.import 0 (INFO) :
   {
@@ -175,6 +178,7 @@ SECTIONS
        *(.space.import);
        *(.space.import.*);
        *(.space.import_.plt);
+       *(.space.import_.pplt);
        .wasm.pc_end = .;
   }
   .space.function 0 (INFO) :
@@ -183,6 +187,7 @@ SECTIONS
       *(.space.function);
       *(.space.function.*);
       *(.space.function_.plt);
+      *(.space.function_.pplt);
   }
   .space.table 0 (INFO) :
   {
@@ -190,6 +195,7 @@ SECTIONS
        *(.space.table);
        *(.space.table.*);
        *(.space.table_.plt);
+       *(.space.table_.pplt);
   }
   .space.memory 0 (INFO) :
   {
@@ -197,6 +203,7 @@ SECTIONS
        *(.space.memory);
        *(.space.memory.*);
        *(.space.memory_.plt);
+       *(.space.memory_.pplt);
   }
   .space.global 0 (INFO) :
   {
@@ -204,6 +211,7 @@ SECTIONS
        *(.space.global);
        *(.space.global.*);
        *(.space.global_.plt);
+       *(.space.global_.pplt);
   }
   .space.export 0 (INFO) :
   {
@@ -211,6 +219,7 @@ SECTIONS
        *(.space.export);
        *(.space.export.*);
        *(.space.export_.plt);
+       *(.space.export_.pplt);
   }
   .space.element 0 (INFO) :
   {
@@ -218,6 +227,7 @@ SECTIONS
        *(.space.element);
        *(.space.element.*);
        *(.space.element_.plt);
+       *(.space.element_.pplt);
   }
   .space.code 0 (INFO) :
   {
@@ -225,6 +235,7 @@ SECTIONS
       *(.space.code);
       *(.space.code.*);
       *(.space.code_.plt);
+      *(.space.code_.pplt);
   }
   .space.name.function 0 (INFO) :
   {
@@ -232,6 +243,7 @@ SECTIONS
        *(.space.name.function);
        *(.space.name.function.*);
        *(.space.name.function_.plt);
+       *(.space.name.function_.pplt);
   }
   .space.name.local 0 (INFO) :
   {
@@ -239,6 +251,7 @@ SECTIONS
        *(.space.name.local);
        *(.space.name.local.*);
        *(.space.name.local_.plt);
+       *(.space.name.local_.pplt);
   }
   . = 0xc0000000;
   .wasm.type :
@@ -247,6 +260,7 @@ SECTIONS
        *(.wasm.type);
        *(.wasm.type.*);
        *(.wasm.type_.plt);
+       *(.wasm.type_.pplt);
   }
   .wasm.import :
   {
@@ -254,6 +268,7 @@ SECTIONS
        *(.wasm.import);
        *(.wasm.import.*);
        *(.wasm.import_.plt);
+       *(.wasm.import_.pplt);
   }
   .wasm.function :
   {
@@ -261,6 +276,7 @@ SECTIONS
        *(.wasm.function);
        *(.wasm.function.*);
        *(.wasm.function_.plt);
+       *(.wasm.function_.pplt);
   }
   .wasm.table :
   {
@@ -268,6 +284,7 @@ SECTIONS
        *(.wasm.table);
        *(.wasm.table.*);
        *(.wasm.table_.plt);
+       *(.wasm.table_.pplt);
   }
   .wasm.memory :
   {
@@ -275,6 +292,7 @@ SECTIONS
        *(.wasm.memory);
        *(.wasm.memory.*);
        *(.wasm.memory_.plt);
+       *(.wasm.memory_.pplt);
   }
   .wasm.global :
   {
@@ -282,6 +300,7 @@ SECTIONS
        *(.wasm.global);
        *(.wasm.global.*);
        *(.wasm.global_.plt);
+       *(.wasm.global_.pplt);
   }
   .wasm.export :
   {
@@ -289,6 +308,7 @@ SECTIONS
        *(.wasm.export);
        *(.wasm.export.*);
        *(.wasm.export_.plt);
+       *(.wasm.export_.pplt);
   }
   .wasm.element :
   {
@@ -296,6 +316,7 @@ SECTIONS
        *(.wasm.element);
        *(.wasm.element.*);
        *(.wasm.element_.plt);
+       *(.wasm.element_.pplt);
   }
   .wasm.code :
   {
@@ -303,6 +324,7 @@ SECTIONS
       *(.wasm.code);
       *(.wasm.code.*);
       *(.wasm.code_.plt);
+      *(.wasm.code_.pplt);
   }
   .wasm.name.function :
   {
@@ -310,6 +332,7 @@ SECTIONS
        *(.wasm.name.function);
        *(.wasm.name.function.*);
        *(.wasm.name.function_.plt);
+       *(.wasm.name.function_.pplt);
   }
   . = 0x80000000;
   .wasm.name.local :
@@ -318,6 +341,7 @@ SECTIONS
        *(.wasm.name.local);
        *(.wasm.name.local.*);
        *(.wasm.name.local_.plt);
+       *(.wasm.name.local_.pplt);
   }
   .plt :
   {

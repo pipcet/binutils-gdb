@@ -36,7 +36,6 @@
 /* No broken word processing. */
 #define WORKING_DOT_WORD
 
-
 /* Force some relocations. */
 #define EXTERN_FORCE_RELOC 1
 extern int wasm32_force_relocation (struct fix *);
@@ -76,18 +75,6 @@ extern int wasm32_force_relocation (struct fix *);
 #define md_post_relax_hook
 #define md_start_line_hook()
 #define HANDLE_ALIGN(fragP)
-
-struct wasm32_frag_data
-{
-  unsigned is_org : 1;
-  unsigned is_align : 1;
-  unsigned has_fill : 1;
-
-  char fill;
-  offsetT alignment;
-};
-
-#define TC_FRAG_TYPE			struct wasm32_frag_data
 
 #define TC_VALIDATE_FIX_SUB(fix,seg) wasm32_force_relocation(fix)
 

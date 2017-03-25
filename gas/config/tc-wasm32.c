@@ -282,10 +282,12 @@ extract_opcode (char *from, char *to, int limit)
   return op_end;
 }
 
-static void wasm32_put_long_uleb128(int bits, unsigned long value)
-{
-  unsigned char c;
-  int i = 0;
+/* Produce an unsigned LEB128 integer padded to the right number of
+   bytes to store BITS bits, of value VALUE.  Uses FRAG_APPEND_1_CHAR
+   to write. */
+static void
+wasm32_put_long_uleb128(int bits, unsigned long value) { unsigned char
+c; int i = 0;
 
   do {
     c = value & 0x7f;
@@ -296,6 +298,7 @@ static void wasm32_put_long_uleb128(int bits, unsigned long value)
   } while (++i < (bits+6)/7);
 }
 
+/* Produce a signed LEB128 integer, using FRAG_APPEND_1_CHAR to write. */
 static void wasm32_put_sleb128(long value)
 {
   unsigned char c;
@@ -312,6 +315,8 @@ static void wasm32_put_sleb128(long value)
   } while (more);
 }
 
+/* Produce an unsigned LEB128 integer, using FRAG_APPEND_1_CHAR to
+   write. */
 static void wasm32_put_uleb128(unsigned long value)
 {
   unsigned char c;
@@ -471,65 +476,72 @@ static void wasm32_signature(char **line)
   result = str;
   ostr = str + 1;
   str++;
-  while (*str != 'E') {
-    switch (*str++) {
-    case 'i':
-    case 'l':
-    case 'f':
-    case 'd':
-      count++;
-      break;
-    default:
-      as_bad (_("Unknown type %c\n"), str[-1]);
+  while (*str != 'E')
+    {
+      switch (*str++)
+        {
+        case 'i':
+        case 'l':
+        case 'f':
+        case 'd':
+          count++;
+          break;
+        default:
+          as_bad (_("Unknown type %c\n"), str[-1]);
+        }
     }
-  }
   wasm32_put_uleb128(count);
   str = ostr;
-  while (*str != 'E') {
-    switch (*str++) {
+  while (*str != 'E')
+    {
+      switch (*str++)
+        {
+        case 'i':
+          FRAG_APPEND_1_CHAR(BLOCK_TYPE_I32);
+          break;
+        case 'l':
+          FRAG_APPEND_1_CHAR(BLOCK_TYPE_I64);
+          break;
+        case 'f':
+          FRAG_APPEND_1_CHAR(BLOCK_TYPE_F32);
+          break;
+        case 'd':
+          FRAG_APPEND_1_CHAR(BLOCK_TYPE_F64);
+          break;
+        default:
+          as_bad (_("Unknown type"));
+        }
+    }
+  str++;
+  switch (*result)
+    {
+    case 'v':
+      FRAG_APPEND_1_CHAR(0x00); /* no return value */
+      break;
     case 'i':
+      FRAG_APPEND_1_CHAR(0x01); /* one return value */
       FRAG_APPEND_1_CHAR(BLOCK_TYPE_I32);
       break;
     case 'l':
+      FRAG_APPEND_1_CHAR(0x01); /* one return value */
       FRAG_APPEND_1_CHAR(BLOCK_TYPE_I64);
       break;
     case 'f':
+      FRAG_APPEND_1_CHAR(0x01); /* one return value */
       FRAG_APPEND_1_CHAR(BLOCK_TYPE_F32);
       break;
     case 'd':
+      FRAG_APPEND_1_CHAR(0x01); /* one return value */
       FRAG_APPEND_1_CHAR(BLOCK_TYPE_F64);
       break;
     default:
       as_bad (_("Unknown type"));
     }
-  }
-  str++;
-  switch (*result) {
-  case 'v':
-    FRAG_APPEND_1_CHAR(0x00); /* no return value */
-    break;
-  case 'i':
-    FRAG_APPEND_1_CHAR(0x01); /* one return value */
-    FRAG_APPEND_1_CHAR(BLOCK_TYPE_I32);
-    break;
-  case 'l':
-    FRAG_APPEND_1_CHAR(0x01); /* one return value */
-    FRAG_APPEND_1_CHAR(BLOCK_TYPE_I64);
-    break;
-  case 'f':
-    FRAG_APPEND_1_CHAR(0x01); /* one return value */
-    FRAG_APPEND_1_CHAR(BLOCK_TYPE_F32);
-    break;
-  case 'd':
-    FRAG_APPEND_1_CHAR(0x01); /* one return value */
-    FRAG_APPEND_1_CHAR(BLOCK_TYPE_F64);
-    break;
-  default:
-    as_bad (_("Unknown type"));
-  }
   *line = str;
 }
 
+/* Main operands function. Read the operands for OPCODE from LINE,
+   replacing it with the new input pointer. */
 static void
 wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
 {
@@ -654,10 +666,12 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
       return;
     case wasm_break_table:
       {
-        do {
-          wasm32_uleb128(&str, 32);
-          str = skip_space (str);
-        } while (str[0]);
+        do
+          {
+            wasm32_uleb128(&str, 32);
+            str = skip_space (str);
+          }
+        while (str[0]);
 
         break;
       }
@@ -703,6 +717,8 @@ md_assemble (char *str)
   input_line_pointer = t;
 }
 
+/* Don't replace PLT/GOT relocations with section symbols, so they
+   don't get an addend. */
 int
 wasm32_force_relocation (fixS *f ATTRIBUTE_UNUSED)
 {
@@ -713,6 +729,8 @@ wasm32_force_relocation (fixS *f ATTRIBUTE_UNUSED)
   return 0;
 }
 
+/* Don't replace PLT/GOT relocations with section symbols, so they
+   don't get an addend. */
 bfd_boolean wasm32_fix_adjustable (fixS * fixP)
 {
   if (fixP->fx_addsy == NULL)

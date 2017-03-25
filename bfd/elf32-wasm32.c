@@ -1102,10 +1102,12 @@ build_plt_stub (bfd *output_bfd,
   *p++ = 0x23; /* get_global */
   *p++ = 0x01; /* plt */
   *p++ = 0x41; /* i32.const */
+  *pltstub_pltoff = p - ret;
   *p++ = 0x80; *p++ = 0x80; *p++ = 0x80; *p++ = 0x80; *p++ = 0;
   set_uleb128 (output_bfd, pltindex, p - 5);
   *p++ = 0x6a; /* add */
   *p++ = 0x11; /* call_indirect */
+  *pltstub_sigoff = p - ret;
   *p++ = 0x80; *p++ = 0x80; *p++ = 0x80; *p++ = 0x80; *p++ = 0;
   set_uleb128 (output_bfd, signature, p - 5);
   *p++ = 0x00; /* reserved */
@@ -1117,8 +1119,6 @@ build_plt_stub (bfd *output_bfd,
 
   set_uleb128 (output_bfd, *size - 5, ret);
 
-  *pltstub_pltoff = *size - 15;
-  *pltstub_sigoff = *size - 8;
 
   return ret;
 }

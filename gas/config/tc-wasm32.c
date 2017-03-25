@@ -108,10 +108,6 @@ const pseudo_typeS md_pseudo_table[] =
   { "hi", cons, 2 }, /* 16-bit integer */
   { "si", cons, 4 }, /* 32-bit integer */
   { "di", cons, 8 }, /* 64-bit integer */
-  { "QI", cons, 1 }, /* 8-bit integer */
-  { "HI", cons, 2 }, /* 16-bit integer */
-  { "SI", cons, 4 }, /* 32-bit integer */
-  { "DI", cons, 8 }, /* 64-bit integer */
   { NULL,	NULL,		0}
 };
 
@@ -244,6 +240,7 @@ md_apply_fix (fixS *fixP, valueT * valP, segT seg ATTRIBUTE_UNUSED)
     fixP->fx_done = 1;
 }
 
+/* Skip whitespace. */
 static inline char *
 skip_space (char *s)
 {
@@ -330,6 +327,10 @@ static void wasm32_put_uleb128(unsigned long value)
   } while (value);
 }
 
+/* Read an integer expreession. Produce an LEB128-encoded integer if
+   it's a constant, a padded LEB128 plus a relocation if it's a
+   symbol, or a special relocation for <expr>@got, <expr>@gotcode, and
+   <expr>@plt{__sigchar_<signature>}. */
 static bfd_boolean wasm32_leb128(char **line, int bits, int sign)
 {
   char *t = input_line_pointer;
@@ -437,30 +438,36 @@ static bfd_boolean wasm32_leb128(char **line, int bits, int sign)
   return str != str0;
 }
 
+/* Read an integer expression and produce an unsigned LEB128 integer,
+   or a relocation for it. */
 static bfd_boolean wasm32_uleb128(char **line, int bits)
 {
   return wasm32_leb128(line, bits, 0);
 }
 
+/* Read an integer expression and produce a signed LEB128 integer, or
+   a relocation for it. */
 static bfd_boolean wasm32_sleb128(char **line, int bits)
 {
   return wasm32_leb128(line, bits, 1);
 }
 
+/* Read an f32. (Like float_cons ('f')). */
 static void wasm32_f32(char **line)
 {
   char *t = input_line_pointer;
   input_line_pointer = *line;
-  float_cons('f');
+  float_cons ('f');
   *line = input_line_pointer;
   input_line_pointer = t;
 }
 
+/* Read an f64. (Like float_cons ('d')). */
 static void wasm32_f64(char **line)
 {
   char *t = input_line_pointer;
   input_line_pointer = *line;
-  float_cons('d');
+  float_cons ('d');
   *line = input_line_pointer;
   input_line_pointer = t;
 }

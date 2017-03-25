@@ -1186,7 +1186,7 @@ add_symbol_to_plt (bfd *output_bfd, struct bfd_link_info *info,
 
   ds->splt->size += size;
 
-  ds->srelplt->size += 1 * sizeof (Elf32_External_Rela);
+  htab->srelplt->size += 1 * sizeof (Elf32_External_Rela);
 
   ds->spltspace->size++;
   hh->pltfunction = ds->spltfun->size;

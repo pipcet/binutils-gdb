@@ -52,8 +52,10 @@
 
 #define ELF_DYNAMIC_INTERPRETER  "/sbin/elf-dynamic-interpreter.so"
 
-/* whether to generate a "name" section entry foor PLT stubs */
+/* whether to generate a "name" section entry for PLT stubs */
 #define PLTNAME 1
+/* same for pseudo-PLT stubs */
+#define PPLTNAME 1
 
 enum dyn_section_types
 {
@@ -113,28 +115,6 @@ const char * dyn_section_names[DYN_SECTION_TYPES_END] =
   break;
 
 #define wasm32_elf_hash_entry(ent) ((struct elf_wasm32_link_hash_entry *)(ent))
-
-struct dynamic_sections
-{
-  bfd_boolean     initialized;
-  asection *      sgot;
-  asection *      srelgot;
-  asection *      sgotplt;
-  asection *      srelgotplt;
-  asection *      sdyn;
-  asection *      splt;
-  asection *      spltspace;
-  asection *      spltfun;
-  asection *      spltfunspace;
-  asection *      spltidx;
-  asection *      srelplt;
-  asection *      sdynbss;
-  asection *      srelbss;
-  asection *      spltelem;
-  asection *      spltelemspace;
-  asection *      spltname;
-  asection *      spltnamespace;
-};
 
 struct plt_entry
 {
@@ -751,7 +731,7 @@ static reloc_howto_type wasm32_elf32_howto_table[] =
          FALSE),		/* pcrel_offset */
 
   /* dummy reloc to pull in function types */
-  HOWTO (R_WASM32_INDEX,	        /* type */
+  HOWTO (R_WASM32_INDEX,                /* type */
          0,			/* rightshift */
          0,			/* size (0 = byte, 1 = short, 2 = long) */
          32,			/* bitsize */
@@ -884,6 +864,8 @@ struct elf_wasm32_link_hash_entry
 {
   struct elf_link_hash_entry root;
 
+  struct elf_link_hash_entry *pltsig;
+
   bfd_vma plt_index;
   bfd_vma pltnameoff;
   bfd_byte *pltstub;
@@ -891,15 +873,54 @@ struct elf_wasm32_link_hash_entry
   bfd_vma pltstub_pltoff;
   bfd_vma pltstub_sigoff;
   bfd_vma pltfunction;
-  struct elf_link_hash_entry *pltsig;
+
+  bfd_vma pplt_offset;
+  bfd_vma pplt_index;
+  bfd_vma ppltnameoff;
+  bfd_byte *ppltstub;
+  bfd_vma ppltstub_size;
+  bfd_vma ppltstub_sigoff;
+  bfd_vma ppltfunction;
 };
 
 #define wasm32_elf_hash_entry(ent) ((struct elf_wasm32_link_hash_entry *)(ent))
+
+struct dynamic_sections
+{
+  bfd_boolean initialized;
+  asection *  sgot;            /* .got */
+  asection *  srelgot;         /* .rela.got */
+  asection *  sdyn;            /* .dynamic */
+  asection *  sdynbss;         /* .dynbss */
+  asection *  srelbss;         /* .rela.bss */
+
+  asection *  splt;            /* .wasm.code_.plt */
+  asection *  spltspace;       /* .space.code_.plt */
+  asection *  spltfun;         /* .wasm.function_.plt */
+  asection *  spltfunspace;    /* .space.function_.plt */
+  asection *  spltidx;         /* .space.function_index_.plt */
+  asection *  srelplt;         /* .rela.plt */
+  asection *  spltelem;        /* .wasm.element_.plt */
+  asection *  spltelemspace;   /* .space.element_.plt */
+  asection *  spltname;        /* .wasm.name.function_.plt */
+  asection *  spltnamespace;   /* .space.name.function_.plt */
+
+  asection *  spplt;           /* .wasm.code_.pplt */
+  asection *  sppltspace;      /* .space.code_.pplt */
+  asection *  sppltfun;        /* .wasm.function_.pplt */
+  asection *  sppltfunspace;   /* .space.function_.pplt */
+  asection *  sppltidx;        /* .space.function_index_.pplt */
+  asection *  sppltelem;       /* .wasm.element_.pplt */
+  asection *  sppltelemspace;  /* .space.element_.pplt */
+  asection *  sppltname;       /* .wasm.name.function_.pplt */
+  asection *  sppltnamespace;  /* .space.name.function_.pplt */
+};
 
 /* WASM32 ELF linker hash table.  */
 struct elf_wasm32_link_hash_table
 {
   struct elf_link_hash_table root;
+  struct dynamic_sections ds;
 };
 
 static struct bfd_hash_entry *
@@ -927,6 +948,9 @@ wasm32_elf_link_hash_newfunc (struct bfd_hash_entry *entry,
     {
       ret->pltnameoff = (bfd_vma)-1;
       ret->plt_index = (bfd_vma)-1;
+      ret->ppltnameoff = (bfd_vma) -1;
+      ret->pplt_index = (bfd_vma) -1;
+      ret->pplt_offset = (bfd_vma) -1;
     }
 
   return (struct bfd_hash_entry *) ret;

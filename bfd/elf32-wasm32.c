@@ -1263,6 +1263,7 @@ add_symbol_to_pplt (bfd *output_bfd, struct bfd_link_info *info,
   bfd_vma signature;
   bfd_vma nargs = 0;
   const char *p = strrchr(pltsig->root.root.string, 'F');
+  struct elf_link_hash_table *htab = elf_hash_table (info);
 
   if (hh->pplt_offset != (bfd_vma) -1)
     return hh->pplt_offset;

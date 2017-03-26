@@ -1031,7 +1031,6 @@ wasm32_create_dynamic_sections (bfd * abfd,
             (abfd, ".wasm.code_.plt");
           ds->spltfun = bfd_get_section_by_name
             (abfd, ".wasm.function_.plt");
-          BFD_ASSERT (ds->spltfun);
           ds->spltelem = bfd_get_section_by_name
             (abfd, ".wasm.element_.plt");
           ds->srelplt = bfd_get_section_by_name (abfd, ".rela.plt");

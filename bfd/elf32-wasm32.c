@@ -1017,28 +1017,28 @@ wasm32_create_dynamic_sections (bfd * abfd,
           ds->sgot = htab->sgot;
           ds->srelgot = htab->srelgot;
           ds->spltspace = bfd_get_section_by_name
-            (abfd, ".space.code_.plt");
+            (dynobj, ".space.code_.plt");
           ds->spltfunspace = bfd_get_section_by_name
-            (abfd, ".space.function_.plt");
+            (dynobj, ".space.function_.plt");
           ds->spltidx = bfd_get_section_by_name
-            (abfd, ".space.function_index_.plt");
+            (dynobj, ".space.function_index_.plt");
           ds->spltelemspace = bfd_get_section_by_name
-            (abfd, ".space.element_.plt");
+            (dynobj, ".space.element_.plt");
           ds->spltnamespace = bfd_get_section_by_name
-            (abfd, ".space.name.function_.plt");
+            (dynobj, ".space.name.function_.plt");
 
           ds->splt = bfd_get_section_by_name
-            (abfd, ".wasm.code_.plt");
+            (dynobj, ".wasm.code_.plt");
           ds->spltfun = bfd_get_section_by_name
-            (abfd, ".wasm.function_.plt");
+            (dynobj, ".wasm.function_.plt");
           ds->spltelem = bfd_get_section_by_name
-            (abfd, ".wasm.element_.plt");
-          ds->srelplt = bfd_get_section_by_name (abfd, ".rela.plt");
-          ds->sdynbss = bfd_get_section_by_name (abfd, ".dynbss");
-          ds->spltname = bfd_get_section_by_name (abfd, ".wasm.name.function_.plt");
-          ds->srelbss = bfd_get_section_by_name (abfd, ".rela.bss");
+            (dynobj, ".wasm.element_.plt");
+          ds->srelplt = bfd_get_section_by_name (dynobj, ".rela.plt");
+          ds->sdynbss = bfd_get_section_by_name (dynobj, ".dynbss");
+          ds->spltname = bfd_get_section_by_name (dynobj, ".wasm.name.function_.plt");
+          ds->srelbss = bfd_get_section_by_name (dynobj, ".rela.bss");
         }
-      if (! bfd_link_relocatable (info))
+      else if (! bfd_link_relocatable (info))
         {
           /* Create a section for pseudo-PLTs for static executables */
           const struct elf_backend_data *bed;

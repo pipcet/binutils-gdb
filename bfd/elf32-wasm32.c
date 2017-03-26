@@ -2554,7 +2554,7 @@ do_build_pplt (bfd *output_bfd, struct bfd_link_info *info,
         struct elf_wasm32_link_hash_entry *h4 = (struct elf_wasm32_link_hash_entry *)h;
 
         bfd_vma index = pplt_index + bfd_asymbol_value (&h_pplt_bias->root.u.def);
-        const char *str = h->root.root.string ? h->root.root.string : "";;
+        const char *str = h->root.root.string ? h->root.root.string : "";
         size_t len = strlen(str);
         int i;
 

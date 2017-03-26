@@ -994,7 +994,7 @@ wasm32_create_dynamic_sections (bfd * abfd,
       dynobj = (elf_hash_table (info))->dynobj;
       /* Create dynamic sections for relocatable executables so that
          we can copy relocations.  */
-      if (dynobj)
+      if (TRUE)
         {
           const struct elf_backend_data *bed;
           flagword flags, pltflags ATTRIBUTE_UNUSED, spaceflags ATTRIBUTE_UNUSED;
@@ -1038,7 +1038,7 @@ wasm32_create_dynamic_sections (bfd * abfd,
           ds->spltname = bfd_get_section_by_name (abfd, ".wasm.name.function_.plt");
           ds->srelbss = bfd_get_section_by_name (abfd, ".rela.bss");
         }
-      else if (! bfd_link_relocatable (info))
+      if (! bfd_link_relocatable (info))
         {
           /* Create a section for pseudo-PLTs for static executables */
           const struct elf_backend_data *bed;
@@ -1271,6 +1271,9 @@ add_symbol_to_pplt (bfd *output_bfd, struct bfd_link_info *info,
   if (hh->pplt_offset != (bfd_vma) -1)
     return hh->pplt_offset;
 
+  if (! ds->spplt)
+    return (bfd_vma) -1;
+
   ret = ds->spplt->size;
   hh->pplt_index = ds->sppltspace->size;
 
@@ -1363,6 +1366,7 @@ elf_wasm32_adjust_dynamic_symbol (struct bfd_link_info *info,
       if (bfd_link_pic (info)
           || WILL_CALL_FINISH_DYNAMIC_SYMBOL (1, 0, h))
         {
+          struct elf_wasm32_link_hash_entry *hh = (struct elf_wasm32_link_hash_entry *)h;
           bfd_vma loc = add_symbol_to_plt (dynobj, info, h);
 
           if (bfd_link_executable (info) && !h->def_regular)
@@ -1371,6 +1375,7 @@ elf_wasm32_adjust_dynamic_symbol (struct bfd_link_info *info,
               h->root.u.def.value = loc;
             }
           h->plt.offset = loc;
+          hh->pplt_offset = (bfd_vma) -1;
         }
       else
         {

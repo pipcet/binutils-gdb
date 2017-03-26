@@ -1240,14 +1240,12 @@ add_symbol_to_plt (bfd *output_bfd, struct bfd_link_info *info,
   ds->spltidx->size++;
   ds->spltelemspace->size++;
   ds->spltelem->size+=5;
-  if (PLTNAME) {
-    hh->pltnameoff = ds->spltname->size;
-    ds->spltname->size += 5 + 5 + (h->root.root.string ? (strlen(h->root.root.string) + strlen ("@plt")) : 0);
-    ds->spltnamespace->size++;
-  }
-
-  if (0) fprintf (stderr, "adding symbol to %s at %lx\n",
-                  ds->splt->name, ret);
+  if (PLTNAME)
+    {
+      hh->pltnameoff = ds->spltname->size;
+      ds->spltname->size += 5 + 5 + (h->root.root.string ? (strlen(h->root.root.string) + strlen ("@plt")) : 0);
+      ds->spltnamespace->size++;
+    }
 
   return ret;
 }
@@ -1325,11 +1323,12 @@ add_symbol_to_pplt (bfd *output_bfd, struct bfd_link_info *info,
   ds->sppltidx->size++;
   ds->sppltelemspace->size++;
   ds->sppltelem->size+=5;
-  if (PPLTNAME) {
-    hh->ppltnameoff = ds->sppltname->size;
-    ds->sppltname->size += 5 + 5 + (h->root.root.string ? (strlen(h->root.root.string) + strlen ("@pplt")) : 0);
-    ds->sppltnamespace->size++;
-  }
+  if (PPLTNAME)
+    {
+      hh->ppltnameoff = ds->sppltname->size;
+      ds->sppltname->size += 5 + 5 + (h->root.root.string ? (strlen(h->root.root.string) + strlen ("@pplt")) : 0);
+      ds->sppltnamespace->size++;
+    }
 
   return ret;
 }
@@ -2519,15 +2518,9 @@ do_build_pplt (bfd *output_bfd, struct bfd_link_info *info,
       bfd_vma pplt_index;
       struct elf_link_hash_entry *h_pplt_bias;
 
-      /* This symbol has an entry in the procedure linkage table.  Set
-         it up.  */
-
       spplt = ds->spplt;
       BFD_ASSERT (spplt != NULL);
 
-      /* Get the index in the procedure linkage table which
-         corresponds to this symbol.  This is the index of this symbol
-         in all the symbols for which we are making plt entries. */
       pplt_index = hh->pplt_index;
       memcpy (spplt->contents + hh->pplt_offset, hh->ppltstub, hh->ppltstub_size);
 
@@ -2559,52 +2552,46 @@ do_build_pplt (bfd *output_bfd, struct bfd_link_info *info,
                    hh->pltsig->root.u.def.section->output_offset,
                    spplt->contents + hh->pplt_offset + hh->ppltstub_sigoff);
 
-      if (PPLTNAME) {
-        bfd_vma index = pplt_index + bfd_asymbol_value (&h_pplt_bias->root.u.def);
-        const char *str = h->root.root.string ? h->root.root.string : "";
-        size_t len = strlen(str);
-        int i;
-
-        for (i = 0; i < 5; i++)
-          bfd_put_8 (output_bfd,
-                     (i % 5 == 4) ? 0x00 : 0x80,
-                     sppltname->contents + hh->ppltnameoff + i);
-
-        set_uleb128 (output_bfd,
-                     index,
-                     sppltname->contents + hh->ppltnameoff);
-
-        for (i = 0; i < 5; i++)
-          bfd_put_8 (output_bfd,
-                     (i % 5 == 4) ? 0x00 : 0x80,
-                     sppltname->contents + hh->ppltnameoff + 5 + i);
-
-        set_uleb128 (output_bfd,
-                     len + strlen("@pplt"),
-                     sppltname->contents + hh->ppltnameoff + 5);
-
-        for (i = 0; str[i]; i++)
-          bfd_put_8 (output_bfd,
-                     str[i],
-                     sppltname->contents + hh->ppltnameoff + 10 + i);
-
-        if (str[0]) {
-          bfd_put_8 (output_bfd, '@', sppltname->contents + hh->ppltnameoff + 10 + i++);
-          bfd_put_8 (output_bfd, 'p', sppltname->contents + hh->ppltnameoff + 10 + i++);
-          bfd_put_8 (output_bfd, 'p', sppltname->contents + hh->ppltnameoff + 10 + i++);
-          bfd_put_8 (output_bfd, 'l', sppltname->contents + hh->ppltnameoff + 10 + i++);
-          bfd_put_8 (output_bfd, 't', sppltname->contents + hh->ppltnameoff + 10 + i++);
-        }
-
-      }
-
-      if (!h->def_regular)
+      if (PPLTNAME)
         {
-          /* Mark the symbol as undefined, rather than as defined in
-             the .plt section.  Leave the value alone.  */
-          //sym->st_shndx = SHN_UNDEF; ???
+          bfd_vma index = pplt_index + bfd_asymbol_value (&h_pplt_bias->root.u.def);
+          const char *str = h->root.root.string ? h->root.root.string : "";
+          size_t len = strlen(str);
+          int i;
+
+          for (i = 0; i < 5; i++)
+            bfd_put_8 (output_bfd,
+                       (i % 5 == 4) ? 0x00 : 0x80,
+                       sppltname->contents + hh->ppltnameoff + i);
+
+          set_uleb128 (output_bfd,
+                       index,
+                       sppltname->contents + hh->ppltnameoff);
+
+          for (i = 0; i < 5; i++)
+            bfd_put_8 (output_bfd,
+                       (i % 5 == 4) ? 0x00 : 0x80,
+                       sppltname->contents + hh->ppltnameoff + 5 + i);
+
+          set_uleb128 (output_bfd,
+                       len + strlen("@pplt"),
+                       sppltname->contents + hh->ppltnameoff + 5);
+
+          for (i = 0; str[i]; i++)
+            bfd_put_8 (output_bfd,
+                       str[i],
+                       sppltname->contents + hh->ppltnameoff + 10 + i);
+
+          if (str[0])
+            {
+              bfd_put_8 (output_bfd, '@', sppltname->contents + hh->ppltnameoff + 10 + i++);
+              bfd_put_8 (output_bfd, 'p', sppltname->contents + hh->ppltnameoff + 10 + i++);
+              bfd_put_8 (output_bfd, 'p', sppltname->contents + hh->ppltnameoff + 10 + i++);
+              bfd_put_8 (output_bfd, 'l', sppltname->contents + hh->ppltnameoff + 10 + i++);
+              bfd_put_8 (output_bfd, 't', sppltname->contents + hh->ppltnameoff + 10 + i++);
+            }
+
         }
-      //relocate_plt_for_symbol (output_bfd, info, h);
     }
 }
 
@@ -2760,8 +2747,7 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
           if (h == NULL)
             goto final_link_relocate;
 
-          if (h->plt.offset == (bfd_vma) -1)
-            do_build_pplt (output_bfd, info, h);
+          do_build_pplt (output_bfd, info, h);
           //do_build_plt (output_bfd, info, h);
 
           if (ELF_ST_VISIBILITY (h->other) == STV_INTERNAL

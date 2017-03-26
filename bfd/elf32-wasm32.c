@@ -2759,7 +2759,9 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
               || ELF_ST_VISIBILITY (h->other) == STV_HIDDEN)
             goto final_link_relocate;
 
-          if (h->plt.offset == (bfd_vma) -1)
+          hh = (struct elf_wasm32_link_hash_entry *)h;
+          if (h->plt.offset == (bfd_vma) -1 &&
+              hh->pplt_offset == (bfd_vma) -1)
             {
               /* We didn't make a PLT entry for this symbol.  This
                  happens when statically linking PIC code, or when
@@ -2767,19 +2769,36 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
               goto final_link_relocate;
             }
 
-          splt = ds->splt;
-          BFD_ASSERT (splt != NULL);
+          if (h->plt.offset != (bfd_vma) -1)
+            {
+              splt = ds->splt;
+              BFD_ASSERT (splt != NULL);
 
-          h_plt_bias =
-            elf_link_hash_lookup (elf_hash_table (info),
-                                  ".wasm.plt_bias", FALSE, FALSE, TRUE);
-          BFD_ASSERT (h_plt_bias != NULL);
+              h_plt_bias =
+                elf_link_hash_lookup (elf_hash_table (info),
+                                      ".wasm.plt_bias", FALSE, FALSE, TRUE);
+              BFD_ASSERT (h_plt_bias != NULL);
 
-          hh = (struct elf_wasm32_link_hash_entry *)h;
-          plt_index = hh->plt_index;
+              plt_index = hh->plt_index;
 
-          relocation = plt_index + bfd_asymbol_value (&h_plt_bias->root.u.def);
-          addend = rel->r_addend;
+              relocation = plt_index + bfd_asymbol_value (&h_plt_bias->root.u.def);
+              addend = rel->r_addend;
+            }
+          else
+            {
+              splt = ds->spplt;
+              BFD_ASSERT (splt != NULL);
+
+              h_plt_bias =
+                elf_link_hash_lookup (elf_hash_table (info),
+                                      ".wasm.plt_bias", FALSE, FALSE, TRUE);
+              BFD_ASSERT (h_plt_bias != NULL);
+
+              plt_index = hh->pplt_index;
+
+              relocation = plt_index + bfd_asymbol_value (&h_plt_bias->root.u.def);
+              addend = rel->r_addend;
+            }
 
           goto final_link_relocate;
 

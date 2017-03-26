@@ -2557,8 +2557,6 @@ do_build_pplt (bfd *output_bfd, struct bfd_link_info *info,
                    spplt->contents + hh->pplt_offset + hh->ppltstub_sigoff);
 
       if (PPLTNAME) {
-        struct elf_wasm32_link_hash_entry *h4 = (struct elf_wasm32_link_hash_entry *)h;
-
         bfd_vma index = pplt_index + bfd_asymbol_value (&h_pplt_bias->root.u.def);
         const char *str = h->root.root.string ? h->root.root.string : "";
         size_t len = strlen(str);
@@ -2567,32 +2565,32 @@ do_build_pplt (bfd *output_bfd, struct bfd_link_info *info,
         for (i = 0; i < 5; i++)
           bfd_put_8 (output_bfd,
                      (i % 5 == 4) ? 0x00 : 0x80,
-                     sppltname->contents + h4->ppltnameoff + i);
+                     sppltname->contents + hh->ppltnameoff + i);
 
         set_uleb128 (output_bfd,
                      index,
-                     sppltname->contents + h4->ppltnameoff);
+                     sppltname->contents + hh->ppltnameoff);
 
         for (i = 0; i < 5; i++)
           bfd_put_8 (output_bfd,
                      (i % 5 == 4) ? 0x00 : 0x80,
-                     sppltname->contents + h4->ppltnameoff + 5 + i);
+                     sppltname->contents + hh->ppltnameoff + 5 + i);
 
         set_uleb128 (output_bfd,
-                     len + 4,
-                     sppltname->contents + h4->ppltnameoff + 5);
+                     len + strlen("@pplt"),
+                     sppltname->contents + hh->ppltnameoff + 5);
 
         for (i = 0; str[i]; i++)
           bfd_put_8 (output_bfd,
                      str[i],
-                     sppltname->contents + h4->ppltnameoff + 10 + i);
+                     sppltname->contents + hh->ppltnameoff + 10 + i);
 
         if (str[0]) {
-          bfd_put_8 (output_bfd, '@', sppltname->contents + h4->ppltnameoff + 10 + i++);
-          bfd_put_8 (output_bfd, 'p', sppltname->contents + h4->ppltnameoff + 10 + i++);
-          bfd_put_8 (output_bfd, 'p', sppltname->contents + h4->ppltnameoff + 10 + i++);
-          bfd_put_8 (output_bfd, 'l', sppltname->contents + h4->ppltnameoff + 10 + i++);
-          bfd_put_8 (output_bfd, 't', sppltname->contents + h4->ppltnameoff + 10 + i++);
+          bfd_put_8 (output_bfd, '@', sppltname->contents + hh->ppltnameoff + 10 + i++);
+          bfd_put_8 (output_bfd, 'p', sppltname->contents + hh->ppltnameoff + 10 + i++);
+          bfd_put_8 (output_bfd, 'p', sppltname->contents + hh->ppltnameoff + 10 + i++);
+          bfd_put_8 (output_bfd, 'l', sppltname->contents + hh->ppltnameoff + 10 + i++);
+          bfd_put_8 (output_bfd, 't', sppltname->contents + hh->ppltnameoff + 10 + i++);
         }
 
       }
@@ -2623,6 +2621,7 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
   asection *splt = NULL;
   asection *sreloc = NULL;
   struct dynamic_sections *ds = wasm32_create_dynamic_sections (output_bfd, info);
+  struct elf_link_hash_table *htab = elf_hash_table (info);
 
   symtab_hdr = &elf_tdata (input_bfd)->symtab_hdr;
   sym_hashes = elf_sym_hashes (input_bfd);
@@ -2758,7 +2757,8 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
           if (h == NULL)
             goto final_link_relocate;
 
-          do_build_pplt (output_bfd, info, h);
+          if (h->plt.offset == (bfd_vma) -1)
+            do_build_pplt (output_bfd, info, h);
           //do_build_plt (output_bfd, info, h);
 
           if (ELF_ST_VISIBILITY (h->other) == STV_INTERNAL
@@ -2777,7 +2777,7 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
 
           if (h->plt.offset != (bfd_vma) -1)
             {
-              splt = ds->splt;
+              splt = htab->splt;
               BFD_ASSERT (splt != NULL);
 
               h_plt_bias =
@@ -2819,7 +2819,6 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
             {
               bfd_vma off;
               bfd_boolean dynamic_p;
-              struct elf_link_hash_table *htab;
 
               off = h->got.offset;
               if (off == (bfd_vma) -1)

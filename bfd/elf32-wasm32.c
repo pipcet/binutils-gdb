@@ -1687,7 +1687,8 @@ elf_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec, c
 
 static void
 do_build_plt (bfd *output_bfd, struct bfd_link_info *info,
-              struct elf_link_hash_entry *h);
+              struct elf_link_hash_entry *h, Elf_Internal_Sym * sym)
+  ATTRIBUTE_UNUSED;
 
 static bfd_boolean
 elf_wasm32_finish_dynamic_symbol (bfd * output_bfd,
@@ -1702,7 +1703,7 @@ elf_wasm32_finish_dynamic_symbol (bfd * output_bfd,
                                   Elf_Internal_Sym * sym)
 {
   if (h->plt.offset != (bfd_vma) -1)
-    do_build_plt (output_bfd, info, h);
+    do_build_plt (output_bfd, info, h, sym);
 
   if (h->got.offset != (bfd_vma) -1)
     {
@@ -2361,7 +2362,7 @@ wasm32_relocate_contents (reloc_howto_type *howto,
 
 static void
 do_build_plt (bfd *output_bfd, struct bfd_link_info *info,
-              struct elf_link_hash_entry *h)
+              struct elf_link_hash_entry *h, Elf_Internal_Sym *sym)
 {
   struct elf_wasm32_link_hash_entry *hh = (struct elf_wasm32_link_hash_entry *)h;
   struct elf_link_hash_table *htab = elf_hash_table (info);
@@ -2480,11 +2481,15 @@ do_build_plt (bfd *output_bfd, struct bfd_link_info *info,
         {
           /* Mark the symbol as undefined, rather than as defined in
              the .plt section.  Leave the value alone.  */
-          //sym->st_shndx = SHN_UNDEF; ???
+          sym->st_shndx = SHN_UNDEF;
         }
       //relocate_plt_for_symbol (output_bfd, info, h);
     }
 }
+
+static void
+do_build_pplt (bfd *output_bfd, struct bfd_link_info *info,
+               struct elf_link_hash_entry *h) ATTRIBUTE_UNUSED;
 
 static void
 do_build_pplt (bfd *output_bfd, struct bfd_link_info *info,

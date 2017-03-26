@@ -1619,8 +1619,6 @@ elf_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec, c
               if (!dynobj && !bfd_link_relocatable (info) &&
                   h->root.type == bfd_link_hash_undefweak) {
                 bfd_vma loc;
-                if (hh->pplt_offset == 0)
-                  hh->pplt_offset = (bfd_vma) -1;
                 loc = add_symbol_to_pplt (abfd, info, h);
                 hh->pplt_offset = loc;
               }

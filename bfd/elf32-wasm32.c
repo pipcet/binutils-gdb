@@ -990,7 +990,7 @@ wasm32_create_dynamic_sections (bfd * abfd,
 
   if (!ds->initialized)
     {
-      bfd *dynobj;
+      bfd *dynobj ATTRIBUTE_UNUSED;
       dynobj = (elf_hash_table (info))->dynobj;
       /* Create dynamic sections for relocatable executables so that
          we can copy relocations.  */
@@ -998,6 +998,12 @@ wasm32_create_dynamic_sections (bfd * abfd,
         {
           const struct elf_backend_data *bed;
           flagword flags, pltflags ATTRIBUTE_UNUSED, spaceflags ATTRIBUTE_UNUSED;
+
+          if (! htab->dynamic_sections_created && bfd_link_pic (info))
+            {
+              if (! _bfd_elf_link_create_dynamic_sections (abfd, info))
+                BFD_ASSERT (0);
+            }
 
           bed = get_elf_backend_data (abfd);
           flags = bed->dynamic_sec_flags;
@@ -1007,9 +1013,6 @@ wasm32_create_dynamic_sections (bfd * abfd,
 
           spaceflags = flags;
           spaceflags &= ~ (SEC_CODE | SEC_LOAD | SEC_HAS_CONTENTS);
-
-          if (! _bfd_elf_link_create_dynamic_sections (abfd, info))
-            BFD_ASSERT (0);
 
           ds->sgot = htab->sgot;
           ds->srelgot = htab->srelgot;

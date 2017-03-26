@@ -1625,11 +1625,18 @@ elf_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec, c
               if (!pltsig)
                 abort ();
               hh->pltsig = pltsig;
-              if (!dynobj && !bfd_link_relocatable (info)
+              if (h->root.type == bfd_link_hash_undefweak)
+                printf("add_symbol_to_pplt? %s %d %d %ld %d %d\n",
+                       h->root.root.string,
+                       h->ref_dynamic, h->def_dynamic,
+                       (long)h->dynindx,
+                       bfd_link_relocatable (info),
+                       h->root.type == bfd_link_hash_undefweak);
+              if (! bfd_link_relocatable (info)
                   && h->root.type == bfd_link_hash_undefweak)
                 {
                   bfd_vma loc;
-                  loc = add_symbol_to_pplt (abfd, info, h);
+                  loc = add_symbol_to_pplt (info->output_bfd, info, h);
                   hh->pplt_offset = loc;
                 }
             }

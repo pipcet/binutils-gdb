@@ -2383,10 +2383,6 @@ do_build_plt (bfd *output_bfd, struct bfd_link_info *info,
   if (h->plt.offset != (bfd_vma) -1)
     {
       struct dynamic_sections *ds = wasm32_create_dynamic_sections (output_bfd, info);
-      for (bfd_vma i = 0; i < ds->spltfun->size; i++)
-        bfd_put_8 (output_bfd,
-                   (i % 5 == 4) ? 0x00 : 0x80,
-                   ds->spltfun->contents + i);
       asection *splt;
       asection *srel;
       asection *spltelem = ds->spltelem;
@@ -2434,12 +2430,12 @@ do_build_plt (bfd *output_bfd, struct bfd_link_info *info,
                    ds->spltfun->contents + hh->pltfunction + i);
 
       set_uleb128 (output_bfd,
-                   bfd_asymbol_value (&hh->pltsig->root.u.def) +
-                   hh->pltsig->root.u.def.section->output_offset,
+                   bfd_asymbol_value (&hh->pltsig->root.u.def)
+                   + hh->pltsig->root.u.def.section->output_offset,
                    ds->spltfun->contents + hh->pltfunction);
       set_uleb128 (output_bfd,
-                   bfd_asymbol_value (&hh->pltsig->root.u.def) +
-                   hh->pltsig->root.u.def.section->output_offset,
+                   bfd_asymbol_value (&hh->pltsig->root.u.def)
+                   + hh->pltsig->root.u.def.section->output_offset,
                    splt->contents + h->plt.offset + hh->pltstub_sigoff);
 
       if (PLTNAME) {

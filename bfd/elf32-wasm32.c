@@ -999,7 +999,7 @@ wasm32_create_dynamic_sections (bfd * abfd,
           const struct elf_backend_data *bed;
           flagword flags, pltflags ATTRIBUTE_UNUSED, spaceflags ATTRIBUTE_UNUSED;
 
-          if (! htab->dynamic_sections_created && bfd_link_pic (info))
+          if (! htab->dynamic_sections_created)
             {
               if (! _bfd_elf_link_create_dynamic_sections (abfd, info))
                 BFD_ASSERT (0);
@@ -1031,6 +1031,7 @@ wasm32_create_dynamic_sections (bfd * abfd,
             (abfd, ".wasm.code_.plt");
           ds->spltfun = bfd_get_section_by_name
             (abfd, ".wasm.function_.plt");
+          BFD_ASSERT (ds->spltfun);
           ds->spltelem = bfd_get_section_by_name
             (abfd, ".wasm.element_.plt");
           ds->srelplt = bfd_get_section_by_name (abfd, ".rela.plt");
@@ -1167,7 +1168,7 @@ build_pplt_stub (bfd *output_bfd,
   return ret;
 }
 
-/* build a plt stub for h, based on its plt sig, and save it. Also
+/* build a plt stub for H, based on its plt sig, and save it. Also
    resize plt sections */
 static bfd_vma
 add_symbol_to_plt (bfd *output_bfd, struct bfd_link_info *info,

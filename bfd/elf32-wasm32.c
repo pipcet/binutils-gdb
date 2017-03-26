@@ -994,7 +994,7 @@ wasm32_create_dynamic_sections (bfd * abfd,
       dynobj = (elf_hash_table (info))->dynobj;
       /* Create dynamic sections for relocatable executables so that
          we can copy relocations.  */
-      if (TRUE)
+      if (dynobj)
         {
           const struct elf_backend_data *bed;
           flagword flags, pltflags ATTRIBUTE_UNUSED, spaceflags ATTRIBUTE_UNUSED;

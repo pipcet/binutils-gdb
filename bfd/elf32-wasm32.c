@@ -1325,7 +1325,7 @@ add_symbol_to_pplt (bfd *output_bfd, struct bfd_link_info *info,
   ds->sppltidx->size++;
   ds->sppltelemspace->size++;
   ds->sppltelem->size+=5;
-  if (PLTNAME) {
+  if (PPLTNAME) {
     hh->ppltnameoff = ds->sppltname->size;
     ds->sppltname->size += 5 + 5 + (h->root.root.string ? (strlen(h->root.root.string) + strlen ("@pplt")) : 0);
     ds->sppltnamespace->size++;

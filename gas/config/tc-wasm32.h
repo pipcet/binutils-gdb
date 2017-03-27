@@ -40,10 +40,10 @@
 extern int wasm32_force_relocation (struct fix *);
 #define TC_FORCE_RELOCATION(fix)               wasm32_force_relocation (fix)
 #define TC_FORCE_RELOCATION_LOCAL(fix)         1
-#define TC_FORCE_RELOCATION_SUB_SAME(fix,seg)  wasm32_force_relocation(fix)
-#define TC_FORCE_RELOCATION_SUB_ABS(fix,seg)   wasm32_force_relocation(fix)
-#define TC_FORCE_RELOCATION_SUB_LOCAL(fix,seg) wasm32_force_relocation(fix)
-#define TC_VALIDATE_FIX_SUB(fix,seg)           wasm32_force_relocation(fix)
+#define TC_FORCE_RELOCATION_SUB_SAME(fix,seg)  wasm32_force_relocation (fix)
+#define TC_FORCE_RELOCATION_SUB_ABS(fix,seg)   wasm32_force_relocation (fix)
+#define TC_FORCE_RELOCATION_SUB_LOCAL(fix,seg) wasm32_force_relocation (fix)
+#define TC_VALIDATE_FIX_SUB(fix,seg)           wasm32_force_relocation (fix)
 
 /* This is ELF, values passed to md_apply_fix don't include the symbol
    value.  */
@@ -78,8 +78,8 @@ extern int wasm32_force_relocation (struct fix *);
 #define HANDLE_ALIGN(fragP)
 
 
-extern bfd_boolean wasm32_fix_adjustable(struct fix *);
-#define tc_fix_adjustable(FIX) wasm32_fix_adjustable(FIX)
+extern bfd_boolean wasm32_fix_adjustable (struct fix *);
+#define tc_fix_adjustable(FIX) wasm32_fix_adjustable (FIX)
 
 /* Type names for blocks and signatures.  */
 #define BLOCK_TYPE_NONE              0x40

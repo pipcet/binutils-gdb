@@ -584,9 +584,9 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
               str = skip_space (str);
             }
         }
+      else if (opcode->clas)
+        as_bad (_("instruction does not take a block type"));
     }
-    else if (opcode->clas)
-      as_bad (_("instruction does not take a block type"));
 
   switch (opcode->clas)
     {

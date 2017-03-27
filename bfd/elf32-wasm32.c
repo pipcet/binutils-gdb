@@ -916,11 +916,28 @@ struct dynamic_sections
   asection *  sppltnamespace;  /* .space.name.function_.pplt */
 };
 
+#define elf_wasm32_hash_table(info) ((struct elf_wasm32_link_hash_table *)elf_hash_table (info))
+
 /* WASM32 ELF linker hash table.  */
 struct elf_wasm32_link_hash_table
 {
   struct elf_link_hash_table root;
   struct dynamic_sections ds;
+
+  bfd_vma spplt_size;
+  bfd_vma sppltspace_size;
+
+  bfd_vma sppltfun_size;
+  bfd_vma sppltfunspace_size;
+
+  bfd_vma sppltidx_size;
+
+  bfd_vma sppltelem_size;
+  bfd_vma sppltelemspace_size;
+
+  bfd_vma sppltname_size;
+  bfd_vma sppltnamespace_size;
+
 };
 
 static struct bfd_hash_entry *

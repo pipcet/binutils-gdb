@@ -1,24 +1,23 @@
 /* tc-wasm32.c -- Assembler code for the wasm32 target.
 
-   Copyright (C) 1999-2015 Free Software Foundation, Inc.
-   Copyright (C) 2016-2017 Pip Cet <pipcet@gmail.com>
+   Copyright (C) 2017 Free Software Foundation, Inc.
 
-   This file is NOT part of GAS, the GNU Assembler.
+   This file is part of GAS, the GNU Assembler.
 
-   GAS is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
+   GAS is free software; you can redistribute it and/or modify it
+   under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 3, or (at your option)
    any later version.
 
-   GAS is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
+   GAS is distributed in the hope that it will be useful, but WITHOUT
+   ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+   or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
+   License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with GAS; see the file COPYING.  If not, write to
-   the Free Software Foundation, 51 Franklin Street - Fifth Floor,
-   Boston, MA 02110-1301, USA.  */
+   along with GAS; see the file COPYING.  If not, write to the Free
+   Software Foundation, 51 Franklin Street - Fifth Floor, Boston, MA
+   02110-1301, USA.  */
 
 #include "as.h"
 #include "safe-ctype.h"
@@ -28,64 +27,45 @@
 #include "elf/wasm32.h"
 #include <float.h>
 
-enum wasm_clas
+enum wasm_class
   {
-    wasm_typed, /* a typed opcode: block, loop, and if */
-    wasm_special, /* a special opcode: unreachable, nop, else, end */
-    wasm_break, /* "br" */
-    wasm_break_if, /* "br_if" opcode */
-    wasm_break_table, /* "br_table" opcode */
-    wasm_return, /* "return" opcode */
-    wasm_call, /* "call" opcode */
+    wasm_typed,         /* a typed opcode: block, loop, or if */
+    wasm_special,       /* a special opcode: unreachable, nop, else,
+                           or end */
+    wasm_break,         /* "br" */
+    wasm_break_if,      /* "br_if" opcode */
+    wasm_break_table,   /* "br_table" opcode */
+    wasm_return,        /* "return" opcode */
+    wasm_call,          /* "call" opcode */
     wasm_call_indirect, /* "call_indirect" opcode */
-    wasm_get_local, /* "get_local" and "get_global" */
-    wasm_set_local, /* "set_local" and "set_global" */
-    wasm_tee_local, /* "tee_local" */
-    wasm_drop, /* "drop" */
-    wasm_constant_i32, /* "i32.const" */
-    wasm_constant_i64, /* "i64.const" */
-    wasm_constant_f32, /* "f32.const" */
-    wasm_constant_f64, /* "f64.const" */
-    wasm_unary, /* unary ops */
-    wasm_binary, /* binary ops */
-    wasm_conv, /* conversion ops */
-    wasm_load, /* load ops */
-    wasm_store, /* store ops */
-    wasm_select, /* "select" */
-    wasm_relational, /* comparison ops */
-    wasm_eqz, /* "eqz" */
-    wasm_current_memory, /* "current_memory" */
-    wasm_grow_memory, /* "grow_memory" */
-    wasm_signature /* "signature", which isn't an opcode */
+    wasm_get_local,     /* "get_local" and "get_global" */
+    wasm_set_local,     /* "set_local" and "set_global" */
+    wasm_tee_local,     /* "tee_local" */
+    wasm_drop,          /* "drop" */
+    wasm_constant_i32,  /* "i32.const" */
+    wasm_constant_i64,  /* "i64.const" */
+    wasm_constant_f32,  /* "f32.const" */
+    wasm_constant_f64,  /* "f64.const" */
+    wasm_unary,         /* unary operators */
+    wasm_binary,        /* binary operators */
+    wasm_conv,          /* conversion operators */
+    wasm_load,          /* load operators */
+    wasm_store,         /* store operators */
+    wasm_select,        /* "select" */
+    wasm_relational,    /* comparison operators, except for "eqz" */
+    wasm_eqz,           /* "eqz" */
+    wasm_current_memory,/* "current_memory" */
+    wasm_grow_memory,   /* "grow_memory" */
+    wasm_signature      /* "signature", which isn't an opcode */
   };
 
-enum wasm_signedness
-  {
-    wasm_signed,
-    wasm_unsigned,
-    wasm_agnostic,
-    wasm_floating
-  };
+#define WASM_OPCODE(opcode, name, class) \
+  { name, wasm_ ## class, opcode },
 
-enum wasm_type
-  {
-    wasm_void,
-    wasm_any,
-    wasm_i32,
-    wasm_i64,
-    wasm_f32,
-    wasm_f64
-  };
-
-#define WASM_OPCODE(name, intype, outtype, clas, signedness, opcode) \
-  { name, wasm_ ## intype, wasm_ ## outtype, wasm_ ## clas, wasm_ ## signedness, opcode },
-
-struct wasm32_opcode_s {
+const struct wasm32_opcode_s
+{
   const char *name;
-  enum wasm_type intype;
-  enum wasm_type outtype;
-  enum wasm_clas clas;
-  enum wasm_signedness signedness;
+  enum wasm_class clas;
   unsigned char opcode;
 } wasm32_opcodes[] = {
 #include "opcode/wasm.h"
@@ -104,20 +84,11 @@ const char FLT_CHARS[] = "dD";
 /* The target specific pseudo-ops which we support.  */
 const pseudo_typeS md_pseudo_table[] =
 {
-  { "qi", cons, 1 }, /* 8-bit integer */
-  { "hi", cons, 2 }, /* 16-bit integer */
-  { "si", cons, 4 }, /* 32-bit integer */
-  { "di", cons, 8 }, /* 64-bit integer */
   { NULL,	NULL,		0}
 };
 
 /* Opcode hash table.  */
 static struct hash_control *wasm32_hash;
-
-enum options
-{
-  OPTION_SYMBOLIC_INDEX = OPTION_MD_BASE + 1,
-};
 
 struct option md_longopts[] =
 {
@@ -126,7 +97,7 @@ struct option md_longopts[] =
 
 size_t md_longopts_size = sizeof (md_longopts);
 
-/* No relaxation/no machine-dependent frags. */
+/* No relaxation/no machine-dependent frags.  */
 int
 md_estimate_size_before_relax (fragS *fragp ATTRIBUTE_UNUSED,
                                asection *seg ATTRIBUTE_UNUSED)
@@ -141,28 +112,28 @@ md_show_usage (FILE *stream)
   fprintf (stream, _("wasm32 assembler options:\n"));
 }
 
-/* No machine-dependent options. */
+/* No machine-dependent options.  */
 int
 md_parse_option (int c ATTRIBUTE_UNUSED, const char *arg ATTRIBUTE_UNUSED)
 {
   return 0;
 }
 
-/* No machine-dependent symbols. */
+/* No machine-dependent symbols.  */
 symbolS *
 md_undefined_symbol (char *name ATTRIBUTE_UNUSED)
 {
   return NULL;
 }
 
-/* IEEE little-endian floats. */
+/* IEEE little-endian floats.  */
 const char *
 md_atof (int type, char *litP, int *sizeP)
 {
   return ieee_md_atof (type, litP, sizeP, FALSE);
 }
 
-/* No machine-dependent frags. */
+/* No machine-dependent frags.  */
 void
 md_convert_frag (bfd *abfd ATTRIBUTE_UNUSED,
                  asection *sec ATTRIBUTE_UNUSED,
@@ -171,7 +142,7 @@ md_convert_frag (bfd *abfd ATTRIBUTE_UNUSED,
   abort ();
 }
 
-/* Build opcode hash table, set some flags. */
+/* Build opcode hash table, set some flags.  */
 void
 md_begin (void)
 {
@@ -191,7 +162,7 @@ md_begin (void)
   flag_keep_locals = 1;
 }
 
-/* Do the normal thing for md_section_align */
+/* Do the normal thing for md_section_align.  */
 valueT
 md_section_align (asection *seg, valueT addr)
 {
@@ -199,7 +170,8 @@ md_section_align (asection *seg, valueT addr)
   return ((addr + (1 << align) - 1) & -(1 << align));
 }
 
-/* Apply a fixup, return TRUE if done (and no relocation is needed). */
+/* Apply a fixup, return TRUE if done (and no relocation is
+   needed).  */
 static bfd_boolean
 apply_full_field_fix (fixS *fixP, char *buf, bfd_vma val,
                       int size)
@@ -215,7 +187,8 @@ apply_full_field_fix (fixS *fixP, char *buf, bfd_vma val,
   return TRUE;
 }
 
-/* Apply a fixup (potentially PC-relative), set the fx_done flag if done. */
+/* Apply a fixup (potentially PC-relative), set the fx_done flag if
+   done.  */
 void
 md_apply_fix (fixS *fixP, valueT * valP, segT seg ATTRIBUTE_UNUSED)
 {
@@ -240,7 +213,7 @@ md_apply_fix (fixS *fixP, valueT * valP, segT seg ATTRIBUTE_UNUSED)
     fixP->fx_done = 1;
 }
 
-/* Skip whitespace. */
+/* Skip whitespace.  */
 static inline char *
 skip_space (char *s)
 {
@@ -249,14 +222,14 @@ skip_space (char *s)
   return s;
 }
 
-/* Allow '/' in opcodes. */
+/* Allow '/' in opcodes.  */
 static inline bfd_boolean
 is_part_of_opcode (char c)
 {
   return is_part_of_name (c) || (c == '/');
 }
 
-/* Extract an opcode. */
+/* Extract an opcode.  */
 static char *
 extract_opcode (char *from, char *to, int limit)
 {
@@ -272,7 +245,7 @@ extract_opcode (char *from, char *to, int limit)
     {
       to[size++] = *op_end++;
       if (size + 1 >= limit)
-	break;
+        break;
     }
 
   to[size] = 0;
@@ -281,7 +254,7 @@ extract_opcode (char *from, char *to, int limit)
 
 /* Produce an unsigned LEB128 integer padded to the right number of
    bytes to store BITS bits, of value VALUE.  Uses FRAG_APPEND_1_CHAR
-   to write. */
+   to write.  */
 static void
 wasm32_put_long_uleb128(int bits, unsigned long value) { unsigned char
 c; int i = 0;
@@ -295,7 +268,8 @@ c; int i = 0;
   } while (++i < (bits+6)/7);
 }
 
-/* Produce a signed LEB128 integer, using FRAG_APPEND_1_CHAR to write. */
+/* Produce a signed LEB128 integer, using FRAG_APPEND_1_CHAR to
+   write.  */
 static void wasm32_put_sleb128(long value)
 {
   unsigned char c;
@@ -313,7 +287,7 @@ static void wasm32_put_sleb128(long value)
 }
 
 /* Produce an unsigned LEB128 integer, using FRAG_APPEND_1_CHAR to
-   write. */
+   write.  */
 static void wasm32_put_uleb128(unsigned long value)
 {
   unsigned char c;
@@ -327,10 +301,10 @@ static void wasm32_put_uleb128(unsigned long value)
   } while (value);
 }
 
-/* Read an integer expreession. Produce an LEB128-encoded integer if
+/* Read an integer expression.  Produce an LEB128-encoded integer if
    it's a constant, a padded LEB128 plus a relocation if it's a
    symbol, or a special relocation for <expr>@got, <expr>@gotcode, and
-   <expr>@plt{__sigchar_<signature>}. */
+   <expr>@plt{__sigchar_<signature>}.  */
 static bfd_boolean wasm32_leb128(char **line, int bits, int sign)
 {
   char *t = input_line_pointer;
@@ -341,6 +315,7 @@ static bfd_boolean wasm32_leb128(char **line, int bits, int sign)
   int gotrel = 0;
   int pltrel = 0;
   int code = 0;
+  const char *relname;
 
   input_line_pointer = str;
   expression (&ex);
@@ -384,13 +359,13 @@ static bfd_boolean wasm32_leb128(char **line, int bits, int sign)
       input_line_pointer += 8;
     }
   /* i32.const data@got */
-  if (strncmp(input_line_pointer, "@got", 4) == 0)
+  else if (strncmp(input_line_pointer, "@got", 4) == 0)
     {
       gotrel = 1;
       input_line_pointer += 4;
     }
   /* call f@plt{__sigchar_FiiiiE} */
-  if (strncmp(input_line_pointer, "@plt", 4) == 0)
+  else if (strncmp(input_line_pointer, "@plt", 4) == 0)
     {
       pltrel = 1;
       code = 1;
@@ -399,14 +374,18 @@ static bfd_boolean wasm32_leb128(char **line, int bits, int sign)
       if (strncmp(input_line_pointer, "{", 1) == 0 &&
           (end_of_sig = strchr(input_line_pointer, '}')))
         {
-          char *signature = strndup(input_line_pointer+1, end_of_sig - input_line_pointer - 1);
+          char *signature;
           struct reloc_list *reloc2;
+          size_t siglength = end_of_sig - (input_line_pointer + 1);
+
+          signature = strndup (input_line_pointer + 1, siglength);
+
           reloc2 = XNEW (struct reloc_list);
           reloc2->u.a.offset_sym = expr_build_dot ();
           reloc2->u.a.sym = symbol_find_or_make (signature);
           reloc2->u.a.addend = 0;
-          reloc2->u.a.howto = bfd_reloc_name_lookup (stdoutput,
-                                                     "R_WASM32_PLT_SIG");
+          reloc2->u.a.howto = bfd_reloc_name_lookup
+            (stdoutput, "R_WASM32_PLT_SIG");
           reloc2->next = reloc_list;
           reloc_list = reloc2;
           input_line_pointer = end_of_sig + 1;
@@ -417,14 +396,18 @@ static bfd_boolean wasm32_leb128(char **line, int bits, int sign)
         }
     }
 
-  reloc->u.a.howto = bfd_reloc_name_lookup (stdoutput,
-                                            gotrel ? (code ? "R_WASM32_LEB128_GOT_CODE" : "R_WASM32_LEB128_GOT") :
-                                            pltrel ? "R_WASM32_LEB128_PLT" :
-                                            "R_WASM32_LEB128");
+  if (gotrel && code)
+    relname = "R_WASM32_LEB128_GOT_CODE";
+  else if (gotrel)
+    relname = "R_WASM32_LEB128_GOT";
+  else if (pltrel)
+    relname = "R_WASM32_LEB128_PLT";
+  else
+    relname = "R_WASM32_LEB128";
+
+  reloc->u.a.howto = bfd_reloc_name_lookup (stdoutput, relname);
   if (!reloc->u.a.howto)
-    {
-      as_bad (_("couldn't find relocation to use"));
-    }
+    as_bad (_("couldn't find relocation to use"));
   reloc->file = as_where (&reloc->line);
   reloc->next = reloc_list;
   reloc_list = reloc;
@@ -439,20 +422,20 @@ static bfd_boolean wasm32_leb128(char **line, int bits, int sign)
 }
 
 /* Read an integer expression and produce an unsigned LEB128 integer,
-   or a relocation for it. */
+   or a relocation for it.  */
 static bfd_boolean wasm32_uleb128(char **line, int bits)
 {
   return wasm32_leb128(line, bits, 0);
 }
 
 /* Read an integer expression and produce a signed LEB128 integer, or
-   a relocation for it. */
+   a relocation for it.  */
 static bfd_boolean wasm32_sleb128(char **line, int bits)
 {
   return wasm32_leb128(line, bits, 1);
 }
 
-/* Read an f32. (Like float_cons ('f')). */
+/* Read an f32. (Like float_cons ('f')).  */
 static void wasm32_f32(char **line)
 {
   char *t = input_line_pointer;
@@ -462,7 +445,7 @@ static void wasm32_f32(char **line)
   input_line_pointer = t;
 }
 
-/* Read an f64. (Like float_cons ('d')). */
+/* Read an f64. (Like float_cons ('d')).  */
 static void wasm32_f64(char **line)
 {
   char *t = input_line_pointer;
@@ -472,6 +455,10 @@ static void wasm32_f64(char **line)
   input_line_pointer = t;
 }
 
+/* Assemble a signature from LINE, replacing it with the new input
+   pointer.  Signatures are simple expressions matching the regexp
+   F[ilfd]*v?E, and interpreted as though they were C++-mangled
+   function types on a 64-bit machine. */
 static void wasm32_signature(char **line)
 {
   unsigned long count = 0;
@@ -548,7 +535,7 @@ static void wasm32_signature(char **line)
 }
 
 /* Main operands function. Read the operands for OPCODE from LINE,
-   replacing it with the new input pointer. */
+   replacing it with the new input pointer.  */
 static void
 wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
 {
@@ -557,48 +544,48 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
   FRAG_APPEND_1_CHAR (opcode->opcode);
   str = skip_space (str);
   if (str[0] == '[')
-    {
-      if (opcode->clas == wasm_typed)
-        {
-          str++;
-          block_type = BLOCK_TYPE_NONE;
-          if (str[0] != ']')
-            {
-              str = skip_space (str);
-              switch (str[0])
-                {
-                case 'i':
-                  block_type = BLOCK_TYPE_I32;
-                  str++;
-                  break;
-                case 'l':
-                  block_type = BLOCK_TYPE_I64;
-                  str++;
-                  break;
-                case 'f':
-                  block_type = BLOCK_TYPE_F32;
-                  str++;
-                  break;
-                case 'd':
-                  block_type = BLOCK_TYPE_F64;
-                  str++;
-                  break;
-                }
-              if (str[0] == ']')
+    if (opcode->clas == wasm_typed)
+      {
+        str++;
+        block_type = BLOCK_TYPE_NONE;
+        if (str[0] != ']')
+          {
+            str = skip_space (str);
+            switch (str[0])
+              {
+              case 'i':
+                block_type = BLOCK_TYPE_I32;
                 str++;
-              str = skip_space (str);
-            }
-          else
-            {
+                break;
+              case 'l':
+                block_type = BLOCK_TYPE_I64;
+                str++;
+                break;
+              case 'f':
+                block_type = BLOCK_TYPE_F32;
+                str++;
+                break;
+              case 'd':
+                block_type = BLOCK_TYPE_F64;
+                str++;
+                break;
+              }
+            str = skip_space (str);
+            if (str[0] == ']')
               str++;
-              str = skip_space (str);
-            }
-        }
-      else if (opcode->clas)
-        {
-          as_bad (_("instruction does not take a block type"));
-        }
-    }
+            else
+              as_bad (_("only single block types allowed"));
+            str = skip_space (str);
+          }
+        else
+          {
+            str++;
+            str = skip_space (str);
+          }
+      }
+    else if (opcode->clas)
+      as_bad (_("instruction does not take a block type"));
+
   switch (opcode->clas)
     {
     case wasm_typed:
@@ -696,7 +683,8 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
   return;
 }
 
-/* Main assembly function. Find the opcode and call wasm32_operands(). */
+/* Main assembly function. Find the opcode and call
+   wasm32_operands().  */
 void
 md_assemble (char *str)
 {
@@ -725,32 +713,32 @@ md_assemble (char *str)
 }
 
 /* Don't replace PLT/GOT relocations with section symbols, so they
-   don't get an addend. */
+   don't get an addend.  */
 int
-wasm32_force_relocation (fixS *f ATTRIBUTE_UNUSED)
+wasm32_force_relocation (fixS *f)
 {
-  if (f->fx_r_type == BFD_RELOC_WASM32_LEB128_PLT ||
-      f->fx_r_type == BFD_RELOC_WASM32_LEB128_GOT)
+  if (f->fx_r_type == BFD_RELOC_WASM32_LEB128_PLT
+      || f->fx_r_type == BFD_RELOC_WASM32_LEB128_GOT)
     return 1;
 
   return 0;
 }
 
 /* Don't replace PLT/GOT relocations with section symbols, so they
-   don't get an addend. */
+   don't get an addend.  */
 bfd_boolean wasm32_fix_adjustable (fixS * fixP)
 {
   if (fixP->fx_addsy == NULL)
     return TRUE;
 
-  if (fixP->fx_r_type == BFD_RELOC_WASM32_LEB128_PLT ||
-      fixP->fx_r_type == BFD_RELOC_WASM32_LEB128_GOT)
+  if (fixP->fx_r_type == BFD_RELOC_WASM32_LEB128_PLT
+      || fixP->fx_r_type == BFD_RELOC_WASM32_LEB128_GOT)
     return FALSE;
 
   return TRUE;
 }
 
-/* Generate a reloc for FIXP. */
+/* Generate a reloc for FIXP.  */
 arelent *
 tc_gen_reloc (asection *sec ATTRIBUTE_UNUSED,
               fixS *fixp)

@@ -946,6 +946,8 @@ struct elf_wasm32_link_hash_table
   struct elf_link_hash_table root;
   struct dynamic_sections ds;
 
+  bfd_boolean has_pplt;
+
   bfd_vma spplt_size;
   bfd_vma sppltspace_size;
 
@@ -2099,6 +2101,7 @@ elf_wasm32_size_dynamic_sections (bfd * output_bfd,
      Otherwise, leave them at size 0. */
   if (ds->spplt)
     {
+      hhtab->has_pplt = TRUE;
       ds->spplt->size = hhtab->spplt_size;
       ds->sppltspace->size = hhtab->sppltspace_size;
 
@@ -2112,6 +2115,10 @@ elf_wasm32_size_dynamic_sections (bfd * output_bfd,
 
       ds->sppltname->size = hhtab->sppltname_size;
       ds->sppltnamespace->size = hhtab->sppltnamespace_size;
+    }
+  else
+    {
+      hhtab->has_pplt = FALSE;
     }
 
   if ((elf_hash_table (info))->dynamic_sections_created)
@@ -2779,6 +2786,7 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
   asection *sreloc = NULL;
   struct dynamic_sections *ds = wasm32_create_dynamic_sections (output_bfd, info);
   struct elf_link_hash_table *htab = elf_hash_table (info);
+  struct elf_wasm32_link_hash_table *hhtab = elf_wasm32_hash_table (info);
 
   symtab_hdr = &elf_tdata (input_bfd)->symtab_hdr;
   sym_hashes = elf_sym_hashes (input_bfd);
@@ -2914,7 +2922,8 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
           if (h == NULL)
             goto final_link_relocate;
 
-          finish_pplt_entry (output_bfd, info, h);
+          if (hhtab->has_pplt)
+            finish_pplt_entry (output_bfd, info, h);
 
           if (ELF_ST_VISIBILITY (h->other) == STV_INTERNAL
               || ELF_ST_VISIBILITY (h->other) == STV_HIDDEN)

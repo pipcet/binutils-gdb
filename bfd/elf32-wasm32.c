@@ -1276,7 +1276,6 @@ static bfd_vma
 add_symbol_to_pplt (bfd *output_bfd, struct bfd_link_info *info,
                    struct elf_link_hash_entry *h)
 {
-  struct dynamic_sections *ds = wasm32_create_dynamic_sections (output_bfd, info);
   struct elf_wasm32_link_hash_entry *hh = (struct elf_wasm32_link_hash_entry *)h;
   struct elf_link_hash_entry *pltsig = hh->pltsig;
   bfd_vma ret;
@@ -1285,15 +1284,13 @@ add_symbol_to_pplt (bfd *output_bfd, struct bfd_link_info *info,
   bfd_vma nargs = 0;
   const char *p = strrchr(pltsig->root.root.string, 'F');
   struct elf_link_hash_table *htab ATTRIBUTE_UNUSED = elf_hash_table (info);
+  struct elf_wasm32_link_hash_table *hhtab ATTRIBUTE_UNUSED = elf_wasm32_hash_table (info);
 
   if (hh->pplt_offset != (bfd_vma) -1)
     return hh->pplt_offset;
 
-  if (! ds->spplt)
-    return (bfd_vma) -1;
-
-  ret = ds->spplt->size;
-  hh->pplt_index = ds->sppltspace->size;
+  ret = hhtab->spplt_size;
+  hh->pplt_index = hhtab->sppltspace_size;
 
   if (!pltsig)
     {
@@ -1334,20 +1331,19 @@ add_symbol_to_pplt (bfd *output_bfd, struct bfd_link_info *info,
                                   &size, &hh->ppltstub_sigoff);
   hh->ppltstub_size = size;
 
-  ds->spplt->size += size;
-
-  ds->sppltspace->size++;
-  hh->ppltfunction = ds->sppltfun->size;
-  ds->sppltfun->size += 5;
-  ds->sppltfunspace->size++;
-  ds->sppltidx->size++;
-  ds->sppltelemspace->size++;
-  ds->sppltelem->size+=5;
+  hhtab->spplt_size += size;
+  hhtab->sppltspace_size++;
+  hh->ppltfunction = hhtab->sppltfun_size;
+  hhtab->sppltfun_size += 5;
+  hhtab->sppltfunspace_size++;
+  hhtab->sppltidx_size++;
+  hhtab->sppltelemspace_size++;
+  hhtab->sppltelem_size+=5;
   if (PPLTNAME)
     {
-      hh->ppltnameoff = ds->sppltname->size;
-      ds->sppltname->size += 5 + 5 + (h->root.root.string ? (strlen(h->root.root.string) + strlen ("@pplt")) : 0);
-      ds->sppltnamespace->size++;
+      hh->ppltnameoff = hhtab->sppltname_size;
+      hhtab->sppltname_size += 5 + 5 + (h->root.root.string ? (strlen(h->root.root.string) + strlen ("@pplt")) : 0);
+      hhtab->sppltnamespace_size++;
     }
 
   return ret;
@@ -1978,11 +1974,29 @@ elf_wasm32_size_dynamic_sections (bfd * output_bfd,
   bfd_boolean     reltext_exist = FALSE;
   struct dynamic_sections *ds = wasm32_create_dynamic_sections (output_bfd, info);
   struct elf_link_hash_table *htab = elf_hash_table (info);
+  struct elf_wasm32_link_hash_table *hhtab = elf_wasm32_hash_table (info);
 
   dynobj = (elf_hash_table (info))->dynobj;
   BFD_ASSERT (dynobj != NULL);
 
   elf_link_hash_traverse (htab, allocate_dynrelocs, info);
+
+  if (ds->spplt)
+    {
+      ds->spplt->size = hhtab->spplt_size;
+      ds->sppltspace->size = hhtab->sppltspace_size;
+
+      ds->sppltfun->size = hhtab->sppltfun_size;
+      ds->sppltfunspace->size = hhtab->sppltfunspace_size;
+
+      ds->sppltidx->size = hhtab->sppltidx_size;
+
+      ds->sppltelem->size = hhtab->sppltelem_size;
+      ds->sppltelemspace->size = hhtab->sppltelemspace_size;
+
+      ds->sppltname->size = hhtab->sppltname_size;
+      ds->sppltnamespace->size = hhtab->sppltnamespace_size;
+    }
 
   if ((elf_hash_table (info))->dynamic_sections_created)
     {

@@ -348,6 +348,9 @@ wasm32_leb128 (char **line, int bits, int sign)
   input_line_pointer = str;
   expression (&ex);
 
+  if (ex.X_op == O_absent)
+    as_bad (_("expected expression"));
+
   if (ex.X_op == O_constant && *input_line_pointer != '@')
     {
       long value = ex.X_add_number;
@@ -724,7 +727,7 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
 }
 
 /* Main assembly function.  Find the opcode and call
-   wasm32_operands().  */
+   wasm32_operands ().  */
 
 void
 md_assemble (char *str)

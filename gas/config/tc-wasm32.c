@@ -59,17 +59,17 @@ enum wasm_class
     wasm_signature      /* "signature", which isn't an opcode */
   };
 
-#define WASM_OPCODE(opcode, name, class) \
+#define WASM_OPCODE(opcode, name, intype, outtype, class, signedness)   \
   { name, wasm_ ## class, opcode },
 
-const struct wasm32_opcode_s
+struct wasm32_opcode_s
 {
   const char *name;
   enum wasm_class clas;
   unsigned char opcode;
 } wasm32_opcodes[] = {
 #include "opcode/wasm.h"
-  { NULL, 0, 0, 0, 0, 0 }
+  { NULL, 0, 0 }
 };
 
 const char comment_chars[] = ";#";
@@ -544,45 +544,47 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
   FRAG_APPEND_1_CHAR (opcode->opcode);
   str = skip_space (str);
   if (str[0] == '[')
-    if (opcode->clas == wasm_typed)
-      {
-        str++;
-        block_type = BLOCK_TYPE_NONE;
-        if (str[0] != ']')
-          {
-            str = skip_space (str);
-            switch (str[0])
-              {
-              case 'i':
-                block_type = BLOCK_TYPE_I32;
+    {
+      if (opcode->clas == wasm_typed)
+        {
+          str++;
+          block_type = BLOCK_TYPE_NONE;
+          if (str[0] != ']')
+            {
+              str = skip_space (str);
+              switch (str[0])
+                {
+                case 'i':
+                  block_type = BLOCK_TYPE_I32;
+                  str++;
+                  break;
+                case 'l':
+                  block_type = BLOCK_TYPE_I64;
+                  str++;
+                  break;
+                case 'f':
+                  block_type = BLOCK_TYPE_F32;
+                  str++;
+                  break;
+                case 'd':
+                  block_type = BLOCK_TYPE_F64;
+                  str++;
+                  break;
+                }
+              str = skip_space (str);
+              if (str[0] == ']')
                 str++;
-                break;
-              case 'l':
-                block_type = BLOCK_TYPE_I64;
-                str++;
-                break;
-              case 'f':
-                block_type = BLOCK_TYPE_F32;
-                str++;
-                break;
-              case 'd':
-                block_type = BLOCK_TYPE_F64;
-                str++;
-                break;
-              }
-            str = skip_space (str);
-            if (str[0] == ']')
+              else
+                as_bad (_("only single block types allowed"));
+              str = skip_space (str);
+            }
+          else
+            {
               str++;
-            else
-              as_bad (_("only single block types allowed"));
-            str = skip_space (str);
-          }
-        else
-          {
-            str++;
-            str = skip_space (str);
-          }
-      }
+              str = skip_space (str);
+            }
+        }
+    }
     else if (opcode->clas)
       as_bad (_("instruction does not take a block type"));
 

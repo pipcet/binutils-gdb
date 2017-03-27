@@ -265,6 +265,33 @@ wasm32_elf32_hex16_reloc (bfd *abfd ATTRIBUTE_UNUSED,
   return flag;
 }
 
+/* Store VALUE at ADDR in ABFD's address space, using an LEB128
+   encoding of the same length as already exists at ADDR.  Do not
+   write past END. */
+static inline bfd_boolean
+set_uleb128 (bfd *abfd ATTRIBUTE_UNUSED,
+             unsigned long long value,
+             bfd_byte *addr, bfd_byte *end)
+{
+  int len = 0;
+  int i;
+
+  while (bfd_get_8 (abfd, addr + len++) & 0x80)
+    {
+      if (addr + len >= end)
+        return FALSE;
+    }
+
+  for (i = 0; i < len-1; i++)
+    {
+      bfd_put_8 (abfd, 0x80 | (value & 0x7f), addr + i);
+      value >>= 7;
+    }
+  bfd_put_8 (abfd, (value & 0x7f), addr + i);
+
+  return (value == 0);
+}
+
 bfd_reloc_status_type
 wasm32_elf32_leb128_reloc (bfd *abfd ATTRIBUTE_UNUSED,
                           arelent *reloc_entry,
@@ -374,42 +401,12 @@ wasm32_elf32_leb128_reloc (bfd *abfd ATTRIBUTE_UNUSED,
                                bfd_arch_bits_per_address (abfd),
                                relocation);
 
-  {
-    unsigned long long value = relocation;
-
-    int len = 0;
-    int i;
-    while (bfd_get_8 (abfd, data + octets + len++) & 0x80)
-      {
-      }
-
-    for (i = 0; i < len-1; i++)
-      {
-        bfd_put_8 (abfd, 0x80 | (value & 0x7f), data + octets + i);
-        value >>= 7;
-      }
-    bfd_put_8 (abfd, (value & 0x7f), data + octets + i);
-  }
+  if (flag == bfd_reloc_ok
+      && ! set_uleb128 (abfd, relocation, data + octets, data
+                        + bfd_get_section_limit (abfd, input_section)))
+    flag = bfd_reloc_overflow;
 
   return flag;
-}
-
-static inline void set_uleb128 (bfd *abfd ATTRIBUTE_UNUSED,
-                                unsigned long long value,
-                                bfd_byte *addr)
-{
-  int len = 0;
-  int i;
-  while (bfd_get_8 (abfd, addr + len++) & 0x80)
-    {
-    }
-
-  for (i = 0; i < len-1; i++)
-    {
-      bfd_put_8 (abfd, 0x80 | (value & 0x7f), addr + i);
-      value >>= 7;
-    }
-  bfd_put_8 (abfd, (value & 0x7f), addr + i);
 }
 
 static reloc_howto_type wasm32_elf32_howto_table[] =
@@ -1132,7 +1129,8 @@ build_plt_stub (bfd *output_bfd,
                 bfd_vma signature, bfd_vma nargs, bfd_vma pltindex,
                 bfd_vma *size, bfd_vma *pltstub_pltoff, bfd_vma *pltstub_sigoff)
 {
-  bfd_byte *ret = malloc (5 + 3 + nargs * 6 + 3 + 5 + 2 + 5 + 3);
+  bfd_vma maxsize = 5 + 3 + nargs * 6 + 3 + 5 + 2 + 5 + 3;
+  bfd_byte *ret = malloc (maxsize);
   bfd_byte *p = ret;
 
   /* size. fill in later. */
@@ -1143,7 +1141,7 @@ build_plt_stub (bfd *output_bfd,
     {
       *p++ = 0x20; /* get_local */
       *p++ = 0x80; *p++ = 0x80; *p++ = 0x80; *p++ = 0x80; *p++ = 0;
-      set_uleb128 (output_bfd, i, p - 5);
+      set_uleb128 (output_bfd, i, p - 5, ret + maxsize);
     }
 
   *p++ = 0x23; /* get_global */
@@ -1151,12 +1149,12 @@ build_plt_stub (bfd *output_bfd,
   *p++ = 0x41; /* i32.const */
   *pltstub_pltoff = p - ret;
   *p++ = 0x80; *p++ = 0x80; *p++ = 0x80; *p++ = 0x80; *p++ = 0;
-  set_uleb128 (output_bfd, pltindex, p - 5);
+  set_uleb128 (output_bfd, pltindex, p - 5, ret + maxsize);
   *p++ = 0x6a; /* add */
   *p++ = 0x11; /* call_indirect */
   *pltstub_sigoff = p - ret;
   *p++ = 0x80; *p++ = 0x80; *p++ = 0x80; *p++ = 0x80; *p++ = 0;
-  set_uleb128 (output_bfd, signature, p - 5);
+  set_uleb128 (output_bfd, signature, p - 5, ret + maxsize);
   *p++ = 0x00; /* reserved */
   *p++ = 0x0f; /* return */
   *p++ = 0x0b; /* end */
@@ -1164,7 +1162,7 @@ build_plt_stub (bfd *output_bfd,
   *size = p - ret;
   ret = realloc (ret, *size);
 
-  set_uleb128 (output_bfd, *size - 5, ret);
+  set_uleb128 (output_bfd, *size - 5, ret, ret + *size);
 
   return ret;
 }
@@ -1187,7 +1185,7 @@ build_pplt_stub (bfd *output_bfd,
     {
       *p++ = 0x20; /* get_local */
       *p++ = 0x80; *p++ = 0x80; *p++ = 0x80; *p++ = 0x80; *p++ = 0;
-      set_uleb128 (output_bfd, i, p - 5);
+      set_uleb128 (output_bfd, i, p - 5, p);
     }
 
   *p++ = 0x23; /* get_global */
@@ -1198,7 +1196,7 @@ build_pplt_stub (bfd *output_bfd,
   *p++ = 0x11; /* call_indirect */
   *pltstub_sigoff = p - ret;
   *p++ = 0x80; *p++ = 0x80; *p++ = 0x80; *p++ = 0x80; *p++ = 0;
-  set_uleb128 (output_bfd, signature, p - 5);
+  set_uleb128 (output_bfd, signature, p - 5, p);
   *p++ = 0x00; /* reserved, MBZ */
   *p++ = 0x0f; /* return */
   *p++ = 0x0b; /* end */
@@ -1206,7 +1204,7 @@ build_pplt_stub (bfd *output_bfd,
   *size = p - ret;
   ret = realloc (ret, *size);
 
-  set_uleb128 (output_bfd, *size - 5, ret);
+  set_uleb128 (output_bfd, *size - 5, ret, ret + *size);
 
   return ret;
 }
@@ -1737,8 +1735,8 @@ elf_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec, c
 }
 
 static void
-do_build_plt (bfd *output_bfd, struct bfd_link_info *info,
-              struct elf_link_hash_entry *h, Elf_Internal_Sym * sym)
+finish_plt_entry (bfd *output_bfd, struct bfd_link_info *info,
+                  struct elf_link_hash_entry *h, Elf_Internal_Sym * sym)
   ATTRIBUTE_UNUSED;
 
 static bfd_boolean
@@ -1754,7 +1752,7 @@ elf_wasm32_finish_dynamic_symbol (bfd * output_bfd,
                                   Elf_Internal_Sym * sym)
 {
   if (h->plt.offset != (bfd_vma) -1)
-    do_build_plt (output_bfd, info, h, sym);
+    finish_plt_entry (output_bfd, info, h, sym);
 
   if (h->got.offset != (bfd_vma) -1)
     {
@@ -1987,7 +1985,8 @@ allocate_dynrelocs (struct elf_link_hash_entry *h, void *inf)
   return TRUE;
 }
 
-/* Set the sizes of the dynamic sections.  */
+/* Set the sizes of the dynamic sections.  Also sets sizes of the
+   pseudo-PLT sections, which are not really dynamic. */
 static bfd_boolean
 elf_wasm32_size_dynamic_sections (bfd * output_bfd,
                                   struct bfd_link_info *info)
@@ -2005,6 +2004,20 @@ elf_wasm32_size_dynamic_sections (bfd * output_bfd,
 
   elf_link_hash_traverse (htab, allocate_dynrelocs, info);
 
+  /* If we have decided to build pseudo-PLT stubs, size the following
+     sections appropriately:
+
+     .wasm.code_.pplt
+     .space.code_.pplt
+     .wasm.function_.pplt
+     .space.function_.pplt
+     .space.function_index_.pplt
+     .wasm.element_.pplt
+     .space.element_.pplt
+     .wasm.name_.pplt
+     .space.name_.pplt
+
+     Otherwise, leave them at size 0. */
   if (ds->spplt)
     {
       ds->spplt->size = hhtab->spplt_size;
@@ -2229,11 +2242,6 @@ elf_wasm32_finish_dynamic_sections (bfd * output_bfd,
             bfd_elf32_swap_dyn_out (output_bfd, &internal_dyn, dyncon);
         }
 
-      if (htab->splt->size > 0)
-        {
-          //relocate_plt_for_entry (output_bfd, info);
-        }
-
       /* TODO: Validate this.  */
       if (elf_section_data (htab->srelplt->output_section))
         elf_section_data (htab->srelplt->output_section)->this_hdr.sh_entsize
@@ -2429,9 +2437,16 @@ wasm32_relocate_contents (reloc_howto_type *howto,
   return flag;
 }
 
+/* Actually build a PLT stub, once we've decided we need it, for
+   symbol H (ELF symbol SYM); that usually means that this is not a
+   static build and H isn't local and hasn't been forced local.
+
+   Sections affected: .wasm.code_.plt, .wasm.element_.plt,
+   .wasm.function_.plt; if PLTNAME is set, also
+   .wasm.name.local_.plt. */
 static void
-do_build_plt (bfd *output_bfd, struct bfd_link_info *info,
-              struct elf_link_hash_entry *h, Elf_Internal_Sym *sym)
+finish_plt_entry (bfd *output_bfd, struct bfd_link_info *info,
+                  struct elf_link_hash_entry *h, Elf_Internal_Sym *sym)
 {
   struct elf_wasm32_link_hash_entry *hh = (struct elf_wasm32_link_hash_entry *)h;
   struct elf_link_hash_table *htab = elf_hash_table (info);
@@ -2469,7 +2484,8 @@ do_build_plt (bfd *output_bfd, struct bfd_link_info *info,
 
       set_uleb128 (output_bfd,
                    plt_index + bfd_asymbol_value(&h_plt_bias->root.u.def),
-                   splt->contents + h->plt.offset + hh->pltstub_pltoff);
+                   splt->contents + h->plt.offset + hh->pltstub_pltoff,
+                   splt->contents + h->plt.offset + hh->pltstub_pltoff + 5);
 
       for (int i = 0; i < 5; i++)
         bfd_put_8 (output_bfd,
@@ -2478,7 +2494,8 @@ do_build_plt (bfd *output_bfd, struct bfd_link_info *info,
 
       set_uleb128 (output_bfd,
                    plt_index + bfd_asymbol_value(&h_plt_bias->root.u.def),
-                   spltelem->contents + 5 * plt_index);
+                   spltelem->contents + 5 * plt_index,
+                   spltelem->contents + 5 * plt_index + 5);
 
       for (int i = 0; i < 5; i++)
         bfd_put_8 (output_bfd,
@@ -2488,11 +2505,13 @@ do_build_plt (bfd *output_bfd, struct bfd_link_info *info,
       set_uleb128 (output_bfd,
                    bfd_asymbol_value (&hh->pltsig->root.u.def)
                    + hh->pltsig->root.u.def.section->output_offset,
-                   ds->spltfun->contents + hh->pltfunction);
+                   ds->spltfun->contents + hh->pltfunction,
+                   ds->spltfun->contents + hh->pltfunction + 5);
       set_uleb128 (output_bfd,
                    bfd_asymbol_value (&hh->pltsig->root.u.def)
                    + hh->pltsig->root.u.def.section->output_offset,
-                   splt->contents + h->plt.offset + hh->pltstub_sigoff);
+                   splt->contents + h->plt.offset + hh->pltstub_sigoff,
+                   splt->contents + h->plt.offset + hh->pltstub_sigoff + 5);
 
       if (PLTNAME) {
         struct elf_wasm32_link_hash_entry *h4 = (struct elf_wasm32_link_hash_entry *)h;
@@ -2509,7 +2528,8 @@ do_build_plt (bfd *output_bfd, struct bfd_link_info *info,
 
         set_uleb128 (output_bfd,
                      index,
-                     spltname->contents + h4->pltnameoff);
+                     spltname->contents + h4->pltnameoff,
+                     spltname->contents + h4->pltnameoff + 5);
 
         for (i = 0; i < 5; i++)
           bfd_put_8 (output_bfd,
@@ -2518,7 +2538,8 @@ do_build_plt (bfd *output_bfd, struct bfd_link_info *info,
 
         set_uleb128 (output_bfd,
                      len + 4,
-                     spltname->contents + h4->pltnameoff + 5);
+                     spltname->contents + h4->pltnameoff + 5,
+                     spltname->contents + h4->pltnameoff + 10);
 
         for (i = 0; str[i]; i++)
           bfd_put_8 (output_bfd,
@@ -2548,17 +2569,25 @@ do_build_plt (bfd *output_bfd, struct bfd_link_info *info,
              the .plt section.  Leave the value alone.  */
           sym->st_shndx = SHN_UNDEF;
         }
-      //relocate_plt_for_symbol (output_bfd, info, h);
     }
 }
 
 static void
-do_build_pplt (bfd *output_bfd, struct bfd_link_info *info,
+finish_pplt_entry (bfd *output_bfd, struct bfd_link_info *info,
                struct elf_link_hash_entry *h) ATTRIBUTE_UNUSED;
 
+/* Actually build a pseudo-PLT stub, once we've decided we need one
+   (i.e. that this is a static build and H is a undefweak symbol). We
+   could get away with one stub per function signature, but actually
+   build one stub for each such symbol.
+
+   Create entries in .wasm.element_.pplt, .wasm.function_.pplt,
+   .wasm.code_.pplt.  If PPLTNAME is set, also
+   .wasm.name.function_.pplt.
+ */
 static void
-do_build_pplt (bfd *output_bfd, struct bfd_link_info *info,
-               struct elf_link_hash_entry *h)
+finish_pplt_entry (bfd *output_bfd, struct bfd_link_info *info,
+                   struct elf_link_hash_entry *h)
 {
   struct elf_wasm32_link_hash_entry *hh = (struct elf_wasm32_link_hash_entry *)h;
 
@@ -2590,7 +2619,8 @@ do_build_pplt (bfd *output_bfd, struct bfd_link_info *info,
 
       set_uleb128 (output_bfd,
                    pplt_index + bfd_asymbol_value(&h_pplt_bias->root.u.def),
-                   sppltelem->contents + 5 * pplt_index);
+                   sppltelem->contents + 5 * pplt_index,
+                   sppltelem->contents + 5 * pplt_index + 5);
 
       for (int i = 0; i < 5; i++)
         bfd_put_8 (output_bfd,
@@ -2600,11 +2630,13 @@ do_build_pplt (bfd *output_bfd, struct bfd_link_info *info,
       set_uleb128 (output_bfd,
                    bfd_asymbol_value (&hh->pltsig->root.u.def) +
                    hh->pltsig->root.u.def.section->output_offset,
-                   ds->sppltfun->contents + hh->ppltfunction);
+                   ds->sppltfun->contents + hh->ppltfunction,
+                   ds->sppltfun->contents + hh->ppltfunction + 5);
       set_uleb128 (output_bfd,
                    bfd_asymbol_value (&hh->pltsig->root.u.def) +
                    hh->pltsig->root.u.def.section->output_offset,
-                   spplt->contents + hh->pplt_offset + hh->ppltstub_sigoff);
+                   spplt->contents + hh->pplt_offset + hh->ppltstub_sigoff,
+                   spplt->contents + hh->pplt_offset + hh->ppltstub_sigoff + 5);
 
       if (PPLTNAME)
         {
@@ -2620,7 +2652,8 @@ do_build_pplt (bfd *output_bfd, struct bfd_link_info *info,
 
           set_uleb128 (output_bfd,
                        index,
-                       sppltname->contents + hh->ppltnameoff);
+                       sppltname->contents + hh->ppltnameoff,
+                       sppltname->contents + hh->ppltnameoff + 5);
 
           for (i = 0; i < 5; i++)
             bfd_put_8 (output_bfd,
@@ -2629,7 +2662,8 @@ do_build_pplt (bfd *output_bfd, struct bfd_link_info *info,
 
           set_uleb128 (output_bfd,
                        len + strlen("@pplt"),
-                       sppltname->contents + hh->ppltnameoff + 5);
+                       sppltname->contents + hh->ppltnameoff + 5,
+                       sppltname->contents + hh->ppltnameoff + 10);
 
           for (i = 0; str[i]; i++)
             bfd_put_8 (output_bfd,
@@ -2801,8 +2835,7 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
           if (h == NULL)
             goto final_link_relocate;
 
-          do_build_pplt (output_bfd, info, h);
-          //do_build_plt (output_bfd, info, h);
+          finish_pplt_entry (output_bfd, info, h);
 
           if (ELF_ST_VISIBILITY (h->other) == STV_INTERNAL
               || ELF_ST_VISIBILITY (h->other) == STV_HIDDEN)

@@ -1429,6 +1429,9 @@ static const bfd_target * const _bfd_target_vector[] =
 
 	&w65_coff_vec,
 
+        &wasm_vec,
+        &wasm32_elf32_vec,
+
 	&we32k_coff_vec,
 
 #ifdef BFD64

@@ -1,5 +1,5 @@
 /* 32-bit ELF for the WebAssembly target
-   Copyright (C) 1999-2017 Free Software Foundation, Inc.
+   Copyright (C) 2017 Free Software Foundation, Inc.
 
    This file is part of BFD, the Binary File Descriptor library.
 
@@ -23,14 +23,13 @@
 #include "libbfd.h"
 #include "elf-bfd.h"
 #include "bfd_stdint.h"
-#include "elf/common.h"
 #include "elf/wasm32.h"
 
 #define ELF_ARCH		bfd_arch_wasm32
 #define ELF_TARGET_ID		EM_WEBASSEMBLY
 #define ELF_MACHINE_CODE	EM_WEBASSEMBLY
-/* FIXME we don't have paged executables, see
- * https://github.com/pipcet/binutils-gdb/issues/4 */
+/* FIXME we don't have paged executables, see:
+   https://github.com/pipcet/binutils-gdb/issues/4  */
 #define ELF_MAXPAGESIZE		4096
 
 #define TARGET_LITTLE_SYM       wasm32_elf32_vec

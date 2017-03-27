@@ -536,12 +536,6 @@ sol_thread_store_registers (struct target_ops *ops,
 
   if (regnum != -1)
     {
-      /* Not writing all the registers.  */
-      char old_value[MAX_REGISTER_SIZE];
-
-      /* Save new register value.  */
-      regcache_raw_collect (regcache, regnum, old_value);
-
       val = p_td_thr_getgregs (&thandle, gregset);
       if (val != TD_OK)
 	error (_("sol_thread_store_registers: td_thr_getgregs %s"),
@@ -550,9 +544,6 @@ sol_thread_store_registers (struct target_ops *ops,
       if (val != TD_OK)
 	error (_("sol_thread_store_registers: td_thr_getfpregs %s"),
 	       td_err_string (val));
-
-      /* Restore new register value.  */
-      regcache_raw_supply (regcache, regnum, old_value);
     }
 
   fill_gregset (regcache, (gdb_gregset_t *) &gregset, regnum);
@@ -881,18 +872,12 @@ ps_ptwrite (gdb_ps_prochandle_t ph, gdb_ps_addr_t addr,
 ps_err_e
 ps_lgetregs (gdb_ps_prochandle_t ph, lwpid_t lwpid, prgregset_t gregset)
 {
-  struct cleanup *old_chain;
-  struct regcache *regcache;
-
-  old_chain = save_inferior_ptid ();
-
-  inferior_ptid = ptid_build (ptid_get_pid (inferior_ptid), lwpid, 0);
-  regcache = get_thread_arch_regcache (inferior_ptid, target_gdbarch ());
+  ptid_t ptid = ptid_build (ptid_get_pid (inferior_ptid), lwpid, 0);
+  struct regcache *regcache
+    = get_thread_arch_regcache (ptid, target_gdbarch ());
 
   target_fetch_registers (regcache, -1);
   fill_gregset (regcache, (gdb_gregset_t *) gregset, -1);
-
-  do_cleanups (old_chain);
 
   return PS_OK;
 }
@@ -903,18 +888,12 @@ ps_err_e
 ps_lsetregs (gdb_ps_prochandle_t ph, lwpid_t lwpid,
 	     const prgregset_t gregset)
 {
-  struct cleanup *old_chain;
-  struct regcache *regcache;
-
-  old_chain = save_inferior_ptid ();
-
-  inferior_ptid = ptid_build (ptid_get_pid (inferior_ptid), lwpid, 0);
-  regcache = get_thread_arch_regcache (inferior_ptid, target_gdbarch ());
+  ptid_t ptid = ptid_build (ptid_get_pid (inferior_ptid), lwpid, 0);
+  struct regcache *regcache
+    = get_thread_arch_regcache (ptid, target_gdbarch ());
 
   supply_gregset (regcache, (const gdb_gregset_t *) gregset);
   target_store_registers (regcache, -1);
-
-  do_cleanups (old_chain);
 
   return PS_OK;
 }
@@ -961,18 +940,12 @@ ps_err_e
 ps_lgetfpregs (gdb_ps_prochandle_t ph, lwpid_t lwpid,
 	       prfpregset_t *fpregset)
 {
-  struct cleanup *old_chain;
-  struct regcache *regcache;
-
-  old_chain = save_inferior_ptid ();
-
-  inferior_ptid = ptid_build (ptid_get_pid (inferior_ptid), lwpid, 0);
-  regcache = get_thread_arch_regcache (inferior_ptid, target_gdbarch ());
+  ptid_t ptid = ptid_build (ptid_get_pid (inferior_ptid), lwpid, 0);
+  struct regcache *regcache
+    = get_thread_arch_regcache (ptid, target_gdbarch ());
 
   target_fetch_registers (regcache, -1);
   fill_fpregset (regcache, (gdb_fpregset_t *) fpregset, -1);
-
-  do_cleanups (old_chain);
 
   return PS_OK;
 }
@@ -983,18 +956,12 @@ ps_err_e
 ps_lsetfpregs (gdb_ps_prochandle_t ph, lwpid_t lwpid,
 	       const prfpregset_t * fpregset)
 {
-  struct cleanup *old_chain;
-  struct regcache *regcache;
-
-  old_chain = save_inferior_ptid ();
-
-  inferior_ptid = ptid_build (ptid_get_pid (inferior_ptid), lwpid, 0);
-  regcache = get_thread_arch_regcache (inferior_ptid, target_gdbarch ());
+  ptid_t ptid = ptid_build (ptid_get_pid (inferior_ptid), lwpid, 0);
+  struct regcache *regcache
+    = get_thread_arch_regcache (ptid, target_gdbarch ());
 
   supply_fpregset (regcache, (const gdb_fpregset_t *) fpregset);
   target_store_registers (regcache, -1);
-
-  do_cleanups (old_chain);
 
   return PS_OK;
 }

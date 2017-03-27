@@ -1,3 +1,85 @@
+2017-03-27  Pedro Alves  <palves@redhat.com>
+
+	* xml-support.h (gdb_xml_debug): Pass a "first-to-check" argument
+	to ATTRIBUTE_PRINTF.
+	* solib-target.c (library_list_start_list): Print "string" not
+	"version".
+	* xml-tdesc.c (tdesc_start_field): Pass "field_name" to
+	gdb_xml_error call.
+
+2017-03-27  Pedro Alves  <palves@redhat.com>
+
+	* dwarf2read.c (struct file_and_directory): New.
+	(dwarf2_get_dwz_file): Adjust to use std::string.
+	(dw2_get_file_names_reader): Adjust to use file_and_directory.
+	(find_file_and_directory): Adjust to return a file_and_directory
+	object.
+	(read_file_scope): Adjust to use file_and_directory.  Remove
+	make_cleanup/do_cleanups calls.
+	(open_and_init_dwp_file): Adjust to use std::string.  Remove
+	make_cleanup/do_cleanups calls.
+	* python/python.c (do_start_initialization): Adjust to ldirname
+	returning a std::string.
+	* utils.c (ldirname): Now returns a std::string.
+	* utils.h (ldirname): Change return type to std::string.
+	* xml-syscall.c (xml_init_syscalls_info): Adjust to ldirname
+	returning a std::string.
+	* xml-tdesc.c (file_read_description_xml): Likewise.
+
+2017-03-24  Alan Hayward  <alan.hayward@arm.com>
+
+	* regcache.c (regcache_debug_print_register): New function.
+	* regcache.h (regcache_debug_print_register): New declaration.
+	* target.c (debug_print_register): Remove.
+	(target_fetch_registers): Call regcache_debug_print_register.
+	(target_store_registers): Likewise.
+
+2017-03-24  Pádraig Brady  <pbrady@fb.com>
+
+	* dwarf2read.c (setup_type_unit_groups): Ensure dir_index doesn't
+	reference beyond the 'lh->include_dirs' array before accessing to
+	it.
+	(psymtab_include_file_name): Likewise.
+	(dwarf_decode_lines_1): Likewise.
+	(dwarf_decode_lines): Likewise.
+	(file_file_name): Likewise.
+
+2017-03-23  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* fbsd-tdep.c (fbsd_corefile_thread): Don't set/restore
+	inferior_ptid.
+	* proc-service.c (ps_lgetregs, ps_lsetregs, ps_lgetfpregs,
+	ps_lsetfpregs): Likewise.
+	* regcache.c (regcache_raw_update, regcache_raw_write): Likewise.
+	* sol-thread.c (ps_lgetregs, ps_lsetregs, ps_lgetfpregs,
+	ps_lsetfpregs): Likewise.
+	* target.c (target_fetch_registers, target_store_registers):
+	Remove asserts.
+
+2017-03-23  Alan Hayward  <alan.hayward@arm.com>
+
+	* sol-thread.c (sol_thread_store_registers): Remove regcache calls.
+
+2017-03-23  Yao Qi  <yao.qi@linaro.org>
+
+	* aarch64-tdep.c (aarch64_process_record_test): Declare.
+	(_initialize_aarch64_tdep): Register it.
+	(aarch64_record_load_store): Handle PRFM instruction.
+	(aarch64_process_record_test): New function.
+
+2017-03-23  Yao Qi  <yao.qi@linaro.org>
+
+	* aarch64-tdep.c (aarch64_record_load_store): Fix code
+	indentation.
+
+2017-03-23  Yao Qi  <yao.qi@linaro.org>
+
+	* aarch64-tdep.c: Remove AARCH64_RECORD_FAILURE.
+
+2017-03-23  Philipp Rudo  <prudo@linux.vnet.ibm.com>
+
+	python/python.c (do_start_initialization): Fix memory leak.
+
 2017-03-22  Simon Marchi  <simon.marchi@polymtl.ca>
 
 	* inf-ptrace.c (inf_ptrace_xfer_partial): Get pid from ptid

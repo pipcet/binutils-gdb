@@ -1,3 +1,27 @@
+2017-03-27  Alan Modra  <amodra@gmail.com>
+
+	PR 21303
+	* testsuite/gas/ppc/pr21303.d,
+	* testsuite/gas/ppc/pr21303.s: New test
+	* testsuite/gas/ppc/ppc.exp: Run it.
+
+2017-03-27  Rinat Zelig  <rinat@mellanox.com>
+
+	* testsuite/gas/arc/nps400-12.s: New file.
+	* testsuite/gas/arc/nps400-12.d: New file.
+
+2017-03-24  Thomas preud'homme  <thomas.preudhomme@arm.com>
+
+	* config/tc-arm.: (md_begin): Set selected_cpu from *mcpu_cpu_opt when
+	CPU_DEFAULT is defined.
+
+2017-03-21  Palmer Dabbbelt  <palmer@dabbelt.com>
+
+	* config/tc-riscv.c (md_show_usage): Remode defuct -m32, -m64,
+	-msoft-float, -mhard-float, -mno-rvc, and -mrvc options; and don't
+	print an invalid default ISA string.
+	* doc/c-riscv.texi (OPTIONS): Add -fpic and -fno-pic options.
+
 2017-03-22  Max Filippov  <jcmvbkbc@gmail.com>
 
 	* config/tc-xtensa.c (xtensa_relax_frag): Change fx_size of the

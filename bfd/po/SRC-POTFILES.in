@@ -232,6 +232,7 @@ elf32-tilepro.c
 elf32-v850.c
 elf32-vax.c
 elf32-visium.c
+elf32-wasm32.c
 elf32-xc16x.c
 elf32-xgate.c
 elf32-xstormy16.c
@@ -385,6 +386,7 @@ vms-alpha.c
 vms-lib.c
 vms-misc.c
 vms.h
+wasm-module.c
 xcofflink.c
 xsym.c
 xsym.h

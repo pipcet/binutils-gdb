@@ -271,24 +271,27 @@ extract_opcode (char *from, char *to, int limit)
    to write.  */
 
 static void
-wasm32_put_long_uleb128(int bits, unsigned long value) { unsigned char
-c; int i = 0;
+wasm32_put_long_uleb128 (int bits, unsigned long value)
+{
+  unsigned char c;
+  int i = 0;
 
   do
     {
       c = value & 0x7f;
       value >>= 7;
-      if (i < (bits-1)/7)
+      if (i < (bits - 1) / 7)
         c |= 0x80;
       FRAG_APPEND_1_CHAR (c);
     }
-  while (++i < (bits+6)/7);
+  while (++i < (bits + 6) / 7);
 }
 
 /* Produce a signed LEB128 integer, using FRAG_APPEND_1_CHAR to
    write.  */
 
-static void wasm32_put_sleb128(long value)
+static void
+wasm32_put_sleb128 (long value)
 {
   unsigned char c;
   int more;
@@ -309,7 +312,8 @@ static void wasm32_put_sleb128(long value)
 /* Produce an unsigned LEB128 integer, using FRAG_APPEND_1_CHAR to
    write.  */
 
-static void wasm32_put_uleb128(unsigned long value)
+static void
+wasm32_put_uleb128 (unsigned long value)
 {
   unsigned char c;
 
@@ -329,7 +333,8 @@ static void wasm32_put_uleb128(unsigned long value)
    symbol, or a special relocation for <expr>@got, <expr>@gotcode, and
    <expr>@plt{__sigchar_<signature>}.  */
 
-static bfd_boolean wasm32_leb128(char **line, int bits, int sign)
+static bfd_boolean
+wasm32_leb128 (char **line, int bits, int sign)
 {
   char *t = input_line_pointer;
   char *str = *line;
@@ -344,7 +349,7 @@ static bfd_boolean wasm32_leb128(char **line, int bits, int sign)
   input_line_pointer = str;
   expression (&ex);
 
-  if (ex.X_op == O_constant && strncmp(input_line_pointer, "@", 1))
+  if (ex.X_op == O_constant && *input_line_pointer != '@')
     {
       long value = ex.X_add_number;
 
@@ -352,12 +357,12 @@ static bfd_boolean wasm32_leb128(char **line, int bits, int sign)
       str = skip_space (str);
       *line = str;
       if (sign)
-        wasm32_put_sleb128(value);
+        wasm32_put_sleb128 (value);
       else
         {
           if (value < 0)
             as_bad (_("unexpected negative constant"));
-          wasm32_put_uleb128(value);
+          wasm32_put_uleb128 (value);
         }
       input_line_pointer = t;
       return str != str0;
@@ -376,27 +381,27 @@ static bfd_boolean wasm32_leb128(char **line, int bits, int sign)
       reloc->u.a.addend = 0;
     }
   /* i32.const fpointer@gotcode */
-  if (strncmp(input_line_pointer, "@gotcode", 8) == 0)
+  if (strncmp (input_line_pointer, "@gotcode", 8) == 0)
     {
       gotrel = 1;
       code = 1;
       input_line_pointer += 8;
     }
   /* i32.const data@got */
-  else if (strncmp(input_line_pointer, "@got", 4) == 0)
+  else if (strncmp (input_line_pointer, "@got", 4) == 0)
     {
       gotrel = 1;
       input_line_pointer += 4;
     }
   /* call f@plt{__sigchar_FiiiiE} */
-  else if (strncmp(input_line_pointer, "@plt", 4) == 0)
+  else if (strncmp (input_line_pointer, "@plt", 4) == 0)
     {
       pltrel = 1;
       code = 1;
       input_line_pointer += 4;
       char *end_of_sig;
-      if (strncmp(input_line_pointer, "{", 1) == 0 &&
-          (end_of_sig = strchr(input_line_pointer, '}')))
+      if (strncmp (input_line_pointer, "{", 1) == 0 &&
+          (end_of_sig = strchr (input_line_pointer, '}')))
         {
           char *signature;
           struct reloc_list *reloc2;
@@ -439,7 +444,7 @@ static bfd_boolean wasm32_leb128(char **line, int bits, int sign)
   str = input_line_pointer;
   str = skip_space (str);
   *line = str;
-  wasm32_put_long_uleb128(bits, 0);
+  wasm32_put_long_uleb128 (bits, 0);
   input_line_pointer = t;
 
   return str != str0;
@@ -448,7 +453,8 @@ static bfd_boolean wasm32_leb128(char **line, int bits, int sign)
 /* Read an integer expression and produce an unsigned LEB128 integer,
    or a relocation for it.  */
 
-static bfd_boolean wasm32_uleb128(char **line, int bits)
+static bfd_boolean
+wasm32_uleb128 (char **line, int bits)
 {
   return wasm32_leb128(line, bits, 0);
 }
@@ -456,14 +462,16 @@ static bfd_boolean wasm32_uleb128(char **line, int bits)
 /* Read an integer expression and produce a signed LEB128 integer, or
    a relocation for it.  */
 
-static bfd_boolean wasm32_sleb128(char **line, int bits)
+static bfd_boolean
+wasm32_sleb128 (char **line, int bits)
 {
   return wasm32_leb128(line, bits, 1);
 }
 
 /* Read an f32.  (Like float_cons ('f')).  */
 
-static void wasm32_f32(char **line)
+static void
+wasm32_f32 (char **line)
 {
   char *t = input_line_pointer;
   input_line_pointer = *line;
@@ -474,7 +482,8 @@ static void wasm32_f32(char **line)
 
 /* Read an f64.  (Like float_cons ('d')).  */
 
-static void wasm32_f64(char **line)
+static void
+wasm32_f64 (char **line)
 {
   char *t = input_line_pointer;
   input_line_pointer = *line;
@@ -488,7 +497,8 @@ static void wasm32_f64(char **line)
    F[ilfd]*v?E, and interpreted as though they were C++-mangled
    function types on a 64-bit machine. */
 
-static void wasm32_signature(char **line)
+static void
+wasm32_signature (char **line)
 {
   unsigned long count = 0;
   char *str = *line;
@@ -513,23 +523,23 @@ static void wasm32_signature(char **line)
           as_bad (_("Unknown type %c\n"), str[-1]);
         }
     }
-  wasm32_put_uleb128(count);
+  wasm32_put_uleb128 (count);
   str = ostr;
   while (*str != 'E')
     {
       switch (*str++)
         {
         case 'i':
-          FRAG_APPEND_1_CHAR(BLOCK_TYPE_I32);
+          FRAG_APPEND_1_CHAR (BLOCK_TYPE_I32);
           break;
         case 'l':
-          FRAG_APPEND_1_CHAR(BLOCK_TYPE_I64);
+          FRAG_APPEND_1_CHAR (BLOCK_TYPE_I64);
           break;
         case 'f':
-          FRAG_APPEND_1_CHAR(BLOCK_TYPE_F32);
+          FRAG_APPEND_1_CHAR (BLOCK_TYPE_F32);
           break;
         case 'd':
-          FRAG_APPEND_1_CHAR(BLOCK_TYPE_F64);
+          FRAG_APPEND_1_CHAR (BLOCK_TYPE_F64);
           break;
         default:
           as_bad (_("Unknown type"));
@@ -539,23 +549,23 @@ static void wasm32_signature(char **line)
   switch (*result)
     {
     case 'v':
-      FRAG_APPEND_1_CHAR(0x00); /* no return value */
+      FRAG_APPEND_1_CHAR (0x00); /* no return value */
       break;
     case 'i':
-      FRAG_APPEND_1_CHAR(0x01); /* one return value */
-      FRAG_APPEND_1_CHAR(BLOCK_TYPE_I32);
+      FRAG_APPEND_1_CHAR (0x01); /* one return value */
+      FRAG_APPEND_1_CHAR (BLOCK_TYPE_I32);
       break;
     case 'l':
-      FRAG_APPEND_1_CHAR(0x01); /* one return value */
-      FRAG_APPEND_1_CHAR(BLOCK_TYPE_I64);
+      FRAG_APPEND_1_CHAR (0x01); /* one return value */
+      FRAG_APPEND_1_CHAR (BLOCK_TYPE_I64);
       break;
     case 'f':
-      FRAG_APPEND_1_CHAR(0x01); /* one return value */
-      FRAG_APPEND_1_CHAR(BLOCK_TYPE_F32);
+      FRAG_APPEND_1_CHAR (0x01); /* one return value */
+      FRAG_APPEND_1_CHAR (BLOCK_TYPE_F32);
       break;
     case 'd':
-      FRAG_APPEND_1_CHAR(0x01); /* one return value */
-      FRAG_APPEND_1_CHAR(BLOCK_TYPE_F64);
+      FRAG_APPEND_1_CHAR (0x01); /* one return value */
+      FRAG_APPEND_1_CHAR (BLOCK_TYPE_F64);
       break;
     default:
       as_bad (_("Unknown type"));
@@ -620,11 +630,6 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
 
   switch (opcode->clas)
     {
-    case wasm_typed:
-      if (block_type == 0)
-        as_bad (_("missing block type"));
-      FRAG_APPEND_1_CHAR (block_type);
-      break;
     case wasm_drop:
     case wasm_special:
     case wasm_binary:
@@ -633,13 +638,19 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
     case wasm_select:
     case wasm_eqz:
     case wasm_conv:
+    case wasm_return:
+      break;
+    case wasm_typed:
+      if (block_type == 0)
+        as_bad (_("missing block type"));
+      FRAG_APPEND_1_CHAR (block_type);
       break;
     case wasm_store:
     case wasm_load:
       if (str[0] == 'a' && str[1] == '=')
         {
           str += 2;
-          if (!wasm32_uleb128(&str, 32))
+          if (!wasm32_uleb128 (&str, 32))
             as_bad (_("missing alignment hint"));
         }
       else
@@ -647,54 +658,52 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
           as_bad (_("missing alignment hint"));
         }
       str = skip_space (str);
-      if (!wasm32_uleb128(&str, 32))
+      if (!wasm32_uleb128 (&str, 32))
         as_bad (_("missing offset"));
       break;
     case wasm_set_local:
     case wasm_get_local:
     case wasm_tee_local:
-      if (!wasm32_uleb128(&str, 32))
+      if (!wasm32_uleb128 (&str, 32))
         as_bad (_("missing local index"));
       break;
     case wasm_break:
     case wasm_break_if:
-      if (!wasm32_uleb128(&str, 32))
+      if (!wasm32_uleb128 (&str, 32))
         as_bad (_("missing break count"));
       break;
     case wasm_current_memory:
     case wasm_grow_memory:
-      if (!wasm32_uleb128(&str, 32))
+      if (!wasm32_uleb128 (&str, 32))
         as_bad (_("missing reserved current_memory/grow_memory argument"));
       break;
-    case wasm_return:
-      break;
     case wasm_call:
-      if (!wasm32_uleb128(&str, 32))
+      if (!wasm32_uleb128 (&str, 32))
         as_bad (_("missing call argument"));
       break;
     case wasm_call_indirect:
-      if (!wasm32_uleb128(&str, 32))
+      if (!wasm32_uleb128 (&str, 32))
         as_bad (_("missing call signature"));
-      if (!wasm32_uleb128(&str, 32))
+      if (!wasm32_uleb128 (&str, 32))
         as_bad (_("missing table index"));
       break;
     case wasm_constant_i32:
-      wasm32_sleb128(&str, 32);
+      wasm32_sleb128 (&str, 32);
       break;
     case wasm_constant_i64:
-      wasm32_sleb128(&str, 64);
+      wasm32_sleb128 (&str, 64);
       break;
     case wasm_constant_f32:
-      wasm32_f32(&str);
+      wasm32_f32 (&str);
       return;
     case wasm_constant_f64:
-      wasm32_f64(&str);
+      wasm32_f64 (&str);
       return;
     case wasm_break_table:
       {
         do
           {
-            wasm32_uleb128(&str, 32);
+            wasm32_uleb128 (&str, 32);
             str = skip_space (str);
           }
         while (str[0]);
@@ -702,7 +711,7 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
         break;
       }
     case wasm_signature:
-      wasm32_signature(&str);
+      wasm32_signature (&str);
     }
   str = skip_space (str);
 

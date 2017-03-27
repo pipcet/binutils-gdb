@@ -148,6 +148,7 @@ SECTIONS
   .space.function_index 0 (INFO) :
   {
        *(.space.function_index.import);
+       PROVIDE(_start = .);
        *(.space.function_index);
        *(.space.function_index.*);
        .wasm.plt_bias = .;

@@ -57,6 +57,31 @@
 /* same for pseudo-PLT stubs */
 #define PPLTNAME 1
 
+
+/* Section names: WebAssembly does not use the ordinary .text section
+ * name; there is no clear equivalent to the .text section in
+ * WebAssembly modules. Instead, we use section names beginning with
+ * .wasm. for sections that end up being copied to the WebAssembly
+ * module and .space. for sections whose only purpose it is to provide
+ * a contiguous numbering space for indices; .space.* sections are
+ * discarded when producing WebAssembly modules, but their length is
+ * used to produce the right headers, and many symbols live in
+ * .space.* sections.
+ *
+ * In particular, for an ordinary function f, the symbol f will live
+ * in .space.code..text or .space.code..text.f; the byte at that
+ * position will be 0, but have a relocation which points to
+ * .wasm.code..text or .wasm.code..text.f, such that referencing f
+ * pulls in those sections when --gc-sections is specified.
+ *
+ * The actual code is in the .wasm.code..text[.f] section.
+ *
+ * Currently-known section names:
+ *
+ * - .space.function_index: the main section in which function symbols
+ live.
+ * - .space.pc: the section for "PC" values, as used for exception handling.
+ */
 enum dyn_section_types
 {
   got = 0,
@@ -998,6 +1023,9 @@ struct dynamic_sections *
 wasm32_create_dynamic_sections (bfd * abfd,
                                 struct bfd_link_info *info);
 
+/* Among other things, this function makes the decision whether to
+   create the PLT sections or the PPLT sections (but never both). */
+
 struct dynamic_sections *
 wasm32_create_dynamic_sections (bfd * abfd,
                                 struct bfd_link_info *info)
@@ -1123,7 +1151,26 @@ wasm32_create_dynamic_sections (bfd * abfd,
 /* WebAssembly has no easy way to forward control to another function,
    so we have to build a special plt stub for each function based on
    the number of arguments it takes, its signature index, and its plt
-   index. */
+   index.
+
+   The stub code is:
+
+       rleb128_32 1f - 0f  ; function size
+0:     .byte 0             ; no locals
+       get_local 0         ; if there's at least one argument
+       ...
+       get_local <n-1>     ; if there are at least n arguments
+       get_global $plt
+       i32.const <pltindex>
+       i32.add
+       call_indirect <pltsig>, 0
+       return
+       end
+1:
+
+    While the code is identical for all n-argument functions, the
+    function signature depends on the precise type of each argument,
+    so we cannot share PLT stubs. */
 static bfd_byte *
 build_plt_stub (bfd *output_bfd,
                 bfd_vma signature, bfd_vma nargs, bfd_vma pltindex,
@@ -1145,7 +1192,7 @@ build_plt_stub (bfd *output_bfd,
     }
 
   *p++ = 0x23; /* get_global */
-  *p++ = 0x01; /* plt */
+  *p++ = 0x01; /* $plt */
   *p++ = 0x41; /* i32.const */
   *pltstub_pltoff = p - ret;
   *p++ = 0x80; *p++ = 0x80; *p++ = 0x80; *p++ = 0x80; *p++ = 0;
@@ -1167,6 +1214,22 @@ build_plt_stub (bfd *output_bfd,
   return ret;
 }
 
+/* stub code:
+       rleb128_32 1f - 0f
+0:     .byte 0x00 ; no locals
+       unreachable
+       get_local 0
+       ...
+       get_local <n-1>
+       get_global $plt
+       i32.const 0
+       i32.add
+       call_indirect <pltsig>, 0
+       return
+       end
+1:
+
+   That's redundant in case someone doesn't implement unreachable. */
 static bfd_byte *
 build_pplt_stub (bfd *output_bfd,
                  bfd_vma signature, bfd_vma nargs,
@@ -1293,7 +1356,27 @@ add_symbol_to_plt (bfd *output_bfd, struct bfd_link_info *info,
 }
 
 /* build a pseudo-PLT stub for h, based on its PLT sig, and save
-   it. Also resize pseudo-PLT sections */
+   it. Also resize pseudo-PLT sections.
+
+   A pseudo-PLT stub is a stub used for an undefined weak symbol that
+   is called as a function using, in the relocatable object file, an
+   "f@plt{__sigchar_F...E}" relocation.  On normal architectures, we
+   simply resolve such symbols to the value 0, but that would result
+   in WebAssembly modules that fail to validate because the type of
+   whichever function is at index 0 doesn't match up with the type f
+   might have had.
+
+   On normal architectures, calls to weak symbols need to be guarded
+   with a check to see that they are defined to a nonzero value, or a
+   segfault will result when the program counter is set to 0; on
+   WebAssembly, we have to manually trap in the PPLT stub to cause a
+   similar effect.
+
+   This function does not actually touch the PPLT stub sections at
+   all: it only records their sizes and builds a structure in
+   memory. This is because it is called before we make the decision
+   whether to actually create PPLT stubs or PLT stubs.
+ */
 static bfd_vma
 add_symbol_to_pplt (bfd *output_bfd, struct bfd_link_info *info,
                    struct elf_link_hash_entry *h)
@@ -1661,13 +1744,6 @@ elf_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec, c
               if (!pltsig)
                 abort ();
               hh->pltsig = pltsig;
-              if (h->root.type == bfd_link_hash_undefweak)
-                printf("add_symbol_to_pplt? %s %d %d %ld %d %d\n",
-                       h->root.root.string,
-                       h->ref_dynamic, h->def_dynamic,
-                       (long)h->dynindx,
-                       bfd_link_relocatable (info),
-                       h->root.type == bfd_link_hash_undefweak);
               if (! bfd_link_relocatable (info)
                   && h->root.type == bfd_link_hash_undefweak)
                 {
@@ -1679,14 +1755,17 @@ elf_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec, c
           pltsig = NULL;
 
           break;
+
         case R_WASM32_PLT_SIG:
+          /* XXX this code relies on the PLT_SIG "relocation"
+             appearing right before the corresponding LEB128_PLT
+             relocation. That's probably not safe. */
           pltsig = h;
           break;
 
         case R_WASM32_LEB128:
           if (h != NULL && ! bfd_link_pic (info))
             {
-              /* This probably needs ELIMINATE_COPY_RELOCS code below. */
               h->non_got_ref = 1;
             }
 

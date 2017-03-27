@@ -1007,16 +1007,36 @@ wasm32_create_dynamic_sections (bfd * abfd,
 
   if (!ds->initialized)
     {
+      bfd_boolean dynamic_p = FALSE;
       bfd *dynobj ATTRIBUTE_UNUSED;
+
+      ds->initialized = TRUE;
+
       dynobj = (elf_hash_table (info))->dynobj;
       /* Create dynamic sections for relocatable executables so that
          we can copy relocations.  */
-      if (dynobj && bfd_link_pic (info))
+      if (bfd_link_pic (info))
+        dynamic_p = TRUE;
+      else
+        {
+          bfd *inputobj;
+
+          for (inputobj = info->input_bfds; inputobj; inputobj = inputobj->link.next)
+            {
+              if (inputobj->flags & DYNAMIC)
+                {
+                  dynamic_p = TRUE;
+                  break;
+                }
+            }
+        }
+
+      if (dynobj && dynamic_p)
         {
           const struct elf_backend_data *bed;
           flagword flags, pltflags ATTRIBUTE_UNUSED, spaceflags ATTRIBUTE_UNUSED;
 
-          if (! htab->dynamic_sections_created && bfd_link_pic (info))
+          if (! htab->dynamic_sections_created && dynamic_p)
             {
               if (! _bfd_elf_link_create_dynamic_sections (abfd, info))
                 BFD_ASSERT (0);

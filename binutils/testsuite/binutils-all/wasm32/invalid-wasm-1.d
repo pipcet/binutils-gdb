@@ -1,6 +1,6 @@
 #PROG: objcopy
-#source: invalid-wasm-2.s
+#source: invalid-wasm-1.s
 #as:
 #objcopy: -Ielf32-wasm32 -Obinary
 #objdump: -bwasm -sD
-#exit: 1
+#error: : File format not recognized

@@ -135,7 +135,6 @@ elf32_wasm32_info_to_howto_rela (bfd *abfd ATTRIBUTE_UNUSED,
 #define TARGET_LITTLE_SYM       wasm32_elf32_vec
 #define TARGET_LITTLE_NAME	"elf32-wasm32"
 
-#define elf_info_to_howto                    wasm32_elf32_info_to_howto
 /* We can GC sections, it just doesn't do what you want: at present,
  *  using a function doesn't pull in the .wasm.code section. We
  *  could probably fix that with a bogus relocation living in
@@ -552,36 +551,8 @@ static reloc_howto_type wasm32_elf32_howto_table[] =
          0,			/* dst_mask */
          FALSE),		/* pcrel_offset */
 
-  HOWTO (R_WASM32_HEX16,		/* type */
-         0,			/* rightshift */
-         8,			/* size - 16 bytes*/
-         32,			/* bitsize */
-         FALSE,			/* pc_relative */
-         0,			/* bitpos */
-         complain_overflow_signed,/* complain_on_overflow */
-         wasm32_elf32_hex16_reloc,/* special_function */
-         "R_WASM32_HEX16",	/* name */
-         FALSE,			/* partial_inplace */
-         0xffffffffffffffff,	/* src_mask */
-         0xffffffffffffffff,	/* dst_mask */
-         FALSE),		/* pcrel_offset */
-
-  HOWTO (R_WASM32_HEX16R4,	/* type */
-         4,			/* rightshift */
-         8,			/* size - 16 bytes*/
-         32,			/* bitsize */
-         FALSE,			/* pc_relative */
-         0,			/* bitpos */
-         complain_overflow_signed,/* complain_on_overflow */
-         wasm32_elf32_hex16_reloc,/* special_function */
-         "R_WASM32_HEX16R4",	/* name */
-         FALSE,			/* partial_inplace */
-         0xffffffffffffffffLL,	/* src_mask */
-         0xffffffffffffffffLL,	/* dst_mask */
-         FALSE),		/* pcrel_offset */
-
   /* 32 bit absolute */
-  HOWTO (R_WASM32_ABS32,		/* type */
+  HOWTO (R_WASM32_32,		/* type */
          0,			/* rightshift */
          2,			/* size (0 = byte, 1 = short, 2 = long) */
          32,			/* bitsize */
@@ -609,20 +580,6 @@ static reloc_howto_type wasm32_elf32_howto_table[] =
          0xffffffff,		/* src_mask */
          0xffffffff,		/* dst_mask */
          TRUE),			/* pcrel_offset */
-
-    HOWTO (R_WASM32_HEX16R12,	/* type */
-         12,			/* rightshift */
-         8,			/* size - 16 bytes*/
-         32,			/* bitsize */
-         FALSE,			/* pc_relative */
-         0,			/* bitpos */
-         complain_overflow_signed,/* complain_on_overflow */
-         wasm32_elf32_hex16_reloc,/* special_function */
-         "R_WASM32_HEX16R12",	/* name */
-         FALSE,			/* partial_inplace */
-         0xffffffffffffffffLL,	/* src_mask */
-         0xffffffffffffffffLL,	/* dst_mask */
-         FALSE),		/* pcrel_offset */
 
   /* standard 32bit pc-relative reloc */
   HOWTO (R_WASM32_REL16,		/* type */
@@ -698,20 +655,6 @@ static reloc_howto_type wasm32_elf32_howto_table[] =
          0xffffffffffffffff,	/* dst_mask */
          FALSE),		/* pcrel_offset */
 
-  HOWTO (R_WASM32_LEB128_R32,	/* type */
-         32,			/* rightshift */
-         8,			/* size - 16 bytes*/
-         32,			/* bitsize */
-         FALSE,			/* pc_relative */
-         0,			/* bitpos */
-         complain_overflow_signed,/* complain_on_overflow */
-         wasm32_elf32_leb128_reloc,/* special_function */
-         "R_WASM32_LEB128_R32",	/* name */
-         FALSE,			/* partial_inplace */
-         0xffffffffffffffff,	/* src_mask */
-         0xffffffffffffffff,	/* dst_mask */
-         FALSE),		/* pcrel_offset */
-
   HOWTO (R_WASM32_LEB128_GOT,	/* type */
          0,			/* rightshift */
          8,			/* size - 16 bytes*/
@@ -754,7 +697,7 @@ static reloc_howto_type wasm32_elf32_howto_table[] =
          0xffffffffffffffff,	/* dst_mask */
          FALSE),		/* pcrel_offset */
 
-  HOWTO (R_WASM32_ABS32_CODE,	/* type */
+  HOWTO (R_WASM32_32_CODE,	/* type */
          0,			/* rightshift */
          2,			/* size (0 = byte, 1 = short, 2 = long) */
          32,			/* bitsize */
@@ -762,13 +705,13 @@ static reloc_howto_type wasm32_elf32_howto_table[] =
          0,			/* bitpos */
          complain_overflow_bitfield,/* complain_on_overflow */
          bfd_elf_generic_reloc,	/* special_function */
-         "R_WASM32_ABS32_CODE",	/* name */
+         "R_WASM32_32_CODE",	/* name */
          FALSE,			/* partial_inplace */
          0xffffffff,		/* src_mask */
          0xffffffff,		/* dst_mask */
          FALSE),		/* pcrel_offset */
 
-  HOWTO (R_WASM32_ABS64_CODE,	/* type */
+  HOWTO (R_WASM32_64_CODE,	/* type */
          0,			/* rightshift */
          2,			/* size (0 = byte, 1 = short, 2 = long) */
          32,			/* bitsize */
@@ -776,7 +719,7 @@ static reloc_howto_type wasm32_elf32_howto_table[] =
          0,			/* bitpos */
          complain_overflow_bitfield,/* complain_on_overflow */
          bfd_elf_generic_reloc,	/* special_function */
-         "R_WASM32_ABS64_CODE",	/* name */
+         "R_WASM32_64_CODE",	/* name */
          FALSE,			/* partial_inplace */
          0xffffffff,		/* src_mask */
          0xffffffff,		/* dst_mask */
@@ -805,20 +748,6 @@ static reloc_howto_type wasm32_elf32_howto_table[] =
          complain_overflow_signed,/* complain_on_overflow */
          wasm32_elf32_leb128_reloc,/* special_function */
          "R_WASM32_LEB128_GOT_CODE",/* name */
-         FALSE,			/* partial_inplace */
-         0xffffffffffffffff,	/* src_mask */
-         0xffffffffffffffff,	/* dst_mask */
-         FALSE),		/* pcrel_offset */
-
-  HOWTO (R_WASM32_PLT_LAZY,      /* type */
-         0,			/* rightshift */
-         8,			/* size - 16 bytes*/
-         32,			/* bitsize */
-         FALSE,			/* pc_relative */
-         0,			/* bitpos */
-         complain_overflow_signed,/* complain_on_overflow */
-         wasm32_elf32_leb128_reloc,/* special_function */
-         "R_WASM32_PLT_LAZY",    /* name */
          FALSE,			/* partial_inplace */
          0xffffffffffffffff,	/* src_mask */
          0xffffffffffffffff,	/* dst_mask */
@@ -1208,7 +1137,7 @@ wasm32_create_dynamic_sections (bfd * abfd,
           ds->spltname = bfd_get_section_by_name (dynobj, ".wasm.name.function_.plt");
           ds->srelbss = bfd_get_section_by_name (dynobj, ".rela.bss");
         }
-      else if (! bfd_link_relocatable (info))
+      else if (! bfd_link_relocatable (info) && hhtab->spplt_size > 0)
         {
           /* Create a section for pseudo-PLTs for static executables */
           const struct elf_backend_data *bed;
@@ -1874,10 +1803,7 @@ elf_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec, c
             }
 
           break;
-        case R_WASM32_HEX16:
-          /* It's intentional that there are no dynamic relocs for these */
-          break;
-        case R_WASM32_ABS32:
+        case R_WASM32_32:
           if (h != NULL && bfd_link_executable (info))
             {
               /* This probably needs ELIMINATE_COPY_RELOCS code below. */
@@ -1972,7 +1898,7 @@ elf_wasm32_finish_dynamic_symbol (bfd * output_bfd,
       else
         {
           bfd_put_32 (output_bfd, (bfd_vma) 0, sgot->contents + (h->got.offset & -4));
-          rel.r_info = ELF32_R_INFO (h->dynindx, (h->got.offset & 2) ? R_WASM32_ABS32_CODE : R_WASM32_ABS32);
+          rel.r_info = ELF32_R_INFO (h->dynindx, (h->got.offset & 2) ? R_WASM32_32_CODE : R_WASM32_32);
           rel.r_addend = 0;
         }
 
@@ -3175,7 +3101,7 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
                     outrel.r_offset = (sgot->output_section->vma
                                        + sgot->output_offset
                                        + (off & -4));
-                    outrel.r_info = ELF32_R_INFO (0, (r_type == R_WASM32_LEB128_GOT_CODE) ? R_WASM32_ABS32_CODE : R_WASM32_REL32);
+                    outrel.r_info = ELF32_R_INFO (0, (r_type == R_WASM32_LEB128_GOT_CODE) ? R_WASM32_32_CODE : R_WASM32_REL32);
                     outrel.r_addend = relocation;
                     loc = s->contents;
                     loc += s->reloc_count++ * sizeof (Elf32_External_Rela);
@@ -3194,8 +3120,8 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
           relocation += 0x40;
           goto final_link_relocate;
 
-        case R_WASM32_ABS32:
-        case R_WASM32_ABS32_CODE:
+        case R_WASM32_32:
+        case R_WASM32_32_CODE:
         case R_WASM32_LEB128:
           if (bfd_link_pic (info)
               && (h == NULL
@@ -3274,7 +3200,6 @@ wasm32_elf32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
               if (! relocate)
                 continue;
             }
-        case R_WASM32_HEX16:
         case R_WASM32_REL32:
           addend = rel->r_addend;
           /* Fall through.  */

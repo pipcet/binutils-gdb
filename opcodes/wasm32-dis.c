@@ -103,7 +103,7 @@ struct wasm32_private_data
   bfd_boolean print_well_known_globals;
 };
 
-#define WASM_OPCODE(name, intype, outtype, clas, signedness, opcode) \
+#define WASM_OPCODE(opcode, name, intype, outtype, clas, signedness)     \
   { name, wasm_ ## intype, wasm_ ## outtype, wasm_ ## clas, wasm_ ## signedness, opcode },
 
 struct wasm32_opcode_s {

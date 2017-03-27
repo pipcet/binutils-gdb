@@ -221,4 +221,6 @@ WASM_OPCODE(0xbd, "i64.reinterpret/f64", f64, i64, conv, agnostic)
 WASM_OPCODE(0xbe, "f32.reinterpret/i32", i32, f32, conv, agnostic)
 WASM_OPCODE(0xbf, "f64.reinterpret/i64", i64, f64, conv, agnostic)
 
+/* This isn't, strictly speaking, an opcode, but is treated as such by
+   the assembler.  */
 WASM_OPCODE(0x60, "signature", void, void, signature, agnostic)

@@ -82,12 +82,14 @@ const char EXP_CHARS[] = "eE";
 const char FLT_CHARS[] = "dD";
 
 /* The target specific pseudo-ops which we support.  */
+
 const pseudo_typeS md_pseudo_table[] =
 {
   { NULL,	NULL,		0}
 };
 
 /* Opcode hash table.  */
+
 static struct hash_control *wasm32_hash;
 
 struct option md_longopts[] =
@@ -98,6 +100,7 @@ struct option md_longopts[] =
 size_t md_longopts_size = sizeof (md_longopts);
 
 /* No relaxation/no machine-dependent frags.  */
+
 int
 md_estimate_size_before_relax (fragS *fragp ATTRIBUTE_UNUSED,
                                asection *seg ATTRIBUTE_UNUSED)
@@ -113,6 +116,7 @@ md_show_usage (FILE *stream)
 }
 
 /* No machine-dependent options.  */
+
 int
 md_parse_option (int c ATTRIBUTE_UNUSED, const char *arg ATTRIBUTE_UNUSED)
 {
@@ -120,6 +124,7 @@ md_parse_option (int c ATTRIBUTE_UNUSED, const char *arg ATTRIBUTE_UNUSED)
 }
 
 /* No machine-dependent symbols.  */
+
 symbolS *
 md_undefined_symbol (char *name ATTRIBUTE_UNUSED)
 {
@@ -127,6 +132,7 @@ md_undefined_symbol (char *name ATTRIBUTE_UNUSED)
 }
 
 /* IEEE little-endian floats.  */
+
 const char *
 md_atof (int type, char *litP, int *sizeP)
 {
@@ -134,6 +140,7 @@ md_atof (int type, char *litP, int *sizeP)
 }
 
 /* No machine-dependent frags.  */
+
 void
 md_convert_frag (bfd *abfd ATTRIBUTE_UNUSED,
                  asection *sec ATTRIBUTE_UNUSED,
@@ -143,6 +150,7 @@ md_convert_frag (bfd *abfd ATTRIBUTE_UNUSED,
 }
 
 /* Build opcode hash table, set some flags.  */
+
 void
 md_begin (void)
 {
@@ -163,6 +171,7 @@ md_begin (void)
 }
 
 /* Do the normal thing for md_section_align.  */
+
 valueT
 md_section_align (asection *seg, valueT addr)
 {
@@ -172,6 +181,7 @@ md_section_align (asection *seg, valueT addr)
 
 /* Apply a fixup, return TRUE if done (and no relocation is
    needed).  */
+
 static bfd_boolean
 apply_full_field_fix (fixS *fixP, char *buf, bfd_vma val,
                       int size)
@@ -189,6 +199,7 @@ apply_full_field_fix (fixS *fixP, char *buf, bfd_vma val,
 
 /* Apply a fixup (potentially PC-relative), set the fx_done flag if
    done.  */
+
 void
 md_apply_fix (fixS *fixP, valueT * valP, segT seg ATTRIBUTE_UNUSED)
 {
@@ -214,6 +225,7 @@ md_apply_fix (fixS *fixP, valueT * valP, segT seg ATTRIBUTE_UNUSED)
 }
 
 /* Skip whitespace.  */
+
 static inline char *
 skip_space (char *s)
 {
@@ -223,6 +235,7 @@ skip_space (char *s)
 }
 
 /* Allow '/' in opcodes.  */
+
 static inline bfd_boolean
 is_part_of_opcode (char c)
 {
@@ -230,6 +243,7 @@ is_part_of_opcode (char c)
 }
 
 /* Extract an opcode.  */
+
 static char *
 extract_opcode (char *from, char *to, int limit)
 {
@@ -255,56 +269,66 @@ extract_opcode (char *from, char *to, int limit)
 /* Produce an unsigned LEB128 integer padded to the right number of
    bytes to store BITS bits, of value VALUE.  Uses FRAG_APPEND_1_CHAR
    to write.  */
+
 static void
 wasm32_put_long_uleb128(int bits, unsigned long value) { unsigned char
 c; int i = 0;
 
-  do {
-    c = value & 0x7f;
-    value >>= 7;
-    if (i < (bits-1)/7)
-      c |= 0x80;
-    FRAG_APPEND_1_CHAR (c);
-  } while (++i < (bits+6)/7);
+  do
+    {
+      c = value & 0x7f;
+      value >>= 7;
+      if (i < (bits-1)/7)
+        c |= 0x80;
+      FRAG_APPEND_1_CHAR (c);
+    }
+  while (++i < (bits+6)/7);
 }
 
 /* Produce a signed LEB128 integer, using FRAG_APPEND_1_CHAR to
    write.  */
+
 static void wasm32_put_sleb128(long value)
 {
   unsigned char c;
   int more;
 
-  do {
-    c = (value & 0x7f);
-    value >>= 7;
-    more = !((((value == 0) && ((c & 0x40) == 0))
-              || ((value == -1) && ((c & 0x40) != 0))));
-    if (more)
-      c |= 0x80;
-    FRAG_APPEND_1_CHAR (c);
-  } while (more);
+  do
+    {
+      c = (value & 0x7f);
+      value >>= 7;
+      more = !((((value == 0) && ((c & 0x40) == 0))
+                || ((value == -1) && ((c & 0x40) != 0))));
+      if (more)
+        c |= 0x80;
+      FRAG_APPEND_1_CHAR (c);
+    }
+  while (more);
 }
 
 /* Produce an unsigned LEB128 integer, using FRAG_APPEND_1_CHAR to
    write.  */
+
 static void wasm32_put_uleb128(unsigned long value)
 {
   unsigned char c;
 
-  do {
-    c = value & 0x7f;
-    value >>= 7;
-    if (value)
-      c |= 0x80;
-    FRAG_APPEND_1_CHAR (c);
-  } while (value);
+  do
+    {
+      c = value & 0x7f;
+      value >>= 7;
+      if (value)
+        c |= 0x80;
+      FRAG_APPEND_1_CHAR (c);
+    }
+  while (value);
 }
 
 /* Read an integer expression.  Produce an LEB128-encoded integer if
    it's a constant, a padded LEB128 plus a relocation if it's a
    symbol, or a special relocation for <expr>@got, <expr>@gotcode, and
    <expr>@plt{__sigchar_<signature>}.  */
+
 static bfd_boolean wasm32_leb128(char **line, int bits, int sign)
 {
   char *t = input_line_pointer;
@@ -423,6 +447,7 @@ static bfd_boolean wasm32_leb128(char **line, int bits, int sign)
 
 /* Read an integer expression and produce an unsigned LEB128 integer,
    or a relocation for it.  */
+
 static bfd_boolean wasm32_uleb128(char **line, int bits)
 {
   return wasm32_leb128(line, bits, 0);
@@ -430,12 +455,14 @@ static bfd_boolean wasm32_uleb128(char **line, int bits)
 
 /* Read an integer expression and produce a signed LEB128 integer, or
    a relocation for it.  */
+
 static bfd_boolean wasm32_sleb128(char **line, int bits)
 {
   return wasm32_leb128(line, bits, 1);
 }
 
-/* Read an f32. (Like float_cons ('f')).  */
+/* Read an f32.  (Like float_cons ('f')).  */
+
 static void wasm32_f32(char **line)
 {
   char *t = input_line_pointer;
@@ -445,7 +472,8 @@ static void wasm32_f32(char **line)
   input_line_pointer = t;
 }
 
-/* Read an f64. (Like float_cons ('d')).  */
+/* Read an f64.  (Like float_cons ('d')).  */
+
 static void wasm32_f64(char **line)
 {
   char *t = input_line_pointer;
@@ -459,6 +487,7 @@ static void wasm32_f64(char **line)
    pointer.  Signatures are simple expressions matching the regexp
    F[ilfd]*v?E, and interpreted as though they were C++-mangled
    function types on a 64-bit machine. */
+
 static void wasm32_signature(char **line)
 {
   unsigned long count = 0;
@@ -534,8 +563,9 @@ static void wasm32_signature(char **line)
   *line = str;
 }
 
-/* Main operands function. Read the operands for OPCODE from LINE,
+/* Main operands function.  Read the operands for OPCODE from LINE,
    replacing it with the new input pointer.  */
+
 static void
 wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
 {
@@ -685,8 +715,9 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
   return;
 }
 
-/* Main assembly function. Find the opcode and call
+/* Main assembly function.  Find the opcode and call
    wasm32_operands().  */
+
 void
 md_assemble (char *str)
 {
@@ -716,6 +747,7 @@ md_assemble (char *str)
 
 /* Don't replace PLT/GOT relocations with section symbols, so they
    don't get an addend.  */
+
 int
 wasm32_force_relocation (fixS *f)
 {
@@ -728,6 +760,7 @@ wasm32_force_relocation (fixS *f)
 
 /* Don't replace PLT/GOT relocations with section symbols, so they
    don't get an addend.  */
+
 bfd_boolean wasm32_fix_adjustable (fixS * fixP)
 {
   if (fixP->fx_addsy == NULL)
@@ -741,6 +774,7 @@ bfd_boolean wasm32_fix_adjustable (fixS * fixP)
 }
 
 /* Generate a reloc for FIXP.  */
+
 arelent *
 tc_gen_reloc (asection *sec ATTRIBUTE_UNUSED,
               fixS *fixp)

@@ -58,6 +58,8 @@ static reloc_howto_type elf32_wasm32_howto_table[] =
          FALSE),		/* pcrel_offset */
 };
 
+/* Look up the relocation CODE.  */
+
 static reloc_howto_type *
 elf32_wasm32_reloc_type_lookup (bfd *abfd ATTRIBUTE_UNUSED,
                                 bfd_reloc_code_real_type code)
@@ -72,8 +74,10 @@ elf32_wasm32_reloc_type_lookup (bfd *abfd ATTRIBUTE_UNUSED,
       break;
     }
 
-  return 0;
+  return NULL;
 }
+
+/* Look up the relocation R_NAME.  */
 
 static reloc_howto_type *
 elf32_wasm32_reloc_name_lookup (bfd *abfd ATTRIBUTE_UNUSED,
@@ -88,6 +92,8 @@ elf32_wasm32_reloc_name_lookup (bfd *abfd ATTRIBUTE_UNUSED,
 
   return NULL;
 }
+
+/* Look up the relocation R_TYPE.  */
 
 static reloc_howto_type *
 elf32_wasm32_rtype_to_howto (bfd *abfd, unsigned r_type)
@@ -108,6 +114,8 @@ elf32_wasm32_rtype_to_howto (bfd *abfd, unsigned r_type)
   return &elf32_wasm32_howto_table[i];
 }
 
+/* Translate the ELF-internal relocation RELA into CACHE_PTR.  */
+
 static void
 elf32_wasm32_info_to_howto_rela (bfd *abfd ATTRIBUTE_UNUSED,
                                 arelent *cache_ptr,
@@ -116,6 +124,7 @@ elf32_wasm32_info_to_howto_rela (bfd *abfd ATTRIBUTE_UNUSED,
   unsigned int r_type = ELF32_R_TYPE (dst->r_info);
   cache_ptr->howto = elf32_wasm32_rtype_to_howto (abfd, r_type);
 }
+
 #define ELF_ARCH		bfd_arch_wasm32
 #define ELF_TARGET_ID		EM_WEBASSEMBLY
 #define ELF_MACHINE_CODE	EM_WEBASSEMBLY

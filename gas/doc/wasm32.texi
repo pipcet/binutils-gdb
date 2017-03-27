@@ -1,6 +1,5 @@
-@c Copyright (C) 2002-2017 Free Software Foundation, Inc.
-@c Copyright (C) 2017 Pip Cet <pipcet@gmail.com>
-@c This is NOT part of the GAS manual.
+@c Copyright (C) 2017 Free Software Foundation, Inc.
+@c This is part of the GAS manual.
 @c For copying conditions, see the file as.texinfo.
 @c man end
 
@@ -30,7 +29,7 @@
 @cindex notes for WebAssembly
 
 While WebAssembly provides its own module format for executables, this
-documentation here describes how to use @code{@value{AS}} to produce
+documentation describes how to use @code{@value{AS}} to produce
 intermediate ELF object format files.
 
 @cindex WebAssembly Syntax
@@ -63,16 +62,16 @@ control command (@pxref{Preprocessing}).
 @cindex opcodes, WebAssembly
 @cindex WebAssembly opcodes
 Ordinary instructions are encoded with the WebAssembly mnemonics as
-listed at
-@url{https://github.com/WebAssembly/design/blob/master/BinaryEncoding.md},
-with the exception that conversion and reinterpretation opcodes
-substitute a @samp{_} character for the @samp{/} character.
+listed at:
+@url{https://github.com/WebAssembly/design/blob/master/BinaryEncoding.md}.
 
 Opcodes are written directly in the order in which they are encoded,
 without going through an intermediate sexp-style expression as in the
 @code{was} format.
 
-For ``typed'' opcodes (block, if, etc.), the type of the block is specified in square brackets following the opcode: if[i], if[].
+For ``typed'' opcodes (block, if, etc.), the type of the block is
+specified in square brackets following the opcode: @code{if[i]},
+@code{if[]}.
 
 @node WebAssembly-Relocs
 @subsection Relocations
@@ -85,7 +84,11 @@ expression, which correspond to the R_ASMJS_LEB128_PLT,
 R_ASMJS_LEB128_GOT, and R_ASMJS_LEB128_GOT_CODE relocations,
 respectively.
 
-The @samp{@@@var{plt}} suffix is followed by a symbol name in braces; the symbol value is used to determine the function signature for which a PLT stub is generated. Currently, the symbol @em{name} is parsed from its last @samp{F} character to determine the argument count of the function, which is also necessary for generating a PLT stub.
+The @samp{@@@var{plt}} suffix is followed by a symbol name in braces;
+the symbol value is used to determine the function signature for which
+a PLT stub is generated. Currently, the symbol @em{name} is parsed
+from its last @samp{F} character to determine the argument count of
+the function, which is also necessary for generating a PLT stub.
 
 @node WebAssembly-Signatures
 @subsection Signatures
@@ -93,17 +96,18 @@ The @samp{@@@var{plt}} suffix is followed by a symbol name in braces; the symbol
 @cindex signatures, WebAssembly
 
 Function signatures are specified with the @code{signature}
-pseudo-opcode, followed by a simple C++-mangled function signature:
-@code{F} followed by an optional @code{v}, then a sequence of
-@code{i}, @code{l}, @code{f}, and @code{d} characters to mark i32,
-i64, f32, and f64 parameters, respectively; followed by a final
-@code{E} to mark the end of the function signature.
+pseudo-opcode, followed by a simple function signature imitating a
+C++-mangled function type: @code{F} followed by an optional @code{v},
+then a sequence of @code{i}, @code{l}, @code{f}, and @code{d}
+characters to mark i32, i64, f32, and f64 parameters, respectively;
+followed by a final @code{E} to mark the end of the function
+signature.
 
 @node WebAssembly Floating Point
 @section Floating Point
 @cindex floating point, WebAssembly (@sc{ieee})
 @cindex WebAssembly floating point (@sc{ieee})
-WebAssembly uses @sc{ieee} floating-point numbers.
+WebAssembly uses little-endian @sc{ieee} floating-point numbers.
 
 @node WebAssembly module layout
 @section WebAssembly Module Layout
@@ -114,8 +118,3 @@ WebAssembly module. It is possible to make @code{@value{AS}} produce
 output in a single ELF section which becomes a valid WebAssembly
 module, but a linker script to do so may be preferrable, as it doesn't
 require running the entire module through the assembler at once.
-
-@node WebAssembly Directives
-@section WebAssembly Assembler Directives
-
-@code{.QI}, @code{.qi} encode an 8-bit integer. @code{.HI}, @code{.hi} encode a 16-bit integer. @code{.SI}, @code{.si} encode a 32-bit integer. @code{.DI}, @code{.di} encode a 64-bit integer.

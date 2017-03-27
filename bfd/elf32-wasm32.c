@@ -994,12 +994,12 @@ wasm32_create_dynamic_sections (bfd * abfd,
       dynobj = (elf_hash_table (info))->dynobj;
       /* Create dynamic sections for relocatable executables so that
          we can copy relocations.  */
-      if (dynobj)
+      if (dynobj && bfd_link_pic (info))
         {
           const struct elf_backend_data *bed;
           flagword flags, pltflags ATTRIBUTE_UNUSED, spaceflags ATTRIBUTE_UNUSED;
 
-          if (! htab->dynamic_sections_created)
+          if (! htab->dynamic_sections_created && bfd_link_pic (info))
             {
               if (! _bfd_elf_link_create_dynamic_sections (abfd, info))
                 BFD_ASSERT (0);
@@ -1043,6 +1043,9 @@ wasm32_create_dynamic_sections (bfd * abfd,
           /* Create a section for pseudo-PLTs for static executables */
           const struct elf_backend_data *bed;
           flagword flags, ppltflags, spaceflags;
+
+          if (dynobj)
+            abfd = dynobj;
 
           bed = get_elf_backend_data (abfd);
           flags = bed->dynamic_sec_flags;
@@ -2507,10 +2510,6 @@ do_build_pplt (bfd *output_bfd, struct bfd_link_info *info,
   if (hh->pplt_offset != (bfd_vma) -1)
     {
       struct dynamic_sections *ds = wasm32_create_dynamic_sections (output_bfd, info);
-      for (bfd_vma i = 0; i < ds->sppltfun->size; i++)
-        bfd_put_8 (output_bfd,
-                   (i % 5 == 4) ? 0x00 : 0x80,
-                   ds->sppltfun->contents + i);
       asection *spplt;
       asection *sppltelem = ds->sppltelem;
       asection *sppltname = ds->sppltname;

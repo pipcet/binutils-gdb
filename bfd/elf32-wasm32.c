@@ -997,7 +997,11 @@ wasm32_elf_link_hash_table_create (bfd *abfd)
   return &ret->root.root;
 }
 
-static struct dynamic_sections *
+struct dynamic_sections *
+wasm32_create_dynamic_sections (bfd * abfd,
+                                struct bfd_link_info *info);
+
+struct dynamic_sections *
 wasm32_create_dynamic_sections (bfd * abfd,
                                 struct bfd_link_info *info)
 {

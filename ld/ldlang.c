@@ -7038,6 +7038,9 @@ lang_process (void)
   /* Update wild statements.  */
   update_wild_statements (statement_list.head);
 
+  extern void *wasm32_create_dynamic_sections (bfd *, struct bfd_link_info *info);
+  wasm32_create_dynamic_sections (link_info.output_bfd, &link_info);
+
   /* Run through the contours of the script and attach input sections
      to the correct output sections.  */
   lang_statement_iteration++;

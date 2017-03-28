@@ -22,12 +22,12 @@ Disassembly of section .text:
   14:	8d          		f32.ceil
   15:	43 d0 0f 49 		f32.const 3.141590118408203125
   19:	40 
-  1a:	b2          		f32.convert_s_i32
-  1b:	b4          		f32.convert_s_i64
-  1c:	b3          		f32.convert_u_i32
-  1d:	b5          		f32.convert_u_i64
+  1a:	b2          		f32.convert_s/i32
+  1b:	b4          		f32.convert_s/i64
+  1c:	b3          		f32.convert_u/i32
+  1d:	b5          		f32.convert_u/i64
   1e:	98          		f32.copysign
-  1f:	b6          		f32.demote_f64
+  1f:	b6          		f32.demote/f64
   20:	95          		f32.div
   21:	5b          		f32.eq
   22:	8e          		f32.floor
@@ -42,7 +42,7 @@ Disassembly of section .text:
   2d:	5c          		f32.ne
   2e:	90          		f32.nearest
   2f:	8c          		f32.neg
-  30:	be          		f32.reinterpret_i32
+  30:	be          		f32.reinterpret/i32
   31:	91          		f32.sqrt
   32:	38 00 00    		f32.store a=0 0
   35:	93          		f32.sub
@@ -53,10 +53,10 @@ Disassembly of section .text:
   3a:	44 97 5f 4f 		f64.const 3.14158999999999976088e\+200
   3e:	fd bc 6a 90 
   42:	69 
-  43:	b7          		f64.convert_s_i32
-  44:	b9          		f64.convert_s_i64
-  45:	b8          		f64.convert_u_i32
-  46:	ba          		f64.convert_u_i64
+  43:	b7          		f64.convert_s/i32
+  44:	b9          		f64.convert_s/i64
+  45:	b8          		f64.convert_u/i32
+  46:	ba          		f64.convert_u/i64
   47:	a6          		f64.copysign
   48:	a3          		f64.div
   49:	61          		f64.eq
@@ -72,8 +72,8 @@ Disassembly of section .text:
   55:	62          		f64.ne
   56:	9e          		f64.nearest
   57:	9a          		f64.neg
-  58:	bb          		f64.promote_f32
-  59:	bf          		f64.reinterpret_i64
+  58:	bb          		f64.promote/f32
+  59:	bf          		f64.reinterpret/i64
   5a:	9f          		f64.sqrt
   5b:	39 00 00    		f64.store a=0 0
   5e:	a1          		f64.sub
@@ -107,7 +107,7 @@ Disassembly of section .text:
   8a:	47          		i32.ne
   8b:	72          		i32.or
   8c:	69          		i32.popcnt
-  8d:	bc          		i32.reinterpret_f32
+  8d:	bc          		i32.reinterpret/f32
   8e:	6f          		i32.rem_s
   8f:	70          		i32.rem_u
   90:	77          		i32.rotl
@@ -119,11 +119,11 @@ Disassembly of section .text:
   98:	3b 00 00    		i32.store16 a=0 0
   9b:	3a 00 00    		i32.store8 a=0 0
   9e:	6b          		i32.sub
-  9f:	a8          		i32.trunc_s_f32
-  a0:	aa          		i32.trunc_s_f64
-  a1:	a9          		i32.trunc_u_f32
-  a2:	ab          		i32.trunc_u_f64
-  a3:	a7          		i32.wrap_i64
+  9f:	a8          		i32.trunc_s/f32
+  a0:	aa          		i32.trunc_s/f64
+  a1:	a9          		i32.trunc_u/f32
+  a2:	ab          		i32.trunc_u/f64
+  a3:	a7          		i32.wrap/i64
   a4:	73          		i32.xor
   a5:	7c          		i64.add
   a6:	83          		i64.and
@@ -136,8 +136,8 @@ Disassembly of section .text:
   b4:	80          		i64.div_u
   b5:	51          		i64.eq
   b6:	50          		i64.eqz
-  b7:	ac          		i64.extend_s_i32
-  b8:	ad          		i64.extend_u_i32
+  b7:	ac          		i64.extend_s/i32
+  b8:	ad          		i64.extend_u/i32
   b9:	59          		i64.ge_s
   ba:	5a          		i64.ge_u
   bb:	55          		i64.gt_s
@@ -157,7 +157,7 @@ Disassembly of section .text:
   d7:	52          		i64.ne
   d8:	84          		i64.or
   d9:	7b          		i64.popcnt
-  da:	bd          		i64.reinterpret_f64
+  da:	bd          		i64.reinterpret/f64
   db:	81          		i64.rem_s
   dc:	82          		i64.rem_u
   dd:	89          		i64.rotl
@@ -170,10 +170,10 @@ Disassembly of section .text:
   e8:	3e 00 00    		i64.store32 a=0 0
   eb:	3c 00 00    		i64.store8 a=0 0
   ee:	7d          		i64.sub
-  ef:	ae          		i64.trunc_s_f32
-  f0:	b0          		i64.trunc_s_f64
-  f1:	af          		i64.trunc_u_f32
-  f2:	b1          		i64.trunc_u_f64
+  ef:	ae          		i64.trunc_s/f32
+  f0:	b0          		i64.trunc_s/f64
+  f1:	af          		i64.trunc_u/f32
+  f2:	b1          		i64.trunc_u/f64
   f3:	85          		i64.xor
   f4:	04 7f       		if\[i\]
   f6:	03 7e       		loop\[l\]

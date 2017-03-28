@@ -1761,17 +1761,12 @@ elf32_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec,
 
         case R_WASM32_LEB128:
           if (h != NULL && ! bfd_link_pic (info))
-            {
-              h->non_got_ref = 1;
-            }
+            h->non_got_ref = 1;
 
           break;
         case R_WASM32_32:
           if (h != NULL && bfd_link_executable (info))
-            {
-              /* This probably needs ELIMINATE_COPY_RELOCS code below. */
-              h->non_got_ref = 1;
-            }
+            h->non_got_ref = 1;
 
         default:
           if (bfd_link_pic (info) &&
@@ -2108,9 +2103,7 @@ elf32_wasm32_size_dynamic_sections (bfd * output_bfd,
       ds->sppltnamespace->size = hhtab->sppltnamespace_size;
     }
   else
-    {
-      hhtab->has_pplt = FALSE;
-    }
+    hhtab->has_pplt = FALSE;
 
   if ((elf_hash_table (info))->dynamic_sections_created)
     {
@@ -2156,9 +2149,7 @@ elf32_wasm32_size_dynamic_sections (bfd * output_bfd,
       if (strncmp (s->name, ".rela", 5) == 0)
         {
           if (s->size == 0)
-            {
-              s->flags |= SEC_EXCLUDE;
-            }
+            s->flags |= SEC_EXCLUDE;
           else
             {
               if (strcmp (s->name, ".rela.plt") != 0)
@@ -3077,7 +3068,7 @@ elf32_wasm32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
               relocation = sgot->output_offset + (off&-4);
             }
 
-          relocation += 0x40;
+          relocation += 0x40; /* XXX magic constant */
           goto final_link_relocate;
 
         case R_WASM32_32:

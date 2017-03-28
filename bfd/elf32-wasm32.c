@@ -309,25 +309,6 @@ static reloc_howto_type elf32_wasm32_howto_table[] =
          FALSE),		/* pcrel_offset */
 };
 
-/* Look up the relocation CODE.  */
-
-static reloc_howto_type *
-elf32_wasm32_reloc_type_lookup (bfd *abfd ATTRIBUTE_UNUSED,
-                                bfd_reloc_code_real_type code)
-{
-  switch (code)
-    {
-    case BFD_RELOC_NONE:
-      return &elf32_wasm32_howto_table[R_WASM32_NONE];
-    case BFD_RELOC_32:
-      return &elf32_wasm32_howto_table[R_WASM32_32];
-    default:
-      break;
-    }
-
-  return NULL;
-}
-
 /* Look up the relocation R_NAME.  */
 
 static reloc_howto_type *
@@ -342,6 +323,48 @@ elf32_wasm32_reloc_name_lookup (bfd *abfd ATTRIBUTE_UNUSED,
       return &elf32_wasm32_howto_table[i];
 
   return NULL;
+}
+
+/* Look up the relocation CODE.  */
+
+static reloc_howto_type *
+elf32_wasm32_reloc_type_lookup (bfd *abfd ATTRIBUTE_UNUSED,
+                                enum bfd_reloc_code_real code)
+{
+  switch (code) {
+  case BFD_RELOC_32:
+    return elf32_wasm32_reloc_name_lookup(abfd, "R_WASM32_32");
+  case BFD_RELOC_32_PCREL:
+    return elf32_wasm32_reloc_name_lookup(abfd, "R_WASM32_REL32");
+  case BFD_RELOC_16:
+    return elf32_wasm32_reloc_name_lookup(abfd, "R_WASM32_16");
+  case BFD_RELOC_8:
+    return elf32_wasm32_reloc_name_lookup(abfd, "R_WASM32_8");
+  case BFD_RELOC_WASM32_LEB128:
+    return elf32_wasm32_reloc_name_lookup(abfd, "R_WASM32_LEB128");
+  case BFD_RELOC_WASM32_LEB128_GOT:
+    return elf32_wasm32_reloc_name_lookup(abfd, "R_WASM32_LEB128_GOT");
+  case BFD_RELOC_WASM32_LEB128_GOT_CODE:
+    return elf32_wasm32_reloc_name_lookup(abfd, "R_WASM32_LEB128_GOT_CODE");
+  case BFD_RELOC_WASM32_LEB128_PLT:
+    return elf32_wasm32_reloc_name_lookup(abfd, "R_WASM32_LEB128_PLT");
+  case BFD_RELOC_WASM32_PLT_INDEX:
+    return elf32_wasm32_reloc_name_lookup(abfd, "R_WASM32_PLT_INDEX");
+  case BFD_RELOC_WASM32_PLT_SIG:
+    return elf32_wasm32_reloc_name_lookup(abfd, "R_WASM32_PLT_SIG");
+  case BFD_RELOC_WASM32_COPY:
+    return elf32_wasm32_reloc_name_lookup(abfd, "R_WASM32_COPY");
+  case BFD_RELOC_WASM32_LAZY:
+    return elf32_wasm32_reloc_name_lookup(abfd, "R_WASM32_LAZY");
+  case BFD_RELOC_WASM32_CODE_POINTER:
+    return elf32_wasm32_reloc_name_lookup(abfd, "R_WASM32_CODE_POINTER");
+  case BFD_RELOC_WASM32_INDEX:
+    return elf32_wasm32_reloc_name_lookup(abfd, "R_WASM32_INDEX");
+  case BFD_RELOC_NONE:
+    return elf32_wasm32_reloc_name_lookup(abfd, "R_WASM32_NONE");
+  default:
+    return NULL;
+  }
 }
 
 /* Look up the relocation R_TYPE.  */
@@ -778,79 +801,14 @@ elf32_wasm32_leb128_reloc (bfd *abfd ATTRIBUTE_UNUSED,
 }
 
 reloc_howto_type *
-elf32_wasm32_bfd_reloc_name_lookup (bfd *abfd ATTRIBUTE_UNUSED,
-                                   const char *r_name);
+elf32_wasm32_reloc_name_lookup (bfd *abfd ATTRIBUTE_UNUSED,
+                                const char *r_name);
+
 
 reloc_howto_type *
-elf32_wasm32_bfd_reloc_name_lookup (bfd *abfd ATTRIBUTE_UNUSED,
-                                   const char *r_name)
-{
-  unsigned int i;
+elf32_wasm32_reloc_type_lookup (bfd *abfd ATTRIBUTE_UNUSED,
+                                enum bfd_reloc_code_real code);
 
-  for (i = 0;
-       i < (sizeof (elf32_wasm32_howto_table)
-            / sizeof (elf32_wasm32_howto_table[0]));
-       i++)
-    if (elf32_wasm32_howto_table[i].name != NULL
-        && strcasecmp (elf32_wasm32_howto_table[i].name, r_name) == 0)
-      return &elf32_wasm32_howto_table[i];
-
-  return NULL;
-}
-
-reloc_howto_type *
-elf32_wasm32_bfd_reloc_type_lookup (bfd *abfd ATTRIBUTE_UNUSED,
-                                   enum bfd_reloc_code_real code);
-
-reloc_howto_type *
-elf32_wasm32_bfd_reloc_type_lookup (bfd *abfd ATTRIBUTE_UNUSED,
-                                   enum bfd_reloc_code_real code)
-{
-  switch (code) {
-  case BFD_RELOC_32:
-    return elf32_wasm32_bfd_reloc_name_lookup(abfd, "R_WASM32_ABS32");
-  case BFD_RELOC_32_PCREL:
-    return elf32_wasm32_bfd_reloc_name_lookup(abfd, "R_WASM32_REL32");
-  case BFD_RELOC_16:
-    return elf32_wasm32_bfd_reloc_name_lookup(abfd, "R_WASM32_ABS16");
-  case BFD_RELOC_8:
-    return elf32_wasm32_bfd_reloc_name_lookup(abfd, "R_WASM32_ABS8");
-  case BFD_RELOC_WASM32_HEX16:
-    return elf32_wasm32_bfd_reloc_name_lookup(abfd, "R_WASM32_HEX16");
-  case BFD_RELOC_WASM32_HEX16R4:
-    return elf32_wasm32_bfd_reloc_name_lookup(abfd, "R_WASM32_HEX16R4");
-  case BFD_RELOC_WASM32_HEX16R12:
-    return elf32_wasm32_bfd_reloc_name_lookup(abfd, "R_WASM32_HEX16R12");
-  case BFD_RELOC_WASM32_LEB128:
-    return elf32_wasm32_bfd_reloc_name_lookup(abfd, "R_WASM32_LEB128");
-  case BFD_RELOC_WASM32_LEB128_R32:
-    return elf32_wasm32_bfd_reloc_name_lookup(abfd, "R_WASM32_LEB128_R32");
-  case BFD_RELOC_WASM32_LEB128_GOT:
-    return elf32_wasm32_bfd_reloc_name_lookup(abfd, "R_WASM32_LEB128_GOT");
-  case BFD_RELOC_WASM32_LEB128_GOT_CODE:
-    return elf32_wasm32_bfd_reloc_name_lookup(abfd, "R_WASM32_LEB128_GOT_CODE");
-  case BFD_RELOC_WASM32_LEB128_PLT:
-    return elf32_wasm32_bfd_reloc_name_lookup(abfd, "R_WASM32_LEB128_PLT");
-  case BFD_RELOC_WASM32_PLT_INDEX:
-    return elf32_wasm32_bfd_reloc_name_lookup(abfd, "R_WASM32_PLT_INDEX");
-  case BFD_RELOC_WASM32_PLT_SIG:
-    return elf32_wasm32_bfd_reloc_name_lookup(abfd, "R_WASM32_PLT_SIG");
-  case BFD_RELOC_WASM32_ABS32_CODE:
-    return elf32_wasm32_bfd_reloc_name_lookup(abfd, "R_WASM32_ABS32_CODE");
-  case BFD_RELOC_WASM32_COPY:
-    return elf32_wasm32_bfd_reloc_name_lookup(abfd, "R_WASM32_COPY");
-  case BFD_RELOC_WASM32_LAZY:
-    return elf32_wasm32_bfd_reloc_name_lookup(abfd, "R_WASM32_LAZY");
-  case BFD_RELOC_WASM32_CODE_POINTER:
-    return elf32_wasm32_bfd_reloc_name_lookup(abfd, "R_WASM32_CODE_POINTER");
-  case BFD_RELOC_WASM32_INDEX:
-    return elf32_wasm32_bfd_reloc_name_lookup(abfd, "R_WASM32_INDEX");
-  case BFD_RELOC_NONE:
-    return elf32_wasm32_bfd_reloc_name_lookup(abfd, "R_WASM32_NONE");
-  default:
-    return NULL;
-  }
-}
 
 reloc_howto_type *
 elf32_wasm32_info_to_howto_ptr (unsigned int r_type);

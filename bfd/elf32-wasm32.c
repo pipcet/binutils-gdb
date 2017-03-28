@@ -3075,9 +3075,6 @@ elf32_wasm32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
                     loc += s->reloc_count++ * sizeof (Elf32_External_Rela);
                     bfd_elf32_swap_reloca_out (output_bfd, &outrel, loc);
 
-                    if (0) fprintf (stderr, "creating reloc at %s:%ld for relgot (2)\n",
-                             s->name,
-                             (long)s->reloc_count);
                     BFD_ASSERT (s->size >= loc - s->contents + sizeof (Elf32_External_Rela));
                   }
                   local_got_offsets[r_symndx] |= 1;
@@ -3152,9 +3149,6 @@ elf32_wasm32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
                         ? bfd_get_32 (input_bfd, contents + rel->r_offset)
                         : addend);
                 }
-
-              if (0) fprintf (stderr, "creating reloc at %s:%u with relocate = %d, r_info = %lx\n",
-                       sreloc->name, sreloc->reloc_count, relocate, outrel.r_info);
 
               loc = sreloc->contents;
               loc += sreloc->reloc_count++ * sizeof (Elf32_External_Rela);

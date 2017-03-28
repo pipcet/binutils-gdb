@@ -3160,6 +3160,7 @@ elf32_wasm32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
         case R_WASM32_CODE_POINTER:
         case R_WASM32_INDEX:
         case R_WASM32_PLT_SIG:
+        case R_WASM32_PLT_INDEX:
           r = bfd_reloc_ok;
           break;
 

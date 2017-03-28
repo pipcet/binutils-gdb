@@ -81,7 +81,6 @@ static reloc_howto_type elf32_wasm32_howto_table[] =
          0xffffffff,		/* dst_mask */
          TRUE),			/* pcrel_offset */
 
-  /* standard 32bit pc-relative reloc */
   HOWTO (R_WASM32_REL16,		/* type */
          0,			/* rightshift */
          1,			/* size (0 = byte, 1 = short, 2 = long) */
@@ -96,8 +95,7 @@ static reloc_howto_type elf32_wasm32_howto_table[] =
          0xffff,		/* dst_mask */
          TRUE),			/* pcrel_offset */
 
-  /* standard 32bit pc-relative reloc */
-  HOWTO (R_WASM32_ABS16,		/* type */
+  HOWTO (R_WASM32_16,		/* type */
          0,			/* rightshift */
          1,			/* size (0 = byte, 1 = short, 2 = long) */
          16,			/* bitsize */
@@ -105,14 +103,13 @@ static reloc_howto_type elf32_wasm32_howto_table[] =
          0,			/* bitpos */
          complain_overflow_bitfield,/* complain_on_overflow */
          bfd_elf_generic_reloc,	/* special_function */
-         "R_WASM32_ABS16",	/* name */
+         "R_WASM32_16",  	/* name */
          FALSE,			/* partial_inplace */
          0xffff,		/* src_mask */
          0xffff,		/* dst_mask */
          FALSE),		/* pcrel_offset */
 
-  /* 64 bit absolute */
-  HOWTO (R_WASM32_ABS64,		/* type */
+  HOWTO (R_WASM32_64,	 	/* type */
          0,			/* rightshift */
          4,			/* size (0 = byte, 1 = short, 2 = long) */
          64,			/* bitsize */
@@ -120,13 +117,12 @@ static reloc_howto_type elf32_wasm32_howto_table[] =
          0,			/* bitpos */
          complain_overflow_bitfield,/* complain_on_overflow */
          bfd_elf_generic_reloc,	/* special_function */
-         "R_WASM32_ABS64",	/* name */
+         "R_WASM32_64",  	/* name */
          FALSE,			/* partial_inplace */
          0xffffffffffffffffLL,  /* src_mask */
          0xffffffffffffffffLL,	/* dst_mask */
          FALSE),		/* pcrel_offset */
 
-  /* standard 64bit pc-relative reloc */
   HOWTO (R_WASM32_REL64,		/* type */
          0,			/* rightshift */
          4,			/* size (0 = byte, 1 = short, 2 = long) */
@@ -253,8 +249,7 @@ static reloc_howto_type elf32_wasm32_howto_table[] =
          0xffffffffffffffff,	/* dst_mask */
          FALSE),		/* pcrel_offset */
 
-  /* standard 32bit pc-relative reloc */
-  HOWTO (R_WASM32_ABS8,		/* type */
+  HOWTO (R_WASM32_8,		/* type */
          0,			/* rightshift */
          0,			/* size (0 = byte, 1 = short, 2 = long) */
          8,			/* bitsize */
@@ -262,7 +257,7 @@ static reloc_howto_type elf32_wasm32_howto_table[] =
          0,			/* bitpos */
          complain_overflow_bitfield,/* complain_on_overflow */
          bfd_elf_generic_reloc,	/* special_function */
-         "R_WASM32_ABS8",	/* name */
+         "R_WASM32_8",  	/* name */
          FALSE,			/* partial_inplace */
          0xff,			/* src_mask */
          0xff,			/* dst_mask */

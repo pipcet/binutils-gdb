@@ -960,8 +960,8 @@ struct elf32_wasm32_link_hash_table
 
 static struct bfd_hash_entry *
 elf32_wasm32_link_hash_newfunc (struct bfd_hash_entry *entry,
-                              struct bfd_hash_table *table,
-                              const char *string)
+                                struct bfd_hash_table *table,
+                                const char *string)
 {
   struct elf32_wasm32_link_hash_entry *ret =
     (struct elf32_wasm32_link_hash_entry *) entry;
@@ -2222,7 +2222,7 @@ elf32_wasm32_size_dynamic_sections (bfd * output_bfd,
 
 static bfd_boolean
 elf32_wasm32_finish_dynamic_sections (bfd * output_bfd,
-                                 struct bfd_link_info *info)
+                                      struct bfd_link_info *info)
 {
   struct dynamic_sections *ds = wasm32_create_dynamic_sections (output_bfd, info);
   struct elf_link_hash_table *htab = elf_hash_table (info);
@@ -2321,18 +2321,18 @@ elf32_wasm32_finish_dynamic_sections (bfd * output_bfd,
 
 static bfd_reloc_status_type
 wasm32_relocate_contents (reloc_howto_type *howto,
-                        bfd *input_bfd,
-                        bfd_vma relocation,
+                          bfd *input_bfd,
+                          bfd_vma relocation,
                           bfd_byte *location);
 
 static bfd_reloc_status_type
 wasm32_final_link_relocate (reloc_howto_type *howto,
-                          bfd *input_bfd,
-                          asection *input_section,
-                          bfd_byte *contents,
-                          bfd_vma address,
-                          bfd_vma value,
-                          bfd_vma addend)
+                            bfd *input_bfd,
+                            asection *input_section,
+                            bfd_byte *contents,
+                            bfd_vma address,
+                            bfd_vma value,
+                            bfd_vma addend)
 {
   bfd_vma relocation;
 
@@ -2369,9 +2369,9 @@ wasm32_final_link_relocate (reloc_howto_type *howto,
 
 static bfd_reloc_status_type
 wasm32_relocate_contents (reloc_howto_type *howto,
-                        bfd *input_bfd,
-                        bfd_vma relocation,
-                        bfd_byte *location)
+                          bfd *input_bfd,
+                          bfd_vma relocation,
+                          bfd_byte *location)
 {
   int size;
   bfd_vma x = 0;

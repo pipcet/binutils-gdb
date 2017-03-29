@@ -1146,7 +1146,7 @@ objdump_print_addr_with_sym (bfd *abfd, asection *sec, asymbol *sym,
 	 unresolved symbol associated with a dynamic reloc.  */
       else if ((bfd_get_file_flags (abfd) & (EXEC_P | DYNAMIC))
 	       && bfd_is_und_section (sym->section))
-	;
+        (*inf->fprintf_func) (inf->stream, "?");
       else if (bfd_asymbol_value (sym) > vma)
 	{
 	  (*inf->fprintf_func) (inf->stream, "-0x");

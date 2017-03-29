@@ -11,7 +11,7 @@ Disassembly of section .text:
    0:	02 40       		block\[\]
    2:	0c 00       		br 0
    4:	0d 00       		br_if 0
-   6:	0e 01 01 01 		br_table 1 1
+   6:	0e 01 01 01 		br_table 1 1 1
    a:	10 00       		call 0x0
    c:	11 00 00    		call_indirect 0 0
    f:	1a          		drop

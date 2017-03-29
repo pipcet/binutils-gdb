@@ -7975,6 +7975,10 @@ family.
 @include c-visium.texi
 @end ifset
 
+@ifset WASM32
+@include c-wasm32.texi
+@end ifset
+
 @ifset XGATE
 @include c-xgate.texi
 @end ifset

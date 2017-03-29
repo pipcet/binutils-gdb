@@ -1,8 +1,7 @@
 /* Opcode printing mode for the WebAssembly target
-   Copyright (C) 1994-2015 Free Software Foundation, Inc.
-   Copyright (C) 2016-2017 Pip Cet <pipcet@gmail.com>
+   Copyright (C) 2017 Free Software Foundation, Inc.
 
-   This file is NOT part of libopcodes.
+   This file is part of libopcodes.
 
    This library is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -20,36 +19,20 @@
    MA 02110-1301, USA.  */
 
 #include "sysdep.h"
-
 #include "dis-asm.h"
 #include "opintl.h"
 #include "safe-ctype.h"
 #include "floatformat.h"
 #include <float.h>
-
-/* FIXME: This shouldn't be done here.  */
-#include "coff/internal.h"
-#include "libcoff.h"
+#include "libiberty.h"
 #include "elf-bfd.h"
 #include "elf/internal.h"
 #include "elf/wasm32.h"
 
-/* FIXME: Belongs in global header.  */
-#ifndef strneq
-#define strneq(a,b,n)	(strncmp ((a), (b), (n)) == 0)
-#endif
-
-#ifndef NUM_ELEM
-#define NUM_ELEM(a)     (sizeof (a) / sizeof (a)[0])
-#endif
-
-
-
-enum wasm_clas
+enum wasm_class
   {
     wasm_typed,
     wasm_special,
-    wasm_special1,
     wasm_break,
     wasm_fakebreak,
     wasm_break_if,
@@ -101,6 +84,8 @@ struct wasm32_private_data
 {
   bfd_boolean print_registers;
   bfd_boolean print_well_known_globals;
+
+  const char *section_prefix;
 };
 
 #define WASM_OPCODE(opcode, name, intype, outtype, clas, signedness)     \
@@ -110,7 +95,7 @@ struct wasm32_opcode_s {
   const char *name;
   enum wasm_type intype;
   enum wasm_type outtype;
-  enum wasm_clas clas;
+  enum wasm_class clas;
   enum wasm_signedness signedness;
   unsigned char opcode;
 } wasm32_opcodes[] = {
@@ -119,16 +104,23 @@ struct wasm32_opcode_s {
 };
 
 bfd_boolean
-wasm32_symbol_is_valid (asymbol * sym,
-                       struct disassemble_info * info ATTRIBUTE_UNUSED);
+wasm32_symbol_is_valid (asymbol *sym,
+                        struct disassemble_info *info);
 bfd_boolean
-wasm32_symbol_is_valid (asymbol * sym,
-		     struct disassemble_info * info ATTRIBUTE_UNUSED)
+wasm32_symbol_is_valid (asymbol *sym,
+                        struct disassemble_info *info)
 {
+  struct wasm32_private_data *private_data = info->private_data;
+
   if (sym == NULL)
     return FALSE;
 
   if (strcmp(sym->section->name, "*ABS*") == 0)
+    return FALSE;
+
+  if (private_data && private_data->section_prefix != NULL
+      && strncmp (sym->section->name, private_data->section_prefix,
+                  strlen (private_data->section_prefix)))
     return FALSE;
 
   return TRUE;
@@ -151,15 +143,13 @@ parse_wasm32_disassembler_option (char *option)
 }
 
 static void
-parse_wasm32_disassembler_options (char *options __attribute__((unused)))
+parse_wasm32_disassembler_options (char *options ATTRIBUTE_UNUSED)
 {
 }
 
-/* XXX these assume host integers/floats are WASM integers/floats */
-extern
-int read_sleb128(long *value, bfd_vma pc, struct disassemble_info *info);
-
-int read_sleb128(long *value, bfd_vma pc, struct disassemble_info *info)
+static int
+read_sleb128 (long *value, bfd_vma pc,
+              struct disassemble_info *info)
 {
   bfd_byte buffer[16];
   int len = 1;
@@ -169,22 +159,21 @@ int read_sleb128(long *value, bfd_vma pc, struct disassemble_info *info)
 
   if (buffer[0] & 0x80)
     {
-      len = read_sleb128(value, pc + 1, info) + 1;
+      len = read_sleb128 (value, pc + 1, info) + 1;
     }
   else if (buffer[0] & 0x40)
     {
       *value |= -1L;
     }
   *value <<= 7;
-  *value |= buffer[0]&0x7f;
+  *value |= (buffer[0] & 0x7f);
 
   return len;
 }
 
-extern
-int read_uleb128(long *value, bfd_vma pc, struct disassemble_info *info);
-
-int read_uleb128(long *value, bfd_vma pc, struct disassemble_info *info)
+static int
+read_uleb128 (long *value, bfd_vma pc,
+              struct disassemble_info *info)
 {
   bfd_byte buffer[16];
   int len = 1;
@@ -194,68 +183,40 @@ int read_uleb128(long *value, bfd_vma pc, struct disassemble_info *info)
 
   if (buffer[0] & 0x80)
     {
-      len = read_uleb128(value, pc + 1, info) + 1;
+      len = read_uleb128 (value, pc + 1, info) + 1;
     }
   *value <<= 7;
-  *value |= buffer[0]&0x7f;
+  *value |= (buffer[0] & 0x7f);
 
   return len;
 }
 
-int read_u32(long *value, bfd_vma pc, struct disassemble_info *info);
-int read_u32(long *value, bfd_vma pc, struct disassemble_info *info)
+static int
+read_f32 (double *value, bfd_vma pc, struct disassemble_info *info)
 {
-  int ret;
+  bfd_byte buf[4];
 
-  if (info->read_memory_func (pc, (bfd_byte*)&ret, 4, info))
+  if (info->read_memory_func (pc, buf, sizeof (buf), info))
     return -1;
 
-  *value = ret;
+  floatformat_to_double (&floatformat_ieee_single_little, buf,
+                         value);
 
-  return 4;
+  return sizeof (buf);
 }
 
-int read_f32(double *value, bfd_vma pc, struct disassemble_info *info);
-int read_f32(double *value, bfd_vma pc, struct disassemble_info *info)
+static int
+read_f64 (double *value, bfd_vma pc, struct disassemble_info *info)
 {
-  float ret;
+  bfd_byte buf[8];
 
-  if (info->read_memory_func (pc, (bfd_byte*)&ret, 4, info))
+  if (info->read_memory_func (pc, buf, sizeof (buf), info))
     return -1;
 
-  *value = ret;
+  floatformat_to_double (&floatformat_ieee_double_little, buf,
+                         value);
 
-  return 4;
-}
-
-int read_f64(double *value, bfd_vma pc, struct disassemble_info *info);
-int read_f64(double *value, bfd_vma pc, struct disassemble_info *info)
-{
-  double ret;
-
-  if (info->read_memory_func (pc, (bfd_byte*)&ret, 8, info))
-    return -1;
-
-  *value = ret;
-
-  return 8;
-}
-
-const char *print_type(enum wasm_type);
-const char *print_type(enum wasm_type type)
-{
-  switch (type) {
-  case wasm_i32:
-    return "i32";
-  case wasm_f32:
-    return "f32";
-  case wasm_i64:
-    return "i64";
-  case wasm_f64:
-    return "f64";
-  default:
-    return NULL;
-  }
+  return sizeof (buf);
 }
 
 int
@@ -306,6 +267,7 @@ print_insn_little_wasm32 (bfd_vma pc, struct disassemble_info *info)
 
       private.print_registers = TRUE;
       private.print_well_known_globals = TRUE;
+      private.section_prefix = NULL;
 
       info->private_data = &private;
     }
@@ -358,8 +320,6 @@ print_insn_little_wasm32 (bfd_vma pc, struct disassemble_info *info)
         case wasm_grow_memory:
         case wasm_current_memory:
           break;
-        case wasm_special1:
-          break;
         case wasm_binary:
         case wasm_relational:
         case wasm_store:
@@ -397,7 +357,6 @@ print_insn_little_wasm32 (bfd_vma pc, struct disassemble_info *info)
       switch (op->clas)
         {
         case wasm_special:
-        case wasm_special1:
         case wasm_eqz:
         case wasm_binary:
         case wasm_unary:
@@ -409,85 +368,86 @@ print_insn_little_wasm32 (bfd_vma pc, struct disassemble_info *info)
         case wasm_select:
           break;
         case wasm_break_table:
-          len += read_uleb128(&target_count, pc + len, info);
-          //prin (stream, " %ld %ld", argument_count, target_count);
+          len += read_uleb128 (&target_count, pc + len, info);
+          prin (stream, " %ld", target_count);
           for (i = 0; i < target_count + 1; i++)
             {
               long target = 0;
-              len += read_uleb128(&target, pc + len, info);
+              len += read_uleb128 (&target, pc + len, info);
               prin (stream, " %ld", target);
             }
           break;
         case wasm_fakebreak:
           {
             long n = 0;
-            len += read_uleb128(&n, pc + len, info);
+            len += read_uleb128 (&n, pc + len, info);
             prin (stream, "[%ld]", n);
-            len += read_uleb128(&depth, pc + len, info);
-            //prin (stream, " %ld %ld", argument_count, depth);
+            len += read_uleb128 (&depth, pc + len, info);
             prin (stream, " %ld", depth);
           }
           break;
         case wasm_break:
         case wasm_break_if:
-          len += read_uleb128(&depth, pc + len, info);
-          //prin (stream, " %ld %ld", argument_count, depth);
+          len += read_uleb128 (&depth, pc + len, info);
           prin (stream, " %ld", depth);
           break;
         case wasm_return:
-          //prin (stream, " %ld", argument_count);
           break;
         case wasm_constant_i32:
         case wasm_constant_i64:
-          len += read_sleb128(&constant, pc + len, info);
+          len += read_sleb128 (&constant, pc + len, info);
           prin (stream, " %ld", constant);
           break;
         case wasm_constant_f32:
-          len += read_f32(&fconstant, pc + len, info);
+          /* This appears to be the best we can do, even though we're
+             using host doubles for WebAssembly floats.  */
+          len += read_f32 (&fconstant, pc + len, info);
           prin (stream, " %.*g", DECIMAL_DIG, fconstant);
           break;
         case wasm_constant_f64:
-          len += read_f64(&fconstant, pc + len, info);
+          len += read_f64 (&fconstant, pc + len, info);
           prin (stream, " %.*g", DECIMAL_DIG, fconstant);
           break;
         case wasm_call:
-          len += read_uleb128(&index, pc + len, info);
+          len += read_uleb128 (&index, pc + len, info);
           prin (stream, " ");
+          private_data->section_prefix = ".space.function_index";
           (*info->print_address_func) ((bfd_vma) index, info);
+          private_data->section_prefix = NULL;
           break;
         case wasm_call_indirect:
-          len += read_uleb128(&constant, pc + len, info);
+          len += read_uleb128 (&constant, pc + len, info);
           prin (stream, " %ld", constant);
-          len += read_uleb128(&constant, pc + len, info);
+          len += read_uleb128 (&constant, pc + len, info);
           prin (stream, " %ld", constant);
           break;
         case wasm_get_local:
         case wasm_set_local:
         case wasm_tee_local:
-          len += read_uleb128(&constant, pc + len, info);
+          len += read_uleb128 (&constant, pc + len, info);
           prin (stream, " %ld", constant);
           if (strcmp (op->name + 4, "local") == 0)
             {
-              if (private_data->print_registers &&
-                  constant >= 0 && constant < nlocals)
+              if (private_data->print_registers
+                  && constant >= 0 && constant < nlocals)
                 prin (stream, " <%s>", locals[constant]);
             }
           else
             {
-              if (private_data->print_well_known_globals &&
-                  constant >= 0 && constant < nglobals)
+              if (private_data->print_well_known_globals
+                  && constant >= 0 && constant < nglobals)
                 prin (stream, " <%s>", globals[constant]);
             }
           break;
         case wasm_grow_memory:
         case wasm_current_memory:
-          len += read_uleb128(&constant, pc + len, info);
+          len += read_uleb128 (&constant, pc + len, info);
           prin (stream, " %ld", constant);
           break;
         case wasm_load:
         case wasm_store:
-          len += read_uleb128(&flags, pc + len, info);
-          len += read_uleb128(&offset, pc + len, info);
+          len += read_uleb128 (&flags, pc + len, info);
+          len += read_uleb128 (&offset, pc + len, info);
           prin (stream, " a=%ld %ld", flags, offset);
         case wasm_signature:
         case wasm_call_import:

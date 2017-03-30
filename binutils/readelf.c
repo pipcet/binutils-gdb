@@ -1515,10 +1515,6 @@ dump_relocations (FILE * file,
 	case EM_TI_PRU:
 	  rtype = elf_pru_reloc_type (type);
 	  break;
-
-        case EM_WASM32:
-          rtype = elf_wasm32_reloc_type (type);
-          break;
 	}
 
       if (rtype == NULL)

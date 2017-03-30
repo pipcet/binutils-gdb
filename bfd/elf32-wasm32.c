@@ -321,6 +321,8 @@ elf_wasm32_reloc_name_lookup (bfd *abfd ATTRIBUTE_UNUSED,
     if (elf_wasm32_howto_table[i].name != NULL
         && strcasecmp (elf_wasm32_howto_table[i].name, r_name) == 0)
       return &elf_wasm32_howto_table[i];
+
+  return NULL;
 };
 
 /* Look up the relocation CODE.  */
@@ -352,8 +354,6 @@ elf_wasm32_reloc_type_lookup (bfd *abfd ATTRIBUTE_UNUSED,
     return elf_wasm32_reloc_name_lookup(abfd, "R_WASM32_PLT_SIG");
   case BFD_RELOC_WASM32_COPY:
     return elf_wasm32_reloc_name_lookup(abfd, "R_WASM32_COPY");
-  case BFD_RELOC_WASM32_LAZY:
-    return elf_wasm32_reloc_name_lookup(abfd, "R_WASM32_LAZY");
   case BFD_RELOC_WASM32_CODE_POINTER:
     return elf_wasm32_reloc_name_lookup(abfd, "R_WASM32_CODE_POINTER");
   case BFD_RELOC_WASM32_INDEX:

@@ -62,7 +62,7 @@ SECTIONS
     KEEP(*(.eh_frame*));
     . = ALIGN(., 16);
     __start___libc_atexit = .;
-    *(__libc_atexit);
+    KEEP(*(__libc_atexit));
     __stop___libc_atexit = .;
     . = ALIGN(., 16);
     __start___libc_subfreeres = .;

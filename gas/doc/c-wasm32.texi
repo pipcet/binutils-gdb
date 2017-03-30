@@ -16,14 +16,14 @@
 
 @cindex WebAssembly support
 @menu
-* WebAssembly Notes::                Notes
-* WebAssembly Syntax::               Syntax
-* WebAssembly Floating Point::       Floating Point
-* WebAssembly Directives::           WebAssembly Machine Directives
-* WebAssembly Opcodes::              Opcodes
+* WebAssembly-Notes::                Notes
+* WebAssembly-Syntax::               Syntax
+* WebAssembly-Floating-Point::       Floating Point
+* WebAssembly-Opcodes::              Opcodes
+* WebAssembly-module-layout::        Module Layout
 @end menu
 
-@node WebAssembly Notes
+@node WebAssembly-Notes
 @section Notes
 @cindex WebAssembly notes
 @cindex notes for WebAssembly
@@ -32,9 +32,9 @@ While WebAssembly provides its own module format for executables, this
 documentation describes how to use @code{@value{AS}} to produce
 intermediate ELF object format files.
 
-@cindex WebAssembly Syntax
-@node WebAssembly Syntax
+@node WebAssembly-Syntax
 @section Syntax
+@cindex WebAssembly Syntax
 The assembler syntax directly encodes sequences of opcodes as defined
 in the WebAssembly binary encoding specification at
 https://github.com/webassembly/spec/BinaryEncoding.md.  Structured
@@ -42,9 +42,8 @@ sexp-style expressions are not supported as input.
 
 @menu
 * WebAssembly-Chars::                Special Characters
-* WebAssembly Opcodes::              Regular Opcodes
-* WebAssembly-Regs::                 Register Names
 * WebAssembly-Relocs::               Relocations
+* WebAssembly-Signatures::           Signatures
 @end menu
 
 @node WebAssembly-Chars
@@ -56,22 +55,6 @@ sexp-style expressions are not supported as input.
 @samp{#} is the first character on a line then it can also be a
 logical line number directive (@pxref{Comments}) or a preprocessor
 control command (@pxref{Preprocessing}).
-
-@node WebAssembly-Opcodes
-@subsection Regular Opcodes
-@cindex opcodes, WebAssembly
-@cindex WebAssembly opcodes
-Ordinary instructions are encoded with the WebAssembly mnemonics as
-listed at:
-@url{https://github.com/WebAssembly/design/blob/master/BinaryEncoding.md}.
-
-Opcodes are written directly in the order in which they are encoded,
-without going through an intermediate sexp-style expression as in the
-@code{was} format.
-
-For ``typed'' opcodes (block, if, etc.), the type of the block is
-specified in square brackets following the opcode: @code{if[i]},
-@code{if[]}.
 
 @node WebAssembly-Relocs
 @subsection Relocations
@@ -86,7 +69,7 @@ respectively.
 
 The @samp{@@@var{plt}} suffix is followed by a symbol name in braces;
 the symbol value is used to determine the function signature for which
-a PLT stub is generated. Currently, the symbol @em{name} is parsed
+a PLT stub is generated. Currently, the symbol @emph{name} is parsed
 from its last @samp{F} character to determine the argument count of
 the function, which is also necessary for generating a PLT stub.
 
@@ -103,13 +86,29 @@ characters to mark i32, i64, f32, and f64 parameters, respectively;
 followed by a final @code{E} to mark the end of the function
 signature.
 
-@node WebAssembly Floating Point
+@node WebAssembly-Floating-Point
 @section Floating Point
 @cindex floating point, WebAssembly (@sc{ieee})
 @cindex WebAssembly floating point (@sc{ieee})
 WebAssembly uses little-endian @sc{ieee} floating-point numbers.
 
-@node WebAssembly module layout
+@node WebAssembly-Opcodes
+@section Regular Opcodes
+@cindex opcodes, WebAssembly
+@cindex WebAssembly opcodes
+Ordinary instructions are encoded with the WebAssembly mnemonics as
+listed at:
+@url{https://github.com/WebAssembly/design/blob/master/BinaryEncoding.md}.
+
+Opcodes are written directly in the order in which they are encoded,
+without going through an intermediate sexp-style expression as in the
+@code{was} format.
+
+For ``typed'' opcodes (block, if, etc.), the type of the block is
+specified in square brackets following the opcode: @code{if[i]},
+@code{if[]}.
+
+@node WebAssembly-module-layout
 @section WebAssembly Module Layout
 @cindex module layout, WebAssembly
 @cindex WebAssembly module layout

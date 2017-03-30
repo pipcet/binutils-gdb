@@ -1,3 +1,30 @@
+2017-03-30  Pip Cet  <pipcet@gmail.com>
+
+	* elf32-wasm32.c: Add relocation code, two relocs.
+	* reloc.c: Add wasm32 relocations.
+	* libbfd.h: Regenerate.
+	* bfd-in2.h: Regenerate.
+	* bfd/po/bfd.pot: Regenerate.
+
+2017-03-29  Nick Clifton  <nickc@redhat.com>
+
+	PR binutils/18025
+	* coff-bfd.h (struct coff_section_data): Add new fields:
+	saved_bias and bias.
+	* coffgen.c (coff_find_nearest_line_with_names): Cache the bias
+	computed for PE binaries.
+	* dwarf2.c (scan_unit_for_symbols): Only warn once about each
+	missing abbrev.
+
+2017-03-28  Hans-Peter Nilsson  <hp@axis.com>
+
+	PR ld/16044
+	* elf32-cris.c (elf_cris_adjust_gotplt_to_got): Adjust BFD_ASSERT
+	to handle a local symbol with a hash-symbol-entry; without PLT.
+	Add BFD_ASSERT for an incidental case with GOT entry present.
+	(cris_elf_check_relocs): Increment PLT refcount only if the symbol
+	isn't forced-or-set local.
+
 2017-03-27  Pip Cet  <pipcet@gmail.com>
 
 	* wasm-module.c: New file to support WebAssembly modules.

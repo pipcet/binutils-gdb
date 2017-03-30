@@ -77,6 +77,7 @@ extern int wasm32_force_relocation (struct fix *);
 #define md_start_line_hook()
 #define HANDLE_ALIGN(fragP)
 
+
 extern bfd_boolean wasm32_fix_adjustable (struct fix *);
 #define tc_fix_adjustable(FIX) wasm32_fix_adjustable (FIX)
 

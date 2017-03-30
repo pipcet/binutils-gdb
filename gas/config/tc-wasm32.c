@@ -85,7 +85,8 @@ const char FLT_CHARS[] = "dD";
 
 /* The target specific pseudo-ops which we support.  */
 
-const pseudo_typeS md_pseudo_table[] = {
+const pseudo_typeS md_pseudo_table[] =
+{
   {NULL, NULL, 0}
 };
 
@@ -93,7 +94,8 @@ const pseudo_typeS md_pseudo_table[] = {
 
 static struct hash_control *wasm32_hash;
 
-struct option md_longopts[] = {
+struct option md_longopts[] =
+{
   {NULL, no_argument, NULL, 0}
 };
 
@@ -159,8 +161,8 @@ md_begin (void)
   wasm32_hash = hash_new ();
 
   /* Insert unique names into hash table.  This hash table then
-   * provides a quick index to the first opcode with a particular name
-   * in the opcode table.  */
+     provides a quick index to the first opcode with a particular name
+     in the opcode table.  */
   for (opcode = wasm32_opcodes; opcode->name; opcode++)
     hash_insert (wasm32_hash, opcode->name, (char *) opcode);
 
@@ -188,11 +190,10 @@ apply_full_field_fix (fixS * fixP, char *buf, bfd_vma val, int size)
   if (fixP->fx_addsy != NULL || fixP->fx_pcrel)
     {
       fixP->fx_addnumber = val;
-
       return FALSE;
     }
-  number_to_chars_littleendian (buf, val, size);
 
+  number_to_chars_littleendian (buf, val, size);
   return TRUE;
 }
 
@@ -398,10 +399,12 @@ wasm32_leb128 (char **line, int bits, int sign)
   /* call f@plt{__sigchar_FiiiiE} */
   else if (strncmp (input_line_pointer, "@plt", 4) == 0)
     {
+      char *end_of_sig;
+
       pltrel = 1;
       code = 1;
       input_line_pointer += 4;
-      char *end_of_sig;
+
       if (strncmp (input_line_pointer, "{", 1) == 0
           && (end_of_sig = strchr (input_line_pointer, '}')))
 	{
@@ -476,6 +479,7 @@ static void
 wasm32_f32 (char **line)
 {
   char *t = input_line_pointer;
+
   input_line_pointer = *line;
   float_cons ('f');
   *line = input_line_pointer;
@@ -488,6 +492,7 @@ static void
 wasm32_f64 (char **line)
 {
   char *t = input_line_pointer;
+
   input_line_pointer = *line;
   float_cons ('d');
   *line = input_line_pointer;
@@ -506,11 +511,13 @@ wasm32_signature (char **line)
   char *str = *line;
   char *ostr;
   char *result;
+
   if (*str++ != 'F')
     as_bad (_("Not a function type"));
   result = str;
   ostr = str + 1;
   str++;
+
   while (*str != 'E')
     {
       switch (*str++)
@@ -583,6 +590,7 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
 {
   char *str = *line;
   unsigned long block_type = 0;
+
   FRAG_APPEND_1_CHAR (opcode->opcode);
   str = skip_space (str);
   if (str[0] == '[')
@@ -626,7 +634,7 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
 	      str = skip_space (str);
 	    }
 	}
-      else if (opcode->clas)
+      else
 	as_bad (_("instruction does not take a block type"));
     }
 

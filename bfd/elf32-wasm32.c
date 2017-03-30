@@ -321,9 +321,7 @@ elf_wasm32_reloc_name_lookup (bfd *abfd ATTRIBUTE_UNUSED,
     if (elf_wasm32_howto_table[i].name != NULL
         && strcasecmp (elf_wasm32_howto_table[i].name, r_name) == 0)
       return &elf_wasm32_howto_table[i];
-
-  return NULL;
-}
+};
 
 /* Look up the relocation CODE.  */
 
@@ -378,7 +376,7 @@ elf_wasm32_rtype_to_howto (bfd *abfd, unsigned r_type)
     {
       /* xgettext:c-format */
       _bfd_error_handler (_("%B: invalid relocation type %d"),
-                          abfd, (int) r_type);
+			  abfd, (int) r_type);
       i = R_WASM32_NONE;
     }
 

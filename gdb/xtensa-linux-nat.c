@@ -82,6 +82,10 @@ fill_gregset (const struct regcache *regcache,
     regcache_raw_collect (regcache,
 			  gdbarch_tdep (gdbarch)->sar_regnum,
 			  &regs->sar);
+  if (regnum == gdbarch_tdep (gdbarch)->threadptr_regnum || regnum == -1)
+    regcache_raw_collect (regcache,
+			  gdbarch_tdep (gdbarch)->threadptr_regnum,
+			  &regs->threadptr);
   if (regnum >=gdbarch_tdep (gdbarch)->ar_base
       && regnum < gdbarch_tdep (gdbarch)->ar_base
 		    + gdbarch_tdep (gdbarch)->num_aregs)
@@ -93,6 +97,20 @@ fill_gregset (const struct regcache *regcache,
 	regcache_raw_collect (regcache,
 			      gdbarch_tdep (gdbarch)->ar_base + i,
 			      &regs->ar[i]);
+    }
+  if (regnum >= gdbarch_tdep (gdbarch)->a0_base
+      && regnum < gdbarch_tdep (gdbarch)->a0_base + C0_NREGS)
+    regcache_raw_collect (regcache, regnum,
+			  &regs->ar[(4 * regs->windowbase + regnum
+				     - gdbarch_tdep (gdbarch)->a0_base)
+			  % gdbarch_tdep (gdbarch)->num_aregs]);
+  else if (regnum == -1)
+    {
+      for (i = 0; i < C0_NREGS; ++i)
+	regcache_raw_collect (regcache,
+			      gdbarch_tdep (gdbarch)->a0_base + i,
+			      &regs->ar[(4 * regs->windowbase + i)
+			      % gdbarch_tdep (gdbarch)->num_aregs]);
     }
 }
 
@@ -134,6 +152,10 @@ supply_gregset_reg (struct regcache *regcache,
     regcache_raw_supply (regcache,
 			  gdbarch_tdep (gdbarch)->sar_regnum,
 			  &regs->sar);
+  if (regnum == gdbarch_tdep (gdbarch)->threadptr_regnum || regnum == -1)
+    regcache_raw_supply (regcache,
+			  gdbarch_tdep (gdbarch)->threadptr_regnum,
+			  &regs->threadptr);
   if (regnum >=gdbarch_tdep (gdbarch)->ar_base
       && regnum < gdbarch_tdep (gdbarch)->ar_base
 		    + gdbarch_tdep (gdbarch)->num_aregs)
@@ -145,6 +167,20 @@ supply_gregset_reg (struct regcache *regcache,
 	regcache_raw_supply (regcache,
 			      gdbarch_tdep (gdbarch)->ar_base + i,
 			      &regs->ar[i]);
+    }
+  if (regnum >= gdbarch_tdep (gdbarch)->a0_base
+      && regnum < gdbarch_tdep (gdbarch)->a0_base + C0_NREGS)
+    regcache_raw_supply (regcache, regnum,
+			 &regs->ar[(4 * regs->windowbase + regnum
+				    - gdbarch_tdep (gdbarch)->a0_base)
+			 % gdbarch_tdep (gdbarch)->num_aregs]);
+  else if (regnum == -1)
+    {
+      for (i = 0; i < C0_NREGS; ++i)
+	regcache_raw_supply (regcache,
+			     gdbarch_tdep (gdbarch)->a0_base + i,
+			     &regs->ar[(4 * regs->windowbase + i)
+			     % gdbarch_tdep (gdbarch)->num_aregs]);
     }
 }
 

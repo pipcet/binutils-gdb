@@ -1,3 +1,100 @@
+2017-03-29  Jan Kratochvil  <jan.kratochvil@redhat.com>
+
+	* auto-load.c (auto_load_section_scripts): Check SEC_HAS_CONTENTS.
+
+2017-03-29  Yao Qi  <yao.qi@linaro.org>
+
+	* gdbthread.h (struct thread_info): Declare constructor and
+	destructor.  Add some in-class member initializers.
+	* thread.c (free_thread): Remove.
+	(init_thread_list): Call delete instead of free_thread.
+	(new_thread): Call thread_info constructor.
+	(thread_info::thread_info): New function.
+	(thread_info::~thread_info): New function.
+	(delete_thread_1): Call delete instead of free_thread.
+	(make_cleanup_restore_current_thread): Move tp and frame to
+	inner block.
+
+2017-03-28  Anton Kolesov  <anton.kolesov@synopsys.com>
+
+	* arc-tdep.c (arc_frame_cache): Add support for prologue analysis.
+	(arc_skip_prologue): Likewise.
+	(arc_make_frame_cache): Likewise.
+	(arc_pv_get_operand): New function.
+	(arc_is_in_prologue): Likewise.
+	(arc_analyze_prologue): Likewise.
+	(arc_print_frame_cache): Likewise.
+	(MAX_PROLOGUE_LENGTH): New constant.
+
+2017-03-28  Anton Kolesov  <anton.kolesov@synopsys.com>
+
+	* configure.tgt: Add arc-insn.o.
+	* arc-tdep.c (arc_delayed_print_insn): Make non-static.
+	(dump_arc_instruction_command): New function.
+	(arc_fprintf_disasm): Likewise.
+	(arc_disassemble_info): Likewise.
+	(arc_insn_get_operand_value): Likewise.
+	(arc_insn_get_operand_value_signed): Likewise.
+	(arc_insn_get_memory_base_reg): Likewise.
+	(arc_insn_get_memory_offset): Likewise.
+	(arc_insn_get_branch_target): Likewise.
+	(arc_insn_dump): Likewise.
+	(arc_insn_get_linear_next_pc): Likewise.
+	* arc-tdep.h (arc_delayed_print_insn): Add function declaration.
+	(arc_disassemble_info): Likewise.
+	(arc_insn_get_branch_target): Likewise.
+	(arc_insn_get_linear_next_pc): Likewise.
+	* NEWS: Mention new "maint print arc arc-instruction".
+
+2017-03-28  Anton Kolesov  <anton.kolesov@synopsys.com>
+
+	* arc-tdep (maintenance_print_arc_list): New variable.
+	(maintenance_print_arc_command): New function.
+
+2017-03-28  Anton Kolesov  <anton.kolesov@synopsys.com>
+
+	* arc-tdep.c (core_v2_register_names, core_arcompact_register_names)
+	Add "limm" and "reserved".
+	(arc_cannot_fetch_register, arc_cannot_store_register): Add
+	ARC_RESERVED_REGNUM and ARC_LIMM_REGNUM.
+	* arc-tdep.h (arc_regnum): Likewise.
+
+2017-03-27  Max Filippov  <jcmvbkbc@gmail.com>
+
+	* xtensa-linux-nat.c (fill_gregset): Call regcache_raw_collect
+	for THREADPTR register.
+	(supply_gregset_reg): Call regcache_raw_supply for THREADPTR
+	register.
+	* xtensa-tdep.c (XTENSA_DBREGN_UREG): New definition.
+	(xtensa_derive_tdep): Initialize tdep->threadptr_regnum.
+	* xtensa-tdep.h (gdbarch_tdep::threadptr_regnum): New field.
+
+2017-03-27  Max Filippov  <jcmvbkbc@gmail.com>
+
+	* xtensa-tdep.c (xtensa_pseudo_register_read): Treat all
+	registers above gdbarch_num_regs (gdbarch) as privileged in
+	call0 ABI.
+
+2017-03-27  Max Filippov  <jcmvbkbc@gmail.com>
+
+	* xtensa-linux-nat.c (fill_gregset): Call regcache_raw_collect
+	for a single specified register or for all registers in
+	a0_base..a0_base + C0_NREGS range.
+	(supply_gregset_reg): Call regcache_raw_supply for a single
+	specified register or for all registers in a0_base..a0_base +
+	C0_NREGS range.
+
+2017-03-27  Max Filippov  <jcmvbkbc@gmail.com>
+
+	* arch/xtensa.h (C0_NREGS): Add definition.
+	* xtensa-tdep.c (C0_NREGS): Remove definition.
+
+2017-03-27  Max Filippov  <jcmvbkbc@gmail.com>
+
+	* xtensa-tdep.c (xtensa_scan_prologue, call0_analyze_prologue):
+	Drop xtensa_default_isa initialization.
+	(xtensa_gdbarch_init): Initialize xtensa_default_isa.
+
 2017-03-27  Pedro Alves  <palves@redhat.com>
 
 	* dwarf2read.c (file_entry) <dir_index>: Add comment.

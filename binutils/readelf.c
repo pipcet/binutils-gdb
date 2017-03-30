@@ -810,6 +810,7 @@ guess_is_rela (unsigned int e_machine)
     case EM_XTENSA_OLD:
     case EM_MICROBLAZE:
     case EM_MICROBLAZE_OLD:
+    case EM_WEBASSEMBLY:
       return TRUE;
 
     case EM_68HC05:
@@ -1497,6 +1498,10 @@ dump_relocations (FILE * file,
 
 	case EM_TILEPRO:
 	  rtype = elf_tilepro_reloc_type (type);
+	  break;
+
+	case EM_WEBASSEMBLY:
+	  rtype = elf_wasm32_reloc_type (type);
 	  break;
 
 	case EM_XGATE:
@@ -12096,8 +12101,8 @@ is_32bit_abs_reloc (unsigned int reloc_type)
       return reloc_type == 1; /* R_VAX_32.  */
     case EM_VISIUM:
       return reloc_type == 3;  /* R_VISIUM_32. */
-    case EM_WASM:
-      return reloc_type == 3;
+    case EM_WEBASSEMBLY:
+      return reloc_type == 1;  /* R_WASM32_32.  */
     case EM_X86_64:
     case EM_L1OM:
     case EM_K1OM:
@@ -12407,6 +12412,7 @@ is_none_reloc (unsigned int reloc_type)
     case EM_TI_C6000:/* R_C6000_NONE.  */
     case EM_X86_64:  /* R_X86_64_NONE.  */
     case EM_XC16X:
+    case EM_WEBASSEMBLY: /* R_WASM32_NONE.  */
       return reloc_type == 0;
 
     case EM_AARCH64:

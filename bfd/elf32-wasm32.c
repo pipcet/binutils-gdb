@@ -2663,7 +2663,7 @@ elf_wasm32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
               relocation = plt_index + plt_bias;
               addend = rel->r_addend;
             }
-          else
+          else if (hhtab->has_pplt)
             {
               bfd_vma pplt_bias = ds->sppltidx->output_offset;
               bfd_vma pplt_index = hh->pplt_index;

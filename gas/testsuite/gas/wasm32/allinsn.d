@@ -78,8 +78,8 @@ Disassembly of section .text:
   5b:	39 00 00    		f64.store a=0 0
   5e:	a1          		f64.sub
   5f:	9d          		f64.trunc
-  60:	23 00       		get_global 0 <\$got>
-  62:	20 00       		get_local 0 <\$dpc>
+  60:	23 00       		get_global 0
+  62:	20 00       		get_local 0
   64:	6a          		i32.add
   65:	71          		i32.and
   66:	67          		i32.clz
@@ -180,10 +180,10 @@ Disassembly of section .text:
   f8:	01          		nop
   f9:	0f          		return
   fa:	1b          		select
-  fb:	24 00       		set_global 0 <\$got>
-  fd:	21 00       		set_local 0 <\$dpc>
+  fb:	24 00       		set_global 0
+  fd:	21 00       		set_local 0
   ff:	60          		f32.ge
- 100:	08          		.byte 08
+ 100:	08          		.byte 0x08
 
  101:	7f          		i64.div_s
  102:	7e          		i64.mul
@@ -194,5 +194,5 @@ Disassembly of section .text:
  107:	7e          		i64.mul
  108:	7f          		i64.div_s
  109:	00          		unreachable
- 10a:	22 00       		tee_local 0 <\$dpc>
+ 10a:	22 00       		tee_local 0
 	...

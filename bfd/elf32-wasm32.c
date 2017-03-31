@@ -27,7 +27,7 @@
 #include "elf/wasm32.h"
 
 static bfd_reloc_status_type
-elf_wasm32_leb128_reloc (bfd *abfd ATTRIBUTE_UNUSED,
+elf32_wasm32_leb128_reloc (bfd *abfd ATTRIBUTE_UNUSED,
                          arelent *reloc_entry,
                          asymbol *symbol,
                          void *data ATTRIBUTE_UNUSED,
@@ -35,7 +35,7 @@ elf_wasm32_leb128_reloc (bfd *abfd ATTRIBUTE_UNUSED,
                          bfd *output_bfd,
                          char **error_message ATTRIBUTE_UNUSED);
 
-static reloc_howto_type elf_wasm32_howto_table[] =
+static reloc_howto_type elf32_wasm32_howto_table[] =
 {
   HOWTO (R_WASM32_NONE,		/* type */
          0,			/* rightshift */
@@ -144,7 +144,7 @@ static reloc_howto_type elf_wasm32_howto_table[] =
          FALSE,			/* pc_relative */
          0,			/* bitpos */
          complain_overflow_signed,/* complain_on_overflow */
-         elf_wasm32_leb128_reloc,/* special_function */
+         elf32_wasm32_leb128_reloc,/* special_function */
          "R_WASM32_LEB128",	/* name */
          FALSE,			/* partial_inplace */
          0xffffffffffffffff,	/* src_mask */
@@ -158,7 +158,7 @@ static reloc_howto_type elf_wasm32_howto_table[] =
          FALSE,			/* pc_relative */
          0,			/* bitpos */
          complain_overflow_signed,/* complain_on_overflow */
-         elf_wasm32_leb128_reloc,/* special_function */
+         elf32_wasm32_leb128_reloc,/* special_function */
          "R_WASM32_LEB128_GOT",	/* name */
          FALSE,			/* partial_inplace */
          0xffffffffffffffff,	/* src_mask */
@@ -172,7 +172,7 @@ static reloc_howto_type elf_wasm32_howto_table[] =
          FALSE,			/* pc_relative */
          0,			/* bitpos */
          complain_overflow_signed,/* complain_on_overflow */
-         elf_wasm32_leb128_reloc,/* special_function */
+         elf32_wasm32_leb128_reloc,/* special_function */
          "R_WASM32_LEB128_PLT",	/* name */
          FALSE,			/* partial_inplace */
          0xffffffffffffffff,	/* src_mask */
@@ -186,7 +186,7 @@ static reloc_howto_type elf_wasm32_howto_table[] =
          FALSE,			/* pc_relative */
          0,			/* bitpos */
          complain_overflow_signed,/* complain_on_overflow */
-         elf_wasm32_leb128_reloc,/* special_function */
+         elf32_wasm32_leb128_reloc,/* special_function */
          "R_WASM32_PLT_INDEX",   /* name */
          FALSE,			/* partial_inplace */
          0xffffffffffffffff,	/* src_mask */
@@ -242,7 +242,7 @@ static reloc_howto_type elf_wasm32_howto_table[] =
          FALSE,			/* pc_relative */
          0,			/* bitpos */
          complain_overflow_signed,/* complain_on_overflow */
-         elf_wasm32_leb128_reloc,/* special_function */
+         elf32_wasm32_leb128_reloc,/* special_function */
          "R_WASM32_LEB128_GOT_CODE",/* name */
          FALSE,			/* partial_inplace */
          0xffffffffffffffff,	/* src_mask */
@@ -312,15 +312,15 @@ static reloc_howto_type elf_wasm32_howto_table[] =
 /* Look up the relocation R_NAME.  */
 
 static reloc_howto_type *
-elf_wasm32_reloc_name_lookup (bfd *abfd ATTRIBUTE_UNUSED,
+elf32_wasm32_reloc_name_lookup (bfd *abfd ATTRIBUTE_UNUSED,
                               const char *r_name)
 {
   unsigned int i;
 
-  for (i = 0; i < ARRAY_SIZE (elf_wasm32_howto_table); i++)
-    if (elf_wasm32_howto_table[i].name != NULL
-        && strcasecmp (elf_wasm32_howto_table[i].name, r_name) == 0)
-      return &elf_wasm32_howto_table[i];
+  for (i = 0; i < ARRAY_SIZE (elf32_wasm32_howto_table); i++)
+    if (elf32_wasm32_howto_table[i].name != NULL
+        && strcasecmp (elf32_wasm32_howto_table[i].name, r_name) == 0)
+      return &elf32_wasm32_howto_table[i];
 
   return NULL;
 };
@@ -328,38 +328,38 @@ elf_wasm32_reloc_name_lookup (bfd *abfd ATTRIBUTE_UNUSED,
 /* Look up the relocation CODE.  */
 
 static reloc_howto_type *
-elf_wasm32_reloc_type_lookup (bfd *abfd ATTRIBUTE_UNUSED,
+elf32_wasm32_reloc_type_lookup (bfd *abfd ATTRIBUTE_UNUSED,
                               enum bfd_reloc_code_real code)
 {
   switch (code) {
   case BFD_RELOC_32:
-    return elf_wasm32_reloc_name_lookup(abfd, "R_WASM32_32");
+    return elf32_wasm32_reloc_name_lookup(abfd, "R_WASM32_32");
   case BFD_RELOC_32_PCREL:
-    return elf_wasm32_reloc_name_lookup(abfd, "R_WASM32_REL32");
+    return elf32_wasm32_reloc_name_lookup(abfd, "R_WASM32_REL32");
   case BFD_RELOC_16:
-    return elf_wasm32_reloc_name_lookup(abfd, "R_WASM32_16");
+    return elf32_wasm32_reloc_name_lookup(abfd, "R_WASM32_16");
   case BFD_RELOC_8:
-    return elf_wasm32_reloc_name_lookup(abfd, "R_WASM32_8");
+    return elf32_wasm32_reloc_name_lookup(abfd, "R_WASM32_8");
   case BFD_RELOC_WASM32_LEB128:
-    return elf_wasm32_reloc_name_lookup(abfd, "R_WASM32_LEB128");
+    return elf32_wasm32_reloc_name_lookup(abfd, "R_WASM32_LEB128");
   case BFD_RELOC_WASM32_LEB128_GOT:
-    return elf_wasm32_reloc_name_lookup(abfd, "R_WASM32_LEB128_GOT");
+    return elf32_wasm32_reloc_name_lookup(abfd, "R_WASM32_LEB128_GOT");
   case BFD_RELOC_WASM32_LEB128_GOT_CODE:
-    return elf_wasm32_reloc_name_lookup(abfd, "R_WASM32_LEB128_GOT_CODE");
+    return elf32_wasm32_reloc_name_lookup(abfd, "R_WASM32_LEB128_GOT_CODE");
   case BFD_RELOC_WASM32_LEB128_PLT:
-    return elf_wasm32_reloc_name_lookup(abfd, "R_WASM32_LEB128_PLT");
+    return elf32_wasm32_reloc_name_lookup(abfd, "R_WASM32_LEB128_PLT");
   case BFD_RELOC_WASM32_PLT_INDEX:
-    return elf_wasm32_reloc_name_lookup(abfd, "R_WASM32_PLT_INDEX");
+    return elf32_wasm32_reloc_name_lookup(abfd, "R_WASM32_PLT_INDEX");
   case BFD_RELOC_WASM32_PLT_SIG:
-    return elf_wasm32_reloc_name_lookup(abfd, "R_WASM32_PLT_SIG");
+    return elf32_wasm32_reloc_name_lookup(abfd, "R_WASM32_PLT_SIG");
   case BFD_RELOC_WASM32_COPY:
-    return elf_wasm32_reloc_name_lookup(abfd, "R_WASM32_COPY");
+    return elf32_wasm32_reloc_name_lookup(abfd, "R_WASM32_COPY");
   case BFD_RELOC_WASM32_CODE_POINTER:
-    return elf_wasm32_reloc_name_lookup(abfd, "R_WASM32_CODE_POINTER");
+    return elf32_wasm32_reloc_name_lookup(abfd, "R_WASM32_CODE_POINTER");
   case BFD_RELOC_WASM32_INDEX:
-    return elf_wasm32_reloc_name_lookup(abfd, "R_WASM32_INDEX");
+    return elf32_wasm32_reloc_name_lookup(abfd, "R_WASM32_INDEX");
   case BFD_RELOC_NONE:
-    return elf_wasm32_reloc_name_lookup(abfd, "R_WASM32_NONE");
+    return elf32_wasm32_reloc_name_lookup(abfd, "R_WASM32_NONE");
   default:
     return NULL;
   }
@@ -368,11 +368,11 @@ elf_wasm32_reloc_type_lookup (bfd *abfd ATTRIBUTE_UNUSED,
 /* Look up the relocation R_TYPE.  */
 
 static reloc_howto_type *
-elf_wasm32_rtype_to_howto (bfd *abfd, unsigned r_type)
+elf32_wasm32_rtype_to_howto (bfd *abfd, unsigned r_type)
 {
   unsigned int i = r_type;
 
-  if (i >= ARRAY_SIZE (elf_wasm32_howto_table))
+  if (i >= ARRAY_SIZE (elf32_wasm32_howto_table))
     {
       /* xgettext:c-format */
       _bfd_error_handler (_("%B: invalid relocation type %d"),
@@ -380,21 +380,21 @@ elf_wasm32_rtype_to_howto (bfd *abfd, unsigned r_type)
       i = R_WASM32_NONE;
     }
 
-  if (elf_wasm32_howto_table[i].type != r_type)
+  if (elf32_wasm32_howto_table[i].type != r_type)
     return NULL;
 
-  return &elf_wasm32_howto_table[i];
+  return &elf32_wasm32_howto_table[i];
 }
 
 /* Translate the ELF-internal relocation RELA into CACHE_PTR.  */
 
 static void
-elf_wasm32_info_to_howto_rela (bfd *abfd ATTRIBUTE_UNUSED,
+elf32_wasm32_info_to_howto_rela (bfd *abfd ATTRIBUTE_UNUSED,
                                arelent *cache_ptr,
                                Elf_Internal_Rela *dst)
 {
   unsigned int r_type = ELF32_R_TYPE (dst->r_info);
-  cache_ptr->howto = elf_wasm32_rtype_to_howto (abfd, r_type);
+  cache_ptr->howto = elf32_wasm32_rtype_to_howto (abfd, r_type);
 }
 
 #define ELF_ARCH		bfd_arch_wasm32
@@ -412,11 +412,11 @@ elf_wasm32_info_to_howto_rela (bfd *abfd ATTRIBUTE_UNUSED,
 /* For testing. */
 #define elf_backend_want_dynrelro            1
 
-#define elf_info_to_howto		elf_wasm32_info_to_howto_rela
+#define elf_info_to_howto		elf32_wasm32_info_to_howto_rela
 #define elf_info_to_howto_rel		NULL
 
-#define bfd_elf32_bfd_reloc_type_lookup elf_wasm32_reloc_type_lookup
-#define bfd_elf32_bfd_reloc_name_lookup elf_wasm32_reloc_name_lookup
+#define bfd_elf32_bfd_reloc_type_lookup elf32_wasm32_reloc_type_lookup
+#define bfd_elf32_bfd_reloc_name_lookup elf32_wasm32_reloc_name_lookup
 
 #define ELF_DYNAMIC_INTERPRETER  "/sbin/elf-dynamic-interpreter.so"
 
@@ -505,7 +505,7 @@ set_uleb128 (bfd *abfd ATTRIBUTE_UNUSED,
 }
 
 static bfd_reloc_status_type
-elf_wasm32_leb128_reloc (bfd *abfd ATTRIBUTE_UNUSED,
+elf32_wasm32_leb128_reloc (bfd *abfd ATTRIBUTE_UNUSED,
                          arelent *reloc_entry,
                          asymbol *symbol,
                          void *data ATTRIBUTE_UNUSED,
@@ -613,40 +613,40 @@ elf_wasm32_leb128_reloc (bfd *abfd ATTRIBUTE_UNUSED,
 }
 
 reloc_howto_type *
-elf_wasm32_reloc_name_lookup (bfd *abfd ATTRIBUTE_UNUSED,
+elf32_wasm32_reloc_name_lookup (bfd *abfd ATTRIBUTE_UNUSED,
                               const char *r_name);
 
 
 reloc_howto_type *
-elf_wasm32_reloc_type_lookup (bfd *abfd ATTRIBUTE_UNUSED,
+elf32_wasm32_reloc_type_lookup (bfd *abfd ATTRIBUTE_UNUSED,
                               enum bfd_reloc_code_real code);
 
 
 reloc_howto_type *
-elf_wasm32_info_to_howto_ptr (unsigned int r_type);
+elf32_wasm32_info_to_howto_ptr (unsigned int r_type);
 
 reloc_howto_type *
-elf_wasm32_info_to_howto_ptr (unsigned int r_type)
+elf32_wasm32_info_to_howto_ptr (unsigned int r_type)
 {
   if (r_type > R_WASM32_max)
     r_type = 0;
 
-  return &elf_wasm32_howto_table[r_type];
+  return &elf32_wasm32_howto_table[r_type];
 }
 
 void
-elf_wasm32_info_to_howto (bfd *abfd ATTRIBUTE_UNUSED, arelent *cache_ptr,
+elf32_wasm32_info_to_howto (bfd *abfd ATTRIBUTE_UNUSED, arelent *cache_ptr,
                               Elf_Internal_Rela *dst);
 void
-elf_wasm32_info_to_howto (bfd *abfd ATTRIBUTE_UNUSED, arelent *cache_ptr,
+elf32_wasm32_info_to_howto (bfd *abfd ATTRIBUTE_UNUSED, arelent *cache_ptr,
                               Elf_Internal_Rela *dst)
 {
   unsigned int r_type = ELF32_R_TYPE (dst->r_info);
 
-  cache_ptr->howto = elf_wasm32_info_to_howto_ptr (r_type);
+  cache_ptr->howto = elf32_wasm32_info_to_howto_ptr (r_type);
 }
 
-struct elf_wasm32_pplt_entry
+struct elf32_wasm32_pplt_entry
 {
   /* FALSE to skip this entry when building the PPLT.  */
   bfd_boolean build;
@@ -662,7 +662,7 @@ struct elf_wasm32_pplt_entry
 
 };
 
-struct elf_wasm32_link_hash_entry
+struct elf32_wasm32_link_hash_entry
 {
   struct elf_link_hash_entry root;
 
@@ -676,10 +676,10 @@ struct elf_wasm32_link_hash_entry
   bfd_vma pltstub_sigoff;
   bfd_vma pltfunction;
 
-  struct elf_wasm32_pplt_entry pplt;
+  struct elf32_wasm32_pplt_entry pplt;
 };
 
-#define elf_wasm32_hash_entry(ent) ((struct elf_wasm32_link_hash_entry *)(ent))
+#define elf32_wasm32_hash_entry(ent) ((struct elf32_wasm32_link_hash_entry *)(ent))
 
 struct dynamic_sections
 {
@@ -712,10 +712,10 @@ struct dynamic_sections
   asection *  sppltnamespace;  /* .space.name.function_.pplt */
 };
 
-#define elf_wasm32_hash_table(info) ((struct elf_wasm32_link_hash_table *)elf_hash_table (info))
+#define elf32_wasm32_hash_table(info) ((struct elf32_wasm32_link_hash_table *)elf_hash_table (info))
 
 /* WASM32 ELF linker hash table.  */
-struct elf_wasm32_link_hash_table
+struct elf32_wasm32_link_hash_table
 {
   struct elf_link_hash_table root;
   struct dynamic_sections ds;
@@ -739,27 +739,27 @@ struct elf_wasm32_link_hash_table
 };
 
 static struct bfd_hash_entry *
-elf_wasm32_link_hash_newfunc (struct bfd_hash_entry *entry,
+elf32_wasm32_link_hash_newfunc (struct bfd_hash_entry *entry,
                                 struct bfd_hash_table *table,
                                 const char *string)
 {
-  struct elf_wasm32_link_hash_entry *ret =
-    (struct elf_wasm32_link_hash_entry *) entry;
+  struct elf32_wasm32_link_hash_entry *ret =
+    (struct elf32_wasm32_link_hash_entry *) entry;
 
   /* Allocate the structure if it has not already been allocated by a
      subclass.  */
-  if (ret == (struct elf_wasm32_link_hash_entry *) NULL)
-    ret = ((struct elf_wasm32_link_hash_entry *)
+  if (ret == (struct elf32_wasm32_link_hash_entry *) NULL)
+    ret = ((struct elf32_wasm32_link_hash_entry *)
            bfd_hash_allocate (table,
-                              sizeof (struct elf_wasm32_link_hash_entry)));
-  if (ret == (struct elf_wasm32_link_hash_entry *) NULL)
+                              sizeof (struct elf32_wasm32_link_hash_entry)));
+  if (ret == (struct elf32_wasm32_link_hash_entry *) NULL)
     return (struct bfd_hash_entry *) ret;
 
   /* Call the allocation method of the superclass.  */
-  ret = ((struct elf_wasm32_link_hash_entry *)
+  ret = ((struct elf32_wasm32_link_hash_entry *)
          _bfd_elf_link_hash_newfunc ((struct bfd_hash_entry *) ret,
                                      table, string));
-  if (ret != (struct elf_wasm32_link_hash_entry *) NULL)
+  if (ret != (struct elf32_wasm32_link_hash_entry *) NULL)
     {
       ret->pltnameoff = (bfd_vma) -1;
       ret->plt_index = (bfd_vma) -1;
@@ -772,18 +772,18 @@ elf_wasm32_link_hash_newfunc (struct bfd_hash_entry *entry,
 /* Create a wasm32 ELF linker hash table.  */
 
 static struct bfd_link_hash_table *
-elf_wasm32_link_hash_table_create (bfd *abfd)
+elf32_wasm32_link_hash_table_create (bfd *abfd)
 {
-  struct elf_wasm32_link_hash_table *ret;
-  bfd_size_type amt = sizeof (struct elf_wasm32_link_hash_table);
+  struct elf32_wasm32_link_hash_table *ret;
+  bfd_size_type amt = sizeof (struct elf32_wasm32_link_hash_table);
 
-  ret = (struct elf_wasm32_link_hash_table *) bfd_zmalloc (amt);
-  if (ret == (struct elf_wasm32_link_hash_table *) NULL)
+  ret = (struct elf32_wasm32_link_hash_table *) bfd_zmalloc (amt);
+  if (ret == (struct elf32_wasm32_link_hash_table *) NULL)
     return NULL;
 
   if (!_bfd_elf_link_hash_table_init (&ret->root, abfd,
-                                      elf_wasm32_link_hash_newfunc,
-                                      sizeof (struct elf_wasm32_link_hash_entry),
+                                      elf32_wasm32_link_hash_newfunc,
+                                      sizeof (struct elf32_wasm32_link_hash_entry),
                                       SH_ELF_DATA))
     {
       free (ret);
@@ -805,7 +805,7 @@ wasm32_create_dynamic_sections (bfd * abfd,
                                 struct bfd_link_info *info)
 {
   struct elf_link_hash_table *htab = elf_hash_table (info);
-  struct elf_wasm32_link_hash_table *hhtab = (struct elf_wasm32_link_hash_table *) htab;
+  struct elf32_wasm32_link_hash_table *hhtab = (struct elf32_wasm32_link_hash_table *) htab;
   struct dynamic_sections *ds = &hhtab->ds;
 
   if (!ds->initialized)
@@ -1009,9 +1009,9 @@ build_pplt_stub (struct bfd_link_info *info,
                  struct elf_link_hash_entry *h)
 {
   bfd *output_bfd = info->output_bfd;
-  struct elf_wasm32_link_hash_entry *hh = elf_wasm32_hash_entry (h);
-  struct elf_wasm32_link_hash_table *hhtab =
-    elf_wasm32_hash_table (info);
+  struct elf32_wasm32_link_hash_entry *hh = elf32_wasm32_hash_entry (h);
+  struct elf32_wasm32_link_hash_table *hhtab =
+    elf32_wasm32_hash_table (info);
   struct elf_link_hash_entry *pltsig;
   bfd_vma signature ATTRIBUTE_UNUSED;
   const char *s;
@@ -1124,7 +1124,7 @@ add_symbol_to_plt (bfd *output_bfd, struct bfd_link_info *info,
                    struct elf_link_hash_entry *h)
 {
   struct dynamic_sections *ds = wasm32_create_dynamic_sections (output_bfd, info);
-  struct elf_wasm32_link_hash_entry *hh = (struct elf_wasm32_link_hash_entry *)h;
+  struct elf32_wasm32_link_hash_entry *hh = (struct elf32_wasm32_link_hash_entry *)h;
   struct elf_link_hash_entry *pltsig = hh->pltsig;
   bfd_vma ret;
   bfd_vma size;
@@ -1224,7 +1224,7 @@ add_symbol_to_plt (bfd *output_bfd, struct bfd_link_info *info,
  */
 
 static bfd_boolean
-elf_wasm32_adjust_dynamic_symbol (struct bfd_link_info *info,
+elf32_wasm32_adjust_dynamic_symbol (struct bfd_link_info *info,
                                   struct elf_link_hash_entry *h)
 {
   asection *s;
@@ -1255,7 +1255,7 @@ elf_wasm32_adjust_dynamic_symbol (struct bfd_link_info *info,
       if (bfd_link_pic (info)
           || WILL_CALL_FINISH_DYNAMIC_SYMBOL (1, 0, h))
         {
-          struct elf_wasm32_link_hash_entry *hh = (struct elf_wasm32_link_hash_entry *)h;
+          struct elf32_wasm32_link_hash_entry *hh = (struct elf32_wasm32_link_hash_entry *)h;
           bfd_vma loc = add_symbol_to_plt (dynobj, info, h);
 
           if (bfd_link_executable (info) && !h->def_regular)
@@ -1346,10 +1346,10 @@ elf_wasm32_adjust_dynamic_symbol (struct bfd_link_info *info,
 }
 
 static bfd_boolean
-elf_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec, const Elf_Internal_Rela* relocs) __attribute__((used));
+elf32_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec, const Elf_Internal_Rela* relocs) __attribute__((used));
 
 static bfd_boolean
-elf_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec, const Elf_Internal_Rela* relocs)
+elf32_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec, const Elf_Internal_Rela* relocs)
 {
   Elf_Internal_Shdr *symtab_hdr;
   struct elf_link_hash_entry **sym_hashes;
@@ -1377,7 +1377,7 @@ elf_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec, c
     {
       int r_type;
       struct elf_link_hash_entry *h;
-      struct elf_wasm32_link_hash_entry *hh;
+      struct elf32_wasm32_link_hash_entry *hh;
       unsigned long r_symndx = ELF32_R_SYM (rel->r_info);
 
       r_type = ELF32_R_TYPE (rel->r_info);
@@ -1405,7 +1405,7 @@ elf_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec, c
 
               /* PR15323, ref flags aren't set for references in the same
                  object.  */
-              hh = elf_wasm32_hash_entry (h);
+              hh = elf32_wasm32_hash_entry (h);
               h->root.non_ir_ref = 1;
             }
         }
@@ -1571,7 +1571,7 @@ static void
 finish_plt_entry (bfd *output_bfd, struct bfd_link_info *info,
                   struct elf_link_hash_entry *h, Elf_Internal_Sym *sym)
 {
-  struct elf_wasm32_link_hash_entry *hh = (struct elf_wasm32_link_hash_entry *)h;
+  struct elf32_wasm32_link_hash_entry *hh = (struct elf32_wasm32_link_hash_entry *)h;
   struct elf_link_hash_table *htab = elf_hash_table (info);
 
   if (h->plt.offset != (bfd_vma) -1)
@@ -1630,7 +1630,7 @@ finish_plt_entry (bfd *output_bfd, struct bfd_link_info *info,
                    splt->contents + h->plt.offset + hh->pltstub_sigoff + 5);
 
       if (PLTNAME) {
-        struct elf_wasm32_link_hash_entry *h4 = (struct elf_wasm32_link_hash_entry *)h;
+        struct elf32_wasm32_link_hash_entry *h4 = (struct elf32_wasm32_link_hash_entry *)h;
 
         bfd_vma index = plt_index + plt_bias;
         const char *str = h->root.root.string ? h->root.root.string : "";;
@@ -1690,7 +1690,7 @@ finish_plt_entry (bfd *output_bfd, struct bfd_link_info *info,
 }
 
 static bfd_boolean
-elf_wasm32_finish_dynamic_symbol (bfd * output_bfd,
+elf32_wasm32_finish_dynamic_symbol (bfd * output_bfd,
                                   struct bfd_link_info *info,
                                   struct elf_link_hash_entry *h,
                                   Elf_Internal_Sym * sym)
@@ -1782,7 +1782,7 @@ elf_wasm32_finish_dynamic_symbol (bfd * output_bfd,
 }
 
 static bfd_boolean
-elf_wasm32_create_dynamic_sections (bfd *dynobj, struct bfd_link_info *info)
+elf32_wasm32_create_dynamic_sections (bfd *dynobj, struct bfd_link_info *info)
 {
   bfd *abfd = dynobj;
   flagword flags, pltflags;
@@ -1930,7 +1930,7 @@ allocate_dynrelocs (struct elf_link_hash_entry *h, void *inf)
 static bfd_boolean
 allocate_pplt (struct elf_link_hash_entry *h, void *data)
 {
-  struct elf_wasm32_link_hash_entry *hh = elf_wasm32_hash_entry (h);
+  struct elf32_wasm32_link_hash_entry *hh = elf32_wasm32_hash_entry (h);
   struct bfd_link_info *info = (struct bfd_link_info *)data;
 
   if (h->root.type != bfd_link_hash_undefweak)
@@ -1948,7 +1948,7 @@ allocate_pplt (struct elf_link_hash_entry *h, void *data)
 /* Set the sizes of the dynamic sections.  Also sets sizes of the
    pseudo-PLT sections, which are not really dynamic. */
 static bfd_boolean
-elf_wasm32_size_dynamic_sections (bfd * output_bfd,
+elf32_wasm32_size_dynamic_sections (bfd * output_bfd,
                                   struct bfd_link_info *info)
 {
   bfd *    dynobj;
@@ -1957,7 +1957,7 @@ elf_wasm32_size_dynamic_sections (bfd * output_bfd,
   bfd_boolean     reltext_exist = FALSE;
   struct dynamic_sections *ds = wasm32_create_dynamic_sections (output_bfd, info);
   struct elf_link_hash_table *htab = elf_hash_table (info);
-  struct elf_wasm32_link_hash_table *hhtab = elf_wasm32_hash_table (info);
+  struct elf32_wasm32_link_hash_table *hhtab = elf32_wasm32_hash_table (info);
 
   dynobj = (elf_hash_table (info))->dynobj;
   BFD_ASSERT (dynobj != NULL);
@@ -2115,7 +2115,7 @@ elf_wasm32_size_dynamic_sections (bfd * output_bfd,
 }
 
 static bfd_boolean
-elf_wasm32_finish_dynamic_sections (bfd * output_bfd,
+elf32_wasm32_finish_dynamic_sections (bfd * output_bfd,
                                       struct bfd_link_info *info)
 {
   struct dynamic_sections *ds = wasm32_create_dynamic_sections (output_bfd, info);
@@ -2227,7 +2227,7 @@ wasm32_relocate_contents (reloc_howto_type *howto,
   unsigned int rightshift = howto->rightshift;
   unsigned int bitpos = howto->bitpos;
 
-  if (howto->special_function == elf_wasm32_leb128_reloc)
+  if (howto->special_function == elf32_wasm32_leb128_reloc)
     {
       int len = 0;
       int i;
@@ -2384,8 +2384,8 @@ static void
 finish_pplt_entry (bfd *output_bfd, struct bfd_link_info *info,
                    struct elf_link_hash_entry *h)
 {
-  struct elf_wasm32_link_hash_entry *hh =
-    (struct elf_wasm32_link_hash_entry *)h;
+  struct elf32_wasm32_link_hash_entry *hh =
+    (struct elf32_wasm32_link_hash_entry *)h;
 
   struct dynamic_sections *ds = wasm32_create_dynamic_sections (output_bfd, info);
   asection *spplt;
@@ -2472,7 +2472,7 @@ finish_pplt_entry (bfd *output_bfd, struct bfd_link_info *info,
 }
 
 static bfd_boolean
-elf_wasm32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
+elf32_wasm32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
                              struct bfd_link_info *info, bfd *input_bfd,
                              asection *input_section, bfd_byte *contents,
                              Elf_Internal_Rela *relocs,
@@ -2488,7 +2488,7 @@ elf_wasm32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
   struct dynamic_sections *ds = wasm32_create_dynamic_sections
     (output_bfd, info);
   struct elf_link_hash_table *htab = elf_hash_table (info);
-  struct elf_wasm32_link_hash_table *hhtab = elf_wasm32_hash_table (info);
+  struct elf32_wasm32_link_hash_table *hhtab = elf32_wasm32_hash_table (info);
 
   symtab_hdr = &elf_tdata (input_bfd)->symtab_hdr;
   sym_hashes = elf_sym_hashes (input_bfd);
@@ -2507,7 +2507,7 @@ elf_wasm32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
       bfd_vma relocation;
       bfd_vma addend = (bfd_vma)0;
       bfd_reloc_status_type r;
-      struct elf_wasm32_link_hash_entry *hh;
+      struct elf32_wasm32_link_hash_entry *hh;
 
       r_symndx = ELF32_R_SYM (rel->r_info);
 
@@ -2516,7 +2516,7 @@ elf_wasm32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
       if (r_type == (int) R_WASM32_NONE)
         continue;
 
-      howto = elf_wasm32_howto_table + r_type;
+      howto = elf32_wasm32_howto_table + r_type;
 
       h = NULL;
       sym = NULL;
@@ -2555,12 +2555,12 @@ elf_wasm32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
             return FALSE;
 
           h = sym_hashes[r_symndx - symtab_hdr->sh_info];
-          hh = (struct elf_wasm32_link_hash_entry *)h;
+          hh = (struct elf32_wasm32_link_hash_entry *)h;
           while (h->root.type == bfd_link_hash_indirect
                  || h->root.type == bfd_link_hash_warning)
             {
               h = (struct elf_link_hash_entry *) h->root.u.i.link;
-              hh = (struct elf_wasm32_link_hash_entry *)h;
+              hh = (struct elf32_wasm32_link_hash_entry *)h;
             }
 
           if (h->root.type == bfd_link_hash_defined
@@ -2916,17 +2916,17 @@ elf_wasm32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
   return TRUE;
 }
 
-#define elf_backend_relocate_section	elf_wasm32_relocate_section
-#define elf_backend_check_relocs elf_wasm32_check_relocs
-#define elf_backend_adjust_dynamic_symbol    elf_wasm32_adjust_dynamic_symbol
-#define elf_backend_finish_dynamic_symbol    elf_wasm32_finish_dynamic_symbol
-#define elf_backend_create_dynamic_sections elf_wasm32_create_dynamic_sections
-#define elf_backend_finish_dynamic_sections  elf_wasm32_finish_dynamic_sections
-#define elf_backend_size_dynamic_sections    elf_wasm32_size_dynamic_sections
+#define elf_backend_relocate_section	elf32_wasm32_relocate_section
+#define elf_backend_check_relocs elf32_wasm32_check_relocs
+#define elf_backend_adjust_dynamic_symbol    elf32_wasm32_adjust_dynamic_symbol
+#define elf_backend_finish_dynamic_symbol    elf32_wasm32_finish_dynamic_symbol
+#define elf_backend_create_dynamic_sections elf32_wasm32_create_dynamic_sections
+#define elf_backend_finish_dynamic_sections  elf32_wasm32_finish_dynamic_sections
+#define elf_backend_size_dynamic_sections    elf32_wasm32_size_dynamic_sections
 #define elf_backend_want_got_plt 1
 #define elf_backend_plt_readonly 1
 #define elf_backend_got_header_size 0
 
 #define bfd_elf32_bfd_link_hash_table_create \
-                                        elf_wasm32_link_hash_table_create
+                                        elf32_wasm32_link_hash_table_create
 #include "elf32-target.h"

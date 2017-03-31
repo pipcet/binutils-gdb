@@ -69,29 +69,12 @@ enum wasm_class
     wasm_signature
   };
 
-enum wasm_signedness
-  {
-    wasm_signed,
-    wasm_unsigned,
-    wasm_agnostic,
-    wasm_floating
-  };
-
-enum wasm_type
-  {
-    wasm_void,
-    wasm_any,
-    wasm_i32,
-    wasm_i64,
-    wasm_f32,
-    wasm_f64
-  };
-
 struct wasm32_private_data
 {
   bfd_boolean print_registers;
   bfd_boolean print_well_known_globals;
 
+  /* Limit valid symbols to those with a given prefix.  */
   const char *section_prefix;
 };
 
@@ -108,15 +91,12 @@ static const wasm32_options_t options[] =
 };
 
 #define WASM_OPCODE(opcode, name, intype, outtype, clas, signedness)     \
-  { name, wasm_ ## intype, wasm_ ## outtype, wasm_ ## clas, wasm_ ## signedness, opcode },
+  { name, wasm_ ## clas, opcode },
 
 struct wasm32_opcode_s
 {
   const char *name;
-  enum wasm_type intype;
-  enum wasm_type outtype;
   enum wasm_class clas;
-  enum wasm_signedness signedness;
   unsigned char opcode;
 } wasm32_opcodes[] =
 {
@@ -144,6 +124,29 @@ parse_wasm32_disassembler_options (struct disassemble_info *info,
     }
 }
 
+/* Check whether SYM is valid.  Special-case absolute symbols, which
+   are unhelpful to print, and arguments to a "call" insn, which we
+   want to be in a section matching a given prefix.  */
+
+bfd_boolean
+wasm32_symbol_is_valid (asymbol *sym,
+                        struct disassemble_info *info)
+{
+  struct wasm32_private_data *private_data = info->private_data;
+
+  if (sym == NULL)
+    return FALSE;
+
+  if (strcmp(sym->section->name, "*ABS*") == 0)
+    return FALSE;
+
+  if (private_data && private_data->section_prefix != NULL
+      && strncmp (sym->section->name, private_data->section_prefix,
+                  strlen (private_data->section_prefix)))
+    return FALSE;
+
+  return TRUE;
+}
 
 /* Initialize the disassembler structures for INFO.  */
 
@@ -169,34 +172,14 @@ disassemble_init_wasm32 (struct disassemble_info *info)
     }
 
   info->symbol_is_valid = wasm32_symbol_is_valid;
-  info->disassembler_needs_relocs = TRUE;
-}
-
-bfd_boolean
-wasm32_symbol_is_valid (asymbol *sym,
-                        struct disassemble_info *info)
-{
-  struct wasm32_private_data *private_data = info->private_data;
-
-  if (sym == NULL)
-    return FALSE;
-
-  if (strcmp(sym->section->name, "*ABS*") == 0)
-    return FALSE;
-
-  if (private_data && private_data->section_prefix != NULL
-      && strncmp (sym->section->name, private_data->section_prefix,
-                  strlen (private_data->section_prefix)))
-    return FALSE;
-
-  return TRUE;
 }
 
 /* Read an LEB128-encoded integer from INFO at address PC, reading one
    byte at a time.  Set ERROR_RETURN if no complete integer could be
    read, LENGTH_RETURN to the number oof bytes read (including bytes
    in incomplete numbers).  SIGN means interpret the number as
-   SLEB128.  */
+   SLEB128.  Unfortunately, this is a duplicate of wasm-module.c's
+   wasm_read_leb128 ().  */
 
 static uint64_t
 wasm_read_leb128 (bfd_vma                   pc,

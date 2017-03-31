@@ -484,12 +484,12 @@ disassembler (bfd *abfd)
 #endif
 #ifdef ARCH_wasm32
     case bfd_arch_wasm32:
-      disassemble = print_insn_little_wasm32;
+      disassemble = print_insn_wasm32;
       break;
 #endif
 #ifdef ARCH_wasm64
     case bfd_arch_wasm64:
-      disassemble = print_insn_little_wasm64;
+      disassemble = print_insn_wasm64;
       break;
 #endif
 #ifdef ARCH_xgate
@@ -598,6 +598,9 @@ disassembler_usage (FILE *stream ATTRIBUTE_UNUSED)
 #ifdef ARCH_s390
   print_s390_disassembler_options (stream);
 #endif
+#ifdef ARCH_wasm32
+  print_wasm32_disassembler_options (stream);
+#endif
 
   return;
 }
@@ -677,8 +680,7 @@ disassemble_init_for_target (struct disassemble_info * info)
 #endif
 #ifdef ARCH_wasm32
     case bfd_arch_wasm32:
-      info->symbol_is_valid = wasm32_symbol_is_valid;
-      info->disassembler_needs_relocs = TRUE;
+      disassemble_init_wasm32 (info);
       break;
 #endif
 #ifdef ARCH_wasm64

@@ -1,4 +1,4 @@
-/* Opcode printing mode for the WebAssembly target
+/* Opcode printing code for the WebAssembly target
    Copyright (C) 2017 Free Software Foundation, Inc.
 
    This file is part of libopcodes.
@@ -28,13 +28,20 @@
 #include "elf-bfd.h"
 #include "elf/internal.h"
 #include "elf/wasm32.h"
+#include <stdint.h>
+
+/* Type names for blocks and signatures.  */
+#define BLOCK_TYPE_NONE              0x40
+#define BLOCK_TYPE_I32               0x7f
+#define BLOCK_TYPE_I64               0x7e
+#define BLOCK_TYPE_F32               0x7d
+#define BLOCK_TYPE_F64               0x7c
 
 enum wasm_class
   {
     wasm_typed,
     wasm_special,
     wasm_break,
-    wasm_fakebreak,
     wasm_break_if,
     wasm_break_table,
     wasm_return,
@@ -88,24 +95,83 @@ struct wasm32_private_data
   const char *section_prefix;
 };
 
+typedef struct
+{
+  const char *name;
+  const char *description;
+} wasm32_options_t;
+
+static const wasm32_options_t options[] =
+{
+  { "registers", N_("Disassemble \"register\" names") },
+  { "globals",   N_("Name well-known globals") },
+};
+
 #define WASM_OPCODE(opcode, name, intype, outtype, clas, signedness)     \
   { name, wasm_ ## intype, wasm_ ## outtype, wasm_ ## clas, wasm_ ## signedness, opcode },
 
-struct wasm32_opcode_s {
+struct wasm32_opcode_s
+{
   const char *name;
   enum wasm_type intype;
   enum wasm_type outtype;
   enum wasm_class clas;
   enum wasm_signedness signedness;
   unsigned char opcode;
-} wasm32_opcodes[] = {
+} wasm32_opcodes[] =
+{
 #include "opcode/wasm.h"
   { NULL, 0, 0, 0, 0, 0 }
 };
 
-bfd_boolean
-wasm32_symbol_is_valid (asymbol *sym,
-                        struct disassemble_info *info);
+/* Parse the disassembler options in OPTS and initialize INFO.  */
+
+static void
+parse_wasm32_disassembler_options (struct disassemble_info *info,
+                                   char *opts)
+{
+  struct wasm32_private_data *private = info->private_data;
+  while (opts != NULL)
+    {
+      if (CONST_STRNEQ (opts, "registers"))
+        private->print_registers = TRUE;
+      else if (CONST_STRNEQ (opts, "globals"))
+        private->print_well_known_globals = TRUE;
+
+      opts = strchr (opts, ',');
+      if (opts)
+        opts++;
+    }
+}
+
+
+/* Initialize the disassembler structures for INFO.  */
+
+void
+disassemble_init_wasm32 (struct disassemble_info *info)
+{
+  if (info->private_data == NULL)
+    {
+      static struct wasm32_private_data private;
+
+      private.print_registers = FALSE;
+      private.print_well_known_globals = FALSE;
+      private.section_prefix = NULL;
+
+      info->private_data = &private;
+    }
+
+  if (info->disassembler_options)
+    {
+      parse_wasm32_disassembler_options (info, info->disassembler_options);
+
+      info->disassembler_options = NULL;
+    }
+
+  info->symbol_is_valid = wasm32_symbol_is_valid;
+  info->disassembler_needs_relocs = TRUE;
+}
+
 bfd_boolean
 wasm32_symbol_is_valid (asymbol *sym,
                         struct disassemble_info *info)
@@ -126,70 +192,52 @@ wasm32_symbol_is_valid (asymbol *sym,
   return TRUE;
 }
 
-/* Parse an individual disassembler option.  */
+/* Read an LEB128-encoded integer from INFO at address PC, reading one
+   byte at a time.  Set ERROR_RETURN if no complete integer could be
+   read, LENGTH_RETURN to the number oof bytes read (including bytes
+   in incomplete numbers).  SIGN means interpret the number as
+   SLEB128.  */
 
-void
-parse_wasm32_disassembler_option (char *option);
-void
-parse_wasm32_disassembler_option (char *option)
+static uint64_t
+wasm_read_leb128 (bfd_vma                   pc,
+                  struct disassemble_info * info,
+                  bfd_boolean *             error_return,
+                  unsigned int *            length_return,
+                  bfd_boolean               sign)
 {
-  if (option == NULL)
-    return;
+  uint64_t result = 0;
+  unsigned int num_read = 0;
+  unsigned int shift = 0;
+  unsigned char byte = 0;
+  bfd_boolean success = FALSE;
 
-  /* XXX - should break 'option' at following delimiter.  */
-  fprintf (stderr, _("Unrecognised disassembler option: %s\n"), option);
-
-  return;
-}
-
-static void
-parse_wasm32_disassembler_options (char *options ATTRIBUTE_UNUSED)
-{
-}
-
-static int
-read_sleb128 (long *value, bfd_vma pc,
-              struct disassemble_info *info)
-{
-  bfd_byte buffer[16];
-  int len = 1;
-
-  if (info->read_memory_func (pc, buffer, 1, info))
-    return -1;
-
-  if (buffer[0] & 0x80)
+  while (info->read_memory_func (pc + num_read, &byte, 1, info) == 0)
     {
-      len = read_sleb128 (value, pc + 1, info) + 1;
-    }
-  else if (buffer[0] & 0x40)
-    {
-      *value |= -1L;
-    }
-  *value <<= 7;
-  *value |= (buffer[0] & 0x7f);
+      num_read++;
 
-  return len;
+      result |= ((bfd_vma) (byte & 0x7f)) << shift;
+
+      shift += 7;
+      if ((byte & 0x80) == 0)
+        {
+          success = TRUE;
+          break;
+        }
+    }
+
+  if (length_return != NULL)
+    *length_return = num_read;
+  if (error_return != NULL)
+    *error_return = ! success;
+
+  if (sign && (shift < 8 * sizeof (result)) && (byte & 0x40))
+    result |= -((uint64_t) 1 << shift);
+
+  return result;
 }
 
-static int
-read_uleb128 (long *value, bfd_vma pc,
-              struct disassemble_info *info)
-{
-  bfd_byte buffer[16];
-  int len = 1;
-
-  if (info->read_memory_func (pc, buffer, 1, info))
-    return -1;
-
-  if (buffer[0] & 0x80)
-    {
-      len = read_uleb128 (value, pc + 1, info) + 1;
-    }
-  *value <<= 7;
-  *value |= (buffer[0] & 0x7f);
-
-  return len;
-}
+/* Read a 32-bit IEEE float from PC using INFO, convert it to a host
+   double, and store it at VALUE.  */
 
 static int
 read_f32 (double *value, bfd_vma pc, struct disassemble_info *info)
@@ -205,6 +253,9 @@ read_f32 (double *value, bfd_vma pc, struct disassemble_info *info)
   return sizeof (buf);
 }
 
+/* Read a 64-bit IEEE float from PC using INFO, convert it to a host
+   double, and store it at VALUE.  */
+
 static int
 read_f64 (double *value, bfd_vma pc, struct disassemble_info *info)
 {
@@ -219,10 +270,10 @@ read_f64 (double *value, bfd_vma pc, struct disassemble_info *info)
   return sizeof (buf);
 }
 
+/* Main disassembly routine.  Disassemble insn at PC using INFO.  */
+
 int
-print_insn_little_wasm32 (bfd_vma pc, struct disassemble_info *info);
-int
-print_insn_little_wasm32 (bfd_vma pc, struct disassemble_info *info)
+print_insn_wasm32 (bfd_vma pc, struct disassemble_info *info)
 {
   unsigned char opcode;
   struct wasm32_opcode_s *op;
@@ -239,6 +290,8 @@ print_insn_little_wasm32 (bfd_vma pc, struct disassemble_info *info)
   long target_count = 0;
   long block_type = 0;
   int len = 1;
+  int ret = 0;
+  unsigned int bytes_read = 0;
   int i;
   const char *locals[] = {
     "$dpc", "$sp1", "$r0", "$r1", "$rpc", "$pc0",
@@ -247,30 +300,12 @@ print_insn_little_wasm32 (bfd_vma pc, struct disassemble_info *info)
     "$i0", "$i1", "$i2", "$i3", "$i4", "$i5", "$i6", "$i7",
     "$f0", "$f1", "$f2", "$f3", "$f4", "$f5", "$f6", "$f7",
   };
-  int nlocals = sizeof(locals) / sizeof(locals[0]);
+  int nlocals = ARRAY_SIZE (locals);
   const char *globals[] = {
     "$got", "$plt", "$gpo"
   };
-  int nglobals = sizeof(globals) / sizeof(globals[0]);
-  (void) nglobals;
-
-  if (info->disassembler_options)
-    {
-      parse_wasm32_disassembler_options (info->disassembler_options);
-
-      info->disassembler_options = NULL;
-    }
-
-  if (info->private_data == NULL)
-    {
-      static struct wasm32_private_data private;
-
-      private.print_registers = TRUE;
-      private.print_well_known_globals = TRUE;
-      private.section_prefix = NULL;
-
-      info->private_data = &private;
-    }
+  int nglobals = ARRAY_SIZE (globals);
+  bfd_boolean error = FALSE;
 
   if (info->read_memory_func (pc, buffer, 1, info))
     return -1;
@@ -283,7 +318,7 @@ print_insn_little_wasm32 (bfd_vma pc, struct disassemble_info *info)
 
   if (!op->name)
     {
-      prin (stream, "\t.byte %02x\n", buffer[0]);
+      prin (stream, "\t.byte 0x%02x\n", buffer[0]);
       return 1;
     }
   else
@@ -293,65 +328,31 @@ print_insn_little_wasm32 (bfd_vma pc, struct disassemble_info *info)
       prin (stream, "\t");
       prin (stream, "%s", op->name);
 
-      switch (op->clas)
+      if (op->clas == wasm_typed)
         {
-        case wasm_typed:
-          len += read_uleb128(&block_type, pc + len, info);
+          block_type = wasm_read_leb128
+            (pc + len, info, &error, &bytes_read, FALSE);
+          if (error)
+            return -1;
+          len += bytes_read;
           switch (block_type)
             {
-            case 0x40:
+            case BLOCK_TYPE_NONE:
               prin (stream, "[]");
               break;
-            case 0x7f:
+            case BLOCK_TYPE_I32:
               prin (stream, "[i]");
               break;
-            case 0x7e:
+            case BLOCK_TYPE_I64:
               prin (stream, "[l]");
               break;
-            case 0x7d:
+            case BLOCK_TYPE_F32:
               prin (stream, "[f]");
               break;
-            case 0x7c:
+            case BLOCK_TYPE_F64:
               prin (stream, "[d]");
               break;
             }
-          break;
-        case wasm_special:
-        case wasm_grow_memory:
-        case wasm_current_memory:
-          break;
-        case wasm_binary:
-        case wasm_relational:
-        case wasm_store:
-          break;
-        case wasm_select:
-          break;
-        case wasm_eqz:
-        case wasm_unary:
-        case wasm_conv:
-        case wasm_load:
-        case wasm_set_local:
-        case wasm_tee_local:
-        case wasm_drop:
-          break;
-        case wasm_break_table:
-        case wasm_break:
-        case wasm_fakebreak:
-        case wasm_return:
-          break;
-        case wasm_call:
-        case wasm_call_import:
-        case wasm_call_indirect:
-          break;
-        case wasm_break_if:
-          break;
-        case wasm_constant_i32:
-        case wasm_constant_i64:
-        case wasm_constant_f32:
-        case wasm_constant_f64:
-        case wasm_get_local:
-        case wasm_signature:
-          break;
         }
 
       switch (op->clas)
@@ -363,68 +364,98 @@ print_insn_little_wasm32 (bfd_vma pc, struct disassemble_info *info)
         case wasm_conv:
         case wasm_relational:
         case wasm_drop:
-          break;
+        case wasm_signature:
+        case wasm_call_import:
         case wasm_typed:
         case wasm_select:
           break;
         case wasm_break_table:
-          len += read_uleb128 (&target_count, pc + len, info);
+          target_count = wasm_read_leb128
+            (pc + len, info, &error, &bytes_read, FALSE);
+          if (error)
+            return -1;
+          len += bytes_read;
           prin (stream, " %ld", target_count);
           for (i = 0; i < target_count + 1; i++)
             {
               long target = 0;
-              len += read_uleb128 (&target, pc + len, info);
+              target = wasm_read_leb128
+                (pc + len, info, &error, &bytes_read, FALSE);
+              if (error)
+                return -1;
+              len += bytes_read;
               prin (stream, " %ld", target);
             }
           break;
-        case wasm_fakebreak:
-          {
-            long n = 0;
-            len += read_uleb128 (&n, pc + len, info);
-            prin (stream, "[%ld]", n);
-            len += read_uleb128 (&depth, pc + len, info);
-            prin (stream, " %ld", depth);
-          }
-          break;
         case wasm_break:
         case wasm_break_if:
-          len += read_uleb128 (&depth, pc + len, info);
+          depth = wasm_read_leb128
+            (pc + len, info, &error, &bytes_read, FALSE);
+          if (error)
+            return -1;
+          len += bytes_read;
           prin (stream, " %ld", depth);
           break;
         case wasm_return:
           break;
         case wasm_constant_i32:
         case wasm_constant_i64:
-          len += read_sleb128 (&constant, pc + len, info);
+          constant = wasm_read_leb128
+            (pc + len, info, &error, &bytes_read, TRUE);
+          if (error)
+            return -1;
+          len += bytes_read;
           prin (stream, " %ld", constant);
           break;
         case wasm_constant_f32:
           /* This appears to be the best we can do, even though we're
              using host doubles for WebAssembly floats.  */
-          len += read_f32 (&fconstant, pc + len, info);
+          ret = read_f32 (&fconstant, pc + len, info);
+          if (ret < 0)
+            return -1;
+          len += ret;
           prin (stream, " %.*g", DECIMAL_DIG, fconstant);
           break;
         case wasm_constant_f64:
-          len += read_f64 (&fconstant, pc + len, info);
+          ret = read_f64 (&fconstant, pc + len, info);
+          if (ret < 0)
+            return -1;
+          len += ret;
           prin (stream, " %.*g", DECIMAL_DIG, fconstant);
           break;
         case wasm_call:
-          len += read_uleb128 (&index, pc + len, info);
+          index = wasm_read_leb128
+            (pc + len, info, &error, &bytes_read, FALSE);
+          if (error)
+            return -1;
+          len += bytes_read;
           prin (stream, " ");
           private_data->section_prefix = ".space.function_index";
           (*info->print_address_func) ((bfd_vma) index, info);
           private_data->section_prefix = NULL;
           break;
         case wasm_call_indirect:
-          len += read_uleb128 (&constant, pc + len, info);
+          constant = wasm_read_leb128
+            (pc + len, info, &error, &bytes_read, FALSE);
+          if (error)
+            return -1;
+          len += bytes_read;
           prin (stream, " %ld", constant);
-          len += read_uleb128 (&constant, pc + len, info);
+          constant = wasm_read_leb128
+            (pc + len, info, &error, &bytes_read, FALSE);
+          if (error)
+            return -1;
+          len += bytes_read;
           prin (stream, " %ld", constant);
           break;
         case wasm_get_local:
         case wasm_set_local:
         case wasm_tee_local:
-          len += read_uleb128 (&constant, pc + len, info);
+          constant = wasm_read_leb128
+            (pc + len, info, &error, &bytes_read, FALSE);
+          if (error)
+            return -1;
+          len += bytes_read;
           prin (stream, " %ld", constant);
           if (strcmp (op->name + 4, "local") == 0)
             {
@@ -441,27 +472,51 @@ print_insn_little_wasm32 (bfd_vma pc, struct disassemble_info *info)
           break;
         case wasm_grow_memory:
         case wasm_current_memory:
-          len += read_uleb128 (&constant, pc + len, info);
+          constant = wasm_read_leb128
+            (pc + len, info, &error, &bytes_read, FALSE);
+          if (error)
+            return -1;
+          len += bytes_read;
           prin (stream, " %ld", constant);
           break;
         case wasm_load:
         case wasm_store:
-          len += read_uleb128 (&flags, pc + len, info);
-          len += read_uleb128 (&offset, pc + len, info);
+          flags = wasm_read_leb128
+            (pc + len, info, &error, &bytes_read, FALSE);
+          if (error)
+            return -1;
+          len += bytes_read;
+          offset = wasm_read_leb128
+            (pc + len, info, &error, &bytes_read, FALSE);
+          if (error)
+            return -1;
+          len += bytes_read;
           prin (stream, " a=%ld %ld", flags, offset);
-        case wasm_signature:
-        case wasm_call_import:
-          break;
         }
     }
   return len;
 }
 
-void print_wasm32_disassembler_options(FILE *);
+/* Print valid disassembler options to STREAM.  */
+
 void
 print_wasm32_disassembler_options (FILE *stream)
 {
+  unsigned int i, max_len = 0;
   fprintf (stream, _("\
 The following WASM32 specific disassembler options are supported for use with\n\
 the -M switch:\nnone\n"));
+
+  for (i = 0; i < ARRAY_SIZE (options); i++)
+    {
+      unsigned int len = strlen (options[i].name);
+      if (max_len < len)
+	max_len = len;
+    }
+
+  for (i = 0, max_len++; i < ARRAY_SIZE (options); i++)
+    fprintf (stream, "  %s%*c %s\n",
+	     options[i].name,
+	     (int)(max_len - strlen (options[i].name)), ' ',
+	     _(options[i].description));
 }

@@ -51,4 +51,6 @@ if [istarget wasm32-*-*] {
     # illegal-23 has become legal
     run_list_test "illegal-24"
     run_list_test "illegal-25"
+    run_dump_test "disass"
+    run_dump_test "disass-2"
 }

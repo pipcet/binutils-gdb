@@ -2209,7 +2209,7 @@ elf32_wasm32_always_size_sections (bfd * output_bfd,
      Otherwise, leave them at size 0. */
   if (ds->spplt)
     {
-      DEBUG_PPLT(fprintf(stderr, "finalizing PPLT sizes (ass): %ld\n",
+      DEBUG_PPLT(fprintf(stderr, "finalizing PPLT sizes (always_size_sections): %ld\n",
                          hhtab->sppltspace_size););
       hhtab->has_pplt = TRUE;
       ds->spplt->size = hhtab->spplt_size;

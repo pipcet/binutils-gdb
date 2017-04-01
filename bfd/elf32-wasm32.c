@@ -750,9 +750,6 @@ struct dynamic_sections *
 wasm32_create_dynamic_sections (bfd * abfd,
                                 struct bfd_link_info *info);
 
-/* Among other things, this function makes the decision whether to
-   create the PLT sections or the PPLT sections (but never both). */
-
 struct dynamic_sections *
 wasm32_create_dynamic_sections (bfd * abfd,
                                 struct bfd_link_info *info)
@@ -985,29 +982,6 @@ add_symbol_to_plt (bfd *output_bfd, struct bfd_link_info *info,
 
   return ret;
 }
-
-/* build a pseudo-PLT stub for h, based on its PLT sig, and save
-   it. Also resize pseudo-PLT sections.
-
-   A pseudo-PLT stub is a stub used for an undefined weak symbol that
-   is called as a function using, in the relocatable object file, an
-   "f@plt{__sigchar_F...E}" relocation.  On normal architectures, we
-   simply resolve such symbols to the value 0, but that would result
-   in WebAssembly modules that fail to validate because the type of
-   whichever function is at index 0 doesn't match up with the type f
-   might have had.
-
-   On normal architectures, calls to weak symbols need to be guarded
-   with a check to see that they are defined to a nonzero value, or a
-   segfault will result when the program counter is set to 0; on
-   WebAssembly, we have to manually trap in the PPLT stub to cause a
-   similar effect.
-
-   This function does not actually touch the PPLT stub sections at
-   all: it only records their sizes and builds a structure in
-   memory. This is because it is called before we make the decision
-   whether to actually create PPLT stubs or PLT stubs.
- */
 
 static bfd_boolean
 elf32_wasm32_adjust_dynamic_symbol (struct bfd_link_info *info,
@@ -1710,8 +1684,8 @@ allocate_dynrelocs (struct elf_link_hash_entry *h, void *inf)
   return TRUE;
 }
 
-/* Set the sizes of the dynamic sections.  Also sets sizes of the
-   pseudo-PLT sections, which are not really dynamic. */
+/* Set the sizes of the dynamic sections.  */
+
 static bfd_boolean
 elf32_wasm32_size_dynamic_sections (bfd * output_bfd,
                                   struct bfd_link_info *info)

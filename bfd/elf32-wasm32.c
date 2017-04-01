@@ -1090,6 +1090,8 @@ build_pplt_stub (struct bfd_link_info *info,
   set_uleb128 (output_bfd, signature, p - 5, p);
   *p++ = 0x00; /* reserved, MBZ */
   *p++ = 0x0f; /* return */
+#else
+  hh->pplt.stub_sigoff = 0;
 #endif
   *p++ = 0x0b; /* end */
 
@@ -1623,11 +1625,13 @@ finish_plt_entry (bfd *output_bfd, struct bfd_link_info *info,
                    + hh->pltsig->root.u.def.section->output_offset,
                    ds->spltfun->contents + hh->pltfunction,
                    ds->spltfun->contents + hh->pltfunction + 5);
-      set_uleb128 (output_bfd,
-                   bfd_asymbol_value (&hh->pltsig->root.u.def)
-                   + hh->pltsig->root.u.def.section->output_offset,
-                   splt->contents + h->plt.offset + hh->pltstub_sigoff,
-                   splt->contents + h->plt.offset + hh->pltstub_sigoff + 5);
+
+      if (hh->pltstub_sigoff)
+        set_uleb128 (output_bfd,
+                     bfd_asymbol_value (&hh->pltsig->root.u.def)
+                     + hh->pltsig->root.u.def.section->output_offset,
+                     splt->contents + h->plt.offset + hh->pltstub_sigoff,
+                     splt->contents + h->plt.offset + hh->pltstub_sigoff + 5);
 
       if (PLTNAME) {
         struct elf32_wasm32_link_hash_entry *h4 = (struct elf32_wasm32_link_hash_entry *)h;
@@ -2630,8 +2634,8 @@ elf32_wasm32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
           //    || ELF_ST_VISIBILITY (h->other) == STV_HIDDEN)
           //  goto final_link_relocate;
 
-          if (h->plt.offset == (bfd_vma) -1 &&
-              !hh->pplt.build)
+          if (h->plt.offset == (bfd_vma) -1
+              && !hh->pplt.build)
             {
               /* We didn't make a PLT entry for this symbol.  This
                  happens when statically linking PIC code, or when

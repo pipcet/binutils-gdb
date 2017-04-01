@@ -903,25 +903,34 @@ wasm32_create_dynamic_sections (bfd * abfd,
           spaceflags &= ~ (SEC_CODE | SEC_LOAD | SEC_HAS_CONTENTS);
 
           DEBUG_PPLT(fprintf(stderr, "creating .wasm.code_.pplt (1)\n"););
-          ds->spplt = bfd_make_section_anyway_with_flags
-            (abfd, ".wasm.code_.pplt", ppltflags);
-          ds->sppltspace = bfd_make_section_anyway_with_flags
-            (abfd, ".space.code_.pplt", spaceflags);
-          ds->sppltfun = bfd_make_section_anyway_with_flags
-            (abfd, ".wasm.function_.pplt", ppltflags);
-          ds->sppltfunspace = bfd_make_section_anyway_with_flags
-            (abfd, ".space.function_.pplt", spaceflags);
-          ds->sppltidx = bfd_make_section_anyway_with_flags
-            (abfd, ".space.function_index_.pplt", spaceflags);
+          if (!(ds->spplt = bfd_get_section_by_name (abfd, ".wasm.code_.pplt")))
+            ds->spplt = bfd_make_section_anyway_with_flags
+              (abfd, ".wasm.code_.pplt", ppltflags);
+          if (!(ds->sppltspace = bfd_get_section_by_name (abfd, ".space.code_.pplt")))
+            ds->sppltspace = bfd_make_section_anyway_with_flags
+              (abfd, ".space.code_.pplt", spaceflags);
+          if (!(ds->sppltfun = bfd_get_section_by_name (abfd, ".wasm.function_.pplt")))
+            ds->sppltfun = bfd_make_section_anyway_with_flags
+              (abfd, ".wasm.function_.pplt", ppltflags);
+          if (!(ds->sppltfunspace = bfd_get_section_by_name (abfd, ".space.function_.pplt")))
+            ds->sppltfunspace = bfd_make_section_anyway_with_flags
+              (abfd, ".space.function_.pplt", spaceflags);
+          if (!(ds->sppltidx = bfd_get_section_by_name (abfd, ".space.function_index_.pplt")))
+            ds->sppltidx = bfd_make_section_anyway_with_flags
+              (abfd, ".space.function_index_.pplt", spaceflags);
 
-          ds->sppltelem = bfd_make_section_anyway_with_flags
-            (abfd, ".wasm.element_.pplt", ppltflags);
-          ds->sppltelemspace = bfd_make_section_anyway_with_flags
-            (abfd, ".space.element_.pplt", spaceflags);
-          ds->sppltname = bfd_make_section_anyway_with_flags
-            (abfd, ".wasm.name.function_.pplt", ppltflags);
-          ds->sppltnamespace = bfd_make_section_anyway_with_flags
-            (abfd, ".space.name.function_.pplt", spaceflags);
+          if (!(ds->sppltelem = bfd_get_section_by_name (abfd, ".wasm.element_.pplt")))
+            ds->sppltelem = bfd_make_section_anyway_with_flags
+              (abfd, ".wasm.element_.pplt", ppltflags);
+          if (!(ds->sppltelemspace = bfd_get_section_by_name (abfd, ".space.element_.pplt")))
+            ds->sppltelemspace = bfd_make_section_anyway_with_flags
+              (abfd, ".space.element_.pplt", spaceflags);
+          if (!(ds->sppltname = bfd_get_section_by_name (abfd, ".wasm.name.function_.pplt")))
+            ds->sppltname = bfd_make_section_anyway_with_flags
+              (abfd, ".wasm.name.function_.pplt", ppltflags);
+          if (!(ds->sppltnamespace = bfd_get_section_by_name (abfd, ".space.name.function_.pplt")))
+            ds->sppltnamespace = bfd_make_section_anyway_with_flags
+              (abfd, ".space.name.function_.pplt", spaceflags);
         }
       ds->initialized = TRUE;
     }
@@ -2797,15 +2806,15 @@ elf32_wasm32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
 
           if (hhtab->has_pplt && hh->pplt.build)
             {
-              bfd_vma pplt_bias = ds->sppltidx->output_offset;
-              bfd_vma pplt_index;
+              //bfd_vma pplt_bias = ds->sppltidx->output_offset;
+              //bfd_vma pplt_index;
 
               finish_pplt_entry (output_bfd, info, h);
 
-              pplt_index = hh->pplt.index;
+              //pplt_index = hh->pplt.index;
 
-              relocation = pplt_index + pplt_bias;
-              addend = rel->r_addend;
+              //relocation = pplt_index + pplt_bias;
+              //addend = rel->r_addend;
             }
           if (h->plt.offset != (bfd_vma) -1)
             {
@@ -2821,6 +2830,17 @@ elf32_wasm32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
                 {
                   DEBUG_PPLT(fprintf(stderr, "late-dropping PPLT entry %ld\n", hh->pplt.index););
                 }
+            }
+
+          if (relocation == 0)
+            {
+              bfd_put_8 (abfd, 0, contents + rel->r_offset - 1);
+              bfd_put_8 (abfd, 0, contents + rel->r_offset);
+              bfd_put_8 (abfd, 0, contents + rel->r_offset + 1);
+              bfd_put_8 (abfd, 0, contents + rel->r_offset + 2);
+              bfd_put_8 (abfd, 0, contents + rel->r_offset + 3);
+              bfd_put_8 (abfd, 0, contents + rel->r_offset + 4);
+              break;
             }
 
           goto final_link_relocate;

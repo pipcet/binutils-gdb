@@ -1948,19 +1948,38 @@ allocate_dynrelocs (struct elf_link_hash_entry *h, void *inf)
 }
 
 static bfd_boolean
+symbol_uses_plt (struct bfd_link_info *info, struct elf_link_hash_entry *h)
+{
+  struct elf_link_hash_table *htab = elf_hash_table (info);
+
+  if (h->root.type != bfd_link_hash_undefweak)
+    return TRUE;
+
+  if (h->needs_plt
+      && htab->dynobj
+      && htab->dynamic_sections_created
+      && (bfd_link_pic (info) || WILL_CALL_FINISH_DYNAMIC_SYMBOL (1, 0, h)))
+    return TRUE;
+
+  return FALSE;
+}
+
+static bfd_boolean
 allocate_pplt (struct elf_link_hash_entry *h, void *data)
 {
   struct elf32_wasm32_link_hash_entry *hh = elf32_wasm32_hash_entry (h);
   struct bfd_link_info *info = (struct bfd_link_info *)data;
 
-  if (h->root.type != bfd_link_hash_undefweak)
-    {
-      if (hh->pplt.build)
+  if (hh->pplt.build)
+    if (symbol_uses_plt (info, h))
+      {
         {
+          DEBUG_PPLT(fprintf(stderr, "alloc-dropping PPLT entry %s\n",
+                             h->root.root.string));
           DEBUG_PPLT(fprintf(stderr, "alloc-dropping PPLT entry %ld\n", hh->pplt.index););
         }
-      hh->pplt.build = FALSE;
-    }
+        hh->pplt.build = FALSE;
+      }
 
   if (!hh->pplt.build)
     return TRUE;
@@ -2024,6 +2043,19 @@ elf32_wasm32_size_dynamic_sections (bfd * output_bfd,
 
       ds->sppltname->size = hhtab->sppltname_size;
       ds->sppltnamespace->size = hhtab->sppltnamespace_size;
+
+      if (ds->spplt->size == 0)
+        {
+          ds->spplt->flags |= SEC_EXCLUDE;
+          ds->sppltspace->flags |= SEC_EXCLUDE;
+          ds->sppltfun->flags |= SEC_EXCLUDE;
+          ds->sppltfunspace->flags |= SEC_EXCLUDE;
+          ds->sppltidx->flags |= SEC_EXCLUDE;
+          ds->sppltelem->flags |= SEC_EXCLUDE;
+          ds->sppltelemspace->flags |= SEC_EXCLUDE;
+          ds->sppltname->flags |= SEC_EXCLUDE;
+          ds->sppltnamespace->flags |= SEC_EXCLUDE;
+        }
     }
   else
     {
@@ -2141,6 +2173,93 @@ elf32_wasm32_size_dynamic_sections (bfd * output_bfd,
       if (reltext_exist == TRUE)
         if (!_bfd_elf_add_dynamic_entry (info, DT_TEXTREL, 0))
           return FALSE;
+    }
+
+  return TRUE;
+}
+
+/* Set the sizes of the dynamic sections.  Also sets sizes of the
+   pseudo-PLT sections, which are not really dynamic. */
+static bfd_boolean
+elf32_wasm32_always_size_sections (bfd * output_bfd,
+                                   struct bfd_link_info *info)
+{
+  asection *s;
+  struct dynamic_sections *ds = wasm32_create_dynamic_sections (output_bfd, info);
+  struct elf_link_hash_table *htab = elf_hash_table (info);
+  struct elf32_wasm32_link_hash_table *hhtab = elf32_wasm32_hash_table (info);
+  DEBUG_PPLT(fprintf(stderr, "elf32_wasm32_always_size_sections\n"));
+
+  elf_link_hash_traverse (htab, allocate_dynrelocs, info);
+  elf_link_hash_traverse (htab, allocate_pplt, info);
+
+  /* If we have decided to build pseudo-PLT stubs, size the following
+     sections appropriately:
+
+     .wasm.code_.pplt
+     .space.code_.pplt
+     .wasm.function_.pplt
+     .space.function_.pplt
+     .space.function_index_.pplt
+     .wasm.element_.pplt
+     .space.element_.pplt
+     .wasm.name_.pplt
+     .space.name_.pplt
+
+     Otherwise, leave them at size 0. */
+  if (ds->spplt)
+    {
+      DEBUG_PPLT(fprintf(stderr, "finalizing PPLT sizes (ass): %ld\n",
+                         hhtab->sppltspace_size););
+      hhtab->has_pplt = TRUE;
+      ds->spplt->size = hhtab->spplt_size;
+      ds->sppltspace->size = hhtab->sppltspace_size;
+
+      ds->sppltfun->size = hhtab->sppltfun_size;
+      ds->sppltfunspace->size = hhtab->sppltfunspace_size;
+
+      ds->sppltidx->size = hhtab->sppltidx_size;
+
+      ds->sppltelem->size = hhtab->sppltelem_size;
+      ds->sppltelemspace->size = hhtab->sppltelemspace_size;
+
+      ds->sppltname->size = hhtab->sppltname_size;
+      ds->sppltnamespace->size = hhtab->sppltnamespace_size;
+
+      if (ds->spplt->size == 0)
+        {
+
+          ds->spplt->flags |= SEC_EXCLUDE;
+          ds->sppltspace->flags |= SEC_EXCLUDE;
+          ds->sppltfun->flags |= SEC_EXCLUDE;
+          ds->sppltfunspace->flags |= SEC_EXCLUDE;
+          ds->sppltidx->flags |= SEC_EXCLUDE;
+          ds->sppltelem->flags |= SEC_EXCLUDE;
+          ds->sppltelemspace->flags |= SEC_EXCLUDE;
+          ds->sppltname->flags |= SEC_EXCLUDE;
+          ds->sppltnamespace->flags |= SEC_EXCLUDE;
+        }
+
+      for (s = info->output_bfd->sections; s != NULL; s = s->next)
+        {
+          if ((s->flags & SEC_LINKER_CREATED) == 0)
+            continue;
+
+          if (s->size == 0
+              && strstr (s->name, "pplt")
+              && (CONST_STRNEQ (s->name, ".wasm.") ||
+                  CONST_STRNEQ (s->name, ".space.")))
+            {
+              /* Setting SEC_EXCLUDE is not enough here.  */
+              bfd_section_list_remove (info->output_bfd, s);
+              info->output_bfd->section_count--;
+            }
+        }
+    }
+  else
+    {
+      DEBUG_PPLT(fprintf(stderr, "dropping PPLT\n"););
+      hhtab->has_pplt = FALSE;
     }
 
   return TRUE;
@@ -2524,6 +2643,8 @@ elf32_wasm32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
   struct elf_link_hash_table *htab = elf_hash_table (info);
   struct elf32_wasm32_link_hash_table *hhtab = elf32_wasm32_hash_table (info);
 
+  DEBUG_PPLT(fprintf(stderr, "elf32_wasm32_relocate_section\n"));
+
   symtab_hdr = &elf_tdata (input_bfd)->symtab_hdr;
   sym_hashes = elf_sym_hashes (input_bfd);
   local_got_offsets = elf_local_got_offsets (input_bfd);
@@ -2674,6 +2795,18 @@ elf32_wasm32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
               goto final_link_relocate;
             }
 
+          if (hhtab->has_pplt && hh->pplt.build)
+            {
+              bfd_vma pplt_bias = ds->sppltidx->output_offset;
+              bfd_vma pplt_index;
+
+              finish_pplt_entry (output_bfd, info, h);
+
+              pplt_index = hh->pplt.index;
+
+              relocation = pplt_index + pplt_bias;
+              addend = rel->r_addend;
+            }
           if (h->plt.offset != (bfd_vma) -1)
             {
               bfd_vma plt_bias = ds->spltidx->output_offset;
@@ -2688,19 +2821,6 @@ elf32_wasm32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
                 {
                   DEBUG_PPLT(fprintf(stderr, "late-dropping PPLT entry %ld\n", hh->pplt.index););
                 }
-            }
-          else if (hhtab->has_pplt
-                   && hh->pplt.build)
-            {
-              bfd_vma pplt_bias = ds->sppltidx->output_offset;
-              bfd_vma pplt_index;
-
-              finish_pplt_entry (output_bfd, info, h);
-
-              pplt_index = hh->pplt.index;
-
-              relocation = pplt_index + pplt_bias;
-              addend = rel->r_addend;
             }
 
           goto final_link_relocate;
@@ -2962,6 +3082,7 @@ elf32_wasm32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
 #define elf_backend_create_dynamic_sections elf32_wasm32_create_dynamic_sections
 #define elf_backend_finish_dynamic_sections  elf32_wasm32_finish_dynamic_sections
 #define elf_backend_size_dynamic_sections    elf32_wasm32_size_dynamic_sections
+#define elf_backend_always_size_sections     elf32_wasm32_always_size_sections
 #define elf_backend_want_got_plt 1
 #define elf_backend_plt_readonly 1
 #define elf_backend_got_header_size 0

@@ -761,6 +761,7 @@ elf32_wasm32_link_hash_newfunc (struct bfd_hash_entry *entry,
                                      table, string));
   if (ret != (struct elf32_wasm32_link_hash_entry *) NULL)
     {
+      memset (&ret->pplt, 0, sizeof ret->pplt);
       ret->pltnameoff = (bfd_vma) -1;
       ret->plt_index = (bfd_vma) -1;
       ret->pplt.build = FALSE;
@@ -2424,11 +2425,12 @@ finish_pplt_entry (bfd *output_bfd, struct bfd_link_info *info,
                hh->pltsig->root.u.def.section->output_offset,
                ds->sppltfun->contents + hh->pplt.function,
                ds->sppltfun->contents + hh->pplt.function + 5);
-  set_uleb128 (output_bfd,
-               bfd_asymbol_value (&hh->pltsig->root.u.def) +
-               hh->pltsig->root.u.def.section->output_offset,
-               spplt->contents + hh->pplt.offset + hh->pplt.stub_sigoff,
-               spplt->contents + hh->pplt.offset + hh->pplt.stub_sigoff + 5);
+  if (hh->pplt.stub_sigoff)
+    set_uleb128 (output_bfd,
+                 bfd_asymbol_value (&hh->pltsig->root.u.def) +
+                 hh->pltsig->root.u.def.section->output_offset,
+                 spplt->contents + hh->pplt.offset + hh->pplt.stub_sigoff,
+                 spplt->contents + hh->pplt.offset + hh->pplt.stub_sigoff + 5);
 
   if (PPLTNAME)
     {

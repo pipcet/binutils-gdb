@@ -25,8 +25,9 @@
 #include "bfd_stdint.h"
 #include "libiberty.h"
 #include "elf/wasm32.h"
+#include <unistd.h>
 
-#define DEBUG_PPLT(x) do { } while (0)
+#define DEBUG_PPLT(x) do { if (getenv("DEBUG_PPLT")) x; } while (0)
 
 static bfd_reloc_status_type
 elf32_wasm32_leb128_reloc (bfd *abfd ATTRIBUTE_UNUSED,
@@ -811,6 +812,8 @@ wasm32_create_dynamic_sections (bfd * abfd,
   struct elf32_wasm32_link_hash_table *hhtab = (struct elf32_wasm32_link_hash_table *) htab;
   struct dynamic_sections *ds = &hhtab->ds;
 
+  DEBUG_PPLT(fprintf(stderr, "wasm32_create_dynamic_sections\n"));
+
   if (!ds->initialized)
     {
       bfd_boolean dynamic_p = FALSE;
@@ -1240,6 +1243,7 @@ elf32_wasm32_adjust_dynamic_symbol (struct bfd_link_info *info,
   struct elf_link_hash_table *htab = elf_hash_table (info);
   asection *srel;
 
+  DEBUG_PPLT(fprintf(stderr, "elf32_wasm32_adjust_dynamic_symbol\n"));
   if (/* h->type == STT_FUNC
       || h->type == STT_GNU_IFUNC
       || */ h->needs_plt == 1)
@@ -1274,7 +1278,7 @@ elf32_wasm32_adjust_dynamic_symbol (struct bfd_link_info *info,
           h->plt.offset = loc;
           if (hh->pplt.build)
             DEBUG_PPLT(fprintf(stderr, "early-dropping PPLT entry %ld\n", hh->pplt.index););
-          hh->pplt.build = FALSE;
+          //hh->pplt.build = FALSE;
         }
       else
         {
@@ -1518,7 +1522,11 @@ elf32_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec,
               hh->pltsig = pltsig;
               if (! bfd_link_relocatable (info)
                   && h->root.type == bfd_link_hash_undefweak)
-                hh->pplt.build = TRUE;
+                {
+                  DEBUG_PPLT(fprintf(stderr, "creating PPLT entry %s\n",
+                                     h->root.root.string));
+                  hh->pplt.build = TRUE;
+                }
             }
           pltsig = NULL;
 
@@ -1979,6 +1987,8 @@ elf32_wasm32_size_dynamic_sections (bfd * output_bfd,
 
   BFD_ASSERT (dynobj != NULL);
 
+  DEBUG_PPLT(fprintf(stderr, "elf32_wasm32_size_dynamic_sections\n"));
+
   elf_link_hash_traverse (htab, allocate_dynrelocs, info);
   elf_link_hash_traverse (htab, allocate_pplt, info);
 
@@ -1998,7 +2008,7 @@ elf32_wasm32_size_dynamic_sections (bfd * output_bfd,
      Otherwise, leave them at size 0. */
   if (ds->spplt)
     {
-      DEBUG_PPLT(fprintf(stderr, "finalizing PPLT sizes: %ld\n",
+      DEBUG_PPLT(fprintf(stderr, "finalizing PPLT sizes (sds): %ld\n",
                          hhtab->sppltspace_size););
       hhtab->has_pplt = TRUE;
       ds->spplt->size = hhtab->spplt_size;

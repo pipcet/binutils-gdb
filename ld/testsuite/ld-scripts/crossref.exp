@@ -94,10 +94,6 @@ set exec_output [prune_warnings $exec_output]
 
 regsub -all "(^|\n)($ld: warning: cannot find entry symbol\[^\n\]*\n?)" $exec_output "\\1" exec_output
 
-# discarding section .wasm.chars.function_index.b, which is referenced
-# from .data.
-setup_xfail wasm32-*-*
-
 if [string match "" $exec_output] then {
     fail $test1
 } else {

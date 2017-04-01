@@ -2347,24 +2347,25 @@ elf32_wasm32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
                 {
                   bfd_put_32 (output_bfd, relocation, sgot->contents + (off&-4));
 
-                  if (bfd_link_pic (info)) {
-                    asection *s;
-                    Elf_Internal_Rela outrel;
-                    bfd_byte *loc;
+                  if (bfd_link_pic (info))
+                    {
+                      asection *s;
+                      Elf_Internal_Rela outrel;
+                      bfd_byte *loc;
 
-                    s = elf_hash_table (info)->srelgot;
-                    BFD_ASSERT (s != NULL);
+                      s = elf_hash_table (info)->srelgot;
+                      BFD_ASSERT (s != NULL);
 
-                    outrel.r_offset = (sgot->output_section->vma
-                                       + sgot->output_offset
-                                       + (off & -4));
-                    outrel.r_info = ELF32_R_INFO (0, (r_type == R_WASM32_LEB128_GOT_CODE) ? R_WASM32_32_CODE : R_WASM32_REL32);
-                    outrel.r_addend = relocation;
-                    loc = s->contents;
-                    loc += s->reloc_count++ * sizeof (Elf32_External_Rela);
-                    bfd_elf32_swap_reloca_out (output_bfd, &outrel, loc);
+                      outrel.r_offset = (sgot->output_section->vma
+                                         + sgot->output_offset
+                                         + (off & -4));
+                      outrel.r_info = ELF32_R_INFO (0, (r_type == R_WASM32_LEB128_GOT_CODE) ? R_WASM32_32_CODE : R_WASM32_REL32);
+                      outrel.r_addend = relocation;
+                      loc = s->contents;
+                      loc += s->reloc_count++ * sizeof (Elf32_External_Rela);
+                      bfd_elf32_swap_reloca_out (output_bfd, &outrel, loc);
 
-                    BFD_ASSERT (s->size >= loc - s->contents + sizeof (Elf32_External_Rela));
+                      BFD_ASSERT (s->size >= loc - s->contents + sizeof (Elf32_External_Rela));
                   }
                   local_got_offsets[r_symndx] |= 1;
                 }

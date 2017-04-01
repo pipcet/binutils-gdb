@@ -737,7 +737,7 @@ elf32_wasm32_link_hash_table_create (bfd *abfd)
   if (!_bfd_elf_link_hash_table_init (&ret->root, abfd,
                                       elf32_wasm32_link_hash_newfunc,
                                       sizeof (struct elf32_wasm32_link_hash_entry),
-                                      SH_ELF_DATA))
+                                      EM_WEBASSEMBLY))
     {
       free (ret);
       return NULL;

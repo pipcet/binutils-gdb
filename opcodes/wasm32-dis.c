@@ -101,7 +101,7 @@ struct wasm32_opcode_s
 } wasm32_opcodes[] =
 {
 #include "opcode/wasm.h"
-  { NULL, 0, 0, 0, 0, 0 }
+  { NULL, 0, 0 }
 };
 
 /* Parse the disassembler options in OPTS and initialize INFO.  */
@@ -128,7 +128,7 @@ parse_wasm32_disassembler_options (struct disassemble_info *info,
    are unhelpful to print, and arguments to a "call" insn, which we
    want to be in a section matching a given prefix.  */
 
-bfd_boolean
+static bfd_boolean
 wasm32_symbol_is_valid (asymbol *sym,
                         struct disassemble_info *info)
 {
@@ -264,7 +264,7 @@ print_insn_wasm32 (bfd_vma pc, struct disassemble_info *info)
   void *stream = info->stream;
   fprintf_ftype prin = info->fprintf_func;
   struct wasm32_private_data *private_data = info->private_data;
-  long constant = 0;
+  long long constant = 0;
   double fconstant = 0.0;
   long flags = 0;
   long offset = 0;
@@ -388,7 +388,7 @@ print_insn_wasm32 (bfd_vma pc, struct disassemble_info *info)
           if (error)
             return -1;
           len += bytes_read;
-          prin (stream, " %ld", constant);
+          prin (stream, " %lld", constant);
           break;
         case wasm_constant_f32:
           /* This appears to be the best we can do, even though we're
@@ -423,13 +423,13 @@ print_insn_wasm32 (bfd_vma pc, struct disassemble_info *info)
           if (error)
             return -1;
           len += bytes_read;
-          prin (stream, " %ld", constant);
+          prin (stream, " %lld", constant);
           constant = wasm_read_leb128
             (pc + len, info, &error, &bytes_read, FALSE);
           if (error)
             return -1;
           len += bytes_read;
-          prin (stream, " %ld", constant);
+          prin (stream, " %lld", constant);
           break;
         case wasm_get_local:
         case wasm_set_local:
@@ -439,7 +439,7 @@ print_insn_wasm32 (bfd_vma pc, struct disassemble_info *info)
           if (error)
             return -1;
           len += bytes_read;
-          prin (stream, " %ld", constant);
+          prin (stream, " %lld", constant);
           if (strcmp (op->name + 4, "local") == 0)
             {
               if (private_data->print_registers
@@ -460,7 +460,7 @@ print_insn_wasm32 (bfd_vma pc, struct disassemble_info *info)
           if (error)
             return -1;
           len += bytes_read;
-          prin (stream, " %ld", constant);
+          prin (stream, " %lld", constant);
           break;
         case wasm_load:
         case wasm_store:
@@ -487,8 +487,8 @@ print_wasm32_disassembler_options (FILE *stream)
 {
   unsigned int i, max_len = 0;
   fprintf (stream, _("\
-The following WASM32 specific disassembler options are supported for use with\n\
-the -M switch:\nnone\n"));
+The following WebAssembly-specific disassembler options are supported for use\n\
+with the -M switch:\n"));
 
   for (i = 0; i < ARRAY_SIZE (options); i++)
     {

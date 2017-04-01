@@ -386,47 +386,11 @@ _bfd_elf_create_dynamic_sections (bfd *abfd, struct bfd_link_info *info)
   if (bed->plt_readonly)
     pltflags |= SEC_READONLY;
 
-  s = bfd_make_section_anyway_with_flags (abfd, ".space.code_.plt", pltflags & ~ (SEC_CODE | SEC_LOAD | SEC_HAS_CONTENTS));
-  if (s == NULL)
-    return FALSE;
-  htab->spltspace = s;
-
-  s = bfd_make_section_anyway_with_flags (abfd, ".space.function_.plt", pltflags & ~ (SEC_CODE | SEC_LOAD | SEC_HAS_CONTENTS));
-  if (s == NULL)
-    return FALSE;
-
-  s = bfd_make_section_anyway_with_flags (abfd, ".space.function_index_.plt", pltflags & ~ (SEC_CODE | SEC_LOAD | SEC_HAS_CONTENTS));
-  if (s == NULL)
-    return FALSE;
-
-  s = bfd_make_section_anyway_with_flags (abfd, ".space.function_index..text", pltflags & ~ (SEC_ALLOC | SEC_CODE | SEC_LOAD | SEC_HAS_CONTENTS));
-  if (s == NULL)
-    return FALSE;
-
-  s = bfd_make_section_anyway_with_flags (abfd, ".space.element_.plt", pltflags & ~ (SEC_ALLOC | SEC_CODE | SEC_LOAD | SEC_HAS_CONTENTS));
-  if (s == NULL)
-    return FALSE;
-
-  s = bfd_make_section_anyway_with_flags (abfd, ".space.name.function_.plt", pltflags & ~ (SEC_ALLOC | SEC_CODE | SEC_LOAD | SEC_HAS_CONTENTS));
-  if (s == NULL)
-    return FALSE;
-
-  s = bfd_make_section_anyway_with_flags (abfd, ".wasm.function_.plt", pltflags & ~SEC_CODE);
-  if (s == NULL)
-    return FALSE;
-
-  s = bfd_make_section_anyway_with_flags (abfd, ".wasm.element_.plt", pltflags & ~SEC_CODE);
-  if (s == NULL)
-    return FALSE;
-
-  s = bfd_make_section_anyway_with_flags (abfd, ".wasm.code_.plt", pltflags);
-  if (s == NULL)
+  s = bfd_make_section_anyway_with_flags (abfd, ".plt", pltflags);
+  if (s == NULL
+      || ! bfd_set_section_alignment (abfd, s, bed->plt_alignment))
     return FALSE;
   htab->splt = s;
-
-  s = bfd_make_section_anyway_with_flags (abfd, ".wasm.name.function_.plt", pltflags & ~SEC_CODE);
-  if (s == NULL)
-    return FALSE;
 
   /* Define the symbol _PROCEDURE_LINKAGE_TABLE_ at the start of the
      .plt section.  */
@@ -3648,7 +3612,7 @@ _bfd_elf_link_check_relocs (bfd *abfd, struct bfd_link_info *info)
   if ((abfd->flags & DYNAMIC) == 0
       && is_elf_hash_table (htab)
       && bed->check_relocs != NULL
-      //&& elf_object_id (abfd) == elf_hash_table_id (htab)
+      && elf_object_id (abfd) == elf_hash_table_id (htab)
       && (*bed->relocs_compatible) (abfd->xvec, info->output_bfd->xvec))
     {
       asection *o;
@@ -8760,7 +8724,6 @@ elf_link_sort_relocs (bfd *abfd, struct bfd_link_info *info, asection **psec)
   struct bfd_link_order *lo;
   bfd_vma r_sym_mask;
   bfd_boolean use_rela;
-  struct elf_link_hash_table *htab = elf_hash_table (info);
 
   /* Find a dynamic reloc section.  */
   rela_dyn = bfd_get_section_by_name (abfd, ".rela.dyn");
@@ -8996,7 +8959,7 @@ elf_link_sort_relocs (bfd *abfd, struct bfd_link_info *info, asection **psec)
 
   qsort (s_non_relative, count - ret, sort_elt, elf_link_sort_cmp2);
 
-  htab = elf_hash_table (info);
+  struct elf_link_hash_table *htab = elf_hash_table (info);
   if (htab->srelplt && htab->srelplt->output_section == dynamic_relocs)
     {
       /* We have plt relocs in .rela.dyn.  */

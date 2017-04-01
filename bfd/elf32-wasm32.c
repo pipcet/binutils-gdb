@@ -806,26 +806,27 @@ wasm32_create_dynamic_sections (bfd * abfd,
 
           ds->sgot = htab->sgot;
           ds->srelgot = htab->srelgot;
-          ds->spltspace = bfd_get_section_by_name
-            (dynobj, ".space.code_.plt");
-          ds->spltfunspace = bfd_get_section_by_name
-            (dynobj, ".space.function_.plt");
-          ds->spltidx = bfd_get_section_by_name
-            (dynobj, ".space.function_index_.plt");
-          ds->spltelemspace = bfd_get_section_by_name
-            (dynobj, ".space.element_.plt");
-          ds->spltnamespace = bfd_get_section_by_name
-            (dynobj, ".space.name.function_.plt");
+          ds->sdyn = htab->dynsym;
+          ds->spltspace = bfd_make_section_anyway_with_flags
+            (dynobj, ".space.code_.plt", spaceflags);
+          ds->spltfunspace = bfd_make_section_anyway_with_flags
+            (dynobj, ".space.function_.plt", spaceflags);
+          ds->spltidx = bfd_make_section_anyway_with_flags
+            (dynobj, ".space.function_index_.plt", spaceflags);
+          ds->spltelemspace = bfd_make_section_anyway_with_flags
+            (dynobj, ".space.element_.plt", spaceflags);
+          ds->spltnamespace = bfd_make_section_anyway_with_flags
+            (dynobj, ".space.name.function_.plt", spaceflags);
 
           ds->splt = bfd_get_section_by_name
             (dynobj, ".wasm.code_.plt");
-          ds->spltfun = bfd_get_section_by_name
-            (dynobj, ".wasm.function_.plt");
-          ds->spltelem = bfd_get_section_by_name
-            (dynobj, ".wasm.element_.plt");
+          ds->spltfun = bfd_make_section_anyway_with_flags
+            (dynobj, ".wasm.function_.plt", pltflags);
+          ds->spltelem = bfd_make_section_anyway_with_flags
+            (dynobj, ".wasm.element_.plt", pltflags);
+          ds->spltname = bfd_make_section_anyway_with_flags (dynobj, ".wasm.name.function_.plt", pltflags);
           ds->srelplt = bfd_get_section_by_name (dynobj, ".rela.plt");
           ds->sdynbss = bfd_get_section_by_name (dynobj, ".dynbss");
-          ds->spltname = bfd_get_section_by_name (dynobj, ".wasm.name.function_.plt");
           ds->srelbss = bfd_get_section_by_name (dynobj, ".rela.bss");
         }
       ds->initialized = TRUE;
@@ -991,6 +992,7 @@ elf32_wasm32_adjust_dynamic_symbol (struct bfd_link_info *info,
   bfd *dynobj = (elf_hash_table (info))->dynobj;
   struct elf_link_hash_table *htab = elf_hash_table (info);
   asection *srel;
+  struct dynamic_sections *ds = wasm32_create_dynamic_sections (dynobj, info);
 
   if (/* h->type == STT_FUNC
       || h->type == STT_GNU_IFUNC
@@ -1019,7 +1021,7 @@ elf32_wasm32_adjust_dynamic_symbol (struct bfd_link_info *info,
 
           if (bfd_link_executable (info) && !h->def_regular)
             {
-              h->root.u.def.section = htab->splt;
+              h->root.u.def.section = ds->splt;
               h->root.u.def.value = loc;
             }
           h->plt.offset = loc;
@@ -1086,7 +1088,6 @@ elf32_wasm32_adjust_dynamic_symbol (struct bfd_link_info *info,
     }
   else
     {
-      struct dynamic_sections *ds = wasm32_create_dynamic_sections (dynobj, info);
       s = bfd_get_section_by_name (dynobj, ".dynbss");
       srel = ds->srelbss;
     }
@@ -1345,7 +1346,7 @@ finish_plt_entry (bfd *output_bfd, struct bfd_link_info *info,
       /* This symbol has an entry in the procedure linkage table.  Set
          it up.  */
 
-      splt = htab->splt;
+      splt = ds->splt;
       srel = htab->srelplt;
       BFD_ASSERT (splt != NULL && srel != NULL);
 
@@ -1735,8 +1736,8 @@ elf32_wasm32_size_dynamic_sections (bfd * output_bfd,
         htab->srelgot->size = 0;
     }
 
-  if (htab->splt != NULL && htab->splt->size == 0)
-    htab->splt->flags |= SEC_EXCLUDE;
+  if (ds->splt != NULL && ds->splt->size == 0)
+    ds->splt->flags |= SEC_EXCLUDE;
   for (s = dynobj->sections; s != NULL; s = s->next)
     {
       if ((s->flags & SEC_LINKER_CREATED) == 0)
@@ -1785,14 +1786,14 @@ elf32_wasm32_size_dynamic_sections (bfd * output_bfd,
         return FALSE;
     }
 
-  if (ds->sdyn)
+  if (htab->dynsym)
     {
       /* TODO: Check if this is needed.  */
       if (!bfd_link_pic (info))
         if (!_bfd_elf_add_dynamic_entry (info, DT_DEBUG, 0))
                 return FALSE;
 
-      if (htab->splt && (htab->splt->flags & SEC_EXCLUDE) == 0)
+      if (ds->splt && (ds->splt->flags & SEC_EXCLUDE) == 0)
         if (!_bfd_elf_add_dynamic_entry (info, DT_PLTGOT, 0)
             || !_bfd_elf_add_dynamic_entry (info, DT_PLTRELSZ, 0)
             || !_bfd_elf_add_dynamic_entry (info, DT_PLTREL, DT_RELA)
@@ -1820,17 +1821,17 @@ static bfd_boolean
 elf32_wasm32_finish_dynamic_sections (bfd * output_bfd,
                                       struct bfd_link_info *info)
 {
-  struct dynamic_sections *ds = wasm32_create_dynamic_sections (output_bfd, info);
   struct elf_link_hash_table *htab = elf_hash_table (info);
   bfd *dynobj = htab->dynobj;
+  wasm32_create_dynamic_sections (output_bfd, info);
 
-  if (ds->sdyn)
+  if (htab->dynsym)
     {
       Elf32_External_Dyn *dyncon, *dynconend;
 
-      dyncon = (Elf32_External_Dyn *) ds->sdyn->contents;
+      dyncon = (Elf32_External_Dyn *) htab->dynsym->contents;
       dynconend
-        = (Elf32_External_Dyn *) (ds->sdyn->contents + ds->sdyn->size);
+        = (Elf32_External_Dyn *) (htab->dynsym->contents + htab->dynsym->size);
       for (; dyncon < dynconend; dyncon++)
         {
           Elf_Internal_Dyn internal_dyn;

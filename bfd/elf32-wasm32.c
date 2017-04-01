@@ -1951,15 +1951,14 @@ static bfd_boolean
 elf32_wasm32_size_dynamic_sections (bfd * output_bfd,
                                   struct bfd_link_info *info)
 {
-  bfd *    dynobj;
   asection *      s;
   bfd_boolean     relocs_exist = FALSE;
   bfd_boolean     reltext_exist = FALSE;
   struct dynamic_sections *ds = wasm32_create_dynamic_sections (output_bfd, info);
   struct elf_link_hash_table *htab = elf_hash_table (info);
   struct elf32_wasm32_link_hash_table *hhtab = elf32_wasm32_hash_table (info);
+  bfd *    dynobj = htab->dynobj;
 
-  dynobj = (elf_hash_table (info))->dynobj;
   BFD_ASSERT (dynobj != NULL);
 
   elf_link_hash_traverse (htab, allocate_dynrelocs, info);
@@ -1999,7 +1998,7 @@ elf32_wasm32_size_dynamic_sections (bfd * output_bfd,
   else
     hhtab->has_pplt = FALSE;
 
-  if ((elf_hash_table (info))->dynamic_sections_created)
+  if (htab->dynamic_sections_created)
     {
       struct elf_link_hash_entry *h;
 
@@ -2120,7 +2119,7 @@ elf32_wasm32_finish_dynamic_sections (bfd * output_bfd,
 {
   struct dynamic_sections *ds = wasm32_create_dynamic_sections (output_bfd, info);
   struct elf_link_hash_table *htab = elf_hash_table (info);
-  bfd *dynobj = (elf_hash_table (info))->dynobj;
+  bfd *dynobj = htab->dynobj;
 
   if (ds->sdyn)
     {

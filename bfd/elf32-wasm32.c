@@ -806,27 +806,26 @@ wasm32_create_dynamic_sections (bfd * abfd,
 
           ds->sgot = htab->sgot;
           ds->srelgot = htab->srelgot;
-          ds->sdyn = htab->dynsym;
-          ds->spltspace = bfd_make_section_anyway_with_flags
-            (dynobj, ".space.code_.plt", spaceflags);
-          ds->spltfunspace = bfd_make_section_anyway_with_flags
-            (dynobj, ".space.function_.plt", spaceflags);
-          ds->spltidx = bfd_make_section_anyway_with_flags
-            (dynobj, ".space.function_index_.plt", spaceflags);
-          ds->spltelemspace = bfd_make_section_anyway_with_flags
-            (dynobj, ".space.element_.plt", spaceflags);
-          ds->spltnamespace = bfd_make_section_anyway_with_flags
-            (dynobj, ".space.name.function_.plt", spaceflags);
+          ds->spltspace = bfd_get_section_by_name
+            (dynobj, ".space.code_.plt");
+          ds->spltfunspace = bfd_get_section_by_name
+            (dynobj, ".space.function_.plt");
+          ds->spltidx = bfd_get_section_by_name
+            (dynobj, ".space.function_index_.plt");
+          ds->spltelemspace = bfd_get_section_by_name
+            (dynobj, ".space.element_.plt");
+          ds->spltnamespace = bfd_get_section_by_name
+            (dynobj, ".space.name.function_.plt");
 
           ds->splt = bfd_get_section_by_name
             (dynobj, ".wasm.code_.plt");
-          ds->spltfun = bfd_make_section_anyway_with_flags
-            (dynobj, ".wasm.function_.plt", pltflags);
-          ds->spltelem = bfd_make_section_anyway_with_flags
-            (dynobj, ".wasm.element_.plt", pltflags);
-          ds->spltname = bfd_make_section_anyway_with_flags (dynobj, ".wasm.name.function_.plt", pltflags);
+          ds->spltfun = bfd_get_section_by_name
+            (dynobj, ".wasm.function_.plt");
+          ds->spltelem = bfd_get_section_by_name
+            (dynobj, ".wasm.element_.plt");
           ds->srelplt = bfd_get_section_by_name (dynobj, ".rela.plt");
           ds->sdynbss = bfd_get_section_by_name (dynobj, ".dynbss");
+          ds->spltname = bfd_get_section_by_name (dynobj, ".wasm.name.function_.plt");
           ds->srelbss = bfd_get_section_by_name (dynobj, ".rela.bss");
         }
       ds->initialized = TRUE;
@@ -1560,6 +1559,42 @@ elf32_wasm32_create_dynamic_sections (bfd *dynobj, struct bfd_link_info *info)
   if (bed->plt_readonly)
     pltflags |= SEC_READONLY;
 
+  s = bfd_make_section_anyway_with_flags (abfd, ".space.function_.plt", pltflags & ~ (SEC_CODE | SEC_LOAD | SEC_HAS_CONTENTS));
+  if (s == NULL)
+    return FALSE;
+
+  s = bfd_make_section_anyway_with_flags (abfd, ".space.function_index_.plt", pltflags & ~ (SEC_CODE | SEC_LOAD | SEC_HAS_CONTENTS));
+  if (s == NULL)
+    return FALSE;
+
+  s = bfd_make_section_anyway_with_flags (abfd, ".space.function_index..text", pltflags & ~ (SEC_ALLOC | SEC_CODE | SEC_LOAD | SEC_HAS_CONTENTS));
+  if (s == NULL)
+    return FALSE;
+
+  s = bfd_make_section_anyway_with_flags (abfd, ".space.element_.plt", pltflags & ~ (SEC_ALLOC | SEC_CODE | SEC_LOAD | SEC_HAS_CONTENTS));
+  if (s == NULL)
+    return FALSE;
+
+  s = bfd_make_section_anyway_with_flags (abfd, ".space.name.function_.plt", pltflags & ~ (SEC_ALLOC | SEC_CODE | SEC_LOAD | SEC_HAS_CONTENTS));
+  if (s == NULL)
+    return FALSE;
+
+  s = bfd_make_section_anyway_with_flags (abfd, ".wasm.function_.plt", pltflags & ~SEC_CODE);
+  if (s == NULL)
+    return FALSE;
+
+  s = bfd_make_section_anyway_with_flags (abfd, ".wasm.element_.plt", pltflags & ~SEC_CODE);
+  if (s == NULL)
+    return FALSE;
+
+  s = bfd_make_section_anyway_with_flags (abfd, ".wasm.name.function_.plt", pltflags & ~SEC_CODE);
+  if (s == NULL)
+    return FALSE;
+
+  s = bfd_make_section_anyway_with_flags (abfd, ".space.code_.plt", pltflags & ~ (SEC_CODE | SEC_LOAD | SEC_HAS_CONTENTS));
+  if (s == NULL)
+    return FALSE;
+
   s = bfd_make_section_anyway_with_flags (abfd, ".wasm.code_.plt", pltflags);
   if (s == NULL)
     return FALSE;
@@ -1786,7 +1821,7 @@ elf32_wasm32_size_dynamic_sections (bfd * output_bfd,
         return FALSE;
     }
 
-  if (htab->dynsym)
+  if (ds->sdyn)
     {
       /* TODO: Check if this is needed.  */
       if (!bfd_link_pic (info))
@@ -1821,17 +1856,17 @@ static bfd_boolean
 elf32_wasm32_finish_dynamic_sections (bfd * output_bfd,
                                       struct bfd_link_info *info)
 {
+  struct dynamic_sections *ds = wasm32_create_dynamic_sections (output_bfd, info);
   struct elf_link_hash_table *htab = elf_hash_table (info);
   bfd *dynobj = htab->dynobj;
-  wasm32_create_dynamic_sections (output_bfd, info);
 
-  if (htab->dynsym)
+  if (ds->sdyn)
     {
       Elf32_External_Dyn *dyncon, *dynconend;
 
-      dyncon = (Elf32_External_Dyn *) htab->dynsym->contents;
+      dyncon = (Elf32_External_Dyn *) ds->sdyn->contents;
       dynconend
-        = (Elf32_External_Dyn *) (htab->dynsym->contents + htab->dynsym->size);
+        = (Elf32_External_Dyn *) (ds->sdyn->contents + ds->sdyn->size);
       for (; dyncon < dynconend; dyncon++)
         {
           Elf_Internal_Dyn internal_dyn;

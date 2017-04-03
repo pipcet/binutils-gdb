@@ -176,7 +176,7 @@ SECTIONS
   }
   .space.import 0 (INFO) :
   {
-    KEEP(*(.space.import._null));
+    KEEP(*(.space.import_.null));
     KEEP(*(.space.import.import));
     KEEP(*(.space.import));
     KEEP(*(.space.import.*));

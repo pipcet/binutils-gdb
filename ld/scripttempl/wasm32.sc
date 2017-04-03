@@ -147,6 +147,7 @@ SECTIONS
   . = 0;
   .space.function_index 0 (INFO) :
   {
+    KEEP(*(.space.function_index.import_.null));
     *(.space.function_index.import);
     PROVIDE(_start = .);
     *(.space.function_index);
@@ -175,6 +176,7 @@ SECTIONS
   }
   .space.import 0 (INFO) :
   {
+    KEEP(*(.space.import._null));
     KEEP(*(.space.import.import));
     KEEP(*(.space.import));
     KEEP(*(.space.import.*));
@@ -224,6 +226,7 @@ SECTIONS
   }
   .space.element 0 (INFO) :
   {
+    KEEP(*(.space.element.import_.null))
     *(.space.element.import);
     *(.space.element);
     *(.space.element.*);
@@ -240,6 +243,7 @@ SECTIONS
   }
   .space.name.function 0 (INFO) :
   {
+    KEEP(*(.space.name.function.import_.null));
     *(.space.name.function.import);
     *(.space.name.function);
     *(.space.name.function.*);
@@ -265,6 +269,7 @@ SECTIONS
   }
   .wasm.import :
   {
+    KEEP(*(.wasm.import_.null));
     KEEP(*(.wasm.import.import));
     KEEP(*(.wasm.import));
     KEEP(*(.wasm.import.*));
@@ -313,6 +318,7 @@ SECTIONS
   }
   .wasm.element :
   {
+    KEEP(*(.wasm.element.import_.null));
     *(.wasm.element.import);
     *(.wasm.element);
     *(.wasm.element.*);
@@ -329,6 +335,7 @@ SECTIONS
   }
   .wasm.name.function :
   {
+    KEEP(*(.wasm.name.function.import_.null));
     *(.wasm.name.function.import);
     *(.wasm.name.function);
     *(.wasm.name.function.*);

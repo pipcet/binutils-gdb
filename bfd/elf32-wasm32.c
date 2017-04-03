@@ -29,12 +29,12 @@
 
 static bfd_reloc_status_type
 elf32_wasm32_leb128_reloc (bfd *abfd ATTRIBUTE_UNUSED,
-                         arelent *reloc_entry,
-                         asymbol *symbol,
-                         void *data ATTRIBUTE_UNUSED,
-                         asection *input_section,
-                         bfd *output_bfd,
-                         char **error_message ATTRIBUTE_UNUSED);
+                           arelent *reloc_entry,
+                           asymbol *symbol,
+                           void *data ATTRIBUTE_UNUSED,
+                           asection *input_section,
+                           bfd *output_bfd,
+                           char **error_message ATTRIBUTE_UNUSED);
 
 static reloc_howto_type elf32_wasm32_howto_table[] =
 {
@@ -824,6 +824,7 @@ wasm32_create_dynamic_sections (bfd * abfd,
           ds->spltelem = bfd_get_section_by_name
             (dynobj, ".wasm.element_.plt");
           ds->srelplt = bfd_get_section_by_name (dynobj, ".rela.plt");
+          ds->sdyn = bfd_get_section_by_name (dynobj, ".dynsym");
           ds->sdynbss = bfd_get_section_by_name (dynobj, ".dynbss");
           ds->spltname = bfd_get_section_by_name (dynobj, ".wasm.name.function_.plt");
           ds->srelbss = bfd_get_section_by_name (dynobj, ".rela.bss");
@@ -907,7 +908,7 @@ add_symbol_to_plt (bfd *output_bfd, struct bfd_link_info *info,
                    struct elf_link_hash_entry *h)
 {
   struct dynamic_sections *ds = wasm32_create_dynamic_sections (output_bfd, info);
-  struct elf32_wasm32_link_hash_entry *hh = (struct elf32_wasm32_link_hash_entry *)h;
+  struct elf32_wasm32_link_hash_entry *hh = elf32_wasm32_hash_entry (h);
   struct elf_link_hash_entry *pltsig = hh->pltsig;
   bfd_vma ret;
   bfd_vma size;
@@ -1020,8 +1021,10 @@ elf32_wasm32_adjust_dynamic_symbol (struct bfd_link_info *info,
 
           if (bfd_link_executable (info) && !h->def_regular)
             {
-              h->root.u.def.section = ds->splt;
-              h->root.u.def.value = loc;
+              struct elf32_wasm32_link_hash_entry *hh =
+                elf32_wasm32_hash_entry (h);
+              h->root.u.def.section = ds->spltspace;
+              h->root.u.def.value = hh->plt_index;
             }
           h->plt.offset = loc;
         }
@@ -1810,7 +1813,7 @@ elf32_wasm32_size_dynamic_sections (bfd * output_bfd,
         continue;
 
       /* XXX this might still be re-allocating sections which have
-       * valuable data, as it used to do for .version_d. */
+         valuable data, as it used to do for .version_d.  */
       if ((s->flags & SEC_HAS_CONTENTS) && s->contents)
         continue;
 
@@ -2278,7 +2281,7 @@ elf32_wasm32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
               relocation = plt_index + plt_bias;
               addend = rel->r_addend;
             }
-          else if (relocation == 0)
+          else if (relocation == 0 && h->root.type == bfd_link_hash_undefweak)
             {
               /* Overwrite the "call" opcode with an "unreachable".  */
               bfd_put_8 (abfd, 0, contents + rel->r_offset - 1);

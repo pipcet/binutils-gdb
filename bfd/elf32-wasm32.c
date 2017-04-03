@@ -824,7 +824,7 @@ wasm32_create_dynamic_sections (bfd * abfd,
           ds->spltelem = bfd_get_section_by_name
             (dynobj, ".wasm.element_.plt");
           ds->srelplt = bfd_get_section_by_name (dynobj, ".rela.plt");
-          ds->sdyn = bfd_get_section_by_name (dynobj, ".dynsym");
+          ds->sdyn = bfd_get_section_by_name (dynobj, ".dynamic");
           ds->sdynbss = bfd_get_section_by_name (dynobj, ".dynbss");
           ds->spltname = bfd_get_section_by_name (dynobj, ".wasm.name.function_.plt");
           ds->srelbss = bfd_get_section_by_name (dynobj, ".rela.bss");

@@ -38,6 +38,7 @@ elf32_wasm32_leb128_reloc (bfd *abfd ATTRIBUTE_UNUSED,
 
 static reloc_howto_type elf32_wasm32_howto_table[] =
 {
+  /* BFD_NONE relocation.  Used for debug relocs into discarded sections.  */
   HOWTO (R_WASM32_NONE,		/* type */
          0,			/* rightshift */
          3,			/* size (0 = byte, 1 = short, 2 = long) */
@@ -52,7 +53,7 @@ static reloc_howto_type elf32_wasm32_howto_table[] =
          0,			/* dst_mask */
          FALSE),		/* pcrel_offset */
 
-  /* 32 bit absolute */
+  /* 32-bit absolute relocation.  Used.  */
   HOWTO (R_WASM32_32,		/* type */
          0,			/* rightshift */
          2,			/* size (0 = byte, 1 = short, 2 = long) */
@@ -67,8 +68,8 @@ static reloc_howto_type elf32_wasm32_howto_table[] =
          0xffffffff,		/* dst_mask */
          FALSE),		/* pcrel_offset */
 
-  /* standard 32bit pc-relative reloc */
-  HOWTO (R_WASM32_REL32,		/* type */
+  /* 32-bit relative relocation.  Used.  */
+  HOWTO (R_WASM32_REL32,	/* type */
          0,			/* rightshift */
          2,			/* size (0 = byte, 1 = short, 2 = long) */
          32,			/* bitsize */
@@ -82,62 +83,7 @@ static reloc_howto_type elf32_wasm32_howto_table[] =
          0xffffffff,		/* dst_mask */
          TRUE),			/* pcrel_offset */
 
-  HOWTO (R_WASM32_REL16,		/* type */
-         0,			/* rightshift */
-         1,			/* size (0 = byte, 1 = short, 2 = long) */
-         16,			/* bitsize */
-         TRUE,			/* pc_relative */
-         0,			/* bitpos */
-         complain_overflow_bitfield,/* complain_on_overflow */
-         bfd_elf_generic_reloc,	/* special_function */
-         "R_WASM32_REL16",	/* name */
-         FALSE,			/* partial_inplace */
-         0xffff,		/* src_mask */
-         0xffff,		/* dst_mask */
-         TRUE),			/* pcrel_offset */
-
-  HOWTO (R_WASM32_16,		/* type */
-         0,			/* rightshift */
-         1,			/* size (0 = byte, 1 = short, 2 = long) */
-         16,			/* bitsize */
-         FALSE,			/* pc_relative */
-         0,			/* bitpos */
-         complain_overflow_bitfield,/* complain_on_overflow */
-         bfd_elf_generic_reloc,	/* special_function */
-         "R_WASM32_16",         /* name */
-         FALSE,			/* partial_inplace */
-         0xffff,		/* src_mask */
-         0xffff,		/* dst_mask */
-         FALSE),		/* pcrel_offset */
-
-  HOWTO (R_WASM32_64,           /* type */
-         0,			/* rightshift */
-         4,			/* size (0 = byte, 1 = short, 2 = long) */
-         64,			/* bitsize */
-         FALSE,			/* pc_relative */
-         0,			/* bitpos */
-         complain_overflow_bitfield,/* complain_on_overflow */
-         bfd_elf_generic_reloc,	/* special_function */
-         "R_WASM32_64",         /* name */
-         FALSE,			/* partial_inplace */
-         0xffffffffffffffffLL,  /* src_mask */
-         0xffffffffffffffffLL,	/* dst_mask */
-         FALSE),		/* pcrel_offset */
-
-  HOWTO (R_WASM32_REL64,		/* type */
-         0,			/* rightshift */
-         4,			/* size (0 = byte, 1 = short, 2 = long) */
-         64,			/* bitsize */
-         TRUE,			/* pc_relative */
-         0,			/* bitpos */
-         complain_overflow_bitfield,/* complain_on_overflow */
-         bfd_elf_generic_reloc,	/* special_function */
-         "R_WASM32_REL64",	/* name */
-         FALSE,			/* partial_inplace */
-         0xffffffffffffffffLL,	/* src_mask */
-         0xffffffffffffffffLL,	/* dst_mask */
-         TRUE),			/* pcrel_offset */
-
+  /* Standard LEB-128 relocation.  Used.  */
   HOWTO (R_WASM32_LEB128,	/* type */
          0,			/* rightshift */
          8,			/* size - 16 bytes*/
@@ -152,6 +98,7 @@ static reloc_howto_type elf32_wasm32_howto_table[] =
          0xffffffffffffffff,	/* dst_mask */
          FALSE),		/* pcrel_offset */
 
+  /* LEB-128 GOT offset.  Used.  */
   HOWTO (R_WASM32_LEB128_GOT,	/* type */
          0,			/* rightshift */
          8,			/* size - 16 bytes*/
@@ -166,6 +113,8 @@ static reloc_howto_type elf32_wasm32_howto_table[] =
          0xffffffffffffffff,	/* dst_mask */
          FALSE),		/* pcrel_offset */
 
+  /* LEB-128 PLT index.  As a special case, this is replaced with five
+     0x00 bytes for undefined weak symbols.  Used.  */
   HOWTO (R_WASM32_LEB128_PLT,	/* type */
          0,			/* rightshift */
          8,			/* size - 16 bytes*/
@@ -180,6 +129,7 @@ static reloc_howto_type elf32_wasm32_howto_table[] =
          0xffffffffffffffff,	/* dst_mask */
          FALSE),		/* pcrel_offset */
 
+  /* PLT index.  Used for dyninfo.pl.  */
   HOWTO (R_WASM32_PLT_INDEX,     /* type */
          0,			/* rightshift */
          8,			/* size - 16 bytes*/
@@ -194,6 +144,7 @@ static reloc_howto_type elf32_wasm32_howto_table[] =
          0xffffffffffffffff,	/* dst_mask */
          FALSE),		/* pcrel_offset */
 
+  /* 32-bit absolute relocation for code.  Used.  */
   HOWTO (R_WASM32_32_CODE,	/* type */
          0,			/* rightshift */
          2,			/* size (0 = byte, 1 = short, 2 = long) */
@@ -208,20 +159,7 @@ static reloc_howto_type elf32_wasm32_howto_table[] =
          0xffffffff,		/* dst_mask */
          FALSE),		/* pcrel_offset */
 
-  HOWTO (R_WASM32_64_CODE,	/* type */
-         0,			/* rightshift */
-         2,			/* size (0 = byte, 1 = short, 2 = long) */
-         32,			/* bitsize */
-         FALSE,			/* pc_relative */
-         0,			/* bitpos */
-         complain_overflow_bitfield,/* complain_on_overflow */
-         bfd_elf_generic_reloc,	/* special_function */
-         "R_WASM32_64_CODE",	/* name */
-         FALSE,			/* partial_inplace */
-         0xffffffff,		/* src_mask */
-         0xffffffff,		/* dst_mask */
-         FALSE),		/* pcrel_offset */
-
+  /* Copy relocation.  Used.  */
   HOWTO (R_WASM32_COPY,		/* type */
          0,			/* rightshift */
          2,			/* size (0 = byte, 1 = short, 2 = long) */
@@ -236,6 +174,7 @@ static reloc_howto_type elf32_wasm32_howto_table[] =
          0xffffffff,		/* dst_mask */
          FALSE),		/* pcrel_offset */
 
+  /* LEB-128 relocation for code references.  Used.  */
   HOWTO (R_WASM32_LEB128_GOT_CODE, /* type */
          0,			/* rightshift */
          8,			/* size - 16 bytes*/
@@ -250,21 +189,7 @@ static reloc_howto_type elf32_wasm32_howto_table[] =
          0xffffffffffffffff,	/* dst_mask */
          FALSE),		/* pcrel_offset */
 
-  HOWTO (R_WASM32_8,		/* type */
-         0,			/* rightshift */
-         0,			/* size (0 = byte, 1 = short, 2 = long) */
-         8,			/* bitsize */
-         FALSE,			/* pc_relative */
-         0,			/* bitpos */
-         complain_overflow_bitfield,/* complain_on_overflow */
-         bfd_elf_generic_reloc,	/* special_function */
-         "R_WASM32_8",          /* name */
-         FALSE,			/* partial_inplace */
-         0xff,			/* src_mask */
-         0xff,			/* dst_mask */
-         FALSE),		/* pcrel_offset */
-
-  /* dummy reloc to pull in code */
+  /* Dummy relocation to pull in code.  Used.  */
   HOWTO (R_WASM32_CODE_POINTER,	/* type */
          0,			/* rightshift */
          0,			/* size (0 = byte, 1 = short, 2 = long) */
@@ -279,8 +204,8 @@ static reloc_howto_type elf32_wasm32_howto_table[] =
          0,			/* dst_mask */
          FALSE),		/* pcrel_offset */
 
-  /* dummy reloc to pull in function types */
-  HOWTO (R_WASM32_INDEX,                /* type */
+  /* Dummy relocation to pull in function types.  Used.  */
+  HOWTO (R_WASM32_INDEX,        /* type */
          0,			/* rightshift */
          0,			/* size (0 = byte, 1 = short, 2 = long) */
          32,			/* bitsize */
@@ -294,8 +219,8 @@ static reloc_howto_type elf32_wasm32_howto_table[] =
          0,			/* dst_mask */
          FALSE),		/* pcrel_offset */
 
-  /* dummy reloc to pull in function types */
-  HOWTO (R_WASM32_PLT_SIG,        /* type */
+  /* Dummy relocation to specify PLT signature.  Used.  */
+  HOWTO (R_WASM32_PLT_SIG,      /* type */
          0,			/* rightshift */
          0,			/* size (0 = byte, 1 = short, 2 = long) */
          32,			/* bitsize */
@@ -410,7 +335,7 @@ elf32_wasm32_info_to_howto_rela (bfd *abfd ATTRIBUTE_UNUSED,
 
 #define elf_backend_can_gc_sections          1
 #define elf_backend_rela_normal              1
-/* For testing. */
+/* For testing.  */
 #define elf_backend_want_dynrelro            1
 
 #define elf_info_to_howto		elf32_wasm32_info_to_howto_rela
@@ -466,16 +391,6 @@ elf32_wasm32_info_to_howto_rela (bfd *abfd ATTRIBUTE_UNUSED,
     s = bfd_get_linker_section (dynobj, SECTION);		\
   break;
 
-/* ELF relocs are against symbols.  If we are producing relocatable
-   output, and the reloc is against an external symbol, and nothing
-   has given us any additional addend, the resulting reloc will also
-   be against the same symbol.  In such a case, we don't want to
-   change anything about the way the reloc is handled, since it will
-   all be done at final link time.  Rather than put special case code
-   into bfd_perform_relocation, all the reloc types use this howto
-   function.  It just short circuits the reloc if producing
-   relocatable output against an external symbol.  */
-
 /* Store VALUE at ADDR in ABFD's address space, using an LEB128
    encoding of the same length as already exists at ADDR.  Do not
    write past END.  */
@@ -505,12 +420,12 @@ set_uleb128 (bfd *abfd ATTRIBUTE_UNUSED,
 
 static bfd_reloc_status_type
 elf32_wasm32_leb128_reloc (bfd *abfd ATTRIBUTE_UNUSED,
-                         arelent *reloc_entry,
-                         asymbol *symbol,
-                         void *data ATTRIBUTE_UNUSED,
-                         asection *input_section,
-                         bfd *output_bfd,
-                         char **error_message ATTRIBUTE_UNUSED)
+                           arelent *reloc_entry,
+                           asymbol *symbol,
+                           void *data ATTRIBUTE_UNUSED,
+                           asection *input_section,
+                           bfd *output_bfd,
+                           char **error_message ATTRIBUTE_UNUSED)
 {
   bfd_vma relocation;
   bfd_reloc_status_type flag = bfd_reloc_ok;
@@ -649,15 +564,23 @@ struct elf32_wasm32_link_hash_entry
 {
   struct elf_link_hash_entry root;
 
+  /* The symbol defining our PLT signature.  */
   struct elf_link_hash_entry *pltsig;
 
+  /* Index into .space.code_.plt.  */
   bfd_vma plt_index;
+  /* Index into .space.name.function_.plt.  */
   bfd_vma pltnameoff;
-  bfd_byte *pltstub;
-  bfd_vma pltstub_size;
-  bfd_vma pltstub_pltoff;
-  bfd_vma pltstub_sigoff;
+  /* Index into .space.function_.plt.  */
   bfd_vma pltfunction;
+  /* Pointer to PLT stub.  */
+  bfd_byte *pltstub;
+  /* Size of PLT stub.  */
+  bfd_vma pltstub_size;
+  /* Offset of the PLT index in the PLT stub.  */
+  bfd_vma pltstub_pltoff;
+  /* Offset of the signature index in the PLT stub.  */
+  bfd_vma pltstub_sigoff;
 };
 
 #define elf32_wasm32_hash_entry(ent) ((struct elf32_wasm32_link_hash_entry *)(ent))
@@ -715,8 +638,13 @@ elf32_wasm32_link_hash_newfunc (struct bfd_hash_entry *entry,
                                      table, string));
   if (ret != (struct elf32_wasm32_link_hash_entry *) NULL)
     {
-      ret->pltnameoff = (bfd_vma) -1;
       ret->plt_index = (bfd_vma) -1;
+      ret->pltnameoff = (bfd_vma) -1;
+      ret->pltfunction = (bfd_vma) -1;
+      ret->pltstub = NULL;
+      ret->pltstub_size = 0;
+      ret->pltstub_pltoff = (bfd_vma) -1;
+      ret->pltstub_sigoff = (bfd_vma) -1;
     }
 
   return (struct bfd_hash_entry *) ret;
@@ -746,64 +674,26 @@ elf32_wasm32_link_hash_table_create (bfd *abfd)
   return &ret->root.root;
 }
 
-struct dynamic_sections *
-wasm32_create_dynamic_sections (bfd * abfd,
-                                struct bfd_link_info *info);
+/* Return dynamic sections for ABFD's link INFO.  */
 
-struct dynamic_sections *
-wasm32_create_dynamic_sections (bfd * abfd,
+static struct dynamic_sections *
+wasm32_create_dynamic_sections (bfd * abfd ATTRIBUTE_UNUSED,
                                 struct bfd_link_info *info)
 {
   struct elf_link_hash_table *htab = elf_hash_table (info);
-  struct elf32_wasm32_link_hash_table *hhtab = (struct elf32_wasm32_link_hash_table *) htab;
+  struct elf32_wasm32_link_hash_table *hhtab = elf32_wasm32_hash_table (info);
   struct dynamic_sections *ds = &hhtab->ds;
 
   if (!ds->initialized)
     {
-      bfd_boolean dynamic_p = FALSE;
-      bfd *dynobj ATTRIBUTE_UNUSED;
+      bfd *dynobj;
 
       ds->initialized = TRUE;
 
-      dynobj = (elf_hash_table (info))->dynobj;
-      /* Create dynamic sections for relocatable executables so that
-         we can copy relocations.  */
-      if (bfd_link_pic (info))
-        dynamic_p = TRUE;
-      else
+      dynobj = htab->dynobj;
+
+      if (dynobj)
         {
-          bfd *inputobj;
-
-          for (inputobj = info->input_bfds; inputobj; inputobj = inputobj->link.next)
-            {
-              if (inputobj->flags & DYNAMIC)
-                {
-                  dynamic_p = TRUE;
-                  break;
-                }
-            }
-        }
-
-      if (dynobj && dynamic_p)
-        {
-          const struct elf_backend_data *bed;
-          flagword flags, pltflags ATTRIBUTE_UNUSED, spaceflags ATTRIBUTE_UNUSED;
-
-          if (! htab->dynamic_sections_created && dynamic_p)
-            {
-              if (! _bfd_elf_link_create_dynamic_sections (abfd, info))
-                BFD_ASSERT (0);
-            }
-
-          bed = get_elf_backend_data (abfd);
-          flags = bed->dynamic_sec_flags;
-
-          pltflags = flags;
-          pltflags |= SEC_ALLOC | SEC_CODE | SEC_LOAD;
-
-          spaceflags = flags;
-          spaceflags &= ~ (SEC_CODE | SEC_LOAD | SEC_HAS_CONTENTS);
-
           ds->sgot = htab->sgot;
           ds->srelgot = htab->srelgot;
           ds->spltspace = bfd_get_section_by_name
@@ -836,8 +726,8 @@ wasm32_create_dynamic_sections (bfd * abfd,
 }
 
 /* WebAssembly has no easy way to forward control to another function,
-   so we have to build a special plt stub for each function based on
-   the number of arguments it takes, its signature index, and its plt
+   so we have to build a special PLT stub for each function based on
+   the number of arguments it takes, its signature index, and its PLT
    index.
 
    The stub code is:
@@ -857,7 +747,8 @@ wasm32_create_dynamic_sections (bfd * abfd,
 
     While the code is identical for all n-argument functions, the
     function signature depends on the precise type of each argument,
-    so we cannot share PLT stubs. */
+    so we cannot share PLT stubs.  */
+
 static bfd_byte *
 build_plt_stub (bfd *output_bfd,
                 bfd_vma signature, bfd_vma nargs, bfd_vma pltindex,
@@ -901,13 +792,15 @@ build_plt_stub (bfd *output_bfd,
   return ret;
 }
 
-/* build a plt stub for H, based on its plt sig, and save it. Also
-   resize plt sections */
+/* Build a PLT stub for H, based on its PLT signature, and save it.
+   Also, resize PLT sections.  */
+
 static bfd_vma
 add_symbol_to_plt (bfd *output_bfd, struct bfd_link_info *info,
                    struct elf_link_hash_entry *h)
 {
-  struct dynamic_sections *ds = wasm32_create_dynamic_sections (output_bfd, info);
+  struct dynamic_sections *ds =
+    wasm32_create_dynamic_sections (output_bfd, info);
   struct elf32_wasm32_link_hash_entry *hh = elf32_wasm32_hash_entry (h);
   struct elf_link_hash_entry *pltsig = hh->pltsig;
   bfd_vma ret;
@@ -924,12 +817,10 @@ add_symbol_to_plt (bfd *output_bfd, struct bfd_link_info *info,
   hh->plt_index = ds->spltspace->size;
 
   if (!pltsig)
-    {
-      abort ();
-    }
+    abort ();
 
   signature = pltsig->root.u.def.section->output_offset + pltsig->root.u.def.value;
-  /* Yes, we parse the name of the PLT_SIG symbol. */
+  /* Yes, we parse the name of the PLT_SIG symbol.  */
   p = strrchr(pltsig->root.root.string, 'F');
   if (p)
     {
@@ -2264,12 +2155,9 @@ elf32_wasm32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
           if (h == NULL)
             goto final_link_relocate;
 
-          /* I'm not sure about this statement.  I think it still
-             results in calls to function 0 that shouldn't be
-             there.  */
-          //if (ELF_ST_VISIBILITY (h->other) == STV_INTERNAL
-          //    || ELF_ST_VISIBILITY (h->other) == STV_HIDDEN)
-          //  goto final_link_relocate;
+          if (ELF_ST_VISIBILITY (h->other) == STV_INTERNAL
+              || ELF_ST_VISIBILITY (h->other) == STV_HIDDEN)
+              h->plt.offset = (bfd_vma) -1;
 
           if (h->plt.offset != (bfd_vma) -1)
             {
@@ -2283,10 +2171,9 @@ elf32_wasm32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
             }
           else if (relocation == 0 && h->root.type == bfd_link_hash_undefweak)
             {
-              /* Overwrite the "call" opcode with an "unreachable".  */
-              bfd_put_8 (abfd, 0, contents + rel->r_offset - 1);
-              /* Pad with "unreachable" opcodes.  */
+              /* Call __wasm_null */
               bfd_put_8 (abfd, 0, contents + rel->r_offset);
+              /* Pad with "unreachable" opcodes.  */
               bfd_put_8 (abfd, 0, contents + rel->r_offset + 1);
               bfd_put_8 (abfd, 0, contents + rel->r_offset + 2);
               bfd_put_8 (abfd, 0, contents + rel->r_offset + 3);

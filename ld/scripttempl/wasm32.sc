@@ -166,6 +166,12 @@ SECTIONS
     KEEP(*(.space.pc_.pplt));
     .wasm.pc_end = .;
   }
+  .space.global_index 0 (INFO) :
+  {
+    *(.space.global_index.import);
+    *(.space.global_index);
+    *(.space.global_index.*);
+  }
   .space.type 0 (INFO) :
   {
     *(.space.type.import);

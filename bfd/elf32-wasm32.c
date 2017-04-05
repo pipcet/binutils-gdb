@@ -346,33 +346,33 @@ elf32_wasm32_info_to_howto_rela (bfd *abfd ATTRIBUTE_UNUSED,
 
 #define ELF_DYNAMIC_INTERPRETER  "/sbin/elf-dynamic-interpreter.so"
 
-/* whether to generate a "name" section entry for PLT stubs */
+/* Whether to generate a "name" section entry for PLT stubs.  */
 #define PLTNAME 1
 
 
 /* Section names: WebAssembly does not use the ordinary .text section
- * name; there is no clear equivalent to the .text section in
- * WebAssembly modules. Instead, we use section names beginning with
- * .wasm. for sections that end up being copied to the WebAssembly
- * module and .space. for sections whose only purpose it is to provide
- * a contiguous numbering space for indices; .space.* sections are
- * discarded when producing WebAssembly modules, but their length is
- * used to produce the right headers, and many symbols live in
- * .space.* sections.
- *
- * In particular, for an ordinary function f, the symbol f will live
- * in .space.function_index; the byte at that position will be 0, but
- * have a relocation which points to .wasm.code..text or
- * .wasm.code..text.f, such that referencing f pulls in those sections
- * when --gc-sections is specified.
- *
- * The actual code is in the .wasm.code..text[.f] section.
- *
- * Currently-known section names:
- *
- * .space.function_index: the main section in which function symbols
- live.
- * .space.pc: the section for "PC" values, as used for exception handling.
+   name; there is no clear equivalent to the .text section in
+   WebAssembly modules. Instead, we use section names beginning with
+   .wasm. for sections that end up being copied to the WebAssembly
+   module and .space. for sections whose only purpose it is to provide
+   a contiguous numbering space for indices; .space.* sections are
+   discarded when producing WebAssembly modules, but their length is
+   used to produce the right headers, and many symbols live in
+   .space.* sections.
+
+   In particular, for an ordinary function f, the symbol f will live
+   in .space.function_index; the byte at that position will be 0, but
+   have a relocation which points to .wasm.code..text or
+   .wasm.code..text.f, such that referencing f pulls in those sections
+   when --gc-sections is specified.
+
+   The actual code is in the .wasm.code..text[.f] section.
+
+   Currently-known section names:
+
+   .space.function_index: the main section in which function symbols
+   ve.
+   .space.pc: the section for "PC" values, as used for exception handling.
  */
 
 #define ADD_DYNAMIC_SYMBOL(NAME, TAG)					\

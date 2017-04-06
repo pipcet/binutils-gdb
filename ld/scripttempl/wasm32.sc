@@ -168,9 +168,9 @@ SECTIONS
   }
   .space.global_index 0 (INFO) :
   {
-    *(.space.global_index.import);
-    *(.space.global_index);
-    *(.space.global_index.*);
+    KEEP(*(.space.global_index.import));
+    KEEP(*(.space.global_index));
+    KEEP(*(.space.global_index.*));
   }
   .space.type 0 (INFO) :
   {

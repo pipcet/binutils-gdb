@@ -740,7 +740,7 @@ wasm32_create_dynamic_sections (bfd * abfd ATTRIBUTE_UNUSED,
        get_global $plt
        i32.const <pltindex>
        i32.add
-       call_indirect <pltsig>, 0
+       call_indirect <pltsig> 0
        return
        end
 1:
@@ -758,9 +758,9 @@ build_plt_stub (bfd *output_bfd,
   bfd_byte *ret = malloc (maxsize);
   bfd_byte *p = ret;
 
-  /* size. fill in later. */
+  /* Size.  Fill in later.  */
   *p++ = 0x80; *p++ = 0x80; *p++ = 0x80; *p++ = 0x80; *p++ = 0;
-  *p++ = 0x00; /* no locals */
+  *p++ = 0x00; /* No locals.  */
 
   for (bfd_vma i = 0; i < nargs; i++)
     {
@@ -780,7 +780,7 @@ build_plt_stub (bfd *output_bfd,
   *pltstub_sigoff = p - ret;
   *p++ = 0x80; *p++ = 0x80; *p++ = 0x80; *p++ = 0x80; *p++ = 0;
   set_uleb128 (output_bfd, signature, p - 5, ret + maxsize);
-  *p++ = 0x00; /* reserved */
+  *p++ = 0x00; /* Reserved argument to call_indirect.  */
   *p++ = 0x0f; /* return */
   *p++ = 0x0b; /* end */
 
@@ -804,7 +804,6 @@ add_symbol_to_plt (bfd *output_bfd, struct bfd_link_info *info,
   struct elf32_wasm32_link_hash_entry *hh = elf32_wasm32_hash_entry (h);
   struct elf_link_hash_entry *pltsig = hh->pltsig;
   bfd_vma ret;
-  bfd_vma size;
   bfd_vma signature;
   bfd_vma nargs = 0;
   const char *p = strrchr(pltsig->root.root.string, 'F');
@@ -850,11 +849,10 @@ add_symbol_to_plt (bfd *output_bfd, struct bfd_link_info *info,
     }
 
   hh->pltstub = build_plt_stub (output_bfd, signature, nargs,
-                                hh->plt_index, &size,
+                                hh->plt_index, &hh->pltstub_size,
                                 &hh->pltstub_pltoff, &hh->pltstub_sigoff);
-  hh->pltstub_size = size;
 
-  ds->splt->size += size;
+  ds->splt->size += hh->pltstub_size;
 
   htab->srelplt->size += 1 * sizeof (Elf32_External_Rela);
 

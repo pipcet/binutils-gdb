@@ -38,36 +38,36 @@
 #define BLOCK_TYPE_F64               0x7c
 
 enum wasm_class
-  {
-    wasm_typed,
-    wasm_special,
-    wasm_break,
-    wasm_break_if,
-    wasm_break_table,
-    wasm_return,
-    wasm_call,
-    wasm_call_import,
-    wasm_call_indirect,
-    wasm_get_local,
-    wasm_set_local,
-    wasm_tee_local,
-    wasm_drop,
-    wasm_constant_i32,
-    wasm_constant_i64,
-    wasm_constant_f32,
-    wasm_constant_f64,
-    wasm_unary,
-    wasm_binary,
-    wasm_conv,
-    wasm_load,
-    wasm_store,
-    wasm_select,
-    wasm_relational,
-    wasm_eqz,
-    wasm_current_memory,
-    wasm_grow_memory,
-    wasm_signature
-  };
+{
+  wasm_typed,
+  wasm_special,
+  wasm_break,
+  wasm_break_if,
+  wasm_break_table,
+  wasm_return,
+  wasm_call,
+  wasm_call_import,
+  wasm_call_indirect,
+  wasm_get_local,
+  wasm_set_local,
+  wasm_tee_local,
+  wasm_drop,
+  wasm_constant_i32,
+  wasm_constant_i64,
+  wasm_constant_f32,
+  wasm_constant_f64,
+  wasm_unary,
+  wasm_binary,
+  wasm_conv,
+  wasm_load,
+  wasm_store,
+  wasm_select,
+  wasm_relational,
+  wasm_eqz,
+  wasm_current_memory,
+  wasm_grow_memory,
+  wasm_signature
+};
 
 struct wasm32_private_data
 {
@@ -108,9 +108,10 @@ struct wasm32_opcode_s
 
 static void
 parse_wasm32_disassembler_options (struct disassemble_info *info,
-                                   char *opts)
+                                   const char *opts)
 {
   struct wasm32_private_data *private = info->private_data;
+
   while (opts != NULL)
     {
       if (CONST_STRNEQ (opts, "registers"))
@@ -276,17 +277,19 @@ print_insn_wasm32 (bfd_vma pc, struct disassemble_info *info)
   int ret = 0;
   unsigned int bytes_read = 0;
   int i;
-  const char *locals[] = {
-    "$dpc", "$sp1", "$r0", "$r1", "$rpc", "$pc0",
-    "$rp", "$fp", "$sp",
-    "$r2", "$r3", "$r4", "$r5", "$r6", "$r7",
-    "$i0", "$i1", "$i2", "$i3", "$i4", "$i5", "$i6", "$i7",
-    "$f0", "$f1", "$f2", "$f3", "$f4", "$f5", "$f6", "$f7",
-  };
+  const char *locals[] =
+    {
+      "$dpc", "$sp1", "$r0", "$r1", "$rpc", "$pc0",
+      "$rp", "$fp", "$sp",
+      "$r2", "$r3", "$r4", "$r5", "$r6", "$r7",
+      "$i0", "$i1", "$i2", "$i3", "$i4", "$i5", "$i6", "$i7",
+      "$f0", "$f1", "$f2", "$f3", "$f4", "$f5", "$f6", "$f7",
+    };
   int nlocals = ARRAY_SIZE (locals);
-  const char *globals[] = {
-    "$got", "$plt", "$gpo"
-  };
+  const char *globals[] =
+    {
+      "$got", "$plt", "$gpo"
+    };
   int nglobals = ARRAY_SIZE (globals);
   bfd_boolean error = FALSE;
 
@@ -352,6 +355,7 @@ print_insn_wasm32 (bfd_vma pc, struct disassemble_info *info)
         case wasm_typed:
         case wasm_select:
           break;
+
         case wasm_break_table:
           target_count = wasm_read_leb128
             (pc + len, info, &error, &bytes_read, FALSE);
@@ -370,6 +374,7 @@ print_insn_wasm32 (bfd_vma pc, struct disassemble_info *info)
               prin (stream, " %ld", target);
             }
           break;
+
         case wasm_break:
         case wasm_break_if:
           depth = wasm_read_leb128
@@ -379,8 +384,10 @@ print_insn_wasm32 (bfd_vma pc, struct disassemble_info *info)
           len += bytes_read;
           prin (stream, " %ld", depth);
           break;
+
         case wasm_return:
           break;
+
         case wasm_constant_i32:
         case wasm_constant_i64:
           constant = wasm_read_leb128
@@ -390,6 +397,7 @@ print_insn_wasm32 (bfd_vma pc, struct disassemble_info *info)
           len += bytes_read;
           prin (stream, " %lld", constant);
           break;
+
         case wasm_constant_f32:
           /* This appears to be the best we can do, even though we're
              using host doubles for WebAssembly floats.  */
@@ -399,6 +407,7 @@ print_insn_wasm32 (bfd_vma pc, struct disassemble_info *info)
           len += ret;
           prin (stream, " %.*g", DECIMAL_DIG, fconstant);
           break;
+
         case wasm_constant_f64:
           ret = read_f64 (&fconstant, pc + len, info);
           if (ret < 0)
@@ -406,6 +415,7 @@ print_insn_wasm32 (bfd_vma pc, struct disassemble_info *info)
           len += ret;
           prin (stream, " %.*g", DECIMAL_DIG, fconstant);
           break;
+
         case wasm_call:
           index = wasm_read_leb128
             (pc + len, info, &error, &bytes_read, FALSE);
@@ -417,6 +427,7 @@ print_insn_wasm32 (bfd_vma pc, struct disassemble_info *info)
           (*info->print_address_func) ((bfd_vma) index, info);
           private_data->section_prefix = NULL;
           break;
+
         case wasm_call_indirect:
           constant = wasm_read_leb128
             (pc + len, info, &error, &bytes_read, FALSE);
@@ -431,6 +442,7 @@ print_insn_wasm32 (bfd_vma pc, struct disassemble_info *info)
           len += bytes_read;
           prin (stream, " %lld", constant);
           break;
+
         case wasm_get_local:
         case wasm_set_local:
         case wasm_tee_local:
@@ -453,6 +465,7 @@ print_insn_wasm32 (bfd_vma pc, struct disassemble_info *info)
                 prin (stream, " <%s>", globals[constant]);
             }
           break;
+
         case wasm_grow_memory:
         case wasm_current_memory:
           constant = wasm_read_leb128
@@ -462,6 +475,7 @@ print_insn_wasm32 (bfd_vma pc, struct disassemble_info *info)
           len += bytes_read;
           prin (stream, " %lld", constant);
           break;
+
         case wasm_load:
         case wasm_store:
           flags = wasm_read_leb128
@@ -486,6 +500,7 @@ void
 print_wasm32_disassembler_options (FILE *stream)
 {
   unsigned int i, max_len = 0;
+
   fprintf (stream, _("\
 The following WebAssembly-specific disassembler options are supported for use\n\
 with the -M switch:\n"));
@@ -493,6 +508,7 @@ with the -M switch:\n"));
   for (i = 0; i < ARRAY_SIZE (options); i++)
     {
       unsigned int len = strlen (options[i].name);
+
       if (max_len < len)
 	max_len = len;
     }

@@ -297,7 +297,6 @@ powerpc_init_dialect (struct disassemble_info *info)
   ppc_cpu_t dialect = 0;
   ppc_cpu_t sticky = 0;
   struct dis_private *priv = calloc (sizeof (*priv), 1);
-  char *opt;
 
   if (priv == NULL)
     priv = &private;
@@ -345,6 +344,7 @@ powerpc_init_dialect (struct disassemble_info *info)
       break;
     }
 
+  const char *opt;
   FOR_EACH_DISASSEMBLER_OPTION (opt, info->disassembler_options)
     {
       ppc_cpu_t new_cpu = 0;

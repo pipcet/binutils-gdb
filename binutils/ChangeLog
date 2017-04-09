@@ -1,3 +1,49 @@
+2017-04-05  Jiong Wang  <jiong.wang@arm.com>
+
+	* objcopy.c (struct redefine_node): Delete the field "next".
+	(redefine_sym_list): Deleted.
+	(redefine_specific_htab): New hash table.
+	(redefine_specific_reverse_htab): Likewise.
+	(eq_string_redefnode): New function.
+	(htab_hash_redefnode): Likewise.
+	(create_symbol2redef_htab): Likewise.
+	(add_specific_symbol_node): Likewise.
+	(create_symbol_htabs): Create redefine_specific_htab and
+	redefine_specific_reverse_htab.
+	(lookup_sym_redefinition): Use hash table instead of list.
+	(redefine_list_append): Likewise, and rename to add_redefine_and_check.
+	(copy_main): Use redefine_specific_htab instead of redefine_sym_list.
+	Update comments.
+
+2017-04-04  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* NEWS: Mention support for ELF SHF_GNU_MBIND and
+	PT_GNU_MBIND_XXX.
+	* readelf.c (get_segment_type): Handle PT_GNU_MBIND_XXX.
+	(get_elf_section_flags): Handle SHF_GNU_MBIND.
+	(process_section_headers): Likewise.
+	* testsuite/binutils-all/mbind1.s: New file.
+	* testsuite/binutils-all/objcopy.exp: Run readelf test on
+	mbind1.s.
+
+2017-04-03  Nick Clifton  <nickc@redhat.com>
+
+	PR binutils/21345
+	* readelf.c (get_program_headers): Check for there being too many
+	program headers before attempting to allocate space for them.
+
+2017-04-03  Nick Clifton  <nickc@redhat.com>
+
+	PR binutils/21344
+	* readelf.c (process_mips_specific): Check for an out of range GOT
+	entry before reading the module pointer.
+
+2017-04-03  Nick Clifton  <nickc@redhat.com>
+
+	PR binutils/21343
+	* readelf.c (get_unwind_section_word): Fix snafu checking for
+	invalid word offsets in ARM unwind information.
+
 2017-03-31  Pip Cet  <pipcet@gmail.com>
 
 	* NEWS: Use "WebAssembly" consistently.

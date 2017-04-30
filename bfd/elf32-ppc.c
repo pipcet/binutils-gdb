@@ -2609,7 +2609,7 @@ ppc_elf_modify_segment_map (bfd *abfd,
       amt += (m->count - j - 1) * sizeof (asection *);
       n = (struct elf_segment_map *) bfd_zalloc (abfd, amt);
       if (n == NULL)
-        return FALSE;
+	return FALSE;
 
       n->p_type = PT_LOAD;
       n->count = m->count - j;
@@ -3220,6 +3220,13 @@ must_be_dyn_reloc (struct bfd_link_info *info,
       return !bfd_link_executable (info);
     }
 }
+
+/* Whether an undefined weak symbol should resolve to its link-time
+   value, even in PIC or PIE objects.  */
+#define UNDEFWEAK_NO_DYNAMIC_RELOC(INFO, H)		\
+  ((H)->root.type == bfd_link_hash_undefweak		\
+   && (ELF_ST_VISIBILITY ((H)->other) != STV_DEFAULT	\
+       || (INFO)->dynamic_undefined_weak == 0))
 
 /* If ELIMINATE_COPY_RELOCS is non-zero, the linker will try to avoid
    copying dynamic variables from a shared lib into an app's dynbss
@@ -4997,8 +5004,7 @@ ppc_elf_select_plt_layout (bfd *output_bfd ATTRIBUTE_UNUSED,
 		   || h->needs_plt)
 	       && h->ref_regular
 	       && !(SYMBOL_CALLS_LOCAL (info, h)
-		    || (ELF_ST_VISIBILITY (h->other) != STV_DEFAULT
-			&& h->root.type == bfd_link_hash_undefweak)))
+		    || UNDEFWEAK_NO_DYNAMIC_RELOC (info, h)))
 	{
 	  /* Profiling of shared libs (and pies) is not supported with
 	     secure plt, because ppc32 does profiling before a
@@ -5298,8 +5304,7 @@ ppc_elf_tls_setup (bfd *obfd, struct bfd_link_info *info)
 	      && (tga->type == STT_FUNC
 		  || tga->needs_plt)
 	      && !(SYMBOL_CALLS_LOCAL (info, tga)
-		   || (ELF_ST_VISIBILITY (tga->other) != STV_DEFAULT
-		       && tga->root.type == bfd_link_hash_undefweak)))
+		   || UNDEFWEAK_NO_DYNAMIC_RELOC (info, tga)))
 	    {
 	      struct plt_entry *ent;
 	      for (ent = tga->plt.plist; ent != NULL; ent = ent->next)
@@ -5685,8 +5690,7 @@ ppc_elf_adjust_dynamic_symbol (struct bfd_link_info *info,
       if (ent == NULL
 	  || (h->type != STT_GNU_IFUNC
 	      && (SYMBOL_CALLS_LOCAL (info, h)
-		  || (ELF_ST_VISIBILITY (h->other) != STV_DEFAULT
-		      && h->root.type == bfd_link_hash_undefweak))))
+		  || UNDEFWEAK_NO_DYNAMIC_RELOC (info, h))))
 	{
 	  /* A PLT entry is not required/allowed when:
 
@@ -5948,6 +5952,7 @@ ensure_undefweak_dynamic (struct bfd_link_info *info,
   struct elf_link_hash_table *htab = elf_hash_table (info);
 
   if (htab->dynamic_sections_created
+      && info->dynamic_undefined_weak != 0
       && h->root.type == bfd_link_hash_undefweak
       && h->dynindx == -1
       && !h->forced_local
@@ -6018,8 +6023,7 @@ allocate_dynrelocs (struct elf_link_hash_entry *h, void *inf)
 	       || (htab->elf.dynamic_sections_created
 		   && eh->elf.dynindx != -1
 		   && !SYMBOL_REFERENCES_LOCAL (info, &eh->elf)))
-	      && (ELF_ST_VISIBILITY (eh->elf.other) == STV_DEFAULT
-		  || eh->elf.root.type != bfd_link_hash_undefweak))
+	      && !UNDEFWEAK_NO_DYNAMIC_RELOC (info, &eh->elf))
 	    {
 	      asection *rsec = htab->elf.srelgot;
 
@@ -6037,6 +6041,8 @@ allocate_dynrelocs (struct elf_link_hash_entry *h, void *inf)
   else
     eh->elf.got.offset = (bfd_vma) -1;
 
+  /* If no dynamic sections we can't have dynamic relocs, except for
+     IFUNCs which are handled even in static executables.  */
   if (!htab->elf.dynamic_sections_created
       && h->type != STT_GNU_IFUNC)
     eh->dyn_relocs = NULL;
@@ -6051,13 +6057,23 @@ allocate_dynrelocs (struct elf_link_hash_entry *h, void *inf)
      changes.  */
   else if (bfd_link_pic (info))
     {
+      /* Discard relocs on undefined symbols that must be local.  */
+      if (h->root.type == bfd_link_hash_undefined
+	  && ELF_ST_VISIBILITY (h->other) != STV_DEFAULT)
+	eh->dyn_relocs = NULL;
+
+      /* Also discard relocs on undefined weak syms with non-default
+	 visibility, or when dynamic_undefined_weak says so.  */
+      else if (UNDEFWEAK_NO_DYNAMIC_RELOC (info, h))
+	eh->dyn_relocs = NULL;
+
       /* Relocs that use pc_count are those that appear on a call insn,
 	 or certain REL relocs (see must_be_dyn_reloc) that can be
 	 generated via assembly.  We want calls to protected symbols to
 	 resolve directly to the function rather than going via the plt.
 	 If people want function pointer comparisons to work as expected
 	 then they should avoid writing weird assembly.  */
-      if (SYMBOL_CALLS_LOCAL (info, h))
+      else if (SYMBOL_CALLS_LOCAL (info, h))
 	{
 	  struct elf_dyn_relocs **pp;
 
@@ -6085,24 +6101,11 @@ allocate_dynrelocs (struct elf_link_hash_entry *h, void *inf)
 	    }
 	}
 
-      /* Discard relocs on undefined symbols that must be local.  */
-      if (eh->dyn_relocs != NULL
-	  && h->root.type == bfd_link_hash_undefined
-	  && (ELF_ST_VISIBILITY (h->other) == STV_HIDDEN
-	      || ELF_ST_VISIBILITY (h->other) == STV_INTERNAL))
-	eh->dyn_relocs = NULL;
-
-      /* Also discard relocs on undefined weak syms with non-default
-	 visibility.  */
-      if (eh->dyn_relocs != NULL
-	  && h->root.type == bfd_link_hash_undefweak)
+      if (eh->dyn_relocs != NULL)
 	{
-	  if (ELF_ST_VISIBILITY (h->other) != STV_DEFAULT)
-	    eh->dyn_relocs = NULL;
-
 	  /* Make sure undefined weak symbols are output as a dynamic
 	     symbol in PIEs.  */
-	  else if (!ensure_undefweak_dynamic (info, h))
+	  if (!ensure_undefweak_dynamic (info, h))
 	    return FALSE;
 	}
     }
@@ -8503,8 +8506,7 @@ ppc_elf_relocate_section (bfd *output_bfd,
 		if (!htab->elf.dynamic_sections_created
 		    || h->dynindx == -1
 		    || SYMBOL_REFERENCES_LOCAL (info, h)
-		    || (ELF_ST_VISIBILITY (h->other) != STV_DEFAULT
-			&& h->root.type == bfd_link_hash_undefweak))
+		    || UNDEFWEAK_NO_DYNAMIC_RELOC (info, h))
 		  /* This is actually a static link, or it is a
 		     -Bsymbolic link and the symbol is defined
 		     locally, or the symbol was forced to be local
@@ -8573,8 +8575,7 @@ ppc_elf_relocate_section (bfd *output_bfd,
 		    if (indx != 0
 			|| (bfd_link_pic (info)
 			    && (h == NULL
-				|| ELF_ST_VISIBILITY (h->other) == STV_DEFAULT
-				|| h->root.type != bfd_link_hash_undefweak
+				|| !UNDEFWEAK_NO_DYNAMIC_RELOC (info, h)
 				|| offp == &htab->tlsld_got.offset)))
 		      {
 			asection *rsec = htab->elf.srelgot;
@@ -8860,10 +8861,8 @@ ppc_elf_relocate_section (bfd *output_bfd,
 	  if ((bfd_link_pic (info)
 	       && !(h != NULL
 		    && ((h->root.type == bfd_link_hash_undefined
-			 && (ELF_ST_VISIBILITY (h->other) == STV_HIDDEN
-			     || ELF_ST_VISIBILITY (h->other) == STV_INTERNAL))
-			|| (h->root.type == bfd_link_hash_undefweak
-			    && ELF_ST_VISIBILITY (h->other) != STV_DEFAULT)))
+			 && ELF_ST_VISIBILITY (h->other) != STV_DEFAULT)
+			|| UNDEFWEAK_NO_DYNAMIC_RELOC (info, h)))
 	       && (must_be_dyn_reloc (info, r_type)
 		   || !SYMBOL_CALLS_LOCAL (info, h)))
 	      || (ELIMINATE_COPY_RELOCS
@@ -8904,10 +8903,7 @@ ppc_elf_relocate_section (bfd *output_bfd,
 
 	      if (skip)
 		memset (&outrel, 0, sizeof outrel);
-	      else if ((h != NULL
-			&& (h->root.type == bfd_link_hash_undefined
-			    || h->root.type == bfd_link_hash_undefweak))
-		       || !SYMBOL_REFERENCES_LOCAL (info, h))
+	      else if (!SYMBOL_REFERENCES_LOCAL (info, h))
 		{
 		  indx = h->dynindx;
 		  BFD_ASSERT (indx != -1);
@@ -10980,7 +10976,7 @@ ppc_elf_finish_dynamic_sections (bfd *output_bfd,
 #define elf_backend_finish_dynamic_sections	ppc_elf_finish_dynamic_sections
 #define elf_backend_fake_sections		ppc_elf_fake_sections
 #define elf_backend_additional_program_headers	ppc_elf_additional_program_headers
-#define elf_backend_modify_segment_map     	ppc_elf_modify_segment_map
+#define elf_backend_modify_segment_map		ppc_elf_modify_segment_map
 #define elf_backend_grok_prstatus		ppc_elf_grok_prstatus
 #define elf_backend_grok_psinfo			ppc_elf_grok_psinfo
 #define elf_backend_write_core_note		ppc_elf_write_core_note
@@ -11050,7 +11046,7 @@ ppc_elf_vxworks_link_hash_table_create (bfd *abfd)
   if (ret)
     {
       struct ppc_elf_link_hash_table *htab
-        = (struct ppc_elf_link_hash_table *)ret;
+	= (struct ppc_elf_link_hash_table *)ret;
       htab->is_vxworks = 1;
       htab->plt_type = PLT_VXWORKS;
       htab->plt_entry_size = VXWORKS_PLT_ENTRY_SIZE;

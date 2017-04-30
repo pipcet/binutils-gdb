@@ -7028,7 +7028,7 @@ _bfd_mips_elf_symbol_processing (bfd *abfd, asymbol *asym)
    did so.  */
 
 unsigned int
-_bfd_mips_elf_eh_frame_address_size (bfd *abfd, asection *sec)
+_bfd_mips_elf_eh_frame_address_size (bfd *abfd, const asection *sec)
 {
   if (elf_elfheader (abfd)->e_ident[EI_CLASS] == ELFCLASS64)
     return 8;
@@ -14271,11 +14271,11 @@ _bfd_mips_elf_final_link (bfd *abfd, struct bfd_link_info *info)
     scRData, scSData, scSBss, scBss
   };
 
-  /* Sort the dynamic symbols so that those with GOT entries come after
-     those without.  */
   htab = mips_elf_hash_table (info);
   BFD_ASSERT (htab != NULL);
 
+  /* Sort the dynamic symbols so that those with GOT entries come after
+     those without.  */
   if (!mips_elf_sort_hash_table (abfd, info))
     return FALSE;
 

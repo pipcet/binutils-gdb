@@ -53,7 +53,7 @@ static reloc_howto_type elf32_wasm32_howto_table[] =
          0,			/* dst_mask */
          FALSE),		/* pcrel_offset */
 
-  /* 32-bit absolute relocation.  Used.  */
+  /* 32-bit absolute relocation.  */
   HOWTO (R_WASM32_32,		/* type */
          0,			/* rightshift */
          2,			/* size (0 = byte, 1 = short, 2 = long) */
@@ -68,7 +68,7 @@ static reloc_howto_type elf32_wasm32_howto_table[] =
          0xffffffff,		/* dst_mask */
          FALSE),		/* pcrel_offset */
 
-  /* 32-bit relative relocation.  Used.  */
+  /* 32-bit relative relocation.  */
   HOWTO (R_WASM32_REL32,	/* type */
          0,			/* rightshift */
          2,			/* size (0 = byte, 1 = short, 2 = long) */
@@ -81,9 +81,9 @@ static reloc_howto_type elf32_wasm32_howto_table[] =
          FALSE,			/* partial_inplace */
          0xffffffff,		/* src_mask */
          0xffffffff,		/* dst_mask */
-         TRUE),			/* pcrel_offset */
+         FALSE),		/* pcrel_offset */
 
-  /* Standard LEB-128 relocation.  Used.  */
+  /* Standard LEB-128 relocation.  */
   HOWTO (R_WASM32_LEB128,	/* type */
          0,			/* rightshift */
          8,			/* size - 16 bytes*/
@@ -98,7 +98,7 @@ static reloc_howto_type elf32_wasm32_howto_table[] =
          0xffffffffffffffff,	/* dst_mask */
          FALSE),		/* pcrel_offset */
 
-  /* LEB-128 GOT offset.  Used.  */
+  /* LEB-128 GOT offset.  */
   HOWTO (R_WASM32_LEB128_GOT,	/* type */
          0,			/* rightshift */
          8,			/* size - 16 bytes*/
@@ -114,7 +114,7 @@ static reloc_howto_type elf32_wasm32_howto_table[] =
          FALSE),		/* pcrel_offset */
 
   /* LEB-128 PLT index.  As a special case, this is replaced with five
-     0x00 bytes for undefined weak symbols.  Used.  */
+     0x00 bytes for undefined weak symbols.  */
   HOWTO (R_WASM32_LEB128_PLT,	/* type */
          0,			/* rightshift */
          8,			/* size - 16 bytes*/
@@ -129,7 +129,7 @@ static reloc_howto_type elf32_wasm32_howto_table[] =
          0xffffffffffffffff,	/* dst_mask */
          FALSE),		/* pcrel_offset */
 
-  /* PLT index.  Used for dyninfo.pl.  */
+  /* PLT index.  */
   HOWTO (R_WASM32_PLT_INDEX,     /* type */
          0,			/* rightshift */
          8,			/* size - 16 bytes*/
@@ -144,7 +144,7 @@ static reloc_howto_type elf32_wasm32_howto_table[] =
          0xffffffffffffffff,	/* dst_mask */
          FALSE),		/* pcrel_offset */
 
-  /* 32-bit absolute relocation for code.  Used.  */
+  /* 32-bit absolute relocation for code.  */
   HOWTO (R_WASM32_32_CODE,	/* type */
          0,			/* rightshift */
          2,			/* size (0 = byte, 1 = short, 2 = long) */
@@ -159,7 +159,7 @@ static reloc_howto_type elf32_wasm32_howto_table[] =
          0xffffffff,		/* dst_mask */
          FALSE),		/* pcrel_offset */
 
-  /* Copy relocation.  Used.  */
+  /* Copy relocation.  */
   HOWTO (R_WASM32_COPY,		/* type */
          0,			/* rightshift */
          2,			/* size (0 = byte, 1 = short, 2 = long) */
@@ -174,7 +174,7 @@ static reloc_howto_type elf32_wasm32_howto_table[] =
          0xffffffff,		/* dst_mask */
          FALSE),		/* pcrel_offset */
 
-  /* LEB-128 relocation for code references.  Used.  */
+  /* LEB-128 relocation for code references.  */
   HOWTO (R_WASM32_LEB128_GOT_CODE, /* type */
          0,			/* rightshift */
          8,			/* size - 16 bytes*/
@@ -189,7 +189,7 @@ static reloc_howto_type elf32_wasm32_howto_table[] =
          0xffffffffffffffff,	/* dst_mask */
          FALSE),		/* pcrel_offset */
 
-  /* Dummy relocation to pull in code.  Used.  */
+  /* Dummy relocation to pull in code.  */
   HOWTO (R_WASM32_CODE_POINTER,	/* type */
          0,			/* rightshift */
          0,			/* size (0 = byte, 1 = short, 2 = long) */
@@ -204,7 +204,7 @@ static reloc_howto_type elf32_wasm32_howto_table[] =
          0,			/* dst_mask */
          FALSE),		/* pcrel_offset */
 
-  /* Dummy relocation to pull in function types.  Used.  */
+  /* Dummy relocation to pull in function types.  */
   HOWTO (R_WASM32_INDEX,        /* type */
          0,			/* rightshift */
          0,			/* size (0 = byte, 1 = short, 2 = long) */
@@ -219,7 +219,7 @@ static reloc_howto_type elf32_wasm32_howto_table[] =
          0,			/* dst_mask */
          FALSE),		/* pcrel_offset */
 
-  /* Dummy relocation to specify PLT signature.  Used.  */
+  /* Dummy relocation to specify PLT signature.  */
   HOWTO (R_WASM32_PLT_SIG,      /* type */
          0,			/* rightshift */
          0,			/* size (0 = byte, 1 = short, 2 = long) */
@@ -239,7 +239,7 @@ static reloc_howto_type elf32_wasm32_howto_table[] =
 
 static reloc_howto_type *
 elf32_wasm32_reloc_name_lookup (bfd *abfd ATTRIBUTE_UNUSED,
-                              const char *r_name)
+                                const char *r_name)
 {
   unsigned int i;
 
@@ -255,17 +255,13 @@ elf32_wasm32_reloc_name_lookup (bfd *abfd ATTRIBUTE_UNUSED,
 
 static reloc_howto_type *
 elf32_wasm32_reloc_type_lookup (bfd *abfd ATTRIBUTE_UNUSED,
-                              enum bfd_reloc_code_real code)
+                                enum bfd_reloc_code_real code)
 {
   switch (code) {
   case BFD_RELOC_32:
     return elf32_wasm32_reloc_name_lookup(abfd, "R_WASM32_32");
   case BFD_RELOC_32_PCREL:
     return elf32_wasm32_reloc_name_lookup(abfd, "R_WASM32_REL32");
-  case BFD_RELOC_16:
-    return elf32_wasm32_reloc_name_lookup(abfd, "R_WASM32_16");
-  case BFD_RELOC_8:
-    return elf32_wasm32_reloc_name_lookup(abfd, "R_WASM32_8");
   case BFD_RELOC_WASM32_LEB128:
     return elf32_wasm32_reloc_name_lookup(abfd, "R_WASM32_LEB128");
   case BFD_RELOC_WASM32_LEB128_GOT:
@@ -316,64 +312,16 @@ elf32_wasm32_rtype_to_howto (bfd *abfd, unsigned r_type)
 
 static void
 elf32_wasm32_info_to_howto_rela (bfd *abfd ATTRIBUTE_UNUSED,
-                               arelent *cache_ptr,
-                               Elf_Internal_Rela *dst)
+                                 arelent *cache_ptr,
+                                 Elf_Internal_Rela *dst)
 {
   unsigned int r_type = ELF32_R_TYPE (dst->r_info);
+
   cache_ptr->howto = elf32_wasm32_rtype_to_howto (abfd, r_type);
 }
 
-#define ELF_ARCH		bfd_arch_wasm32
-#define ELF_TARGET_ID		EM_WEBASSEMBLY
-#define ELF_MACHINE_CODE	EM_WEBASSEMBLY
-/* FIXME we don't have paged executables, see:
-   https://github.com/pipcet/binutils-gdb/issues/4  */
-#define ELF_MAXPAGESIZE		4096
-
-#define TARGET_LITTLE_SYM       wasm32_elf32_vec
-#define TARGET_LITTLE_NAME	"elf32-wasm32"
-
-#define elf_backend_can_gc_sections          1
-#define elf_backend_rela_normal              1
-/* For testing.  */
-#define elf_backend_want_dynrelro            1
-
-#define elf_info_to_howto		elf32_wasm32_info_to_howto_rela
-#define elf_info_to_howto_rel		NULL
-
-#define bfd_elf32_bfd_reloc_type_lookup elf32_wasm32_reloc_type_lookup
-#define bfd_elf32_bfd_reloc_name_lookup elf32_wasm32_reloc_name_lookup
-
-#define ELF_DYNAMIC_INTERPRETER  "/sbin/elf-dynamic-interpreter.so"
-
 /* Whether to generate a "name" section entry for PLT stubs.  */
 #define PLTNAME 1
-
-
-/* Section names: WebAssembly does not use the ordinary .text section
-   name; there is no clear equivalent to the .text section in
-   WebAssembly modules. Instead, we use section names beginning with
-   .wasm. for sections that end up being copied to the WebAssembly
-   module and .space. for sections whose only purpose it is to provide
-   a contiguous numbering space for indices; .space.* sections are
-   discarded when producing WebAssembly modules, but their length is
-   used to produce the right headers, and many symbols live in
-   .space.* sections.
-
-   In particular, for an ordinary function f, the symbol f will live
-   in .space.function_index; the byte at that position will be 0, but
-   have a relocation which points to .wasm.code..text or
-   .wasm.code..text.f, such that referencing f pulls in those sections
-   when --gc-sections is specified.
-
-   The actual code is in the .wasm.code..text[.f] section.
-
-   Currently-known section names:
-
-   .space.function_index: the main section in which function symbols
-   ve.
-   .space.pc: the section for "PC" values, as used for exception handling.
- */
 
 #define ADD_DYNAMIC_SYMBOL(NAME, TAG)					\
   h =  elf_link_hash_lookup (elf_hash_table (info),			\
@@ -394,6 +342,7 @@ elf32_wasm32_info_to_howto_rela (bfd *abfd ATTRIBUTE_UNUSED,
 /* Store VALUE at ADDR in ABFD's address space, using an LEB128
    encoding of the same length as already exists at ADDR.  Do not
    write past END.  */
+
 static inline bfd_boolean
 set_uleb128 (bfd *abfd ATTRIBUTE_UNUSED,
              unsigned long long value,
@@ -414,116 +363,9 @@ set_uleb128 (bfd *abfd ATTRIBUTE_UNUSED,
       value >>= 7;
     }
   bfd_put_8 (abfd, (value & 0x7f), addr + i);
+  value >>= 7;
 
   return (value == 0);
-}
-
-static bfd_reloc_status_type
-elf32_wasm32_leb128_reloc (bfd *abfd ATTRIBUTE_UNUSED,
-                           arelent *reloc_entry,
-                           asymbol *symbol,
-                           void *data ATTRIBUTE_UNUSED,
-                           asection *input_section,
-                           bfd *output_bfd,
-                           char **error_message ATTRIBUTE_UNUSED)
-{
-  bfd_vma relocation;
-  bfd_reloc_status_type flag = bfd_reloc_ok;
-  bfd_size_type octets;
-  bfd_vma output_base = 0;
-  reloc_howto_type *howto = reloc_entry->howto;
-  asection *reloc_target_output_section;
-
-  if (output_bfd != NULL
-      && (symbol->flags & BSF_SECTION_SYM) == 0
-      && (! reloc_entry->howto->partial_inplace
-          || reloc_entry->addend == 0))
-    {
-      reloc_entry->address += input_section->output_offset;
-      return bfd_reloc_ok;
-    }
-
-  /* PR 17512: file: 0f67f69d.  */
-  if (howto == NULL)
-    return bfd_reloc_undefined;
-
-  /* If we are not producing relocatable output, return an error if
-     the symbol is not defined.  An undefined weak symbol is
-     considered to have a value of zero (SVR4 ABI, p. 4-27).  */
-  if (bfd_is_und_section (symbol->section)
-      && (symbol->flags & BSF_WEAK) == 0
-      && output_bfd == NULL)
-    flag = bfd_reloc_undefined;
-
-  /* Is the address of the relocation really within the section?
-     Include the size of the reloc in the test for out of range addresses.
-     PR 17512: file: c146ab8b, 46dff27f, 38e53ebf.  */
-  octets = reloc_entry->address * bfd_octets_per_byte (abfd);
-
-  /* Get symbol value.  (Common symbols are special.)  */
-  if (bfd_is_com_section (symbol->section))
-    relocation = 0;
-  else
-    relocation = symbol->value;
-
-  reloc_target_output_section = symbol->section->output_section;
-
-  /* Convert input-section-relative symbol value to absolute.  */
-  if ((output_bfd && ! howto->partial_inplace)
-      || reloc_target_output_section == NULL)
-    output_base = 0;
-  else
-    output_base = reloc_target_output_section->vma;
-
-  relocation += output_base + symbol->section->output_offset;
-
-  /* Add in supplied addend.  */
-  relocation += reloc_entry->addend;
-
-  /* Here the variable relocation holds the final address of the
-     symbol we are relocating against, plus any addend.  */
-
-  if (output_bfd != NULL)
-    {
-      if (! howto->partial_inplace)
-        {
-          /* This is a partial relocation, and we want to apply the relocation
-             to the reloc entry rather than the raw data. Modify the reloc
-             inplace to reflect what we now know.  */
-          reloc_entry->addend = relocation;
-          reloc_entry->address += input_section->output_offset;
-          return flag;
-        }
-      else
-        {
-          /* This is a partial relocation, but inplace, so modify the
-             reloc record a bit.
-
-             If we've relocated with a symbol with a section, change
-             into a ref to the section belonging to the symbol.  */
-
-          reloc_entry->address += input_section->output_offset;
-
-          reloc_entry->addend = relocation;
-        }
-    }
-
-  relocation >>= howto->rightshift;
-
-  if (howto->complain_on_overflow != complain_overflow_dont
-      && flag == bfd_reloc_ok)
-    flag = bfd_check_overflow (howto->complain_on_overflow,
-                               howto->bitsize,
-                               howto->rightshift,
-                               bfd_arch_bits_per_address (abfd),
-                               relocation);
-
-  if (flag == bfd_reloc_ok
-      && ! set_uleb128 (abfd, relocation, data + octets, data
-                        + bfd_get_section_limit (abfd, input_section)))
-    flag = bfd_reloc_overflow;
-
-  return flag;
 }
 
 reloc_howto_type *
@@ -819,7 +661,7 @@ add_symbol_to_plt (bfd *output_bfd, struct bfd_link_info *info,
     abort ();
 
   signature = pltsig->root.u.def.section->output_offset + pltsig->root.u.def.value;
-  /* Yes, we parse the name of the PLT_SIG symbol.  */
+  /* We parse the name of the PLT_SIG symbol.  This is a bit of a hack.  */
   p = strrchr(pltsig->root.root.string, 'F');
   if (p)
     {
@@ -883,28 +725,14 @@ elf32_wasm32_adjust_dynamic_symbol (struct bfd_link_info *info,
   asection *srel;
   struct dynamic_sections *ds = wasm32_create_dynamic_sections (dynobj, info);
 
-  if (/* h->type == STT_FUNC
-      || h->type == STT_GNU_IFUNC
-      || */ h->needs_plt == 1)
+  if (h->needs_plt == 1)
     {
-      if (FALSE && !bfd_link_pic (info) && !h->def_dynamic && !h->ref_dynamic)
-        {
-          /* This case can occur if we saw a PLT32 reloc in an input
-             file, but the symbol was never referred to by a dynamic
-             object.  In such a case, we don't actually need to build
-             a procedure linkage table, and we can just do a PC32
-             reloc instead.  */
-          BFD_ASSERT (h->needs_plt);
-          return TRUE;
-        }
-
       /* Make sure this symbol is output as a dynamic symbol.  */
       if (h->dynindx == -1 && !h->forced_local
           && !bfd_elf_link_record_dynamic_symbol (info, h))
         return FALSE;
 
-      if (bfd_link_pic (info)
-          || WILL_CALL_FINISH_DYNAMIC_SYMBOL (1, 0, h))
+      if (bfd_link_pic (info) || WILL_CALL_FINISH_DYNAMIC_SYMBOL (1, 0, h))
         {
           bfd_vma loc = add_symbol_to_plt (dynobj, info, h);
 
@@ -994,9 +822,6 @@ elf32_wasm32_adjust_dynamic_symbol (struct bfd_link_info *info,
 
   return _bfd_elf_adjust_dynamic_copy (info, h, s);
 }
-
-static bfd_boolean
-elf32_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec, const Elf_Internal_Rela* relocs) __attribute__((used));
 
 static bfd_boolean
 elf32_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec, const Elf_Internal_Rela* relocs)
@@ -1340,9 +1165,9 @@ finish_plt_entry (bfd *output_bfd, struct bfd_link_info *info,
 
 static bfd_boolean
 elf32_wasm32_finish_dynamic_symbol (bfd * output_bfd,
-                                  struct bfd_link_info *info,
-                                  struct elf_link_hash_entry *h,
-                                  Elf_Internal_Sym * sym)
+                                    struct bfd_link_info *info,
+                                    struct elf_link_hash_entry *h,
+                                    Elf_Internal_Sym * sym)
 {
   if (h->plt.offset != (bfd_vma) -1)
     finish_plt_entry (output_bfd, info, h, sym);
@@ -1431,7 +1256,8 @@ elf32_wasm32_finish_dynamic_symbol (bfd * output_bfd,
 }
 
 static bfd_boolean
-elf32_wasm32_create_dynamic_sections (bfd *dynobj, struct bfd_link_info *info)
+elf32_wasm32_create_dynamic_sections (bfd *dynobj,
+                                      struct bfd_link_info *info)
 {
   bfd *abfd = dynobj;
   flagword flags, pltflags;
@@ -1576,10 +1402,7 @@ allocate_dynrelocs (struct elf_link_hash_entry *h, void *inf)
      space for pc-relative relocs that have become local due to symbol
      visibility changes.  */
 
-  if (bfd_link_pic (info))
-    {
-    }
-  else
+  if (!bfd_link_pic (info))
     {
       /* For the non-shared case, discard space for relocs against
          symbols which turn out to need copy relocs or are not
@@ -1600,13 +1423,7 @@ allocate_dynrelocs (struct elf_link_hash_entry *h, void *inf)
               if (! bfd_elf_link_record_dynamic_symbol (info, h))
                 return FALSE;
             }
-
-          /* If that succeeded, we know we'll be keeping all the
-             relocs.  */
-          if (h->dynindx != -1)
-            goto keep;
         }
-    keep: ;
     }
 
   return TRUE;
@@ -1616,11 +1433,11 @@ allocate_dynrelocs (struct elf_link_hash_entry *h, void *inf)
 
 static bfd_boolean
 elf32_wasm32_size_dynamic_sections (bfd * output_bfd,
-                                  struct bfd_link_info *info)
+                                    struct bfd_link_info *info)
 {
-  asection *      s;
-  bfd_boolean     relocs_exist = FALSE;
-  bfd_boolean     reltext_exist = FALSE;
+  asection *s;
+  bfd_boolean relocs_exist = FALSE;
+  bfd_boolean reltext_exist = FALSE;
   struct dynamic_sections *ds = wasm32_create_dynamic_sections (output_bfd, info);
   struct elf_link_hash_table *htab = elf_hash_table (info);
   bfd *    dynobj = htab->dynobj;
@@ -1718,7 +1535,7 @@ elf32_wasm32_size_dynamic_sections (bfd * output_bfd,
       /* TODO: Check if this is needed.  */
       if (!bfd_link_pic (info))
         if (!_bfd_elf_add_dynamic_entry (info, DT_DEBUG, 0))
-                return FALSE;
+          return FALSE;
 
       if (ds->splt && (ds->splt->flags & SEC_EXCLUDE) == 0)
         if (!_bfd_elf_add_dynamic_entry (info, DT_PLTGOT, 0)
@@ -1857,7 +1674,10 @@ wasm32_relocate_contents (reloc_howto_type *howto,
   unsigned int rightshift = howto->rightshift;
   unsigned int bitpos = howto->bitpos;
 
-  if (howto->special_function == elf32_wasm32_leb128_reloc)
+  if (howto->type == R_WASM32-LEB128
+      || howto->type == R_WASM32_LEB128_GOT
+      || howto->type == R_WASM32_LEB128_GOT_CODE
+      || howto->type == R_WASM32_LEB128_PLT)
     {
       int len = 0;
       int i;
@@ -1961,6 +1781,8 @@ wasm32_relocate_contents (reloc_howto_type *howto,
   return flag;
 }
 
+/* Relocate a given location using a given value and howto.  */
+
 static bfd_reloc_status_type
 wasm32_final_link_relocate (reloc_howto_type *howto,
                             bfd *input_bfd,
@@ -2001,13 +1823,15 @@ wasm32_final_link_relocate (reloc_howto_type *howto,
                                    + address * bfd_octets_per_byte (input_bfd));
 }
 
+/* Relocate a section while linking.  */
+
 static bfd_boolean
 elf32_wasm32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
-                             struct bfd_link_info *info, bfd *input_bfd,
-                             asection *input_section, bfd_byte *contents,
-                             Elf_Internal_Rela *relocs,
-                             Elf_Internal_Sym *local_syms,
-                             asection **local_sections)
+                               struct bfd_link_info *info, bfd *input_bfd,
+                               asection *input_section, bfd_byte *contents,
+                               Elf_Internal_Rela *relocs,
+                               Elf_Internal_Sym *local_syms,
+                               asection **local_sections)
 {
   Elf_Internal_Shdr *symtab_hdr = NULL;
   struct elf_link_hash_entry **sym_hashes = NULL;
@@ -2169,6 +1993,13 @@ elf32_wasm32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
             }
           else if (relocation == 0 && h->root.type == bfd_link_hash_undefweak)
             {
+              /* This is a special case.  We don't know which function
+                 signature the code expected, so we have to force this
+                 block's return type to become unreachable.  Rather
+                 than replacing the five bytes with a single LEB128
+                 integer, we replace them with 5 zero bytes, the first
+                 of which will be interpreted as LEB128; the rest will
+                 become "unreachable" opcodes.  */
               /* Call __wasm_null */
               bfd_put_8 (abfd, 0, contents + rel->r_offset);
               /* Pad with "unreachable" opcodes.  */
@@ -2196,8 +2027,6 @@ elf32_wasm32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
               off = h->got.offset;
               if (off == (bfd_vma) -1)
                 {
-                  //fprintf(stderr, "that should have happened earlier\n");
-                  // I think it's too late to do the right thing at this point.
                   off = h->got.offset = sgot->size + (r_type == R_WASM32_LEB128_GOT_CODE ? 2 : 0);
 
                   if (h->dynindx == -1)
@@ -2205,7 +2034,6 @@ elf32_wasm32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
                       return FALSE;
 
                   sgot->size += 4;
-                  // but srelgot has already been allocated?!
                 }
               BFD_ASSERT (off != (bfd_vma) -1);
 
@@ -2431,6 +2259,29 @@ elf32_wasm32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
     }
   return TRUE;
 }
+
+#define ELF_ARCH		bfd_arch_wasm32
+#define ELF_TARGET_ID		EM_WEBASSEMBLY
+#define ELF_MACHINE_CODE	EM_WEBASSEMBLY
+/* FIXME we don't have paged executables, see:
+   https://github.com/pipcet/binutils-gdb/issues/4  */
+#define ELF_MAXPAGESIZE		4096
+
+#define TARGET_LITTLE_SYM       wasm32_elf32_vec
+#define TARGET_LITTLE_NAME	"elf32-wasm32"
+
+#define elf_backend_can_gc_sections          1
+#define elf_backend_rela_normal              1
+/* For testing.  */
+#define elf_backend_want_dynrelro            1
+
+#define elf_info_to_howto		elf32_wasm32_info_to_howto_rela
+#define elf_info_to_howto_rel		NULL
+
+#define bfd_elf32_bfd_reloc_type_lookup elf32_wasm32_reloc_type_lookup
+#define bfd_elf32_bfd_reloc_name_lookup elf32_wasm32_reloc_name_lookup
+
+#define ELF_DYNAMIC_INTERPRETER  "/sbin/elf-dynamic-interpreter.so"
 
 #define elf_backend_relocate_section	elf32_wasm32_relocate_section
 #define elf_backend_check_relocs elf32_wasm32_check_relocs

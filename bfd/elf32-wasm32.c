@@ -1057,8 +1057,6 @@ elf32_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec,
                   elf_local_got_offsets (abfd) = local_got_offsets;
                   for (i = 0; i < symtab_hdr->sh_info; i++)
                     local_got_offsets[i] = (bfd_vma) -1;
-                  for (; i < 2 * symtab_hdr->sh_info; i++)
-                    local_got_offsets[i] = (bfd_vma) -1;
                 }
 
               if (local_got_offsets[r_symndx] != (bfd_vma) -1)

@@ -368,6 +368,114 @@ set_uleb128 (bfd *abfd ATTRIBUTE_UNUSED,
   return (value == 0);
 }
 
+static bfd_reloc_status_type
+elf32_wasm32_leb128_reloc (bfd *abfd ATTRIBUTE_UNUSED,
+                           arelent *reloc_entry,
+                           asymbol *symbol,
+                           void *data ATTRIBUTE_UNUSED,
+                           asection *input_section,
+                           bfd *output_bfd,
+                           char **error_message ATTRIBUTE_UNUSED)
+{
+  bfd_vma relocation;
+  bfd_reloc_status_type flag = bfd_reloc_ok;
+  bfd_size_type octets;
+  bfd_vma output_base = 0;
+  reloc_howto_type *howto = reloc_entry->howto;
+  asection *reloc_target_output_section;
+
+  if (output_bfd != NULL
+      && (symbol->flags & BSF_SECTION_SYM) == 0
+      && (! reloc_entry->howto->partial_inplace
+          || reloc_entry->addend == 0))
+    {
+      reloc_entry->address += input_section->output_offset;
+      return bfd_reloc_ok;
+    }
+
+  /* PR 17512: file: 0f67f69d.  */
+  if (howto == NULL)
+    return bfd_reloc_undefined;
+
+  /* If we are not producing relocatable output, return an error if
+     the symbol is not defined.  An undefined weak symbol is
+     considered to have a value of zero (SVR4 ABI, p. 4-27).  */
+  if (bfd_is_und_section (symbol->section)
+      && (symbol->flags & BSF_WEAK) == 0
+      && output_bfd == NULL)
+    flag = bfd_reloc_undefined;
+
+  /* Is the address of the relocation really within the section?
+     Include the size of the reloc in the test for out of range addresses.
+     PR 17512: file: c146ab8b, 46dff27f, 38e53ebf.  */
+  octets = reloc_entry->address * bfd_octets_per_byte (abfd);
+
+  /* Get symbol value.  (Common symbols are special.)  */
+  if (bfd_is_com_section (symbol->section))
+    relocation = 0;
+  else
+    relocation = symbol->value;
+
+  reloc_target_output_section = symbol->section->output_section;
+
+  /* Convert input-section-relative symbol value to absolute.  */
+  if ((output_bfd && ! howto->partial_inplace)
+      || reloc_target_output_section == NULL)
+    output_base = 0;
+  else
+    output_base = reloc_target_output_section->vma;
+
+  relocation += output_base + symbol->section->output_offset;
+
+  /* Add in supplied addend.  */
+  relocation += reloc_entry->addend;
+
+  /* Here the variable relocation holds the final address of the
+     symbol we are relocating against, plus any addend.  */
+
+  if (output_bfd != NULL)
+    {
+      if (! howto->partial_inplace)
+        {
+          /* This is a partial relocation, and we want to apply the relocation
+             to the reloc entry rather than the raw data. Modify the reloc
+             inplace to reflect what we now know.  */
+          reloc_entry->addend = relocation;
+          reloc_entry->address += input_section->output_offset;
+          return flag;
+        }
+      else
+        {
+          /* This is a partial relocation, but inplace, so modify the
+             reloc record a bit.
+
+             If we've relocated with a symbol with a section, change
+             into a ref to the section belonging to the symbol.  */
+
+          reloc_entry->address += input_section->output_offset;
+
+          reloc_entry->addend = relocation;
+        }
+    }
+
+  relocation >>= howto->rightshift;
+
+  if (howto->complain_on_overflow != complain_overflow_dont
+      && flag == bfd_reloc_ok)
+    flag = bfd_check_overflow (howto->complain_on_overflow,
+                               howto->bitsize,
+                               howto->rightshift,
+                               bfd_arch_bits_per_address (abfd),
+                               relocation);
+
+  if (flag == bfd_reloc_ok
+      && ! set_uleb128 (abfd, relocation, data + octets, data
+                        + bfd_get_section_limit (abfd, input_section)))
+    flag = bfd_reloc_overflow;
+
+  return flag;
+}
+
 reloc_howto_type *
 elf32_wasm32_reloc_name_lookup (bfd *abfd ATTRIBUTE_UNUSED,
                               const char *r_name);

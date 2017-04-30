@@ -457,6 +457,8 @@ struct elf32_wasm32_link_hash_table
   struct dynamic_sections ds;
 };
 
+/* Create a wasm32 ELF linker hash table entry.  */
+
 static struct bfd_hash_entry *
 elf32_wasm32_link_hash_newfunc (struct bfd_hash_entry *entry,
                                 struct bfd_hash_table *table,
@@ -602,7 +604,7 @@ build_plt_stub (bfd *output_bfd,
 
   /* Size.  Fill in later.  */
   *p++ = 0x80; *p++ = 0x80; *p++ = 0x80; *p++ = 0x80; *p++ = 0;
-  *p++ = 0x00; /* No locals.  */
+  *p++ = 0x00; /* No locals, just arguments.  */
 
   for (bfd_vma i = 0; i < nargs; i++)
     {
@@ -828,10 +830,10 @@ elf32_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec,
 {
   Elf_Internal_Shdr *symtab_hdr;
   struct elf_link_hash_entry **sym_hashes;
-  const Elf_Internal_Rela *	rel;
-  const Elf_Internal_Rela *	rel_end;
-  bfd *				dynobj;
-  asection *			sreloc = NULL;
+  const Elf_Internal_Rela *rel;
+  const Elf_Internal_Rela *rel_end;
+  bfd *dynobj;
+  asection *sreloc = NULL;
   bfd_vma *local_got_offsets;
   asection *sgot;
   asection *srelgot;
@@ -941,9 +943,6 @@ elf32_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec,
                   register unsigned int i;
 
                   size = symtab_hdr->sh_info * sizeof (bfd_vma);
-                  /* Reserve space for both the datalabel and
-                     codelabel local GOT offsets.  */
-                  size *= 2;
                   local_got_offsets = (bfd_vma *) bfd_alloc (abfd, size);
                   if (local_got_offsets == NULL)
                     return FALSE;
@@ -1429,6 +1428,8 @@ allocate_dynrelocs (struct elf_link_hash_entry *h, void *inf)
   return TRUE;
 }
 
+#define ELF_DYNAMIC_INTERPRETER  "/sbin/elf-dynamic-interpreter.so"
+
 /* Set the sizes of the dynamic sections.  */
 
 static bfd_boolean
@@ -1674,7 +1675,7 @@ wasm32_relocate_contents (reloc_howto_type *howto,
   unsigned int rightshift = howto->rightshift;
   unsigned int bitpos = howto->bitpos;
 
-  if (howto->type == R_WASM32-LEB128
+  if (howto->type == R_WASM32_LEB128
       || howto->type == R_WASM32_LEB128_GOT
       || howto->type == R_WASM32_LEB128_GOT_CODE
       || howto->type == R_WASM32_LEB128_PLT)
@@ -2280,8 +2281,6 @@ elf32_wasm32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
 
 #define bfd_elf32_bfd_reloc_type_lookup elf32_wasm32_reloc_type_lookup
 #define bfd_elf32_bfd_reloc_name_lookup elf32_wasm32_reloc_name_lookup
-
-#define ELF_DYNAMIC_INTERPRETER  "/sbin/elf-dynamic-interpreter.so"
 
 #define elf_backend_relocate_section	elf32_wasm32_relocate_section
 #define elf_backend_check_relocs elf32_wasm32_check_relocs

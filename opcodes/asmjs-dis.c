@@ -106,9 +106,9 @@ asmjs_symbol_is_valid (asymbol * sym,
 /* Parse an individual disassembler option.  */
 
 void
-parse_asmjs_disassembler_option (char *option);
+parse_asmjs_disassembler_option (const char *option);
 void
-parse_asmjs_disassembler_option (char *option)
+parse_asmjs_disassembler_option (const char *option)
 {
   if (option == NULL)
     return;
@@ -123,7 +123,7 @@ parse_asmjs_disassembler_option (char *option)
    or commas.  (Whitespace separators supported for backwards compatibility).  */
 
 static void
-parse_disassembler_options (char *options)
+parse_disassembler_options (const char *options)
 {
   if (options == NULL)
     return;

@@ -24,7 +24,7 @@
 extern int print_insn_alpha		(bfd_vma, disassemble_info *);
 extern int print_insn_avr		(bfd_vma, disassemble_info *);
 extern int print_insn_bfin		(bfd_vma, disassemble_info *);
-extern int print_insn_big_nios2	(bfd_vma, disassemble_info *);
+extern int print_insn_big_nios2         (bfd_vma, disassemble_info *);
 extern int print_insn_big_powerpc	(bfd_vma, disassemble_info *);
 extern int print_insn_big_score         (bfd_vma, disassemble_info *);
 extern int print_insn_cr16              (bfd_vma, disassemble_info *);

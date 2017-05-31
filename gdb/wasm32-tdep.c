@@ -253,8 +253,9 @@ wasm32_memory_remove_breakpoint (struct gdbarch *gdbarch ATTRIBUTE_UNUSED,
   return val;
 }
 
-extern int
-print_insn_wasm32 (bfd_vma pc, struct disassemble_info *info);
+extern "C" {
+  int print_insn_wasm32 (bfd_vma pc, struct disassemble_info *info);
+};
 
 static int
 gdb_print_insn_wasm32 (bfd_vma memaddr, disassemble_info *info)

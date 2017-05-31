@@ -995,7 +995,6 @@ elf32_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec,
               /* PR15323, ref flags aren't set for references in the same
                  object.  */
               hh = elf32_wasm32_hash_entry (h);
-              h->root.non_ir_ref = 1;
             }
         }
 

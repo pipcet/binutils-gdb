@@ -58,6 +58,7 @@
 #include "thread-fsm.h"
 #include "top.h"
 #include "interps.h"
+#include "common/gdb_optional.h"
 
 /* Local functions: */
 
@@ -730,10 +731,10 @@ continue_1 (int all_threads)
     {
       /* Don't error out if the current thread is running, because
 	 there may be other stopped threads.  */
-      struct cleanup *old_chain;
 
-      /* Backup current thread and selected frame.  */
-      old_chain = make_cleanup_restore_current_thread ();
+      /* Backup current thread and selected frame and restore on scope
+	 exit.  */
+      scoped_restore_current_thread restore_thread;
 
       iterate_over_threads (proceed_thread_callback, NULL);
 
@@ -754,9 +755,6 @@ continue_1 (int all_threads)
 	  */
 	  target_terminal_inferior ();
 	}
-
-      /* Restore selected ptid.  */
-      do_cleanups (old_chain);
     }
   else
     {
@@ -2619,15 +2617,11 @@ proceed_after_attach (int pid)
 {
   /* Don't error out if the current thread is running, because
      there may be other stopped threads.  */
-  struct cleanup *old_chain;
 
   /* Backup current thread and selected frame.  */
-  old_chain = make_cleanup_restore_current_thread ();
+  scoped_restore_current_thread restore_thread;
 
   iterate_over_threads (proceed_after_attach_callback, &pid);
-
-  /* Restore selected ptid.  */
-  do_cleanups (old_chain);
 }
 
 /* See inferior.h.  */
@@ -2914,15 +2908,13 @@ attach_command (char *args, int from_tty)
 void
 notice_new_inferior (ptid_t ptid, int leave_running, int from_tty)
 {
-  struct cleanup* old_chain;
-  enum attach_post_wait_mode mode;
+  enum attach_post_wait_mode mode
+    = leave_running ? ATTACH_POST_WAIT_RESUME : ATTACH_POST_WAIT_NOTHING;
 
-  old_chain = make_cleanup (null_cleanup, NULL);
+  gdb::optional<scoped_restore_current_thread> restore_thread;
 
-  mode = leave_running ? ATTACH_POST_WAIT_RESUME : ATTACH_POST_WAIT_NOTHING;
-
-  if (!ptid_equal (inferior_ptid, null_ptid))
-    make_cleanup_restore_current_thread ();
+  if (inferior_ptid != null_ptid)
+    restore_thread.emplace ();
 
   /* Avoid reading registers -- we haven't fetched the target
      description yet.  */
@@ -2951,13 +2943,10 @@ notice_new_inferior (ptid_t ptid, int leave_running, int from_tty)
       add_inferior_continuation (attach_command_continuation, a,
 				 attach_command_continuation_free_args);
 
-      do_cleanups (old_chain);
       return;
     }
 
   attach_post_wait ("" /* args */, from_tty, mode);
-
-  do_cleanups (old_chain);
 }
 
 /*
@@ -3221,7 +3210,10 @@ is restored."),
 				     set_inferior_tty_command,
 				     show_inferior_tty_command,
 				     &setlist, &showlist);
-  add_com_alias ("tty", "set inferior-tty", class_alias, 0);
+  cmd_name = "inferior-tty";
+  c = lookup_cmd (&cmd_name, setlist, "", -1, 1);
+  gdb_assert (c != NULL);
+  add_alias_cmd ("tty", c, class_alias, 0, &cmdlist);
 
   cmd_name = "args";
   add_setshow_string_noescape_cmd (cmd_name, class_run,

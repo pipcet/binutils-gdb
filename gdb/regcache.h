@@ -21,6 +21,7 @@
 #define REGCACHE_H
 
 #include "common-regcache.h"
+#include <forward_list>
 
 struct regcache;
 struct regset;
@@ -249,6 +250,11 @@ public:
   regcache (const regcache &) = delete;
   void operator= (const regcache &) = delete;
 
+  /* class regcache is only extended in unit test, so only mark it
+     virtual when selftest is enabled.  */
+#if GDB_SELF_TEST
+  virtual
+#endif
   ~regcache ()
   {
     xfree (m_registers);
@@ -268,6 +274,12 @@ public:
   void cooked_write (int regnum, const gdb_byte *buf);
 
   enum register_status raw_read (int regnum, gdb_byte *buf);
+
+  /* class regcache is only extended in unit test, so only mark it
+     virtual when selftest is enabled.  */
+#if GDB_SELF_TEST
+  virtual
+#endif
   void raw_write (int regnum, const gdb_byte *buf);
 
   enum register_status raw_read_signed (int regnum, LONGEST *val);
@@ -292,7 +304,15 @@ public:
 
   void raw_collect (int regnum, void *buf) const;
 
+  void raw_collect_integer (int regnum, gdb_byte *addr, int addr_len,
+			    bool is_signed) const;
+
   void raw_supply (int regnum, const void *buf);
+
+  void raw_supply_integer (int regnum, const gdb_byte *addr, int addr_len,
+			   bool is_signed);
+
+  void raw_supply_zeroed (int regnum);
 
   enum register_status get_register_status (int regnum) const;
 
@@ -334,9 +354,13 @@ public:
    debug.  */
   void debug_print_register (const char *func, int regno);
 
-private:
+  static void regcache_thread_ptid_changed (ptid_t old_ptid, ptid_t new_ptid);
+protected:
   regcache (gdbarch *gdbarch, address_space *aspace_, bool readonly_p_);
 
+  static std::forward_list<regcache *> current_regcache;
+
+private:
   gdb_byte *register_buffer (int regnum) const;
 
   void restore (struct regcache *src);
@@ -379,6 +403,9 @@ private:
   friend struct regcache *
   get_thread_arch_aspace_regcache (ptid_t ptid, struct gdbarch *gdbarch,
 				   struct address_space *aspace);
+
+  friend void
+  registers_changed_ptid (ptid_t ptid);
 
   friend void
   regcache_cpy (struct regcache *dst, struct regcache *src);

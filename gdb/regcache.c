@@ -28,6 +28,7 @@
 #include "remote.h"
 #include "valprint.h"
 #include "regset.h"
+#include <forward_list>
 
 /*
  * DATA STRUCTURE
@@ -471,34 +472,20 @@ regcache::invalidate (int regnum)
    recording if the register values have been changed (eg. by the
    user).  Therefore all registers must be written back to the
    target when appropriate.  */
-
-struct regcache_list
-{
-  struct regcache *regcache;
-  struct regcache_list *next;
-};
-
-static struct regcache_list *current_regcache;
+std::forward_list<regcache *> regcache::current_regcache;
 
 struct regcache *
 get_thread_arch_aspace_regcache (ptid_t ptid, struct gdbarch *gdbarch,
 				 struct address_space *aspace)
 {
-  struct regcache_list *list;
-  struct regcache *new_regcache;
+  for (const auto &regcache : regcache::current_regcache)
+    if (ptid_equal (regcache->ptid (), ptid) && regcache->arch () == gdbarch)
+      return regcache;
 
-  for (list = current_regcache; list; list = list->next)
-    if (ptid_equal (list->regcache->ptid (), ptid)
-	&& get_regcache_arch (list->regcache) == gdbarch)
-      return list->regcache;
+  regcache *new_regcache = new regcache (gdbarch, aspace, false);
 
-  new_regcache = new regcache (gdbarch, aspace, false);
+  regcache::current_regcache.push_front (new_regcache);
   new_regcache->set_ptid (ptid);
-
-  list = XNEW (struct regcache_list);
-  list->regcache = new_regcache;
-  list->next = current_regcache;
-  current_regcache = list;
 
   return new_regcache;
 }
@@ -560,14 +547,14 @@ regcache_observer_target_changed (struct target_ops *target)
 
 /* Update global variables old ptids to hold NEW_PTID if they were
    holding OLD_PTID.  */
-static void
-regcache_thread_ptid_changed (ptid_t old_ptid, ptid_t new_ptid)
+void
+regcache::regcache_thread_ptid_changed (ptid_t old_ptid, ptid_t new_ptid)
 {
-  struct regcache_list *list;
-
-  for (list = current_regcache; list; list = list->next)
-    if (ptid_equal (list->regcache->ptid (), old_ptid))
-      list->regcache->set_ptid (new_ptid);
+  for (auto &regcache : regcache::current_regcache)
+    {
+      if (ptid_equal (regcache->ptid (), old_ptid))
+	regcache->set_ptid (new_ptid);
+    }
 }
 
 /* Low level examining and depositing of registers.
@@ -584,25 +571,18 @@ regcache_thread_ptid_changed (ptid_t old_ptid, ptid_t new_ptid)
 void
 registers_changed_ptid (ptid_t ptid)
 {
-  struct regcache_list *list, **list_link;
-
-  list = current_regcache;
-  list_link = &current_regcache;
-  while (list)
+  for (auto oit = regcache::current_regcache.before_begin (),
+	 it = std::next (oit);
+       it != regcache::current_regcache.end ();
+       )
     {
-      if (ptid_match (list->regcache->ptid (), ptid))
+      if (ptid_match ((*it)->ptid (), ptid))
 	{
-	  struct regcache_list *dead = list;
-
-	  *list_link = list->next;
-	  regcache_xfree (list->regcache);
-	  list = *list_link;
-	  xfree (dead);
-	  continue;
+	  delete *it;
+	  it = regcache::current_regcache.erase_after (oit);
 	}
-
-      list_link = &list->next;
-      list = *list_link;
+      else
+	oit = it++;
     }
 
   if (ptid_match (current_thread_ptid, ptid))
@@ -1199,6 +1179,51 @@ regcache::raw_supply (int regnum, const void *buf)
     }
 }
 
+/* Supply register REGNUM to REGCACHE.  Value to supply is an integer stored at
+   address ADDR, in target endian, with length ADDR_LEN and sign IS_SIGNED.  If
+   the register size is greater than ADDR_LEN, then the integer will be sign or
+   zero extended.  If the register size is smaller than the integer, then the
+   most significant bytes of the integer will be truncated.  */
+
+void
+regcache::raw_supply_integer (int regnum, const gdb_byte *addr, int addr_len,
+			      bool is_signed)
+{
+  enum bfd_endian byte_order = gdbarch_byte_order (m_descr->gdbarch);
+  gdb_byte *regbuf;
+  size_t regsize;
+
+  gdb_assert (regnum >= 0 && regnum < m_descr->nr_raw_registers);
+  gdb_assert (!m_readonly_p);
+
+  regbuf = register_buffer (regnum);
+  regsize = m_descr->sizeof_register[regnum];
+
+  copy_integer_to_size (regbuf, regsize, addr, addr_len, is_signed,
+			byte_order);
+  m_register_status[regnum] = REG_VALID;
+}
+
+/* Supply register REGNUM with zeroed value to REGCACHE.  This is not the same
+   as calling raw_supply with NULL (which will set the state to
+   unavailable).  */
+
+void
+regcache::raw_supply_zeroed (int regnum)
+{
+  void *regbuf;
+  size_t size;
+
+  gdb_assert (regnum >= 0 && regnum < m_descr->nr_raw_registers);
+  gdb_assert (!m_readonly_p);
+
+  regbuf = register_buffer (regnum);
+  size = m_descr->sizeof_register[regnum];
+
+  memset (regbuf, 0, size);
+  m_register_status[regnum] = REG_VALID;
+}
+
 /* Collect register REGNUM from REGCACHE and store its contents in BUF.  */
 
 void
@@ -1225,6 +1250,29 @@ regcache::raw_collect (int regnum, void *buf) const
 /* Transfer a single or all registers belonging to a certain register
    set to or from a buffer.  This is the main worker function for
    regcache_supply_regset and regcache_collect_regset.  */
+
+/* Collect register REGNUM from REGCACHE.  Store collected value as an integer
+   at address ADDR, in target endian, with length ADDR_LEN and sign IS_SIGNED.
+   If ADDR_LEN is greater than the register size, then the integer will be sign
+   or zero extended.  If ADDR_LEN is smaller than the register size, then the
+   most significant bytes of the integer will be truncated.  */
+
+void
+regcache::raw_collect_integer (int regnum, gdb_byte *addr, int addr_len,
+			       bool is_signed) const
+{
+  enum bfd_endian byte_order = gdbarch_byte_order (m_descr->gdbarch);
+  const gdb_byte *regbuf;
+  size_t regsize;
+
+  gdb_assert (regnum >= 0 && regnum < m_descr->nr_raw_registers);
+
+  regbuf = register_buffer (regnum);
+  regsize = m_descr->sizeof_register[regnum];
+
+  copy_integer_to_size (addr, addr_len, regbuf, regsize, is_signed,
+			byte_order);
+}
 
 void
 regcache::transfer_regset (const struct regset *regset,
@@ -1679,6 +1727,79 @@ maintenance_print_remote_registers (char *args, int from_tty)
   regcache_print (args, regcache_dump_remote);
 }
 
+#if GDB_SELF_TEST
+#include "selftest.h"
+
+namespace selftests {
+
+class regcache_access : public regcache
+{
+public:
+
+  /* Return the number of elements in current_regcache.  */
+
+  static size_t
+  current_regcache_size ()
+  {
+    return std::distance (regcache::current_regcache.begin (),
+			  regcache::current_regcache.end ());
+  }
+};
+
+static void
+current_regcache_test (void)
+{
+  /* It is empty at the start.  */
+  SELF_CHECK (regcache_access::current_regcache_size () == 0);
+
+  ptid_t ptid1 (1), ptid2 (2), ptid3 (3);
+
+  /* Get regcache from ptid1, a new regcache is added to
+     current_regcache.  */
+  regcache *regcache = get_thread_arch_aspace_regcache (ptid1,
+							target_gdbarch (),
+							NULL);
+
+  SELF_CHECK (regcache != NULL);
+  SELF_CHECK (regcache->ptid () == ptid1);
+  SELF_CHECK (regcache_access::current_regcache_size () == 1);
+
+  /* Get regcache from ptid2, a new regcache is added to
+     current_regcache.  */
+  regcache = get_thread_arch_aspace_regcache (ptid2,
+					      target_gdbarch (),
+					      NULL);
+  SELF_CHECK (regcache != NULL);
+  SELF_CHECK (regcache->ptid () == ptid2);
+  SELF_CHECK (regcache_access::current_regcache_size () == 2);
+
+  /* Get regcache from ptid3, a new regcache is added to
+     current_regcache.  */
+  regcache = get_thread_arch_aspace_regcache (ptid3,
+					      target_gdbarch (),
+					      NULL);
+  SELF_CHECK (regcache != NULL);
+  SELF_CHECK (regcache->ptid () == ptid3);
+  SELF_CHECK (regcache_access::current_regcache_size () == 3);
+
+  /* Get regcache from ptid2 again, nothing is added to
+     current_regcache.  */
+  regcache = get_thread_arch_aspace_regcache (ptid2,
+					      target_gdbarch (),
+					      NULL);
+  SELF_CHECK (regcache != NULL);
+  SELF_CHECK (regcache->ptid () == ptid2);
+  SELF_CHECK (regcache_access::current_regcache_size () == 3);
+
+  /* Mark ptid2 is changed, so regcache of ptid2 should be removed from
+     current_regcache.  */
+  registers_changed_ptid (ptid2);
+  SELF_CHECK (regcache_access::current_regcache_size () == 2);
+}
+
+} // namespace selftests
+#endif /* GDB_SELF_TEST */
+
 extern initialize_file_ftype _initialize_regcache; /* -Wmissing-prototype */
 
 void
@@ -1688,7 +1809,7 @@ _initialize_regcache (void)
     = gdbarch_data_register_post_init (init_regcache_descr);
 
   observer_attach_target_changed (regcache_observer_target_changed);
-  observer_attach_thread_ptid_changed (regcache_thread_ptid_changed);
+  observer_attach_thread_ptid_changed (regcache::regcache_thread_ptid_changed);
 
   add_com ("flushregs", class_maintenance, reg_flush_command,
 	   _("Force gdb to flush its register cache (maintainer command)"));
@@ -1718,5 +1839,7 @@ Print the internal register configuration including each register's\n\
 remote register number and buffer offset in the g/G packets.\n\
 Takes an optional file parameter."),
 	   &maintenanceprintlist);
-
+#if GDB_SELF_TEST
+  register_self_test (selftests::current_regcache_test);
+#endif
 }

@@ -709,12 +709,13 @@ build_plt_stub (bfd *output_bfd,
   bfd_vma maxsize = 5 + 3 + nargs * 6 + 3 + 5 + 2 + 5 + 3;
   bfd_byte *ret = malloc (maxsize);
   bfd_byte *p = ret;
+  bfd_vma i;
 
   /* Size.  Fill in later.  */
   *p++ = 0x80; *p++ = 0x80; *p++ = 0x80; *p++ = 0x80; *p++ = 0;
   *p++ = 0x00; /* No locals, just arguments.  */
 
-  for (bfd_vma i = 0; i < nargs; i++)
+  for (i = 0; i < nargs; i++)
     {
       *p++ = 0x20; /* get_local */
       *p++ = 0x80; *p++ = 0x80; *p++ = 0x80; *p++ = 0x80; *p++ = 0;
@@ -776,10 +777,12 @@ add_symbol_to_plt (bfd *output_bfd, struct bfd_link_info *info,
   if (p)
     {
       int done = 0;
+
       p++;
       do
         {
           int c = *p++;
+
           switch (c)
             {
             case 'i':
@@ -806,7 +809,7 @@ add_symbol_to_plt (bfd *output_bfd, struct bfd_link_info *info,
 
   ds->splt->size += hh->pltstub_size;
 
-  htab->srelplt->size += 1 * sizeof (Elf32_External_Rela);
+  htab->srelplt->size += sizeof (Elf32_External_Rela);
 
   ds->spltspace->size++;
   hh->pltfunction = ds->spltfun->size;
@@ -814,7 +817,7 @@ add_symbol_to_plt (bfd *output_bfd, struct bfd_link_info *info,
   ds->spltfunspace->size++;
   ds->spltidx->size++;
   ds->spltelemspace->size++;
-  ds->spltelem->size+=5;
+  ds->spltelem->size += 5;
   if (PLTNAME)
     {
       hh->pltnameoff = ds->spltname->size;
@@ -850,6 +853,7 @@ elf32_wasm32_adjust_dynamic_symbol (struct bfd_link_info *info,
             {
               struct elf32_wasm32_link_hash_entry *hh =
                 elf32_wasm32_hash_entry (h);
+
               h->root.u.def.section = ds->spltspace;
               h->root.u.def.value = hh->plt_index;
             }
@@ -1048,7 +1052,7 @@ elf32_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec,
               if (local_got_offsets == NULL)
                 {
                   size_t size;
-                  register unsigned int i;
+                  unsigned int i;
 
                   size = symtab_hdr->sh_info * sizeof (bfd_vma);
                   local_got_offsets = (bfd_vma *) bfd_alloc (abfd, size);
@@ -1366,7 +1370,7 @@ elf32_wasm32_create_dynamic_sections (bfd *dynobj,
 {
   bfd *abfd = dynobj;
   flagword flags, pltflags;
-  register asection *s;
+  asection *s;
   const struct elf_backend_data *bed = get_elf_backend_data (abfd);
 
   if (!_bfd_elf_create_dynamic_sections (dynobj, info))
@@ -1547,7 +1551,7 @@ elf32_wasm32_size_dynamic_sections (bfd * output_bfd,
   bfd_boolean reltext_exist = FALSE;
   struct dynamic_sections *ds = wasm32_create_dynamic_sections (output_bfd, info);
   struct elf_link_hash_table *htab = elf_hash_table (info);
-  bfd *    dynobj = htab->dynobj;
+  bfd *dynobj = htab->dynobj;
 
   BFD_ASSERT (dynobj != NULL);
 

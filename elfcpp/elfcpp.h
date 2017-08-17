@@ -515,7 +515,9 @@ enum PT
   // Platform architecture compatibility information
   PT_AARCH64_ARCHEXT = 0x70000000,
   // Exception unwind tables
-  PT_AARCH64_UNWIND = 0x70000001
+  PT_AARCH64_UNWIND = 0x70000001,
+  // 4k page table size
+  PT_S390_PGSTE = 0x70000000,
 };
 
 // The valid bit flags found in the Phdr p_flags field.
@@ -772,6 +774,9 @@ enum DT
   // Specify the start and size of the .opd section.
   DT_PPC64_OPD = 0x70000001,
   DT_PPC64_OPDSZ = 0x70000002,
+
+  // Specify whether various optimisations are possible.
+  DT_PPC64_OPT = 0x70000003,
 
   // The index of an STT_SPARC_REGISTER symbol within the DT_SYMTAB
   // symbol table.  One dynamic entry exists for every STT_SPARC_REGISTER
@@ -1346,9 +1351,26 @@ class Chdr_write
   put_ch_addralign(typename Elf_types<size>::Elf_WXword v)
   { this->p_->ch_addralign = Convert<size, big_endian>::convert_host(v); }
 
+  void
+  put_ch_reserved(Elf_Word);
+
  private:
   internal::Chdr_data<size>* p_;
 };
+
+template<>
+inline void
+elfcpp::Chdr_write<64, true>::put_ch_reserved(Elf_Word v)
+{
+  this->p_->ch_reserved = v;
+}
+
+template<>
+inline void
+elfcpp::Chdr_write<64, false>::put_ch_reserved(Elf_Word v)
+{
+  this->p_->ch_reserved = v;
+}
 
 // Accessor class for an ELF segment header.
 

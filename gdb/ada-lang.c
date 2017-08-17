@@ -61,6 +61,7 @@
 #include "arch-utils.h"
 #include "cli/cli-utils.h"
 #include "common/function-view.h"
+#include "common/byte-vector.h"
 
 /* Define whether or not the C operator '/' truncates towards zero for
    differently signed operands (truncation direction is undefined in C).
@@ -192,8 +193,6 @@ static void move_bits (gdb_byte *, int, const gdb_byte *, int, int, int);
 
 static struct value *coerce_unspec_val_to_type (struct value *,
                                                 struct type *);
-
-static struct value *get_var_value (char *, char *);
 
 static int lesseq_defined_than (struct symbol *, struct symbol *);
 
@@ -2567,8 +2566,7 @@ ada_value_primitive_packed_val (struct value *obj, const gdb_byte *valaddr,
   gdb_byte *unpacked;
   const int is_scalar = is_scalar_type (type);
   const int is_big_endian = gdbarch_bits_big_endian (get_type_arch (type));
-  std::unique_ptr<gdb_byte[]> staging;
-  int staging_len = 0;
+  gdb::byte_vector staging;
 
   type = ada_check_typedef (type);
 
@@ -2586,14 +2584,14 @@ ada_value_primitive_packed_val (struct value *obj, const gdb_byte *valaddr,
 	 packed, and therefore maybe not at a byte boundary.  So, what
 	 we do, is unpack the data into a byte-aligned buffer, and then
 	 use that buffer as our object's value for resolving the type.  */
-      staging_len = (bit_size + HOST_CHAR_BIT - 1) / HOST_CHAR_BIT;
-      staging.reset (new gdb_byte[staging_len]);
+      int staging_len = (bit_size + HOST_CHAR_BIT - 1) / HOST_CHAR_BIT;
+      staging.resize (staging_len);
 
       ada_unpack_from_contents (src, bit_offset, bit_size,
-			        staging.get (), staging_len,
+			        staging.data (), staging.size (),
 				is_big_endian, has_negatives (type),
 				is_scalar);
-      type = resolve_dynamic_type (type, staging.get (), 0);
+      type = resolve_dynamic_type (type, staging.data (), 0);
       if (TYPE_LENGTH (type) < (bit_size + HOST_CHAR_BIT - 1) / HOST_CHAR_BIT)
 	{
 	  /* This happens when the length of the object is dynamic,
@@ -2656,12 +2654,12 @@ ada_value_primitive_packed_val (struct value *obj, const gdb_byte *valaddr,
       return v;
     }
 
-  if (staging != NULL && staging_len == TYPE_LENGTH (type))
+  if (staging.size () == TYPE_LENGTH (type))
     {
       /* Small short-cut: If we've unpacked the data into a buffer
 	 of the same size as TYPE's length, then we can reuse that,
 	 instead of doing the unpacking again.  */
-      memcpy (unpacked, staging.get (), staging_len);
+      memcpy (unpacked, staging.data (), staging.size ());
     }
   else
     ada_unpack_from_contents (src, bit_offset, bit_size,
@@ -6440,10 +6438,10 @@ symbol_completion_match (const char *sym_name,
   return sym_name;
 }
 
-/* A companion function to ada_make_symbol_completion_list().
+/* A companion function to ada_collect_symbol_completion_matches().
    Check if SYM_NAME represents a symbol which name would be suitable
-   to complete TEXT (TEXT_LEN is the length of TEXT), in which case
-   it is appended at the end of the given string vector SV.
+   to complete TEXT (TEXT_LEN is the length of TEXT), in which case it
+   is added as a completion match to TRACKER.
 
    ORIG_TEXT is the string original string from the user command
    that needs to be completed.  WORD is the entire command on which
@@ -6456,8 +6454,8 @@ symbol_completion_match (const char *sym_name,
    encoded).  */
 
 static void
-symbol_completion_add (VEC(char_ptr) **sv,
-                       const char *sym_name,
+symbol_completion_add (completion_tracker &tracker,
+		       const char *sym_name,
                        const char *text, int text_len,
                        const char *orig_text, const char *word,
                        int wild_match_p, int encoded_p)
@@ -6492,21 +6490,22 @@ symbol_completion_add (VEC(char_ptr) **sv,
       strcat (completion, match);
     }
 
-  VEC_safe_push (char_ptr, *sv, completion);
+  tracker.add_completion (gdb::unique_xmalloc_ptr<char> (completion));
 }
 
-/* Return a list of possible symbol names completing TEXT0.  WORD is
-   the entire command on which completion is made.  */
+/* Add the list of possible symbol names completing TEXT0 to TRACKER.
+   WORD is the entire command on which completion is made.  */
 
-static VEC (char_ptr) *
-ada_make_symbol_completion_list (const char *text0, const char *word,
-				 enum type_code code)
+static void
+ada_collect_symbol_completion_matches (completion_tracker &tracker,
+				       complete_symbol_mode mode,
+				       const char *text0, const char *word,
+				       enum type_code code)
 {
   char *text;
   int text_len;
   int wild_match_p;
   int encoded_p;
-  VEC(char_ptr) *completions = VEC_alloc (char_ptr, 128);
   struct symbol *sym;
   struct compunit_symtab *s;
   struct minimal_symbol *msymbol;
@@ -6562,7 +6561,7 @@ ada_make_symbol_completion_list (const char *text0, const char *word,
   ALL_MSYMBOLS (objfile, msymbol)
   {
     QUIT;
-    symbol_completion_add (&completions, MSYMBOL_LINKAGE_NAME (msymbol),
+    symbol_completion_add (tracker, MSYMBOL_LINKAGE_NAME (msymbol),
 			   text, text_len, text0, word, wild_match_p,
 			   encoded_p);
   }
@@ -6577,7 +6576,7 @@ ada_make_symbol_completion_list (const char *text0, const char *word,
 
       ALL_BLOCK_SYMBOLS (b, iter, sym)
       {
-        symbol_completion_add (&completions, SYMBOL_LINKAGE_NAME (sym),
+	symbol_completion_add (tracker, SYMBOL_LINKAGE_NAME (sym),
                                text, text_len, text0, word,
                                wild_match_p, encoded_p);
       }
@@ -6592,7 +6591,7 @@ ada_make_symbol_completion_list (const char *text0, const char *word,
     b = BLOCKVECTOR_BLOCK (COMPUNIT_BLOCKVECTOR (s), GLOBAL_BLOCK);
     ALL_BLOCK_SYMBOLS (b, iter, sym)
     {
-      symbol_completion_add (&completions, SYMBOL_LINKAGE_NAME (sym),
+      symbol_completion_add (tracker, SYMBOL_LINKAGE_NAME (sym),
                              text, text_len, text0, word,
                              wild_match_p, encoded_p);
     }
@@ -6607,14 +6606,13 @@ ada_make_symbol_completion_list (const char *text0, const char *word,
       continue;
     ALL_BLOCK_SYMBOLS (b, iter, sym)
     {
-      symbol_completion_add (&completions, SYMBOL_LINKAGE_NAME (sym),
+      symbol_completion_add (tracker, SYMBOL_LINKAGE_NAME (sym),
                              text, text_len, text0, word,
                              wild_match_p, encoded_p);
     }
   }
 
   do_cleanups (old_chain);
-  return completions;
 }
 
                                 /* Field Access */
@@ -8989,12 +8987,11 @@ ada_to_fixed_type_1 (struct type *type, const gdb_byte *valaddr,
             const char *name = ada_type_name (fixed_record_type);
             char *xvz_name
 	      = (char *) alloca (strlen (name) + 7 /* "___XVZ\0" */);
-            int xvz_found = 0;
             LONGEST size;
 
             xsnprintf (xvz_name, strlen (name) + 7, "%s___XVZ", name);
-            size = get_int_var_value (xvz_name, &xvz_found);
-            if (xvz_found && TYPE_LENGTH (fixed_record_type) != size)
+            if (get_int_var_value (xvz_name, size)
+		&& TYPE_LENGTH (fixed_record_type) != size)
               {
                 fixed_record_type = copy_type (fixed_record_type);
                 TYPE_LENGTH (fixed_record_type) = size;
@@ -11614,7 +11611,7 @@ scan_discrim_bound (const char *str, int k, struct value *dval, LONGEST * px,
    otherwise causes an error with message ERR_MSG.  */
 
 static struct value *
-get_var_value (char *name, char *err_msg)
+get_var_value (const char *name, const char *err_msg)
 {
   struct block_symbol *syms;
   int nsyms;
@@ -11633,27 +11630,20 @@ get_var_value (char *name, char *err_msg)
   return value_of_variable (syms[0].symbol, syms[0].block);
 }
 
-/* Value of integer variable named NAME in the current environment.  If
-   no such variable found, returns 0, and sets *FLAG to 0.  If
-   successful, sets *FLAG to 1.  */
+/* Value of integer variable named NAME in the current environment.
+   If no such variable is found, returns false.  Otherwise, sets VALUE
+   to the variable's value and returns true.  */
 
-LONGEST
-get_int_var_value (char *name, int *flag)
+bool
+get_int_var_value (const char *name, LONGEST &value)
 {
   struct value *var_val = get_var_value (name, 0);
 
   if (var_val == 0)
-    {
-      if (flag != NULL)
-        *flag = 0;
-      return 0;
-    }
-  else
-    {
-      if (flag != NULL)
-        *flag = 1;
-      return value_as_long (var_val);
-    }
+    return false;
+
+  value = value_as_long (var_val);
+  return true;
 }
 
 
@@ -11725,11 +11715,8 @@ to_fixed_range_type (struct type *raw_type, struct value *dval)
         }
       else
         {
-          int ok;
-
           strcpy (name_buf + prefix_len, "___L");
-          L = get_int_var_value (name_buf, &ok);
-          if (!ok)
+          if (!get_int_var_value (name_buf, L))
             {
               lim_warning (_("Unknown lower bound, using 1."));
               L = 1;
@@ -11744,11 +11731,8 @@ to_fixed_range_type (struct type *raw_type, struct value *dval)
         }
       else
         {
-          int ok;
-
           strcpy (name_buf + prefix_len, "___U");
-          U = get_int_var_value (name_buf, &ok);
-          if (!ok)
+          if (!get_int_var_value (name_buf, U))
             {
               lim_warning (_("Unknown upper bound, using %ld."), (long) L);
               U = L;
@@ -12257,14 +12241,11 @@ static const struct bp_location_ops ada_catchpoint_location_ops =
   ada_catchpoint_location_dtor
 };
 
-/* An instance of this type is used to represent an Ada catchpoint.
-   It includes a "struct breakpoint" as a kind of base class; users
-   downcast to "struct breakpoint *" when needed.  */
+/* An instance of this type is used to represent an Ada catchpoint.  */
 
-struct ada_catchpoint
+struct ada_catchpoint : public breakpoint
 {
-  /* The base class.  */
-  struct breakpoint base;
+  ~ada_catchpoint () override;
 
   /* The name of the specific exception the user specified.  */
   char *excep_string;
@@ -12285,7 +12266,7 @@ create_excep_cond_exprs (struct ada_catchpoint *c)
     return;
 
   /* Same if there are no locations... */
-  if (c->base.loc == NULL)
+  if (c->loc == NULL)
     return;
 
   /* Compute the condition expression in text form, from the specific
@@ -12295,7 +12276,7 @@ create_excep_cond_exprs (struct ada_catchpoint *c)
 
   /* Iterate over all the catchpoint's locations, and parse an
      expression for each.  */
-  for (bl = c->base.loc; bl != NULL; bl = bl->next)
+  for (bl = c->loc; bl != NULL; bl = bl->next)
     {
       struct ada_catchpoint_location *ada_loc
 	= (struct ada_catchpoint_location *) bl;
@@ -12316,7 +12297,7 @@ create_excep_cond_exprs (struct ada_catchpoint *c)
 	    {
 	      warning (_("failed to reevaluate internal exception condition "
 			 "for catchpoint %d: %s"),
-		       c->base.number, e.message);
+		       c->number, e.message);
 	    }
 	  END_CATCH
 	}
@@ -12327,17 +12308,11 @@ create_excep_cond_exprs (struct ada_catchpoint *c)
   do_cleanups (old_chain);
 }
 
-/* Implement the DTOR method in the breakpoint_ops structure for all
-   exception catchpoint kinds.  */
+/* ada_catchpoint destructor.  */
 
-static void
-dtor_exception (enum ada_exception_catchpoint_kind ex, struct breakpoint *b)
+ada_catchpoint::~ada_catchpoint ()
 {
-  struct ada_catchpoint *c = (struct ada_catchpoint *) b;
-
-  xfree (c->excep_string);
-
-  bkpt_breakpoint_ops.dtor (b);
+  xfree (this->excep_string);
 }
 
 /* Implement the ALLOCATE_LOCATION method in the breakpoint_ops
@@ -12623,12 +12598,6 @@ print_recreate_exception (enum ada_exception_catchpoint_kind ex,
 
 /* Virtual table for "catch exception" breakpoints.  */
 
-static void
-dtor_catch_exception (struct breakpoint *b)
-{
-  dtor_exception (ada_catch_exception, b);
-}
-
 static struct bp_location *
 allocate_location_catch_exception (struct breakpoint *self)
 {
@@ -12674,12 +12643,6 @@ print_recreate_catch_exception (struct breakpoint *b, struct ui_file *fp)
 static struct breakpoint_ops catch_exception_breakpoint_ops;
 
 /* Virtual table for "catch exception unhandled" breakpoints.  */
-
-static void
-dtor_catch_exception_unhandled (struct breakpoint *b)
-{
-  dtor_exception (ada_catch_exception_unhandled, b);
-}
 
 static struct bp_location *
 allocate_location_catch_exception_unhandled (struct breakpoint *self)
@@ -12728,12 +12691,6 @@ print_recreate_catch_exception_unhandled (struct breakpoint *b,
 static struct breakpoint_ops catch_exception_unhandled_breakpoint_ops;
 
 /* Virtual table for "catch assert" breakpoints.  */
-
-static void
-dtor_catch_assert (struct breakpoint *b)
-{
-  dtor_exception (ada_catch_assert, b);
-}
 
 static struct bp_location *
 allocate_location_catch_assert (struct breakpoint *self)
@@ -13060,13 +13017,13 @@ create_ada_exception_catchpoint (struct gdbarch *gdbarch,
     = ada_exception_sal (ex_kind, excep_string, &addr_string, &ops);
 
   c = new ada_catchpoint ();
-  init_ada_exception_breakpoint (&c->base, gdbarch, sal, addr_string,
+  init_ada_exception_breakpoint (c, gdbarch, sal, addr_string,
 				 ops, tempflag, disabled, from_tty);
   c->excep_string = excep_string;
   create_excep_cond_exprs (c);
   if (cond_string != NULL)
-    set_breakpoint_condition (&c->base, cond_string, from_tty);
-  install_breakpoint (0, &c->base, 1);
+    set_breakpoint_condition (c, cond_string, from_tty);
+  install_breakpoint (0, c, 1);
 }
 
 /* Implement the "catch exception" command.  */
@@ -13246,14 +13203,15 @@ sort_remove_dups_ada_exceptions_list (VEC(ada_exc_info) **exceptions,
    gets pushed.  */
 
 static void
-ada_add_standard_exceptions (regex_t *preg, VEC(ada_exc_info) **exceptions)
+ada_add_standard_exceptions (compiled_regex *preg,
+			     VEC(ada_exc_info) **exceptions)
 {
   int i;
 
   for (i = 0; i < ARRAY_SIZE (standard_exc); i++)
     {
       if (preg == NULL
-	  || regexec (preg, standard_exc[i], 0, NULL, 0) == 0)
+	  || preg->exec (standard_exc[i], 0, NULL, 0) == 0)
 	{
 	  struct bound_minimal_symbol msymbol
 	    = ada_lookup_simple_minsym (standard_exc[i]);
@@ -13280,7 +13238,8 @@ ada_add_standard_exceptions (regex_t *preg, VEC(ada_exc_info) **exceptions)
    gets pushed.  */
 
 static void
-ada_add_exceptions_from_frame (regex_t *preg, struct frame_info *frame,
+ada_add_exceptions_from_frame (compiled_regex *preg,
+			       struct frame_info *frame,
 			       VEC(ada_exc_info) **exceptions)
 {
   const struct block *block = get_frame_block (frame, 0);
@@ -13317,10 +13276,10 @@ ada_add_exceptions_from_frame (regex_t *preg, struct frame_info *frame,
 /* Return true if NAME matches PREG or if PREG is NULL.  */
 
 static bool
-name_matches_regex (const char *name, regex_t *preg)
+name_matches_regex (const char *name, compiled_regex *preg)
 {
   return (preg == NULL
-	  || regexec (preg, ada_decode (name), 0, NULL, 0) == 0);
+	  || preg->exec (ada_decode (name), 0, NULL, 0) == 0);
 }
 
 /* Add all exceptions defined globally whose name name match
@@ -13343,7 +13302,8 @@ name_matches_regex (const char *name, regex_t *preg)
    gets pushed.  */
 
 static void
-ada_add_global_exceptions (regex_t *preg, VEC(ada_exc_info) **exceptions)
+ada_add_global_exceptions (compiled_regex *preg,
+			   VEC(ada_exc_info) **exceptions)
 {
   struct objfile *objfile;
   struct compunit_symtab *s;
@@ -13391,7 +13351,7 @@ ada_add_global_exceptions (regex_t *preg, VEC(ada_exc_info) **exceptions)
    do not match.  Otherwise, all exceptions are listed.  */
 
 static VEC(ada_exc_info) *
-ada_exceptions_list_1 (regex_t *preg)
+ada_exceptions_list_1 (compiled_regex *preg)
 {
   VEC(ada_exc_info) *result = NULL;
   struct cleanup *old_chain
@@ -13444,19 +13404,11 @@ ada_exceptions_list_1 (regex_t *preg)
 VEC(ada_exc_info) *
 ada_exceptions_list (const char *regexp)
 {
-  VEC(ada_exc_info) *result = NULL;
-  struct cleanup *old_chain = NULL;
-  regex_t reg;
+  if (regexp == NULL)
+    return ada_exceptions_list_1 (NULL);
 
-  if (regexp != NULL)
-    old_chain = compile_rx_or_error (&reg, regexp,
-				     _("invalid regular expression"));
-
-  result = ada_exceptions_list_1 (regexp != NULL ? &reg : NULL);
-
-  if (old_chain != NULL)
-    do_cleanups (old_chain);
-  return result;
+  compiled_regex reg (regexp, REG_NOSUB, _("invalid regular expression"));
+  return ada_exceptions_list_1 (&reg);
 }
 
 /* Implement the "info exceptions" command.  */
@@ -14008,7 +13960,7 @@ static const char *ada_extensions[] =
   ".adb", ".ads", ".a", ".ada", ".dg", NULL
 };
 
-const struct language_defn ada_language_defn = {
+extern const struct language_defn ada_language_defn = {
   "ada",                        /* Language name */
   "Ada",
   language_ada,
@@ -14042,7 +13994,7 @@ const struct language_defn ada_language_defn = {
   0,                            /* c-style arrays */
   1,                            /* String lower bound */
   ada_get_gdb_completer_word_break_characters,
-  ada_make_symbol_completion_list,
+  ada_collect_symbol_completion_matches,
   ada_language_arch_info,
   ada_print_array_index,
   default_pass_by_reference,
@@ -14090,7 +14042,6 @@ initialize_ada_catchpoint_ops (void)
 
   ops = &catch_exception_breakpoint_ops;
   *ops = bkpt_breakpoint_ops;
-  ops->dtor = dtor_catch_exception;
   ops->allocate_location = allocate_location_catch_exception;
   ops->re_set = re_set_catch_exception;
   ops->check_status = check_status_catch_exception;
@@ -14101,7 +14052,6 @@ initialize_ada_catchpoint_ops (void)
 
   ops = &catch_exception_unhandled_breakpoint_ops;
   *ops = bkpt_breakpoint_ops;
-  ops->dtor = dtor_catch_exception_unhandled;
   ops->allocate_location = allocate_location_catch_exception_unhandled;
   ops->re_set = re_set_catch_exception_unhandled;
   ops->check_status = check_status_catch_exception_unhandled;
@@ -14112,7 +14062,6 @@ initialize_ada_catchpoint_ops (void)
 
   ops = &catch_assert_breakpoint_ops;
   *ops = bkpt_breakpoint_ops;
-  ops->dtor = dtor_catch_assert;
   ops->allocate_location = allocate_location_catch_assert;
   ops->re_set = re_set_catch_assert;
   ops->check_status = check_status_catch_assert;
@@ -14141,8 +14090,6 @@ ada_free_objfile_observer (struct objfile *objfile)
 void
 _initialize_ada_language (void)
 {
-  add_language (&ada_language_defn);
-
   initialize_ada_catchpoint_ops ();
 
   add_prefix_cmd ("ada", no_class, set_ada_command,

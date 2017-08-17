@@ -55,6 +55,7 @@
 #include "gdbcmd.h"
 #include "observer.h"
 #include "common/gdb_optional.h"
+#include "common/byte-vector.h"
 
 #include <ctype.h>
 #include "run-time-clock.h"
@@ -1111,10 +1112,8 @@ register_changed_p (int regnum, struct regcache *prev_regs,
 		    struct regcache *this_regs)
 {
   struct gdbarch *gdbarch = get_regcache_arch (this_regs);
-  gdb_byte prev_buffer[MAX_REGISTER_SIZE];
-  gdb_byte this_buffer[MAX_REGISTER_SIZE];
-  enum register_status prev_status;
-  enum register_status this_status;
+  struct value *prev_value, *this_value;
+  int ret;
 
   /* First time through or after gdbarch change consider all registers
      as changed.  */
@@ -1122,16 +1121,19 @@ register_changed_p (int regnum, struct regcache *prev_regs,
     return 1;
 
   /* Get register contents and compare.  */
-  prev_status = regcache_cooked_read (prev_regs, regnum, prev_buffer);
-  this_status = regcache_cooked_read (this_regs, regnum, this_buffer);
+  prev_value = prev_regs->cooked_read_value (regnum);
+  this_value = this_regs->cooked_read_value (regnum);
+  gdb_assert (prev_value != NULL);
+  gdb_assert (this_value != NULL);
 
-  if (this_status != prev_status)
-    return 1;
-  else if (this_status == REG_VALID)
-    return memcmp (prev_buffer, this_buffer,
-		   register_size (gdbarch, regnum)) != 0;
-  else
-    return 0;
+  ret = value_contents_eq (prev_value, 0, this_value, 0,
+			   register_size (gdbarch, regnum)) == 0;
+
+  release_value (prev_value);
+  release_value (this_value);
+  value_free (prev_value);
+  value_free (this_value);
+  return ret;
 }
 
 /* Return a list of register number and value pairs.  The valid
@@ -1465,12 +1467,12 @@ mi_cmd_data_read_memory (const char *command, char **argv, int argc)
   /* Create a buffer and read it in.  */
   total_bytes = word_size * nr_rows * nr_cols;
 
-  std::unique_ptr<gdb_byte[]> mbuf (new gdb_byte[total_bytes]);
+  gdb::byte_vector mbuf (total_bytes);
 
   /* Dispatch memory reads to the topmost target, not the flattened
      current_target.  */
   nr_bytes = target_read (current_target.beneath,
-			  TARGET_OBJECT_MEMORY, NULL, mbuf.get (),
+			  TARGET_OBJECT_MEMORY, NULL, mbuf.data (),
 			  addr, total_bytes);
   if (nr_bytes <= 0)
     error (_("Unable to read memory."));
@@ -1657,8 +1659,6 @@ mi_cmd_data_write_memory (const char *command, char **argv, int argc)
   /* FIXME: ezannoni 2000-02-17 LONGEST could possibly not be big
      enough when using a compiler other than GCC.  */
   LONGEST value;
-  gdb_byte *buffer;
-  struct cleanup *old_chain;
   long offset = 0;
   int oind = 0;
   char *oarg;
@@ -1705,13 +1705,10 @@ mi_cmd_data_write_memory (const char *command, char **argv, int argc)
   /* Get the value as a number.  */
   value = parse_and_eval_address (argv[3]);
   /* Get the value into an array.  */
-  buffer = (gdb_byte *) xmalloc (word_size);
-  old_chain = make_cleanup (xfree, buffer);
-  store_signed_integer (buffer, word_size, byte_order, value);
+  gdb::byte_vector buffer (word_size);
+  store_signed_integer (buffer.data (), word_size, byte_order, value);
   /* Write it down to memory.  */
-  write_memory_with_notification (addr, buffer, word_size);
-  /* Free the buffer.  */
-  do_cleanups (old_chain);
+  write_memory_with_notification (addr, buffer.data (), word_size);
 }
 
 /* Implementation of the -data-write-memory-bytes command.
@@ -2241,9 +2238,10 @@ mi_cmd_execute (struct mi_parse *parse)
 	error (_("Invalid frame id: %d"), frame);
     }
 
+  gdb::optional<scoped_restore_current_language> lang_saver;
   if (parse->language != language_unknown)
     {
-      make_cleanup_restore_current_language ();
+      lang_saver.emplace ();
       set_language (parse->language);
     }
 

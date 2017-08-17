@@ -755,6 +755,11 @@ M;const char *;core_pid_to_str;ptid_t ptid;ptid
 # How the core target extracts the name of a thread from a core file.
 M;const char *;core_thread_name;struct thread_info *thr;thr
 
+# Read offset OFFSET of TARGET_OBJECT_SIGNAL_INFO signal information
+# from core file into buffer READBUF with length LEN.  Return the number
+# of bytes read (zero indicates EOF, a negative value indicates failure).
+M;LONGEST;core_xfer_siginfo;gdb_byte *readbuf, ULONGEST offset, ULONGEST len; readbuf, offset, len
+
 # BFD target to use when generating a core file.
 V;const char *;gcore_bfd_target;;;0;0;;;pstring (gdbarch->gcore_bfd_target)
 
@@ -832,18 +837,6 @@ m;int;displaced_step_hw_singlestep;struct displaced_step_closure *closure;closur
 # For a general explanation of displaced stepping and how GDB uses it,
 # see the comments in infrun.c.
 M;void;displaced_step_fixup;struct displaced_step_closure *closure, CORE_ADDR from, CORE_ADDR to, struct regcache *regs;closure, from, to, regs;;NULL
-
-# Free a closure returned by gdbarch_displaced_step_copy_insn.
-#
-# If you provide gdbarch_displaced_step_copy_insn, you must provide
-# this function as well.
-#
-# If your architecture uses closures that don't need to be freed, then
-# you can use simple_displaced_step_free_closure here.
-#
-# For a general explanation of displaced stepping and how GDB uses it,
-# see the comments in infrun.c.
-m;void;displaced_step_free_closure;struct displaced_step_closure *closure;closure;;NULL;;(! gdbarch->displaced_step_free_closure) != (! gdbarch->displaced_step_copy_insn)
 
 # Return the address of an appropriate place to put displaced
 # instructions while we step over them.  There need only be one such
@@ -1481,7 +1474,21 @@ struct gdbarch_info
   bfd *abfd;
 
   /* Use default: NULL (ZERO).  */
-  void *tdep_info;
+  union
+    {
+      /* Architecture-specific information.  The generic form for targets
+	 that have extra requirements.  */
+      struct gdbarch_tdep_info *tdep_info;
+
+      /* Architecture-specific target description data.  Numerous targets
+	 need only this, so give them an easy way to hold it.  */
+      struct tdesc_arch_data *tdesc_data;
+
+      /* SPU file system ID.  This is a single integer, so using the
+	 generic form would only complicate code.  Other targets may
+	 reuse this member if suitable.  */
+      int *id;
+    };
 
   /* Use default: GDB_OSABI_UNINITIALIZED (-1).  */
   enum gdb_osabi osabi;

@@ -4011,7 +4011,7 @@ i386_print_insn (bfd_vma pc, struct disassemble_info *info)
 
   info->disassembler_options = disassembly_flavor;
 
-  return print_insn_i386 (pc, info);
+  return default_print_insn (pc, info);
 }
 
 
@@ -8604,7 +8604,7 @@ i386_gdbarch_init (struct gdbarch_info info, struct gdbarch_list *arches)
   /* Hook in ABI-specific overrides, if they have been registered.
      Note: If INFO specifies a 64 bit arch, this is where we turn
      a 32-bit i386 into a 64-bit amd64.  */
-  info.tdep_info = tdesc_data;
+  info.tdesc_data = tdesc_data;
   gdbarch_init_osabi (info, gdbarch);
 
   if (!i386_validate_tdesc_p (tdep, tdesc_data))

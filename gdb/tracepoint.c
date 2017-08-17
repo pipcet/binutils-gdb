@@ -447,10 +447,6 @@ trace_variable_command (char *args, int from_tty)
 static void
 delete_trace_variable_command (char *args, int from_tty)
 {
-  int ix;
-  char **argv;
-  struct cleanup *back_to;
-
   if (args == NULL)
     {
       if (query (_("Delete all trace state variables? ")))
@@ -460,18 +456,15 @@ delete_trace_variable_command (char *args, int from_tty)
       return;
     }
 
-  argv = gdb_buildargv (args);
-  back_to = make_cleanup_freeargv (argv);
+  gdb_argv argv (args);
 
-  for (ix = 0; argv[ix] != NULL; ix++)
+  for (char *arg : argv)
     {
-      if (*argv[ix] == '$')
-	delete_trace_state_variable (argv[ix] + 1);
+      if (*arg == '$')
+	delete_trace_state_variable (arg + 1);
       else
-	warning (_("Name \"%s\" not prefixed with '$', ignoring"), argv[ix]);
+	warning (_("Name \"%s\" not prefixed with '$', ignoring"), arg);
     }
-
-  do_cleanups (back_to);
 
   dont_repeat ();
 }
@@ -482,7 +475,6 @@ tvariables_info_1 (void)
   struct trace_state_variable *tsv;
   int ix;
   int count = 0;
-  struct cleanup *back_to;
   struct ui_out *uiout = current_uiout;
 
   if (VEC_length (tsv_s, tvariables) == 0 && !uiout->is_mi_like_p ())
@@ -496,8 +488,7 @@ tvariables_info_1 (void)
     tsv->value_known = target_get_trace_state_variable_value (tsv->number,
 							      &(tsv->value));
 
-  back_to = make_cleanup_ui_out_table_begin_end (uiout, 3,
-                                                 count, "trace-variables");
+  ui_out_emit_table table_emitter (uiout, 3, count, "trace-variables");
   uiout->table_header (15, ui_left, "name", "Name");
   uiout->table_header (11, ui_left, "initial", "Initial");
   uiout->table_header (11, ui_left, "current", "Current");
@@ -531,8 +522,6 @@ tvariables_info_1 (void)
         uiout->field_string ("current", c);
       uiout->text ("\n");
     }
-
-  do_cleanups (back_to);
 }
 
 /* List all the trace state variables.  */
@@ -648,11 +637,11 @@ actions_command (char *args, int from_tty)
     {
       std::string tmpbuf =
 	string_printf ("Enter actions for tracepoint %d, one per line.",
-		       t->base.number);
+		       t->number);
 
       command_line_up l = read_command_lines (&tmpbuf[0], from_tty, 1,
 					      check_tracepoint_command, t);
-      breakpoint_set_commands (&t->base, std::move (l));
+      breakpoint_set_commands (t, std::move (l));
     }
   /* else just return */
 }
@@ -738,7 +727,7 @@ validate_actionline (const char *line, struct breakpoint *b)
 	      /* else fall thru, treat p as an expression and parse it!  */
 	    }
 	  tmp_p = p;
-	  for (loc = t->base.loc; loc; loc = loc->next)
+	  for (loc = t->loc; loc; loc = loc->next)
 	    {
 	      p = tmp_p;
 	      expression_up exp = parse_exp_1 (&p, loc->address,
@@ -788,7 +777,7 @@ validate_actionline (const char *line, struct breakpoint *b)
 	  p = skip_spaces_const (p);
 
 	  tmp_p = p;
-	  for (loc = t->base.loc; loc; loc = loc->next)
+	  for (loc = t->loc; loc; loc = loc->next)
 	    {
 	      p = tmp_p;
 
@@ -2246,7 +2235,7 @@ tfind_1 (enum trace_find_type type, int num,
   reinit_frame_cache ();
   target_dcache_invalidate ();
 
-  set_tracepoint_num (tp ? tp->base.number : target_tracept);
+  set_tracepoint_num (tp ? tp->number : target_tracept);
 
   if (target_frameno != get_traceframe_number ())
     observer_notify_traceframe_changed (target_frameno, tracepoint_number);
@@ -2870,7 +2859,7 @@ get_traceframe_location (int *stepping_frame_p)
      locations, assume it is a direct hit rather than a while-stepping
      frame.  (FIXME this is not reliable, should record each frame's
      type.)  */
-  for (tloc = t->base.loc; tloc; tloc = tloc->next)
+  for (tloc = t->loc; tloc; tloc = tloc->next)
     if (tloc->address == regcache_read_pc (regcache))
       {
 	*stepping_frame_p = 0;
@@ -2880,7 +2869,7 @@ get_traceframe_location (int *stepping_frame_p)
   /* If this is a stepping frame, we don't know which location
      triggered.  The first is as good (or bad) a guess as any...  */
   *stepping_frame_p = 1;
-  return t->base.loc;
+  return t->loc;
 }
 
 /* Return all the actions, including default collect, of a tracepoint
@@ -3231,7 +3220,7 @@ find_matching_tracepoint_location (struct uploaded_tp *utp)
       if (b->type == utp->type
 	  && t->step_count == utp->step
 	  && t->pass_count == utp->pass
-	  && cond_string_is_same (t->base.cond_string, utp->cond_string)
+	  && cond_string_is_same (t->cond_string, utp->cond_string)
 	  /* FIXME also test actions.  */
 	  )
 	{
@@ -3300,7 +3289,7 @@ merge_uploaded_tracepoints (struct uploaded_tp **uploaded_tps)
 	  if (t)
 	    printf_filtered (_("Created tracepoint %d for "
 			       "target's tracepoint %d at %s.\n"),
-			     t->base.number, utp->number,
+			     t->number, utp->number,
 			     paddress (get_current_arch (), utp->addr));
 	  else
 	    printf_filtered (_("Failed to create tracepoint for target's "
@@ -3603,7 +3592,7 @@ parse_tracepoint_status (char *p, struct breakpoint *bp,
 
   p = unpack_varlen_hex (p, &uval);
   if (tp)
-    tp->base.hit_count += uval;
+    tp->hit_count += uval;
   else
     utp->hit_count += uval;
   p = unpack_varlen_hex (p + 1, &uval);
@@ -3952,9 +3941,8 @@ info_static_tracepoint_markers_command (char *arg, int from_tty)
      don't work without in-process agent, so we don't bother users to type
      `set agent on' when to use static tracepoint.  */
 
-  old_chain
-    = make_cleanup_ui_out_table_begin_end (uiout, 5, -1,
-					   "StaticTracepointMarkersTable");
+  ui_out_emit_table table_emitter (uiout, 5, -1,
+				   "StaticTracepointMarkersTable");
 
   uiout->table_header (7, ui_left, "counter", "Cnt");
 
@@ -3970,7 +3958,7 @@ info_static_tracepoint_markers_command (char *arg, int from_tty)
   uiout->table_body ();
 
   markers = target_static_tracepoint_markers_by_strid (NULL);
-  make_cleanup (VEC_cleanup (static_tracepoint_marker_p), &markers);
+  old_chain = make_cleanup (VEC_cleanup (static_tracepoint_marker_p), &markers);
 
   for (i = 0;
        VEC_iterate (static_tracepoint_marker_p,

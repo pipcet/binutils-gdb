@@ -287,6 +287,7 @@ struct gdbarch
   gdbarch_core_xfer_shared_libraries_aix_ftype *core_xfer_shared_libraries_aix;
   gdbarch_core_pid_to_str_ftype *core_pid_to_str;
   gdbarch_core_thread_name_ftype *core_thread_name;
+  gdbarch_core_xfer_siginfo_ftype *core_xfer_siginfo;
   const char * gcore_bfd_target;
   int vtable_function_descriptors;
   int vbit_in_delta;
@@ -295,7 +296,6 @@ struct gdbarch
   gdbarch_displaced_step_copy_insn_ftype *displaced_step_copy_insn;
   gdbarch_displaced_step_hw_singlestep_ftype *displaced_step_hw_singlestep;
   gdbarch_displaced_step_fixup_ftype *displaced_step_fixup;
-  gdbarch_displaced_step_free_closure_ftype *displaced_step_free_closure;
   gdbarch_displaced_step_location_ftype *displaced_step_location;
   gdbarch_relocate_instruction_ftype *relocate_instruction;
   gdbarch_overlay_update_ftype *overlay_update;
@@ -443,7 +443,6 @@ gdbarch_alloc (const struct gdbarch_info *info,
   gdbarch->skip_permanent_breakpoint = default_skip_permanent_breakpoint;
   gdbarch->displaced_step_hw_singlestep = default_displaced_step_hw_singlestep;
   gdbarch->displaced_step_fixup = NULL;
-  gdbarch->displaced_step_free_closure = NULL;
   gdbarch->displaced_step_location = NULL;
   gdbarch->relocate_instruction = NULL;
   gdbarch->has_shared_address_space = default_has_shared_address_space;
@@ -648,6 +647,7 @@ verify_gdbarch (struct gdbarch *gdbarch)
   /* Skip verify of core_xfer_shared_libraries_aix, has predicate.  */
   /* Skip verify of core_pid_to_str, has predicate.  */
   /* Skip verify of core_thread_name, has predicate.  */
+  /* Skip verify of core_xfer_siginfo, has predicate.  */
   /* Skip verify of gcore_bfd_target, has predicate.  */
   /* Skip verify of vtable_function_descriptors, invalid_p == 0 */
   /* Skip verify of vbit_in_delta, invalid_p == 0 */
@@ -656,8 +656,6 @@ verify_gdbarch (struct gdbarch *gdbarch)
   /* Skip verify of displaced_step_copy_insn, has predicate.  */
   /* Skip verify of displaced_step_hw_singlestep, invalid_p == 0 */
   /* Skip verify of displaced_step_fixup, has predicate.  */
-  if ((! gdbarch->displaced_step_free_closure) != (! gdbarch->displaced_step_copy_insn))
-    log.puts ("\n\tdisplaced_step_free_closure");
   if ((! gdbarch->displaced_step_location) != (! gdbarch->displaced_step_copy_insn))
     log.puts ("\n\tdisplaced_step_location");
   /* Skip verify of relocate_instruction, has predicate.  */
@@ -888,6 +886,12 @@ gdbarch_dump (struct gdbarch *gdbarch, struct ui_file *file)
                       "gdbarch_dump: core_xfer_shared_libraries_aix = <%s>\n",
                       host_address_to_string (gdbarch->core_xfer_shared_libraries_aix));
   fprintf_unfiltered (file,
+                      "gdbarch_dump: gdbarch_core_xfer_siginfo_p() = %d\n",
+                      gdbarch_core_xfer_siginfo_p (gdbarch));
+  fprintf_unfiltered (file,
+                      "gdbarch_dump: core_xfer_siginfo = <%s>\n",
+                      host_address_to_string (gdbarch->core_xfer_siginfo));
+  fprintf_unfiltered (file,
                       "gdbarch_dump: decr_pc_after_break = %s\n",
                       core_addr_to_string_nz (gdbarch->decr_pc_after_break));
   fprintf_unfiltered (file,
@@ -911,9 +915,6 @@ gdbarch_dump (struct gdbarch *gdbarch, struct ui_file *file)
   fprintf_unfiltered (file,
                       "gdbarch_dump: displaced_step_fixup = <%s>\n",
                       host_address_to_string (gdbarch->displaced_step_fixup));
-  fprintf_unfiltered (file,
-                      "gdbarch_dump: displaced_step_free_closure = <%s>\n",
-                      host_address_to_string (gdbarch->displaced_step_free_closure));
   fprintf_unfiltered (file,
                       "gdbarch_dump: displaced_step_hw_singlestep = <%s>\n",
                       host_address_to_string (gdbarch->displaced_step_hw_singlestep));
@@ -3804,6 +3805,30 @@ set_gdbarch_core_thread_name (struct gdbarch *gdbarch,
 }
 
 int
+gdbarch_core_xfer_siginfo_p (struct gdbarch *gdbarch)
+{
+  gdb_assert (gdbarch != NULL);
+  return gdbarch->core_xfer_siginfo != NULL;
+}
+
+LONGEST
+gdbarch_core_xfer_siginfo (struct gdbarch *gdbarch, gdb_byte *readbuf, ULONGEST offset, ULONGEST len)
+{
+  gdb_assert (gdbarch != NULL);
+  gdb_assert (gdbarch->core_xfer_siginfo != NULL);
+  if (gdbarch_debug >= 2)
+    fprintf_unfiltered (gdb_stdlog, "gdbarch_core_xfer_siginfo called\n");
+  return gdbarch->core_xfer_siginfo (gdbarch,  readbuf, offset, len);
+}
+
+void
+set_gdbarch_core_xfer_siginfo (struct gdbarch *gdbarch,
+                               gdbarch_core_xfer_siginfo_ftype core_xfer_siginfo)
+{
+  gdbarch->core_xfer_siginfo = core_xfer_siginfo;
+}
+
+int
 gdbarch_gcore_bfd_target_p (struct gdbarch *gdbarch)
 {
   gdb_assert (gdbarch != NULL);
@@ -3968,23 +3993,6 @@ set_gdbarch_displaced_step_fixup (struct gdbarch *gdbarch,
                                   gdbarch_displaced_step_fixup_ftype displaced_step_fixup)
 {
   gdbarch->displaced_step_fixup = displaced_step_fixup;
-}
-
-void
-gdbarch_displaced_step_free_closure (struct gdbarch *gdbarch, struct displaced_step_closure *closure)
-{
-  gdb_assert (gdbarch != NULL);
-  gdb_assert (gdbarch->displaced_step_free_closure != NULL);
-  if (gdbarch_debug >= 2)
-    fprintf_unfiltered (gdb_stdlog, "gdbarch_displaced_step_free_closure called\n");
-  gdbarch->displaced_step_free_closure (gdbarch, closure);
-}
-
-void
-set_gdbarch_displaced_step_free_closure (struct gdbarch *gdbarch,
-                                         gdbarch_displaced_step_free_closure_ftype displaced_step_free_closure)
-{
-  gdbarch->displaced_step_free_closure = displaced_step_free_closure;
 }
 
 CORE_ADDR

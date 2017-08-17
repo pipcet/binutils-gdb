@@ -135,11 +135,11 @@ _bfd_hexdump (int level, unsigned char *ptr, int size, int offset)
 #endif
 
 
-/* Copy sized string (string with fixed size) to new allocated area
-   size is string size (size of record)  */
+/* Copy sized string (string with fixed size) to new allocated area.
+   Size is string size (size of record).  */
 
 char *
-_bfd_vms_save_sized_string (unsigned char *str, int size)
+_bfd_vms_save_sized_string (unsigned char *str, unsigned int size)
 {
   char *newstr = bfd_malloc ((bfd_size_type) size + 1);
 
@@ -151,14 +151,16 @@ _bfd_vms_save_sized_string (unsigned char *str, int size)
   return newstr;
 }
 
-/* Copy counted string (string with size at first byte) to new allocated area
-   ptr points to size byte on entry  */
+/* Copy counted string (string with size at first byte) to new allocated area.
+   PTR points to size byte on entry.  */
 
 char *
-_bfd_vms_save_counted_string (unsigned char *ptr)
+_bfd_vms_save_counted_string (unsigned char *ptr, unsigned int maxlen)
 {
-  int len = *ptr++;
+  unsigned int len = *ptr++;
 
+  if (len > maxlen)
+    return NULL;
   return _bfd_vms_save_sized_string (ptr, len);
 }
 

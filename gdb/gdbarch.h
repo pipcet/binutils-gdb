@@ -933,6 +933,16 @@ typedef const char * (gdbarch_core_thread_name_ftype) (struct gdbarch *gdbarch, 
 extern const char * gdbarch_core_thread_name (struct gdbarch *gdbarch, struct thread_info *thr);
 extern void set_gdbarch_core_thread_name (struct gdbarch *gdbarch, gdbarch_core_thread_name_ftype *core_thread_name);
 
+/* Read offset OFFSET of TARGET_OBJECT_SIGNAL_INFO signal information
+   from core file into buffer READBUF with length LEN.  Return the number
+   of bytes read (zero indicates EOF, a negative value indicates failure). */
+
+extern int gdbarch_core_xfer_siginfo_p (struct gdbarch *gdbarch);
+
+typedef LONGEST (gdbarch_core_xfer_siginfo_ftype) (struct gdbarch *gdbarch, gdb_byte *readbuf, ULONGEST offset, ULONGEST len);
+extern LONGEST gdbarch_core_xfer_siginfo (struct gdbarch *gdbarch, gdb_byte *readbuf, ULONGEST offset, ULONGEST len);
+extern void set_gdbarch_core_xfer_siginfo (struct gdbarch *gdbarch, gdbarch_core_xfer_siginfo_ftype *core_xfer_siginfo);
+
 /* BFD target to use when generating a core file. */
 
 extern int gdbarch_gcore_bfd_target_p (struct gdbarch *gdbarch);
@@ -1038,21 +1048,6 @@ extern int gdbarch_displaced_step_fixup_p (struct gdbarch *gdbarch);
 typedef void (gdbarch_displaced_step_fixup_ftype) (struct gdbarch *gdbarch, struct displaced_step_closure *closure, CORE_ADDR from, CORE_ADDR to, struct regcache *regs);
 extern void gdbarch_displaced_step_fixup (struct gdbarch *gdbarch, struct displaced_step_closure *closure, CORE_ADDR from, CORE_ADDR to, struct regcache *regs);
 extern void set_gdbarch_displaced_step_fixup (struct gdbarch *gdbarch, gdbarch_displaced_step_fixup_ftype *displaced_step_fixup);
-
-/* Free a closure returned by gdbarch_displaced_step_copy_insn.
-  
-   If you provide gdbarch_displaced_step_copy_insn, you must provide
-   this function as well.
-  
-   If your architecture uses closures that don't need to be freed, then
-   you can use simple_displaced_step_free_closure here.
-  
-   For a general explanation of displaced stepping and how GDB uses it,
-   see the comments in infrun.c. */
-
-typedef void (gdbarch_displaced_step_free_closure_ftype) (struct gdbarch *gdbarch, struct displaced_step_closure *closure);
-extern void gdbarch_displaced_step_free_closure (struct gdbarch *gdbarch, struct displaced_step_closure *closure);
-extern void set_gdbarch_displaced_step_free_closure (struct gdbarch *gdbarch, gdbarch_displaced_step_free_closure_ftype *displaced_step_free_closure);
 
 /* Return the address of an appropriate place to put displaced
    instructions while we step over them.  There need only be one such
@@ -1652,7 +1647,21 @@ struct gdbarch_info
   bfd *abfd;
 
   /* Use default: NULL (ZERO).  */
-  void *tdep_info;
+  union
+    {
+      /* Architecture-specific information.  The generic form for targets
+	 that have extra requirements.  */
+      struct gdbarch_tdep_info *tdep_info;
+
+      /* Architecture-specific target description data.  Numerous targets
+	 need only this, so give them an easy way to hold it.  */
+      struct tdesc_arch_data *tdesc_data;
+
+      /* SPU file system ID.  This is a single integer, so using the
+	 generic form would only complicate code.  Other targets may
+	 reuse this member if suitable.  */
+      int *id;
+    };
 
   /* Use default: GDB_OSABI_UNINITIALIZED (-1).  */
   enum gdb_osabi osabi;

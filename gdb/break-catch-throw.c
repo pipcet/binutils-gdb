@@ -74,25 +74,21 @@ static struct breakpoint_ops gnu_v3_exception_catchpoint_ops;
 
 /* The type of an exception catchpoint.  */
 
-struct exception_catchpoint
+struct exception_catchpoint : public breakpoint
 {
-  /* The base class.  */
-
-  struct breakpoint base;
-
   /* The kind of exception catchpoint.  */
 
   enum exception_event_kind kind;
 
-  /* If non-NULL, an xmalloc'd string holding the source form of the
-     regular expression to match against.  */
+  /* If not empty, a string holding the source form of the regular
+     expression to match against.  */
 
-  char *exception_rx;
+  std::string exception_rx;
 
-  /* If non-NULL, an xmalloc'd, compiled regular expression which is
-     used to determine which exceptions to stop on.  */
+  /* If non-NULL, a compiled regular expression which is used to
+     determine which exceptions to stop on.  */
 
-  regex_t *pattern;
+  std::unique_ptr<compiled_regex> pattern;
 };
 
 
@@ -142,19 +138,6 @@ classify_exception_breakpoint (struct breakpoint *b)
   return cp->kind;
 }
 
-/* Implement the 'dtor' method.  */
-
-static void
-dtor_exception_catchpoint (struct breakpoint *self)
-{
-  struct exception_catchpoint *cp = (struct exception_catchpoint *) self;
-
-  xfree (cp->exception_rx);
-  if (cp->pattern != NULL)
-    regfree (cp->pattern);
-  bkpt_breakpoint_ops.dtor (self);
-}
-
 /* Implement the 'check_status' method.  */
 
 static void
@@ -191,7 +174,7 @@ check_status_exception_catchpoint (struct bpstats *bs)
 
   if (!type_name.empty ())
     {
-      if (regexec (self->pattern, type_name.c_str (), 0, NULL, 0) != 0)
+      if (self->pattern->exec (type_name.c_str (), 0, NULL, 0) != 0)
 	bs->stop = 0;
     }
 }
@@ -327,10 +310,10 @@ print_one_detail_exception_catchpoint (const struct breakpoint *b,
   const struct exception_catchpoint *cp
     = (const struct exception_catchpoint *) b;
 
-  if (cp->exception_rx != NULL)
+  if (!cp->exception_rx.empty ())
     {
       uiout->text (_("\tmatching: "));
-      uiout->field_string ("regexp", cp->exception_rx);
+      uiout->field_string ("regexp", cp->exception_rx.c_str ());
       uiout->text ("\n");
     }
 }
@@ -379,35 +362,32 @@ print_recreate_exception_catchpoint (struct breakpoint *b,
 }
 
 static void
-handle_gnu_v3_exceptions (int tempflag, char *except_rx,
+handle_gnu_v3_exceptions (int tempflag, std::string &&except_rx,
 			  const char *cond_string,
 			  enum exception_event_kind ex_event, int from_tty)
 {
-  regex_t *pattern = NULL;
+  std::unique_ptr<compiled_regex> pattern;
 
-  if (except_rx != NULL)
+  if (!except_rx.empty ())
     {
-      pattern = XNEW (regex_t);
-      make_cleanup (xfree, pattern);
-
-      compile_rx_or_error (pattern, except_rx,
-			   _("invalid type-matching regexp"));
+      pattern.reset (new compiled_regex (except_rx.c_str (), REG_NOSUB,
+					 _("invalid type-matching regexp")));
     }
 
   std::unique_ptr<exception_catchpoint> cp (new exception_catchpoint ());
 
-  init_catchpoint (&cp->base, get_current_arch (), tempflag, cond_string,
+  init_catchpoint (cp.get (), get_current_arch (), tempflag, cond_string,
 		   &gnu_v3_exception_catchpoint_ops);
   /* We need to reset 'type' in order for code in breakpoint.c to do
      the right thing.  */
-  cp->base.type = bp_breakpoint;
+  cp->type = bp_breakpoint;
   cp->kind = ex_event;
-  cp->exception_rx = except_rx;
-  cp->pattern = pattern;
+  cp->exception_rx = std::move (except_rx);
+  cp->pattern = std::move (pattern);
 
-  re_set_exception_catchpoint (&cp->base);
+  re_set_exception_catchpoint (cp.get ());
 
-  install_breakpoint (0, &cp->base, 1);
+  install_breakpoint (0, cp.get (), 1);
   cp.release ();
 }
 
@@ -421,7 +401,7 @@ handle_gnu_v3_exceptions (int tempflag, char *except_rx,
    STRING is updated to point to the "if" token, if it exists, or to
    the end of the string.  */
 
-static char *
+static std::string
 extract_exception_regexp (const char **string)
 {
   const char *start;
@@ -446,8 +426,8 @@ extract_exception_regexp (const char **string)
 
   *string = last;
   if (last_space > start)
-    return savestring (start, last_space - start);
-  return NULL;
+    return std::string (start, last_space - start);
+  return std::string ();
 }
 
 /* Deal with "catch catch", "catch throw", and "catch rethrow"
@@ -458,17 +438,14 @@ catch_exception_command_1 (enum exception_event_kind ex_event,
 			   char *arg_entry,
 			   int tempflag, int from_tty)
 {
-  char *except_rx;
   const char *cond_string = NULL;
-  struct cleanup *cleanup;
   const char *arg = arg_entry;
 
   if (!arg)
     arg = "";
   arg = skip_spaces_const (arg);
 
-  except_rx = extract_exception_regexp (&arg);
-  cleanup = make_cleanup (xfree, except_rx);
+  std::string except_rx = extract_exception_regexp (&arg);
 
   cond_string = ep_parse_optional_if_clause (&arg);
 
@@ -480,10 +457,8 @@ catch_exception_command_1 (enum exception_event_kind ex_event,
       && ex_event != EX_EVENT_RETHROW)
     error (_("Unsupported or unknown exception event; cannot catch it"));
 
-  handle_gnu_v3_exceptions (tempflag, except_rx, cond_string,
+  handle_gnu_v3_exceptions (tempflag, std::move (except_rx), cond_string,
 			    ex_event, from_tty);
-
-  discard_cleanups (cleanup);
 }
 
 /* Implementation of "catch catch" command.  */
@@ -558,7 +533,6 @@ initialize_throw_catchpoint_ops (void)
   /* GNU v3 exception catchpoints.  */
   ops = &gnu_v3_exception_catchpoint_ops;
   *ops = bkpt_breakpoint_ops;
-  ops->dtor = dtor_exception_catchpoint;
   ops->re_set = re_set_exception_catchpoint;
   ops->print_it = print_it_exception_catchpoint;
   ops->print_one = print_one_exception_catchpoint;

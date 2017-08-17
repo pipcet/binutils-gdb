@@ -1045,7 +1045,7 @@ exit_lwp (struct lwp_info *lp)
    Returns a wait status for that LWP, to cache.  */
 
 static int
-linux_nat_post_attach_wait (ptid_t ptid, int first, int *signalled)
+linux_nat_post_attach_wait (ptid_t ptid, int *signalled)
 {
   pid_t new_pid, pid = ptid_get_lwp (ptid);
   int status;
@@ -1245,7 +1245,7 @@ linux_nat_attach (struct target_ops *ops, const char *args, int from_tty)
   /* Add the initial process as the first LWP to the list.  */
   lp = add_initial_lwp (ptid);
 
-  status = linux_nat_post_attach_wait (lp->ptid, 1, &lp->signalled);
+  status = linux_nat_post_attach_wait (lp->ptid, &lp->signalled);
   if (!WIFSTOPPED (status))
     {
       if (WIFEXITED (status))
@@ -4187,20 +4187,17 @@ void
 linux_proc_pending_signals (int pid, sigset_t *pending,
 			    sigset_t *blocked, sigset_t *ignored)
 {
-  FILE *procfile;
   char buffer[PATH_MAX], fname[PATH_MAX];
-  struct cleanup *cleanup;
 
   sigemptyset (pending);
   sigemptyset (blocked);
   sigemptyset (ignored);
   xsnprintf (fname, sizeof fname, "/proc/%d/status", pid);
-  procfile = gdb_fopen_cloexec (fname, "r");
+  gdb_file_up procfile = gdb_fopen_cloexec (fname, "r");
   if (procfile == NULL)
     error (_("Could not open %s"), fname);
-  cleanup = make_cleanup_fclose (procfile);
 
-  while (fgets (buffer, PATH_MAX, procfile) != NULL)
+  while (fgets (buffer, PATH_MAX, procfile.get ()) != NULL)
     {
       /* Normal queued signals are on the SigPnd line in the status
 	 file.  However, 2.6 kernels also have a "shared" pending
@@ -4219,8 +4216,6 @@ linux_proc_pending_signals (int pid, sigset_t *pending,
       else if (startswith (buffer, "SigIgn:\t"))
 	add_line_to_sigset (buffer + 8, ignored);
     }
-
-  do_cleanups (cleanup);
 }
 
 static enum target_xfer_status

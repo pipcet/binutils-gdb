@@ -155,6 +155,17 @@ AC_ARG_ENABLE(compressed_debug_sections,
   ,no, | ,none,)  ac_default_compressed_debug_sections=no ;;
 esac])dnl
 
+# Decide setting DT_RUNPATH instead of DT_RPATH by default
+ac_default_new_dtags=unset
+# Provide a configure time option to override our default.
+AC_ARG_ENABLE(new_dtags,
+	      AS_HELP_STRING([--enable-new-dtags],
+	      [set DT_RUNPATH instead of DT_RPATH by default])],
+[case "${enableval}" in
+  yes) ac_default_new_dtags=1 ;;
+  no) ac_default_new_dtags=0 ;;
+esac])dnl
+
 # Decide if -z relro should be enabled in ELF linker by default.
 ac_default_ld_z_relro=unset
 # Provide a configure time option to override our default.
@@ -165,6 +176,32 @@ AC_ARG_ENABLE(relro,
   yes)  ac_default_ld_z_relro=1 ;;
   no)  ac_default_ld_z_relro=0 ;;
 esac])dnl
+
+# Decide which "--hash-style" to use by default
+# Provide a configure time option to override our default.
+AC_ARG_ENABLE([default-hash-style],
+AS_HELP_STRING([--enable-default-hash-style={sysv,gnu,both}],
+	       [use this default hash style]),
+[case "${enable_default_hash_style}" in
+  sysv | gnu | both) ;;
+  *) AC_MSG_ERROR([bad value ${enable_default_hash_style} for enable-default-hash-style option]) ;;
+esac],
+[case "${target}" in
+  # Enable gnu hash only on GNU targets, but not mips
+  mips*-*-*) enable_default_hash_style=sysv ;;
+  *-*-gnu* | *-*-linux* | *-*-nacl*) enable_default_hash_style=both ;;
+  *) enable_default_hash_style=sysv ;;
+esac])
+
+case "${enable_default_hash_style}" in
+  sysv | both) ac_default_emit_sysv_hash=1 ;;
+  *) ac_default_emit_sysv_hash=0 ;;
+esac
+
+case "${enable_default_hash_style}" in
+  gnu | both) ac_default_emit_gnu_hash=1 ;;
+  *) ac_default_emit_gnu_hash=0 ;;
+esac
 
 AM_BINUTILS_WARNINGS
 
@@ -190,7 +227,7 @@ fi
 
 # host-specific stuff:
 
-ALL_LINGUAS="fr sv tr es da vi zh_CN zh_TW ga fi id bg it uk sr"
+ALL_LINGUAS="bg da de es fi fr ga id it ru sr sv tr uk vi zh_CN zh_TW"
 ZW_GNU_GETTEXT_SISTER_DIR
 AM_PO_SUBDIRS
 
@@ -383,12 +420,27 @@ if test x$ac_default_compressed_debug_sections = xyes ; then
   AC_DEFINE(DEFAULT_FLAG_COMPRESS_DEBUG, 1, [Define if you want compressed debug sections by default.])
 fi
 
+if test "${ac_default_new_dtags}" = unset; then
+  ac_default_new_dtags=0
+fi
+AC_DEFINE_UNQUOTED(DEFAULT_NEW_DTAGS,
+  $ac_default_new_dtags,
+  [Define to 1 if you want to set DT_RUNPATH instead of DT_RPATH by default.])
+
 if test "${ac_default_ld_z_relro}" = unset; then
   ac_default_ld_z_relro=0
 fi
 AC_DEFINE_UNQUOTED(DEFAULT_LD_Z_RELRO,
   $ac_default_ld_z_relro,
   [Define to 1 if you want to enable -z relro in ELF linker by default.])
+
+AC_DEFINE_UNQUOTED([DEFAULT_EMIT_SYSV_HASH],
+  [$ac_default_emit_sysv_hash],
+  [Define to 1 if you want to emit sysv hash in the ELF linker by default.])
+
+AC_DEFINE_UNQUOTED([DEFAULT_EMIT_GNU_HASH],
+  [$ac_default_emit_gnu_hash],
+  [Define to 1 if you want to emit gnu hash in the ELF linker by default.])
 
 AC_SUBST(elf_list_options)
 AC_SUBST(elf_shlib_list_options)
@@ -418,7 +470,7 @@ EMULATION_LIBPATH=$all_libpath
 AC_SUBST(EMULATION_LIBPATH)
 
 if test x${enable_static} = xno; then
-  TESTBFDLIB="--rpath ../bfd/.libs ../bfd/.libs/libbfd.so"
+  TESTBFDLIB="-Wl,--rpath,../bfd/.libs ../bfd/.libs/libbfd.so"
 else
   TESTBFDLIB="../bfd/.libs/libbfd.a"
 fi

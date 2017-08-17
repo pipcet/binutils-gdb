@@ -72,6 +72,7 @@
 #include "btrace.h"
 #include "record-btrace.h"
 #include <algorithm>
+#include "common/scoped_restore.h"
 
 /* Temp hacks for tracepoint encoding migration.  */
 static char *target_buf;
@@ -1428,6 +1429,7 @@ enum {
   PACKET_QPassSignals,
   PACKET_QCatchSyscalls,
   PACKET_QProgramSignals,
+  PACKET_QStartupWithShell,
   PACKET_qCRC,
   PACKET_qSearch_memory,
   PACKET_vAttach,
@@ -4633,6 +4635,8 @@ static const struct protocol_feature remote_protocol_features[] = {
     PACKET_QCatchSyscalls },
   { "QProgramSignals", PACKET_DISABLE, remote_supported_packet,
     PACKET_QProgramSignals },
+  { "QStartupWithShell", PACKET_DISABLE, remote_supported_packet,
+    PACKET_QStartupWithShell },
   { "QStartNoAckMode", PACKET_DISABLE, remote_supported_packet,
     PACKET_QStartNoAckMode },
   { "multiprocess", PACKET_DISABLE, remote_supported_packet,
@@ -6308,12 +6312,6 @@ remote_console_output (char *msg)
   gdb_flush (gdb_stdtarg);
 }
 
-typedef struct cached_reg
-{
-  int num;
-  gdb_byte *data;
-} cached_reg_t;
-
 DEF_VEC_O(cached_reg_t);
 
 typedef struct stop_reply
@@ -7847,8 +7845,6 @@ store_registers_using_G (const struct regcache *regcache)
      each byte encoded as two hex characters.  */
   p = rs->buf;
   *p++ = 'G';
-  /* remote_prepare_to_store insures that rsa->sizeof_g_packet gets
-     updated.  */
   bin2hex (regs, p, rsa->sizeof_g_packet);
   putpkt (rs->buf);
   getpkt (&rs->buf, &rs->buf_size, 0);
@@ -8474,14 +8470,6 @@ remote_send_printf (const char *format, ...)
   return packet_check_result (rs->buf);
 }
 
-static void
-restore_remote_timeout (void *p)
-{
-  int value = *(int *)p;
-
-  remote_timeout = value;
-}
-
 /* Flash writing can take quite some time.  We'll set
    effectively infinite timeout for flash operations.
    In future, we'll need to decide on a better approach.  */
@@ -8492,12 +8480,9 @@ remote_flash_erase (struct target_ops *ops,
                     ULONGEST address, LONGEST length)
 {
   int addr_size = gdbarch_addr_bit (target_gdbarch ()) / 8;
-  int saved_remote_timeout = remote_timeout;
   enum packet_result ret;
-  struct cleanup *back_to = make_cleanup (restore_remote_timeout,
-                                          &saved_remote_timeout);
-
-  remote_timeout = remote_flash_timeout;
+  scoped_restore restore_timeout
+    = make_scoped_restore (&remote_timeout, remote_flash_timeout);
 
   ret = remote_send_printf ("vFlashErase:%s,%s",
 			    phex (address, addr_size),
@@ -8511,8 +8496,6 @@ remote_flash_erase (struct target_ops *ops,
     default:
       break;
     }
-
-  do_cleanups (back_to);
 }
 
 static enum target_xfer_status
@@ -8520,30 +8503,21 @@ remote_flash_write (struct target_ops *ops, ULONGEST address,
 		    ULONGEST length, ULONGEST *xfered_len,
 		    const gdb_byte *data)
 {
-  int saved_remote_timeout = remote_timeout;
-  enum target_xfer_status ret;
-  struct cleanup *back_to = make_cleanup (restore_remote_timeout,
-					  &saved_remote_timeout);
-
-  remote_timeout = remote_flash_timeout;
-  ret = remote_write_bytes_aux ("vFlashWrite:", address, data, length, 1,
-				xfered_len,'X', 0);
-  do_cleanups (back_to);
-
-  return ret;
+  scoped_restore restore_timeout
+    = make_scoped_restore (&remote_timeout, remote_flash_timeout);
+  return remote_write_bytes_aux ("vFlashWrite:", address, data, length, 1,
+				 xfered_len,'X', 0);
 }
 
 static void
 remote_flash_done (struct target_ops *ops)
 {
-  int saved_remote_timeout = remote_timeout;
   int ret;
-  struct cleanup *back_to = make_cleanup (restore_remote_timeout,
-                                          &saved_remote_timeout);
 
-  remote_timeout = remote_flash_timeout;
+  scoped_restore restore_timeout
+    = make_scoped_restore (&remote_timeout, remote_flash_timeout);
+
   ret = remote_send_printf ("vFlashDone");
-  do_cleanups (back_to);
 
   switch (ret)
     {
@@ -8591,18 +8565,18 @@ readchar (int timeout)
 {
   int ch;
   struct remote_state *rs = get_remote_state ();
-  struct cleanup *old_chain;
 
-  old_chain = make_cleanup_override_quit_handler (remote_serial_quit_handler);
+  {
+    scoped_restore restore_quit
+      = make_scoped_restore (&quit_handler, remote_serial_quit_handler);
 
-  rs->got_ctrlc_during_io = 0;
+    rs->got_ctrlc_during_io = 0;
 
-  ch = serial_readchar (rs->remote_desc, timeout);
+    ch = serial_readchar (rs->remote_desc, timeout);
 
-  if (rs->got_ctrlc_during_io)
-    set_quit_flag ();
-
-  do_cleanups (old_chain);
+    if (rs->got_ctrlc_during_io)
+      set_quit_flag ();
+  }
 
   if (ch >= 0)
     return ch;
@@ -8633,9 +8607,9 @@ static void
 remote_serial_write (const char *str, int len)
 {
   struct remote_state *rs = get_remote_state ();
-  struct cleanup *old_chain;
 
-  old_chain = make_cleanup_override_quit_handler (remote_serial_quit_handler);
+  scoped_restore restore_quit
+    = make_scoped_restore (&quit_handler, remote_serial_quit_handler);
 
   rs->got_ctrlc_during_io = 0;
 
@@ -8647,8 +8621,6 @@ remote_serial_write (const char *str, int len)
 
   if (rs->got_ctrlc_during_io)
     set_quit_flag ();
-
-  do_cleanups (old_chain);
 }
 
 /* Send the command in *BUF to the remote machine, and read the reply
@@ -9547,12 +9519,9 @@ extended_remote_run (const std::string &args)
 
   if (!args.empty ())
     {
-      struct cleanup *back_to;
       int i;
-      char **argv;
 
-      argv = gdb_buildargv (args.c_str ());
-      back_to = make_cleanup_freeargv (argv);
+      gdb_argv argv (args.c_str ());
       for (i = 0; argv[i] != NULL; i++)
 	{
 	  if (strlen (argv[i]) * 2 + 1 + len >= get_remote_packet_size ())
@@ -9561,7 +9530,6 @@ extended_remote_run (const std::string &args)
 	  len += 2 * bin2hex ((gdb_byte *) argv[i], rs->buf + len,
 			      strlen (argv[i]));
 	}
-      do_cleanups (back_to);
     }
 
   rs->buf[len++] = '\0';
@@ -9613,6 +9581,20 @@ extended_remote_create_inferior (struct target_ops *ops,
   /* Disable address space randomization if requested (and supported).  */
   if (extended_remote_supports_disable_randomization (ops))
     extended_remote_disable_randomization (disable_randomization);
+
+  /* If startup-with-shell is on, we inform gdbserver to start the
+     remote inferior using a shell.  */
+  if (packet_support (PACKET_QStartupWithShell) != PACKET_DISABLE)
+    {
+      xsnprintf (rs->buf, get_remote_packet_size (),
+		 "QStartupWithShell:%d", startup_with_shell ? 1 : 0);
+      putpkt (rs->buf);
+      getpkt (&rs->buf, &rs->buf_size, 0);
+      if (strcmp (rs->buf, "OK") != 0)
+	error (_("\
+Remote replied unexpectedly while setting startup-with-shell: %s"),
+	       rs->buf);
+    }
 
   /* Now restart the remote server.  */
   run_worked = extended_remote_run (args) != -1;
@@ -11893,7 +11875,6 @@ remote_file_put (const char *local_file, const char *remote_file, int from_tty)
 {
   struct cleanup *back_to, *close_cleanup;
   int retcode, fd, remote_errno, bytes, io_size;
-  FILE *file;
   gdb_byte *buffer;
   int bytes_in_buffer;
   int saw_eof;
@@ -11903,10 +11884,9 @@ remote_file_put (const char *local_file, const char *remote_file, int from_tty)
   if (!rs->remote_desc)
     error (_("command can only be used with remote target"));
 
-  file = gdb_fopen_cloexec (local_file, "rb");
+  gdb_file_up file = gdb_fopen_cloexec (local_file, "rb");
   if (file == NULL)
     perror_with_name (local_file);
-  back_to = make_cleanup_fclose (file);
 
   fd = remote_hostio_open (find_target_at (process_stratum), NULL,
 			   remote_file, (FILEIO_O_WRONLY | FILEIO_O_CREAT
@@ -11919,7 +11899,7 @@ remote_file_put (const char *local_file, const char *remote_file, int from_tty)
      remote packet limit, so we'll transfer slightly fewer.  */
   io_size = get_remote_packet_size ();
   buffer = (gdb_byte *) xmalloc (io_size);
-  make_cleanup (xfree, buffer);
+  back_to = make_cleanup (xfree, buffer);
 
   close_cleanup = make_cleanup (remote_hostio_close_cleanup, &fd);
 
@@ -11932,10 +11912,10 @@ remote_file_put (const char *local_file, const char *remote_file, int from_tty)
 	{
 	  bytes = fread (buffer + bytes_in_buffer, 1,
 			 io_size - bytes_in_buffer,
-			 file);
+			 file.get ());
 	  if (bytes == 0)
 	    {
-	      if (ferror (file))
+	      if (ferror (file.get ()))
 		error (_("Error reading %s."), local_file);
 	      else
 		{
@@ -11986,7 +11966,6 @@ remote_file_get (const char *remote_file, const char *local_file, int from_tty)
 {
   struct cleanup *back_to, *close_cleanup;
   int fd, remote_errno, bytes, io_size;
-  FILE *file;
   gdb_byte *buffer;
   ULONGEST offset;
   struct remote_state *rs = get_remote_state ();
@@ -12000,16 +11979,15 @@ remote_file_get (const char *remote_file, const char *local_file, int from_tty)
   if (fd == -1)
     remote_hostio_error (remote_errno);
 
-  file = gdb_fopen_cloexec (local_file, "wb");
+  gdb_file_up file = gdb_fopen_cloexec (local_file, "wb");
   if (file == NULL)
     perror_with_name (local_file);
-  back_to = make_cleanup_fclose (file);
 
   /* Send up to this many bytes at once.  They won't all fit in the
      remote packet limit, so we'll transfer slightly fewer.  */
   io_size = get_remote_packet_size ();
   buffer = (gdb_byte *) xmalloc (io_size);
-  make_cleanup (xfree, buffer);
+  back_to = make_cleanup (xfree, buffer);
 
   close_cleanup = make_cleanup (remote_hostio_close_cleanup, &fd);
 
@@ -12026,7 +12004,7 @@ remote_file_get (const char *remote_file, const char *local_file, int from_tty)
 
       offset += bytes;
 
-      bytes = fwrite (buffer, 1, bytes, file);
+      bytes = fwrite (buffer, 1, bytes, file.get ());
       if (bytes == 0)
 	perror_with_name (local_file);
     }
@@ -12061,58 +12039,40 @@ remote_file_delete (const char *remote_file, int from_tty)
 static void
 remote_put_command (char *args, int from_tty)
 {
-  struct cleanup *back_to;
-  char **argv;
-
   if (args == NULL)
     error_no_arg (_("file to put"));
 
-  argv = gdb_buildargv (args);
-  back_to = make_cleanup_freeargv (argv);
+  gdb_argv argv (args);
   if (argv[0] == NULL || argv[1] == NULL || argv[2] != NULL)
     error (_("Invalid parameters to remote put"));
 
   remote_file_put (argv[0], argv[1], from_tty);
-
-  do_cleanups (back_to);
 }
 
 static void
 remote_get_command (char *args, int from_tty)
 {
-  struct cleanup *back_to;
-  char **argv;
-
   if (args == NULL)
     error_no_arg (_("file to get"));
 
-  argv = gdb_buildargv (args);
-  back_to = make_cleanup_freeargv (argv);
+  gdb_argv argv (args);
   if (argv[0] == NULL || argv[1] == NULL || argv[2] != NULL)
     error (_("Invalid parameters to remote get"));
 
   remote_file_get (argv[0], argv[1], from_tty);
-
-  do_cleanups (back_to);
 }
 
 static void
 remote_delete_command (char *args, int from_tty)
 {
-  struct cleanup *back_to;
-  char **argv;
-
   if (args == NULL)
     error_no_arg (_("file to delete"));
 
-  argv = gdb_buildargv (args);
-  back_to = make_cleanup_freeargv (argv);
+  gdb_argv argv (args);
   if (argv[0] == NULL || argv[1] != NULL)
     error (_("Invalid parameters to remote delete"));
 
   remote_file_delete (argv[0], from_tty);
-
-  do_cleanups (back_to);
 }
 
 static void
@@ -12650,9 +12610,9 @@ remote_get_tracepoint_status (struct target_ops *self, struct breakpoint *bp,
 
   if (tp)
     {
-      tp->base.hit_count = 0;
+      tp->hit_count = 0;
       tp->traceframe_usage = 0;
-      for (loc = tp->base.loc; loc; loc = loc->next)
+      for (loc = tp->loc; loc; loc = loc->next)
 	{
 	  /* If the tracepoint was never downloaded, don't go asking for
 	     any status.  */
@@ -14103,6 +14063,9 @@ Show the maximum size of the address (in bits) in a memory packet."), NULL,
 
   add_packet_config_cmd (&remote_protocol_packets[PACKET_QProgramSignals],
 			 "QProgramSignals", "program-signals", 0);
+
+  add_packet_config_cmd (&remote_protocol_packets[PACKET_QStartupWithShell],
+			 "QStartupWithShell", "startup-with-shell", 0);
 
   add_packet_config_cmd (&remote_protocol_packets[PACKET_qSymbol],
 			 "qSymbol", "symbol-lookup", 0);

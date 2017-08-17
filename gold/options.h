@@ -925,7 +925,7 @@ class General_options
 		N_("Min fraction of empty buckets in dynamic hash"),
 		N_("FRACTION"));
 
-  DEFINE_enum(hash_style, options::TWO_DASHES, '\0', "sysv",
+  DEFINE_enum(hash_style, options::TWO_DASHES, '\0', DEFAULT_HASH_STYLE,
 	      N_("Dynamic hash style"), N_("[sysv,gnu,both]"),
 	      {"sysv", "gnu", "both"});
 
@@ -1104,6 +1104,10 @@ class General_options
 	     N_("(PowerPC64 only) Align PLT call stubs to fit cache lines"),
 	     N_("[=P2ALIGN]"), true, int, int, options::parse_uint, false);
 
+  DEFINE_bool(plt_localentry, options::TWO_DASHES, '\0', false,
+	      N_("(PowerPC64 only) Optimize calls to ELFv2 localentry:0 functions"),
+	      N_("(PowerPC64 only) Don't optimize ELFv2 calls"));
+
   DEFINE_bool(plt_static_chain, options::TWO_DASHES, '\0', false,
 	      N_("(PowerPC64 only) PLT call stubs should load r11"),
 	      N_("(PowerPC64 only) PLT call stubs should not load r11"));
@@ -1160,7 +1164,8 @@ class General_options
 	      N_("Generate relocatable output"), NULL);
 
   DEFINE_bool(relax, options::TWO_DASHES, '\0', false,
-	      N_("Relax branches on certain targets"), NULL);
+	      N_("Relax branches on certain targets"),
+	      N_("Do not relax branches"));
 
   DEFINE_string(retain_symbols_file, options::TWO_DASHES, '\0', NULL,
 		N_("keep only symbols listed in this file"), N_("FILE"));
@@ -1285,6 +1290,10 @@ class General_options
 	      N_("Number of threads to use in middle pass"), N_("COUNT"));
   DEFINE_uint(thread_count_final, options::TWO_DASHES, '\0', 0,
 	      N_("Number of threads to use in final pass"), N_("COUNT"));
+
+  DEFINE_bool(tls_optimize, options::TWO_DASHES, '\0', true,
+	      N_("(PowerPC/64 only) Optimize GD/LD/IE code to IE/LE"),
+	      N_("(PowerPC/64 only) Don'\''t try to optimize TLS accesses"));
 
   DEFINE_bool(toc_optimize, options::TWO_DASHES, '\0', true,
 	      N_("(PowerPC64 only) Optimize TOC code sequences"),

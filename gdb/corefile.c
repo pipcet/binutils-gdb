@@ -170,9 +170,7 @@ validate_files (void)
     }
 }
 
-/* Return the name of the executable file as a string.
-   ERR nonzero means get error if there is none specified;
-   otherwise return 0 in that case.  */
+/* See common/common-inferior.h.  */
 
 char *
 get_exec_file (int err)
@@ -485,8 +483,9 @@ set_gnutarget_command (char *ignore, int from_tty,
 
 /* A completion function for "set gnutarget".  */
 
-static VEC (char_ptr) *
+static void
 complete_set_gnutarget (struct cmd_list_element *cmd,
+			completion_tracker &tracker,
 			const char *text, const char *word)
 {
   static const char **bfd_targets;
@@ -504,7 +503,7 @@ complete_set_gnutarget (struct cmd_list_element *cmd,
       bfd_targets[last + 1] = NULL;
     }
 
-  return complete_on_enum (bfd_targets, text, word);
+  complete_on_enum (tracker, bfd_targets, text, word);
 }
 
 /* Set the gnutarget.  */

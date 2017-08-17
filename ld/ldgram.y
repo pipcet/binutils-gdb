@@ -48,8 +48,8 @@
 static enum section_type sectype;
 static lang_memory_region_type *region;
 
-bfd_boolean ldgram_had_keep = FALSE;
-char *ldgram_vers_current_lang = NULL;
+static bfd_boolean ldgram_had_keep = FALSE;
+static char *ldgram_vers_current_lang = NULL;
 
 #define ERROR_NAME_MAX 20
 static char *error_names[ERROR_NAME_MAX];
@@ -92,13 +92,13 @@ static int error_index;
 %type <etree> opt_exp_without_type opt_subalign opt_align
 %type <fill> fill_opt fill_exp
 %type <name_list> exclude_name_list
-%type <wildcard_list> section_NAME_list
+%type <wildcard_list> section_name_list
 %type <flag_info_list> sect_flag_list
 %type <flag_info> sect_flags
 %type <name> memspec_opt casesymlist
 %type <name> memspec_at_opt
 %type <cname> wildcard_name
-%type <wildcard> wildcard_spec
+%type <wildcard> section_name_spec filename_spec wildcard_maybe_exclude
 %token <bigint> INT
 %token <name> NAME LNAME
 %type <integer> length
@@ -131,7 +131,7 @@ static int error_index;
 %token SORT_BY_INIT_PRIORITY
 %token '{' '}'
 %token SIZEOF_HEADERS OUTPUT_FORMAT FORCE_COMMON_ALLOCATION OUTPUT_ARCH
-%token INHIBIT_COMMON_ALLOCATION
+%token INHIBIT_COMMON_ALLOCATION FORCE_GROUP_ALLOCATION
 %token SEGMENT_START
 %token INCLUDE
 %token MEMORY
@@ -336,8 +336,10 @@ ifile_p1:
 		  { ldfile_set_output_arch ($3, bfd_arch_unknown); }
 	|	FORCE_COMMON_ALLOCATION
 		{ command_line.force_common_definition = TRUE ; }
+	|	FORCE_GROUP_ALLOCATION
+		{ command_line.force_group_allocation = TRUE ; }
 	|	INHIBIT_COMMON_ALLOCATION
-		{ command_line.inhibit_common_definition = TRUE ; }
+		{ link_info.inhibit_common_definition = TRUE ; }
 	|	INPUT '(' input_list ')'
 	|	GROUP
 		  { lang_enter_group (); }
@@ -445,7 +447,7 @@ wildcard_name:
 			}
 	;
 
-wildcard_spec:
+wildcard_maybe_exclude:
 		wildcard_name
 			{
 			  $$.name = $1;
@@ -460,68 +462,63 @@ wildcard_spec:
 			  $$.exclude_name_list = $3;
 			  $$.section_flag_list = NULL;
 			}
-	|	SORT_BY_NAME '(' wildcard_name ')'
+	;
+
+filename_spec:
+		wildcard_maybe_exclude
+	|	SORT_BY_NAME '(' wildcard_maybe_exclude ')'
 			{
-			  $$.name = $3;
+			  $$ = $3;
 			  $$.sorted = by_name;
-			  $$.exclude_name_list = NULL;
-			  $$.section_flag_list = NULL;
 			}
-	|	SORT_BY_ALIGNMENT '(' wildcard_name ')'
+	|	SORT_NONE '(' wildcard_maybe_exclude ')'
 			{
-			  $$.name = $3;
-			  $$.sorted = by_alignment;
-			  $$.exclude_name_list = NULL;
-			  $$.section_flag_list = NULL;
-			}
-	|	SORT_NONE '(' wildcard_name ')'
-			{
-			  $$.name = $3;
+			  $$ = $3;
 			  $$.sorted = by_none;
-			  $$.exclude_name_list = NULL;
-			  $$.section_flag_list = NULL;
 			}
-	|	SORT_BY_NAME '(' SORT_BY_ALIGNMENT '(' wildcard_name ')' ')'
+	;
+
+section_name_spec:
+		wildcard_maybe_exclude
+	|	SORT_BY_NAME '(' wildcard_maybe_exclude ')'
 			{
-			  $$.name = $5;
-			  $$.sorted = by_name_alignment;
-			  $$.exclude_name_list = NULL;
-			  $$.section_flag_list = NULL;
-			}
-	|	SORT_BY_NAME '(' SORT_BY_NAME '(' wildcard_name ')' ')'
-			{
-			  $$.name = $5;
+			  $$ = $3;
 			  $$.sorted = by_name;
-			  $$.exclude_name_list = NULL;
-			  $$.section_flag_list = NULL;
 			}
-	|	SORT_BY_ALIGNMENT '(' SORT_BY_NAME '(' wildcard_name ')' ')'
+	|	SORT_BY_ALIGNMENT '(' wildcard_maybe_exclude ')'
 			{
-			  $$.name = $5;
-			  $$.sorted = by_alignment_name;
-			  $$.exclude_name_list = NULL;
-			  $$.section_flag_list = NULL;
-			}
-	|	SORT_BY_ALIGNMENT '(' SORT_BY_ALIGNMENT '(' wildcard_name ')' ')'
-			{
-			  $$.name = $5;
+			  $$ = $3;
 			  $$.sorted = by_alignment;
-			  $$.exclude_name_list = NULL;
-			  $$.section_flag_list = NULL;
 			}
-	|	SORT_BY_NAME '(' EXCLUDE_FILE '(' exclude_name_list ')' wildcard_name ')'
+	|	SORT_NONE '(' wildcard_maybe_exclude ')'
 			{
-			  $$.name = $7;
+			  $$ = $3;
+			  $$.sorted = by_none;
+			}
+	|	SORT_BY_NAME '(' SORT_BY_ALIGNMENT '(' wildcard_maybe_exclude ')' ')'
+			{
+			  $$ = $5;
+			  $$.sorted = by_name_alignment;
+			}
+	|	SORT_BY_NAME '(' SORT_BY_NAME '(' wildcard_maybe_exclude ')' ')'
+			{
+			  $$ = $5;
 			  $$.sorted = by_name;
-			  $$.exclude_name_list = $5;
-			  $$.section_flag_list = NULL;
 			}
-	|	SORT_BY_INIT_PRIORITY '(' wildcard_name ')'
+	|	SORT_BY_ALIGNMENT '(' SORT_BY_NAME '(' wildcard_maybe_exclude ')' ')'
 			{
-			  $$.name = $3;
+			  $$ = $5;
+			  $$.sorted = by_alignment_name;
+			}
+	|	SORT_BY_ALIGNMENT '(' SORT_BY_ALIGNMENT '(' wildcard_maybe_exclude ')' ')'
+			{
+			  $$ = $5;
+			  $$.sorted = by_alignment;
+			}
+	|	SORT_BY_INIT_PRIORITY '(' wildcard_maybe_exclude ')'
+			{
+			  $$ = $3;
 			  $$.sorted = by_init_priority;
-			  $$.exclude_name_list = NULL;
-			  $$.section_flag_list = NULL;
 			}
 	;
 
@@ -596,8 +593,8 @@ exclude_name_list:
 			}
 	;
 
-section_NAME_list:
-		section_NAME_list opt_comma wildcard_spec
+section_name_list:
+		section_name_list opt_comma section_name_spec
 			{
 			  struct wildcard_list *tmp;
 			  tmp = (struct wildcard_list *) xmalloc (sizeof *tmp);
@@ -606,7 +603,7 @@ section_NAME_list:
 			  $$ = tmp;
 			}
 	|
-		wildcard_spec
+		section_name_spec
 			{
 			  struct wildcard_list *tmp;
 			  tmp = (struct wildcard_list *) xmalloc (sizeof *tmp);
@@ -635,11 +632,11 @@ input_section_spec_no_keep:
 			  tmp.section_flag_list = $1;
 			  lang_add_wild (&tmp, NULL, ldgram_had_keep);
 			}
-        |	'[' section_NAME_list ']'
+        |	'[' section_name_list ']'
 			{
 			  lang_add_wild (NULL, $2, ldgram_had_keep);
 			}
-        |	sect_flags '[' section_NAME_list ']'
+        |	sect_flags '[' section_name_list ']'
 			{
 			  struct wildcard_spec tmp;
 			  tmp.name = NULL;
@@ -648,11 +645,11 @@ input_section_spec_no_keep:
 			  tmp.section_flag_list = $1;
 			  lang_add_wild (&tmp, $3, ldgram_had_keep);
 			}
-	|	wildcard_spec '(' section_NAME_list ')'
+	|	filename_spec '(' section_name_list ')'
 			{
 			  lang_add_wild (&$1, $3, ldgram_had_keep);
 			}
-	|	sect_flags wildcard_spec '(' section_NAME_list ')'
+	|	sect_flags filename_spec '(' section_name_list ')'
 			{
 			  $2.section_flag_list = $1;
 			  lang_add_wild (&$2, $4, ldgram_had_keep);

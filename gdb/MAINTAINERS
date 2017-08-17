@@ -332,7 +332,6 @@ the native maintainer when resolving ABI issues.
 			Corinna Vinschen	vinschen@redhat.com
 
 	xtensa		--target=xtensa-elf
-			Maxim Grigoriev		maxim2405@gmail.com
 
 All developers recognized by this file can make arbitrary changes to
 OBSOLETE targets.
@@ -545,6 +544,7 @@ Matt Hiller					hiller@redhat.com
 Kazu Hirata					kazu@cs.umass.edu
 James Hogan					james.hogan@imgtec.com
 Jeff Holcomb					jeffh@redhat.com
+Stafford Horne					shorne@gmail.com
 Don Howard					dhoward@redhat.com
 Nick Hudson					nick.hudson@dsl.pipex.com
 Martin Hunt					hunt@redhat.com
@@ -556,6 +556,7 @@ Daniel Jacobowitz				drow@false.org
 Andreas Jaeger					aj@suse.de
 Janis Johnson					janisjo@codesourcery.com
 Jeff Johnston					jjohnstn@redhat.com
+Ruslan Kabatsayev				b7.10110111@gmail.com
 Geoff Keating					geoffk@redhat.com
 Mark Kettenis					kettenis@gnu.org
 Marc Khouzam					marc.khouzam@ericsson.com
@@ -627,6 +628,7 @@ Aleksandar Ristovski				aristovski@qnx.com
 Tom Rix						trix@redhat.com
 Nick Roberts					nickrob@snap.net.nz
 Pierre-Marie de Rodat				derodat@adacore.com
+Xavier Roirand 					roirand@adacore.com
 Bob Rossi 					bob_rossi@cox.net
 Theodore A. Roth				troth@openavr.org
 Ian Roxborough					irox@redhat.com
@@ -728,6 +730,7 @@ Michael Snyder (global)
 Christopher Faylor (MS Windows, host & native)
 Daniel Jacobowitz (global, GNU/Linux MIPS,
   C++, GDBserver)				drow at false dot org
+Maxim Grigoriev (xtensa)			maxim2405 at gmail dot com
 
 
 Folks that have been caught up in a paper trail:

@@ -945,7 +945,7 @@ elf_s390_check_relocs (bfd *abfd,
   for (rel = relocs; rel < rel_end; rel++)
     {
       unsigned int r_type;
-      unsigned long r_symndx;
+      unsigned int r_symndx;
       struct elf_link_hash_entry *h;
 
       r_symndx = ELF32_R_SYM (rel->r_info);
@@ -2307,10 +2307,10 @@ invalid_tls_insn (bfd *input_bfd,
   howto = elf_howto_table + ELF32_R_TYPE (rel->r_info);
   _bfd_error_handler
     /* xgettext:c-format */
-    (_("%B(%A+0x%lx): invalid instruction for TLS relocation %s"),
+    (_("%B(%A+%#Lx): invalid instruction for TLS relocation %s"),
      input_bfd,
      input_section,
-     (long) rel->r_offset,
+     rel->r_offset,
      howto->name);
   bfd_set_error (bfd_error_bad_value);
 }
@@ -3231,7 +3231,6 @@ elf_s390_relocate_section (bfd *output_bfd,
 		  unsigned int insn, ry;
 
 		  insn = bfd_get_32 (input_bfd, contents + rel->r_offset);
-		  ry = 0;
 		  if ((insn & 0xff00f000) == 0x58000000)
 		    /* l %rx,0(%ry,0) -> lr %rx,%ry + bcr 0,0  */
 		    ry = (insn & 0x000f0000);
@@ -3245,7 +3244,10 @@ elf_s390_relocate_section (bfd *output_bfd,
 		    /* l %rx,0(%r12,%ry) -> lr %rx,%ry + bcr 0,0  */
 		    ry = (insn & 0x0000f000) << 4;
 		  else
-		    invalid_tls_insn (input_bfd, input_section, rel);
+		    {
+		      invalid_tls_insn (input_bfd, input_section, rel);
+		      return FALSE;
+		    }
 		  insn = 0x18000700 | (insn & 0x00f00000) | ry;
 		  bfd_put_32 (output_bfd, insn, contents + rel->r_offset);
 		}
@@ -3258,7 +3260,10 @@ elf_s390_relocate_section (bfd *output_bfd,
 	      if ((insn & 0xff000fff) != 0x4d000000 &&
 		  (insn & 0xffff0000) != 0xc0e50000 &&
 		  (insn & 0xff000000) != 0x0d000000)
-		invalid_tls_insn (input_bfd, input_section, rel);
+		{
+		  invalid_tls_insn (input_bfd, input_section, rel);
+		  return FALSE;
+		}
 	      if (!bfd_link_pic (info) && (h == NULL || h->dynindx == -1))
 		{
 		  if ((insn & 0xff000000) == 0x0d000000)
@@ -3287,7 +3292,10 @@ elf_s390_relocate_section (bfd *output_bfd,
 		  /* If basr is used in the pic case to invoke
 		     _tls_get_offset, something went wrong before.  */
 		  if ((insn & 0xff000000) == 0x0d000000)
-		    invalid_tls_insn (input_bfd, input_section, rel);
+		    {
+		      invalid_tls_insn (input_bfd, input_section, rel);
+		      return FALSE;
+		    }
 
 		  if ((insn & 0xff000000) == 0x4d000000)
 		    {
@@ -3317,7 +3325,10 @@ elf_s390_relocate_section (bfd *output_bfd,
 		  if ((insn & 0xff000fff) != 0x4d000000 &&
 		      (insn & 0xffff0000) != 0xc0e50000 &&
 		      (insn & 0xff000000) != 0x0d000000)
-		    invalid_tls_insn (input_bfd, input_section, rel);
+		    {
+		      invalid_tls_insn (input_bfd, input_section, rel);
+		      return FALSE;
+		    }
 
 		  if ((insn & 0xff000000) == 0x0d000000)
 		    {
@@ -3358,10 +3369,10 @@ elf_s390_relocate_section (bfd *output_bfd,
 				      rel->r_offset) != (bfd_vma) -1)
 	_bfd_error_handler
 	  /* xgettext:c-format */
-	  (_("%B(%A+0x%lx): unresolvable %s relocation against symbol `%s'"),
+	  (_("%B(%A+%#Lx): unresolvable %s relocation against symbol `%s'"),
 	   input_bfd,
 	   input_section,
-	   (long) rel->r_offset,
+	   rel->r_offset,
 	   howto->name,
 	   h->root.root.string);
 
@@ -3415,9 +3426,9 @@ elf_s390_relocate_section (bfd *output_bfd,
 	    {
 	      _bfd_error_handler
 		/* xgettext:c-format */
-		(_("%B(%A+0x%lx): reloc against `%s': error %d"),
+		(_("%B(%A+%#Lx): reloc against `%s': error %d"),
 		 input_bfd, input_section,
-		 (long) rel->r_offset, name, (int) r);
+		 rel->r_offset, name, (int) r);
 	      return FALSE;
 	    }
 	}
@@ -3930,7 +3941,9 @@ elf_s390_finish_dynamic_sections (bfd *output_bfd,
 	      break;
 
 	    case DT_PLTRELSZ:
-	      dyn.d_un.d_val = htab->elf.srelplt->size + htab->elf.irelplt->size;
+	      dyn.d_un.d_val = htab->elf.srelplt->size;
+	      if (htab->elf.irelplt)
+		dyn.d_un.d_val += htab->elf.irelplt->size;
 	      break;
 	    }
 
@@ -3987,6 +4000,9 @@ elf_s390_finish_dynamic_sections (bfd *output_bfd,
       Elf_Internal_Shdr *symtab_hdr;
 
       symtab_hdr = &elf_symtab_hdr (ibfd);
+
+      if (!is_s390_elf (ibfd))
+	continue;
 
       local_plt = elf_s390_local_plt (ibfd);
       if (local_plt != NULL)

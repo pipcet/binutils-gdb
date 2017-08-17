@@ -680,7 +680,8 @@ ELF_X86_DEPS = $(ELF_DEPS) $(srcdir)/emulparams/plt_unwind.sh \
 	       $(srcdir)/emulparams/extern_protected_data.sh \
 	       $(srcdir)/emulparams/dynamic_undefined_weak.sh \
 	       $(srcdir)/emulparams/reloc_overflow.sh \
-	       $(srcdir)/emulparams/call_nop.sh
+	       $(srcdir)/emulparams/call_nop.sh \
+	       $(srcdir)/emulparams/cet.sh
 
 @TDIRS@
 
@@ -930,7 +931,7 @@ eavrxmega7.c: $(srcdir)/emulparams/avrxmega7.sh \
   ${GEN_DEPENDS}
 
 eavrtiny.c: $(srcdir)/emulparams/avrtiny.sh \
-  $(srcdir)/emultempl/avrelf.em $(ELF_DEPS) $(srcdir)/scripttempl/avrtiny.sc \
+  $(srcdir)/emultempl/avrelf.em $(ELF_DEPS) $(srcdir)/scripttempl/avr.sc \
   ${GEN_DEPENDS}
 
 ecoff_i860.c: $(srcdir)/emulparams/coff_i860.sh \
@@ -1945,6 +1946,7 @@ eelf64_ia64_vms.c: $(srcdir)/emulparams/elf64_ia64_vms.sh \
   $(srcdir)/scripttempl/ia64vms.sc ${GEN_DEPENDS}
 
 eelf64_s390.c: $(srcdir)/emulparams/elf64_s390.sh \
+  $(srcdir)/emultempl/s390.em \
   $(ELF_DEPS) $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
 
 eelf64_sparc.c: $(srcdir)/emulparams/elf64_sparc.sh \

@@ -1,3 +1,184 @@
+2017-08-08  Romain Geissler  <romain.geissler@gmail.com>
+	    Alan Modra  <amodra@gmail.com>
+
+	* configure.ac: Add --enable-default-hash-style option.
+	* options.h (hash_style): Use DEFAULT_HASH_STYLE as default value.
+	* configure: Regenerate.
+	* config.in: Regenerate.
+
+2017-08-03  James Clarke  <jrtc27@jrtc27.com>
+
+	* options.h (General_options): Set a non-NULL second help string
+	argument for relax to allow --no-relax.
+
+2017-08-01  Alan Modra  <amodra@gmail.com>
+
+	* ehframe.cc (Fde::operator==): New.
+	(Cie::remove_fde, Eh_frame::remove_ehframe_for_plt): New.
+	* ehframe.h (Fde::operator==): Declare.
+	(Cie::remove_fde, Eh_frame::remove_ehframe_for_plt): Likewise.
+	* layout.cc (Layout::remove_eh_frame_for_plt): New.
+	* layout.h (Layout::remove_eh_frame_for_plt): Declare.
+	* powerpc.cc (Target_powerpc::do_relax): Remove old eh_frame FDEs.
+	(Stub_table::add_eh_frame): Delete eh_frame_added_ condition.
+	Don't add eh_frame for empty stub section.
+	(Stub_table::remove_eh_frame): New.
+
+2017-07-31  Alan Modra  <amodra@gmail.com>
+
+	* options.h (no_tls_optimize): New powerpc option.
+	* powerpc.cc (Target_powerpc::abiversion, set_abiversion): Formatting.
+	(Target_powerpc::stk_toc): Formatting, fix comment.
+	(Target_powerpc::Track_tls::tls_get_addr_state): Rename from
+	tls_get_addr.
+	(Target_powerpc::optimize_tls_gd, optimize_tls_ld, optimize_tls_ie):
+	Return TLSOPT_NONE when !tls_optimize.
+	(Target_powerpc::add_global_pair_with_rel): Check
+	for existing reloc before reserving.
+	(Target_powerpc::add_local_tls_pair): Likewise.
+
+2017-07-31  Alan Modra  <amodra@gmail.com>
+
+	* powerpc.cc (Target_powerpc::scan_relocs): Warn on --plt-localentry
+	without ld.so checks.
+
+2017-07-29  Alan Modra  <amodra@gmail.com>
+
+	PR 21847
+	* powerpc.cc (Target_powerpc::scan_relocs): Default to
+	--no-plt-localentry.
+
+2017-07-28  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR gold/21857
+	* compressed_output.cc (Output_compressed_section::set_final_data_size):
+	Call put_ch_reserved to clear the reserved field for 64-bit ELF.
+
+2017-07-26  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* mips.cc (Mips_relocate_functions): Add "llu" suffix to
+	0x800080008000.
+
+2017-07-23  Alan Modra  <amodra@gmail.com>
+
+	* powerpc.cc (glink_eh_frame_fde_64v2): Correct advance to
+	restore of LR.
+	(glink_eh_frame_fde_64v1): Advance to restore of LR at latest
+	possible insn.
+
+2017-07-18  Nick Clifton  <nickc@redhat.com>
+
+	PR 21775
+	* aarch64.cc: Fix spelling typos.
+	* arm.cc: Likewise.
+	* layout.cc: Likewise.
+	* powerpc.cc: Likewise.
+	* x86_64.cc: Likewise.
+
+2017-07-12  Alan Modra  <amodra@gmail.com>
+
+	* po/es.po: Update from translationproject.org/latest/gold/.
+	* po/fi.po: Likewise.
+	* po/fr.po: Likewise.
+	* po/id.po: Likewise.
+	* po/it.po: Likewise.
+	* po/vi.po: Likewise.
+	* po/zh_CN.po: Likewise.
+	* po/ja.po: New file from translationproject.org.
+	* po/sv.po: Likewise.
+	* po/uk.po: Likewise.
+
+2017-07-06  Han Shen  <shenhan@google.com>
+
+	PR gold/21491
+	* aarch64.cc (Erratum_stub::invalidate_erratum_stub): New method.
+	(Erratum_stub::is_invalidated_erratum_stub): New method.
+	(Stub_table::relocate_reloc_stub): Renamed from "relocate_stub".
+	(Stub_table::relocate_reloc_stubs): Renamed from "relocate_stubs".
+	(Stub_table::relocate_erratum_stub): New method.
+	(AArch64_relobj::fix_errata_and_relocate_erratum_stubs): Renamed from
+	"fix_errata".
+	(Target_aarch64::relocate_reloc_stub): Renamed from "relocate_stub".
+
+2017-06-23  Alan Modra  <amodra@gmail.com>
+
+	* options.h (General_options): Add plt_localentry.
+	* powerpc.cc (Target_powerpc::st_other): New function.
+	(Target_powerpc::plt_localentry0_, plt_localentry0_init_,
+	has_localentry0_): New vars.
+	(Target_powerpc::plt_localentry0, set_has_localentry0,
+	is_elfv2_localentry0): New functions.
+	(Target_powerpc::Branch_info::mark_pltcall): Don't set tocsave or
+	return true for localentry:0 calls.
+	(Stub_table::Plt_stub_ent::localentry0_): New var.
+	(Stub_table::add_plt_call_entry): Set localentry0_ and has_localentry0_.
+	Don't set r2save_ for localentry:0 calls.
+	(Output_data_glink::do_write): Save r2 in __glink_PLTresolve for elfv2.
+	(Target_powerpc::scan_relocs): Default plt_localentry0_.
+	(Target_powerpc::do_finalize_sections): Set DT_PPC64_OPT.
+	(Target_powerpc::Relocate::relocate): Don't require nop following
+	calls for localentry:0 plt calls, and don't change nop.
+
+2017-06-23  Alan Modra  <amodra@gmail.com>
+
+	* powerpc.cc (Target_powerpc::tocsave_loc_): New var.
+	(Target_powerpc::mark_pltcall, add_tocsave, tocsave_loc): New functions.
+	(Target_powerpc::Branch_info::tocsave_): New var.
+	(Target_powerpc::Branch_info::mark_pltcall): New function.
+	(Target_powerpc::Branch_info::make_stub): Pass tocsave_ to
+	add_plt_call_entry.
+	(Stub_table::Plt_stub_ent): Make public.  Add r2save_.
+	(Stub_table::add_plt_call_entry): Add bool tocsave_ param.  Set
+	r2save_.
+	(Stub_table::find_plt_call_entry): Return Plt_stub_ent*.  Adjust
+	use throughout.
+	(Stub_table::do_write): Conditionally output r2 save in plt stubs.
+	(Target_powerpc::Scan::local): Handle R_PPC64_TOCSAVE.
+	(Target_powerpc::Scan::global): Likewise.
+	(Target_powerpc::Relocate::relocate): Skip r2 save in plt call stub
+	with tocsave reloc.  Replace header tocsave nop with r2 save.
+	* symtab.h (struct Symbol_location_hash): Make public.
+
+2017-06-21  Alan Modra  <amodra@gmail.com>
+
+	* powerpc.cc (Plt_stub_key): Rename from Plt_stub_ent.  Remove indx_.
+	(Plt_stub_key_hash): Rename from Plt_stub_ent_hash.
+	(struct Plt_stub_ent): New.
+	(Plt_stub_entries): Map from Plt_stub_key to Plt_stub_ent.  Adjust
+	use throughout file.
+
+2017-06-20  Eric Christopher  <echristo@gmail.com>
+
+	* aarch64.cc (scan_reloc_for_stub): Use plt_address_for_global to
+	calculate the symbol value.
+	(scan_reloc_section_for_stubs): Allow stubs to be created for
+	section symbols.
+	(maybe_apply_stub): Handle creating stubs for weak symbols to
+	match the code in scan_reloc_for_stub.
+
+2017-06-20  James Clarke  <jrtc27@jrtc27.com>
+
+	* powerpc.cc (Stub_table::define_stub_syms): Always include object's
+	uniq_ value.
+
+2017-06-15  Eric Christopher  <echristo@gmail.com>
+
+	* aarch64.cc: Fix a few typos and grammar-os.
+
+2017-06-15  Jiong Wang  <jiong.wang@arm.com>
+
+	* aarch64.cc (Insn_utilities::is_mrs_tpidr_el0): New method.
+	(AArch64_relobj<size, big_endian>::try_fix_erratum_843419_optimized):
+	Return ture for some TLS relaxed sequences.
+
+2017-06-07  Eric Christopher  <echristo@gmail.com>
+
+	* aarch64.cc (maybe_apply_stub): Add debug logging for looking
+	up stubs to undefined symbols and early return rather than
+	fail to look them up.
+	(scan_reloc_for_stub): Add debug logging for no stub creation
+	for undefined symbols.
+
 2017-05-23  Alan Modra  <amodra@gmail.com>
 
 	PR 21503

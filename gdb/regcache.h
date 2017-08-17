@@ -232,6 +232,14 @@ enum regcache_dump_what
   regcache_dump_remote
 };
 
+/* A (register_number, register_value) pair.  */
+
+typedef struct cached_reg
+{
+  int num;
+  gdb_byte *data;
+} cached_reg_t;
+
 /* The register cache for storing raw register values.  */
 
 class regcache
@@ -282,23 +290,19 @@ public:
 #endif
   void raw_write (int regnum, const gdb_byte *buf);
 
-  enum register_status raw_read_signed (int regnum, LONGEST *val);
+  template<typename T, typename = RequireLongest<T>>
+  enum register_status raw_read (int regnum, T *val);
 
-  void raw_write_signed (int regnum, LONGEST val);
-
-  enum register_status raw_read_unsigned (int regnum, ULONGEST *val);
-
-  void raw_write_unsigned (int regnum, ULONGEST val);
+  template<typename T, typename = RequireLongest<T>>
+  void raw_write (int regnum, T val);
 
   struct value *cooked_read_value (int regnum);
 
-  enum register_status cooked_read_signed (int regnum, LONGEST *val);
+  template<typename T, typename = RequireLongest<T>>
+  enum register_status cooked_read (int regnum, T *val);
 
-  void cooked_write_signed (int regnum, LONGEST val);
-
-  enum register_status cooked_read_unsigned (int regnum, ULONGEST *val);
-
-  void cooked_write_unsigned (int regnum, ULONGEST val);
+  template<typename T, typename = RequireLongest<T>>
+  void cooked_write (int regnum, T val);
 
   void raw_update (int regnum);
 
@@ -365,8 +369,6 @@ private:
 
   void restore (struct regcache *src);
 
-  void cpy_no_passthrough (struct regcache *src);
-
   enum register_status xfer_part (int regnum, int offset, int len, void *in,
 				  const void *out,
 				  decltype (regcache_raw_read) read,
@@ -411,13 +413,12 @@ private:
   regcache_cpy (struct regcache *dst, struct regcache *src);
 };
 
-/* Copy/duplicate the contents of a register cache.  By default, the
-   operation is pass-through.  Writes to DST and reads from SRC will
-   go through to the target.  See also regcache_cpy_no_passthrough.
-
-   regcache_cpy can not have overlapping SRC and DST buffers.  */
-
+/* Duplicate the contents of a register cache to a read-only register
+   cache.  The operation is pass-through.  */
 extern struct regcache *regcache_dup (struct regcache *regcache);
+
+/* Writes to DEST will go through to the target.  SRC is a read-only
+   register cache.  */
 extern void regcache_cpy (struct regcache *dest, struct regcache *src);
 
 extern void registers_changed (void);

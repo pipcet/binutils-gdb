@@ -581,12 +581,11 @@ extern int value_contents_eq (const struct value *val1, LONGEST offset1,
 
 /* Read LENGTH addressable memory units starting at MEMADDR into BUFFER,
    which is (or will be copied to) VAL's contents buffer offset by
-   EMBEDDED_OFFSET (that is, to &VAL->contents[EMBEDDED_OFFSET]).
-   Marks value contents ranges as unavailable if the corresponding
-   memory is likewise unavailable.  STACK indicates whether the memory
-   is known to be stack memory.  */
+   BIT_OFFSET bits.  Marks value contents ranges as unavailable if
+   the corresponding memory is likewise unavailable.  STACK indicates
+   whether the memory is known to be stack memory.  */
 
-extern void read_value_memory (struct value *val, LONGEST embedded_offset,
+extern void read_value_memory (struct value *val, LONGEST bit_offset,
 			       int stack, CORE_ADDR memaddr,
 			       gdb_byte *buffer, size_t length);
 
@@ -928,7 +927,8 @@ extern struct internalvar *lookup_only_internalvar (const char *name);
 
 extern struct internalvar *create_internalvar (const char *name);
 
-extern VEC (char_ptr) *complete_internalvar (const char *name);
+extern void complete_internalvar (completion_tracker &tracker,
+				  const char *name);
 
 /* An internalvar can be dynamically computed by supplying a vector of
    function pointers to perform various operations.  */

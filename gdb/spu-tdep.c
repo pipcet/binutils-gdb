@@ -1721,7 +1721,7 @@ gdb_print_insn_spu (bfd_vma memaddr, struct disassemble_info *info)
   memcpy (&spu_info, info, sizeof (*info));
   spu_info.id = SPUADDR_SPU (memaddr);
   spu_info.print_address_func = spu_dis_asm_print_address;
-  return print_insn_spu (memaddr, &spu_info);
+  return default_print_insn (memaddr, &spu_info);
 }
 
 
@@ -2668,8 +2668,8 @@ spu_gdbarch_init (struct gdbarch_info info, struct gdbarch_list *arches)
   int id = -1;
 
   /* Which spufs ID was requested as address space?  */
-  if (info.tdep_info)
-    id = *(int *)info.tdep_info;
+  if (info.id)
+    id = *info.id;
   /* For objfile architectures of SPU solibs, decode the ID from the name.
      This assumes the filename convention employed by solib-spu.c.  */
   else if (info.abfd)

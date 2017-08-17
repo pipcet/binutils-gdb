@@ -519,28 +519,42 @@ elf_xtensa_info_to_howto_rela (bfd *abfd ATTRIBUTE_UNUSED,
    invoked.  Note: the 32-byte frame size used here cannot be changed
    without a corresponding change in the runtime linker.  */
 
-static const bfd_byte elf_xtensa_be_plt_entry[PLT_ENTRY_SIZE] =
+static const bfd_byte elf_xtensa_be_plt_entry[][PLT_ENTRY_SIZE] =
 {
-#if XSHAL_ABI == XTHAL_ABI_WINDOWED
-  0x6c, 0x10, 0x04,	/* entry sp, 32 */
-#endif
-  0x18, 0x00, 0x00,	/* l32r  a8, [got entry for rtld's resolver] */
-  0x1a, 0x00, 0x00,	/* l32r  a10, [got entry for rtld's link map] */
-  0x1b, 0x00, 0x00,	/* l32r  a11, [literal for reloc index] */
-  0x0a, 0x80, 0x00,	/* jx    a8 */
-  0			/* unused */
+    {
+      0x6c, 0x10, 0x04,	/* entry sp, 32 */
+      0x18, 0x00, 0x00,	/* l32r  a8, [got entry for rtld's resolver] */
+      0x1a, 0x00, 0x00,	/* l32r  a10, [got entry for rtld's link map] */
+      0x1b, 0x00, 0x00,	/* l32r  a11, [literal for reloc index] */
+      0x0a, 0x80, 0x00,	/* jx    a8 */
+      0			/* unused */
+    },
+    {
+      0x18, 0x00, 0x00,	/* l32r  a8, [got entry for rtld's resolver] */
+      0x1a, 0x00, 0x00,	/* l32r  a10, [got entry for rtld's link map] */
+      0x1b, 0x00, 0x00,	/* l32r  a11, [literal for reloc index] */
+      0x0a, 0x80, 0x00,	/* jx    a8 */
+      0			/* unused */
+    }
 };
 
-static const bfd_byte elf_xtensa_le_plt_entry[PLT_ENTRY_SIZE] =
+static const bfd_byte elf_xtensa_le_plt_entry[][PLT_ENTRY_SIZE] =
 {
-#if XSHAL_ABI == XTHAL_ABI_WINDOWED
-  0x36, 0x41, 0x00,	/* entry sp, 32 */
-#endif
-  0x81, 0x00, 0x00,	/* l32r  a8, [got entry for rtld's resolver] */
-  0xa1, 0x00, 0x00,	/* l32r  a10, [got entry for rtld's link map] */
-  0xb1, 0x00, 0x00,	/* l32r  a11, [literal for reloc index] */
-  0xa0, 0x08, 0x00,	/* jx    a8 */
-  0			/* unused */
+    {
+      0x36, 0x41, 0x00,	/* entry sp, 32 */
+      0x81, 0x00, 0x00,	/* l32r  a8, [got entry for rtld's resolver] */
+      0xa1, 0x00, 0x00,	/* l32r  a10, [got entry for rtld's link map] */
+      0xb1, 0x00, 0x00,	/* l32r  a11, [literal for reloc index] */
+      0xa0, 0x08, 0x00,	/* jx    a8 */
+      0			/* unused */
+    },
+    {
+      0x81, 0x00, 0x00,	/* l32r  a8, [got entry for rtld's resolver] */
+      0xa1, 0x00, 0x00,	/* l32r  a10, [got entry for rtld's link map] */
+      0xb1, 0x00, 0x00,	/* l32r  a11, [literal for reloc index] */
+      0xa0, 0x08, 0x00,	/* jx    a8 */
+      0			/* unused */
+    }
 };
 
 /* The size of the thread control block.  */
@@ -987,7 +1001,7 @@ elf_xtensa_check_relocs (bfd *abfd,
   for (rel = relocs; rel < rel_end; rel++)
     {
       unsigned int r_type;
-      unsigned long r_symndx;
+      unsigned r_symndx;
       struct elf_link_hash_entry *h = NULL;
       struct elf_xtensa_link_hash_entry *eh;
       int tls_type, old_tls_type;
@@ -2336,8 +2350,8 @@ elf_xtensa_create_plt_entry (struct bfd_link_info *info,
   /* Fill in the entry in the procedure linkage table.  */
   memcpy (splt->contents + code_offset,
 	  (bfd_big_endian (output_bfd)
-	   ? elf_xtensa_be_plt_entry
-	   : elf_xtensa_le_plt_entry),
+	   ? elf_xtensa_be_plt_entry[XSHAL_ABI != XTHAL_ABI_WINDOWED]
+	   : elf_xtensa_le_plt_entry[XSHAL_ABI != XTHAL_ABI_WINDOWED]),
 	  PLT_ENTRY_SIZE);
   abi_offset = XSHAL_ABI == XTHAL_ABI_WINDOWED ? 3 : 0;
   bfd_put_16 (output_bfd, l32r_offset (got_base + 0,
@@ -2773,7 +2787,7 @@ elf_xtensa_relocate_section (bfd *output_bfd,
 	{
 	  _bfd_error_handler
 	    /* xgettext:c-format */
-	    (_("%B(%A+0x%lx): relocation offset out of range (size=0x%x)"),
+	    (_("%B(%A+%#Lx): relocation offset out of range (size=%#Lx)"),
 	     input_bfd, input_section, rel->r_offset, input_size);
 	  bfd_set_error (bfd_error_bad_value);
 	  return FALSE;
@@ -2799,12 +2813,12 @@ elf_xtensa_relocate_section (bfd *output_bfd,
 	  _bfd_error_handler
 	    ((sym_type == STT_TLS
 	      /* xgettext:c-format */
-	      ? _("%B(%A+0x%lx): %s used with TLS symbol %s")
+	      ? _("%B(%A+%#Lx): %s used with TLS symbol %s")
 	      /* xgettext:c-format */
-	      : _("%B(%A+0x%lx): %s used with non-TLS symbol %s")),
+	      : _("%B(%A+%#Lx): %s used with non-TLS symbol %s")),
 	     input_bfd,
 	     input_section,
-	     (long) rel->r_offset,
+	     rel->r_offset,
 	     howto->name,
 	     name);
 	}
@@ -3057,10 +3071,10 @@ elf_xtensa_relocate_section (bfd *output_bfd,
 	{
 	  _bfd_error_handler
 	    /* xgettext:c-format */
-	    (_("%B(%A+0x%lx): unresolvable %s relocation against symbol `%s'"),
+	    (_("%B(%A+%#Lx): unresolvable %s relocation against symbol `%s'"),
 	     input_bfd,
 	     input_section,
-	     (long) rel->r_offset,
+	     rel->r_offset,
 	     howto->name,
 	     name);
 	  return FALSE;
@@ -6536,7 +6550,8 @@ extend_ebb_bounds_forward (ebb_t *ebb)
 	{
 	  _bfd_error_handler
 	    /* xgettext:c-format */
-	    (_("%B(%A+0x%lx): could not decode instruction; possible configuration mismatch"),
+	    (_("%B(%A+%#Lx): could not decode instruction; "
+	       "possible configuration mismatch"),
 	     ebb->sec->owner, ebb->sec, ebb->end_offset + insn_block_len);
 	  return FALSE;
 	}
@@ -6613,7 +6628,8 @@ extend_ebb_bounds_backward (ebb_t *ebb)
 	{
 	  _bfd_error_handler
 	    /* xgettext:c-format */
-	    (_("%B(%A+0x%lx): could not decode instruction; possible configuration mismatch"),
+	    (_("%B(%A+%#Lx): could not decode instruction; "
+	       "possible configuration mismatch"),
 	     ebb->sec->owner, ebb->sec, ebb->end_offset + insn_block_len);
 	  return FALSE;
 	}
@@ -7727,7 +7743,9 @@ compute_text_actions (bfd *abfd,
 	{
 	  _bfd_error_handler
 	    /* xgettext:c-format */
-	    (_("%B(%A+0x%lx): could not decode instruction for XTENSA_ASM_SIMPLIFY relocation; possible configuration mismatch"),
+	    (_("%B(%A+%#Lx): could not decode instruction for "
+	       "XTENSA_ASM_SIMPLIFY relocation; "
+	       "possible configuration mismatch"),
 	     sec->owner, sec, r_offset);
 	  continue;
 	}
@@ -7986,7 +8004,8 @@ compute_ebb_proposed_actions (ebb_constraint *ebb_table)
  decode_error:
   _bfd_error_handler
     /* xgettext:c-format */
-    (_("%B(%A+0x%lx): could not decode instruction; possible configuration mismatch"),
+    (_("%B(%A+%#Lx): could not decode instruction; "
+       "possible configuration mismatch"),
      ebb->sec->owner, ebb->sec, offset);
   return FALSE;
 }
@@ -10763,7 +10782,7 @@ do_fix_for_relocatable_link (Elf_Internal_Rela *rel,
 	{
 	  _bfd_error_handler
 	    /* xgettext:c-format */
-	    (_("%B(%A+0x%lx): unexpected fix for %s relocation"),
+	    (_("%B(%A+%#Lx): unexpected fix for %s relocation"),
 	     input_bfd, input_section, rel->r_offset,
 	     elf_howto_table[r_type].name);
 	  return FALSE;
@@ -10823,7 +10842,7 @@ static asection *
 elf_xtensa_get_plt_section (struct bfd_link_info *info, int chunk)
 {
   bfd *dynobj;
-  char plt_name[10];
+  char plt_name[17];
 
   if (chunk == 0)
     return elf_hash_table (info)->splt;
@@ -10838,7 +10857,7 @@ static asection *
 elf_xtensa_get_gotplt_section (struct bfd_link_info *info, int chunk)
 {
   bfd *dynobj;
-  char got_name[14];
+  char got_name[21];
 
   if (chunk == 0)
     return elf_hash_table (info)->sgotplt;
@@ -11318,11 +11337,7 @@ static const struct bfd_elf_special_section elf_xtensa_special_sections[] =
 #define ELF_MACHINE_CODE		EM_XTENSA
 #define ELF_MACHINE_ALT1		EM_XTENSA_OLD
 
-#if XCHAL_HAVE_MMU
-#define ELF_MAXPAGESIZE			(1 << XCHAL_MMU_MIN_PTE_PAGE_SIZE)
-#else /* !XCHAL_HAVE_MMU */
-#define ELF_MAXPAGESIZE			1
-#endif /* !XCHAL_HAVE_MMU */
+#define ELF_MAXPAGESIZE			0x1000
 #endif /* ELF_ARCH */
 
 #define elf_backend_can_gc_sections	1

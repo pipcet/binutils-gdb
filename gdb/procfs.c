@@ -4377,7 +4377,7 @@ procfs_init_inferior (struct target_ops *ops, int pid)
   thread_change_ptid (pid_to_ptid (pid),
 		      ptid_build (pid, lwpid, 0));
 
-  startup_inferior (START_INFERIOR_TRAPS_EXPECTED);
+  gdb_startup_inferior (pid, START_INFERIOR_TRAPS_EXPECTED);
 
 #ifdef SYS_syssgi
   /* On mips-irix, we need to stop the inferior early enough during
@@ -4603,6 +4603,11 @@ procfs_create_inferior (struct target_ops *ops, const char *exec_file,
 
   pid = fork_inferior (exec_file, allargs, env, procfs_set_exec_trap,
 		       NULL, NULL, shell_file, NULL);
+
+  /* We have something that executes now.  We'll be running through
+     the shell at this point (if startup-with-shell is true), but the
+     pid shouldn't change.  */
+  add_thread_silent (pid_to_ptid (pid));
 
   procfs_init_inferior (ops, pid);
 }
@@ -5095,7 +5100,6 @@ procfs_info_proc (struct target_ops *ops, const char *args,
   struct cleanup *old_chain;
   procinfo *process  = NULL;
   procinfo *thread   = NULL;
-  char    **argv     = NULL;
   char     *tmp      = NULL;
   int       pid      = 0;
   int       tid      = 0;
@@ -5116,24 +5120,19 @@ procfs_info_proc (struct target_ops *ops, const char *args,
     }
 
   old_chain = make_cleanup (null_cleanup, 0);
-  if (args)
+  gdb_argv built_argv (args);
+  for (char *arg : argv)
     {
-      argv = gdb_buildargv (args);
-      make_cleanup_freeargv (argv);
-    }
-  while (argv != NULL && *argv != NULL)
-    {
-      if (isdigit (argv[0][0]))
+      if (isdigit (arg[0]))
 	{
-	  pid = strtoul (argv[0], &tmp, 10);
+	  pid = strtoul (arg, &tmp, 10);
 	  if (*tmp == '/')
 	    tid = strtoul (++tmp, NULL, 10);
 	}
-      else if (argv[0][0] == '/')
+      else if (arg[0] == '/')
 	{
-	  tid = strtoul (argv[0] + 1, NULL, 10);
+	  tid = strtoul (arg + 1, NULL, 10);
 	}
-      argv++;
     }
   if (pid == 0)
     pid = ptid_get_pid (inferior_ptid);

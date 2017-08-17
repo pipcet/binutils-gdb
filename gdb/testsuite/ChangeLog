@@ -1,3 +1,238 @@
+2017-08-15  Sergio Durigan Junior  <sergiodj@redhat.com>
+
+	PR gdb/21954
+	* gdb.base/environ.exp: Add test to check if 'unset environment'
+	works.
+
+2017-08-14  Andreas Arnez  <arnez@linux.vnet.ibm.com>
+
+	* lib/gdb.exp (universal_compile_options): New caching proc.
+	(gdb_compile): Suppress GCC's coloring of messages.
+
+2017-08-14  Tom Tromey  <tom@tromey.com>
+
+	PR gdb/21675:
+	* gdb.base/printcmds.exp (test_radices): New function.
+	* gdb.dwarf2/var-access.exp: Use p/u, not p/d.
+	* gdb.base/sizeof.exp (check_valueof): Use p/d.
+	* lib/gdb.exp (get_integer_valueof): Use p/d.
+
+2017-08-12  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* lib/gdb.exp (get_valueof): Don't capture end-of-line
+	characters.
+
+2017-08-05  Tom Tromey  <tom@tromey.com>
+
+	* gdb.rust/simple.exp: Allow String to appear in a different
+	namespace.
+
+2017-07-26  Yao Qi  <yao.qi@linaro.org>
+
+	* gdb.gdb/unittest.exp: Invoke command
+	"maintenance check xml-descriptions".
+
+2017-07-24  Andreas Arnez  <arnez@linux.vnet.ibm.com>
+
+	* gdb.arch/s390-vregs.exp: Calculate parameters to hex128 in the
+	calling context.
+	(hex128): Drop erroneous calculation of parameters.
+
+2017-07-22  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* gdb.python/py-unwind.exp: Disable stack protection when
+	building test file.
+
+2017-07-20  Pedro Alves  <palves@redhat.com>
+
+	* gdb.base/default.exp (set language): Adjust expected output.
+
+2017-07-20  Pedro Alves  <palves@redhat.com>
+
+	* gdb.base/dmsym.c (pck__foo__bar__minsym): Rename to ...
+	(test_minsym): ... this, and make static.
+	(get_pck__foo__bar__minsym): Rename to ...
+	(get_test_minsym): ... this.
+	* gdb.base/dmsym.exp (): Remove "set language ada" call.  Adjust
+	symbol names and comments.
+	* gdb.base/dmsym_main.c (get_pck__foo__bar__minsym): Rename to ...
+	(get_test_minsym): ... this.
+	(pck__foo__bar__minsym__2): Rename to ...
+	(test_minsym): ... this.
+	(main): Adjust.
+
+2017-07-17  Pedro Alves  <palves@redhat.com>
+
+	* gdb.base/completion.exp: Adjust expected output.
+	* gdb.linespec/ls-errs.exp: Don't send tab characters, now that
+	the completer works.
+
+2017-07-17  Pedro Alves  <palves@redhat.com>
+
+	* gdb.linespec/ls-errs.exp (do_test): Adjust expected output.
+
+2017-07-15  Andrew Burgess  <andrew.burgess@embecosm.com>
+
+	* gdb.mi/mi-vla-fortran.exp: Make test names unique.
+
+2017-07-14  Tom Tromey  <tom@tromey.com>
+
+	PR rust/21764:
+	* gdb.rust/simple.exp: Add tests.
+
+2017-07-14  Tom Tromey  <tom@tromey.com>
+
+	* gdb.rust/simple.exp: Add regression test for PR rust/21763.
+
+2017-07-14  Pedro Alves  <palves@redhat.com>
+
+	* gdb.linespec/base/one/thefile.cc (z1): New function.
+	* gdb.linespec/base/two/thefile.cc (z2): New function.
+	* gdb.linespec/linespec.exp: Add tests.
+
+2017-07-13  Andrew Burgess  <andrew.burgess@embecosm.com>
+
+	* gdb.mi/mi-vla-fortran.exp: Correct even more parameter passing
+	to mi_create_breakpoint.
+
+2017-07-13  Andrew Burgess  <andrew.burgess@embecosm.com>
+
+	* gdb.mi/mi-vla-fortran.exp: Correct parameter passing to
+	mi_create_breakpoint.
+
+2017-07-11  Iain Buclaw  <ibuclaw@gdcproject.org>
+
+	* gdb.dlang/demangle.exp: Update for demangling changes.
+
+2017-07-09  Tom Tromey  <tom@tromey.com>
+
+	* gdb.dwarf2/shortpiece.exp: New file.
+
+2017-07-06  David Blaikie  <dblaikie@gmail.com>
+
+	* gdb.dwarf2/fission-multi-cu.S: Test containing multiple CUs in a DWO,
+	built from fissiont-multi-cu{1,2}.c.
+	* gdb.dwarf2/fission-multi-cu.exp: Test similar to fission-base.exp,
+	except putting 'main' and 'func' in separate CUs in the same DWO file.
+	* gdb.dwarf2/fission-multi-cu1.c: First CU for the multi-CU-single-DWO
+	test.
+	* gdb.dwarf2/fission-multi-cu2.c: Second CU in the multi-CU-single-DWO
+	test.
+
+2017-07-06  Pedro Alves  <palves@redhat.com>
+
+	* gdb.python/py-unwind.exp: Test flushregs.
+
+2017-06-30  Sergio Durigan Junior  <sergiodj@redhat.com>
+
+	PR cli/21688
+	* gdb.python/py-cmd.exp (test_python_inline_or_multiline): Add new
+	tests for alias commands and trailing whitespace.
+
+2017-06-30  Sergio Durigan Junior  <sergiodj@redhat.com>
+
+	PR cli/21688
+	* gdb.python/py-cmd.exp (test_python_inline_or_multiline): New
+	procedure.  Call it.
+
+2017-06-29  Pedro Alves  <palves@redhat.com>
+
+	* gdb.base/printcmds.exp: Add tests.
+
+2017-06-28  Doug Gilmore  <Doug.Gilmore@imgtec.com>
+
+	PR gdb/21337
+	* gdb.base/reread-readsym.exp: New file.
+	* gdb.base/reread-readsym.c: New file.
+
+2017-06-21  Kevin Buettner  <kevinb@redhat.com>
+
+	* gdb.exp (gdb_test): Using noncapturing parens for the $pattern
+	subpattern.
+
+2017-06-19  Peter Bergner  <bergner@vnet.ibm.com>
+
+	* gdb.arch/powerpc-power9.exp: Update test case for new lnia
+	extended mnemonic.
+	* gdb.arch/powerpc-power9.s: Likewise.
+
+2017-06-14  Andreas Arnez  <arnez@linux.vnet.ibm.com>
+
+	* gdb.dwarf2/var-access.exp: Use register name ecx instead of edx
+	on 32-bit x86 targets.  Exploit is_*_target macros where
+	appropriate.
+
+2017-06-13  Andreas Arnez  <arnez@linux.vnet.ibm.com>
+
+	* gdb.dwarf2/var-access.exp: Add test for non-byte-aligned
+	register pieces.
+
+2017-06-13  Andreas Arnez  <arnez@linux.vnet.ibm.com>
+
+	* gdb.dwarf2/var-access.exp: Add tests for accessing bit-fields
+	located in one or more DWARF pieces.
+
+2017-06-13  Andreas Arnez  <arnez@linux.vnet.ibm.com>
+
+	* lib/gdb.exp (get_endianness): New proc.
+	* gdb.arch/aarch64-fp.exp: Use it.
+	* gdb.arch/altivec-regs.exp: Likewise.
+	* gdb.arch/e500-regs.exp: Likewise.
+	* gdb.arch/vsx-regs.exp: Likewise.
+	* gdb.base/dump.exp: Likewise.
+	* gdb.base/funcargs.exp: Likewise.
+	* gdb.base/gnu_vector.exp: Likewise.
+	* gdb.dwarf2/formdata16.exp: Likewise.
+	* gdb.dwarf2/implptrpiece.exp: Likewise.
+	* gdb.dwarf2/nonvar-access.exp: Likewise.
+	* gdb.python/py-inferior.exp: Likewise.
+	* gdb.trace/unavailable-dwarf-piece.exp: Likewise.
+
+2017-06-13  Andreas Arnez  <arnez@linux.vnet.ibm.com>
+
+	PR gdb/21226
+	* gdb.dwarf2/nonvar-access.exp: Add checks for verifying that
+	stack value pieces are taken from the LSB end.
+
+2017-06-13  Andreas Arnez  <arnez@linux.vnet.ibm.com>
+
+	* gdb.dwarf2/var-pieces.exp: Add test case for modifying a
+	variable at nonzero offset.
+
+2017-06-13  Andreas Arnez  <arnez@linux.vnet.ibm.com>
+
+	* gdb.dwarf2/var-access.c: New file.
+	* gdb.dwarf2/var-access.exp: New test.
+	* lib/gdb-utils.exp (string_to_regexp): Quote braces as well.
+
+2017-06-12  Tom Tromey  <tom@tromey.com>
+
+	* gdb.dwarf2/formdata16.exp: Add tests.
+
+2017-06-12  Tom Tromey  <tom@tromey.com>
+
+	* gdb.arch/altivec-regs.exp: Expect decimal results for uint128.
+
+2017-06-12  Tom Tromey  <tom@tromey.com>
+
+	PR exp/16225:
+	* gdb.reverse/i386-sse-reverse.exp: Update tests.
+	* gdb.arch/vsx-regs.exp: Update tests.
+	* gdb.arch/s390-vregs.exp (hex128): New proc.
+	Update test.
+	* gdb.arch/altivec-regs.exp: Update tests.
+
+2017-06-07  Sergio Durigan Junior  <sergiodj@redhat.com>
+
+	* gdb.base/startup-with-shell.c: New file.
+	* gdb.base/startup-with-shell.exp: Likewise.
+
+2017-06-07  Sergio Durigan Junior  <sergiodj@redhat.com>
+
+	* gdb.server/non-existing-program.exp: Update regex in order to
+	reflect the fact that gdbserver is now using fork_inferior (with a
+	shell) to startup the inferior.
+
 2017-05-30  Simon Marchi  <simon.marchi@ericsson.com>
 
 	* gdb.base/watch-cond-infcall.exp: Don't run if target doesn't

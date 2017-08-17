@@ -1,3 +1,59 @@
+2017-08-16  Ruslan Kabatsayev  <b7.10110111@gmail.com>
+
+	* gdb.texinfo (TUI Single Key Mode): Document the new shortcuts in
+	Single-Key mode.
+
+2017-08-12  Sergio Durigan Junior  <sergiodj@redhat.com>
+
+	PR gdb/21925
+	* gdb.texinfo (Starting) <startup-with-shell>: Fix typo ("show
+	set...").
+
+2017-08-09  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* gdb.texinfo (Packets): Fix Z0 cmd_list doc referring to
+	conditional expression.
+
+2017-07-31  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* agentexpr.texi (rot): Fix symbolic description, improve
+	textual description.
+
+2017-07-26  Yao Qi  <yao.qi@linaro.org>
+
+	* gdb.texinfo (Maintenance Commands): Document command
+	"maint check xml-descriptions".
+
+2017-07-26  Yao Qi  <yao.qi@linaro.org>
+
+	* gdb.texinfo (Maintenance Commands): Document optional
+	argument of "maint print c-tdesc".
+
+2017-07-18  Yao Qi  <yao.qi@linaro.org>
+
+	* gdb.texinfo (Maintenance Commands): Improve the doc to
+	command "maint print c-tdesc".
+
+2017-06-20  Sergio Durigan Junior  <sergiodj@redhat.com>
+
+	PR gdb/21606
+	* python.texi (Python representation of Symbols.): Replace
+	SYMBOL_FUNCTION_DOMAIN by SYMBOL_FUNCTIONS_DOMAIN, fixing typo.
+	* guile.texi (Guile representation of Symbols.): Likewise.
+
+2017-06-11  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* gdb.texinfo (Optional Messages about Internal Happenings):
+	Document {set,show} debug separate-debug-file commands.
+
+2017-06-07  Sergio Durigan Junior  <sergiodj@redhat.com>
+
+	* gdb.texinfo (Starting) <startup-with-shell>: Add @anchor.
+	(Connecting) <Remote Packet>: Add "startup-with-shell"
+	and "QStartupWithShell" to the table.
+	(Remote Protocol) <QStartupWithShell>: New item, explaining the
+	packet.
+
 2017-05-22  Andrew Burgess  <andrew.burgess@embecosm.com>
 
 	* gdb.texinfo (Packets): Document vMustReplyEmpty packet.

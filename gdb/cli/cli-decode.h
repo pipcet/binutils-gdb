@@ -23,8 +23,7 @@
 
 /* Include the public interfaces.  */
 #include "command.h"
-
-struct re_pattern_buffer;
+#include "gdb_regex.h"
 
 #if 0
 /* FIXME: cagney/2002-03-17: Once cmd_type() has been removed, ``enum
@@ -161,19 +160,7 @@ struct cmd_list_element
     /* The prefix command of this command.  */
     struct cmd_list_element *prefix;
 
-    /* Completion routine for this command.  TEXT is the text beyond
-       what was matched for the command itself (leading whitespace is
-       skipped).  It stops where we are supposed to stop completing
-       (rl_point) and is '\0' terminated.
-
-       Return value is a malloc'd vector of pointers to possible
-       completions terminated with NULL.  If there are no completions,
-       returning a pointer to a NULL would work but returning NULL
-       itself is also valid.  WORD points in the same buffer as TEXT,
-       and completions should be returned relative to this position.
-       For example, suppose TEXT is "foo" and we want to complete to
-       "foobar".  If WORD is "oo", return "oobar"; if WORD is
-       "baz/foo", return "baz/foobar".  */
+    /* Completion routine for this command.  */
     completer_ftype *completer;
 
     /* Handle the word break characters for this completer.  Usually
@@ -182,8 +169,7 @@ struct cmd_list_element
        a class) the word break chars may need to be redefined
        depending on the completer type (e.g., for filename
        completers).  */
-
-    completer_ftype_void *completer_handle_brkchars;
+    completer_handle_brkchars_ftype *completer_handle_brkchars;
 
     /* Destruction routine for this command.  If non-NULL, this is
        called when this command instance is destroyed.  This may be
@@ -234,7 +220,7 @@ extern void help_cmd_list (struct cmd_list_element *, enum command_class,
 extern void help_cmd (const char *, struct ui_file *);
 
 extern void apropos_cmd (struct ui_file *, struct cmd_list_element *,
-                         struct re_pattern_buffer *, const char *);
+                         compiled_regex &, const char *);
 
 /* Used to mark commands that don't do anything.  If we just leave the
    function field NULL, the command is interpreted as a help topic, or

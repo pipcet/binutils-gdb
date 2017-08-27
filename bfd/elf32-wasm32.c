@@ -1109,7 +1109,7 @@ elf32_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec,
         case R_WASM32_32:
           if (h != NULL && bfd_link_executable (info))
             h->non_got_ref = 1;
-
+        /* FALLTHROUGH */
         default:
           if (bfd_link_pic (info) &&
               r_symndx != STN_UNDEF &&
@@ -2314,9 +2314,9 @@ elf32_wasm32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
               if (! relocate)
                 continue;
             }
+        /* FALLTHROUGH */
         case R_WASM32_REL32:
           addend = rel->r_addend;
-          /* Fall through.  */
         final_link_relocate:
           r = wasm32_final_link_relocate (howto, input_bfd, input_section,
                                           contents, rel->r_offset,

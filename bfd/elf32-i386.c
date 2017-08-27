@@ -956,6 +956,18 @@ static const struct elf_i386_backend_data elf_i386_arch_bed =
 	       || (EH)->has_non_got_reloc			\
 	       || !(INFO)->dynamic_undefined_weak))))
 
+/* Should copy relocation be generated for a symbol.  Don't generate
+   copy relocation against a protected symbol defined in a shared
+   object with GNU_PROPERTY_NO_COPY_ON_PROTECTED.  */
+#define SYMBOL_NO_COPYRELOC(INFO, EH) \
+  ((EH)->def_protected \
+   && ((EH)->elf.root.type == bfd_link_hash_defined \
+       || (EH)->elf.root.type == bfd_link_hash_defweak) \
+   && elf_has_no_copy_on_protected ((EH)->elf.root.u.def.section->owner) \
+   && ((EH)->elf.root.u.def.section->owner->flags & DYNAMIC) != 0 \
+   && ((EH)->elf.root.u.def.section->flags & SEC_CODE) == 0)
+
+
 /* i386 ELF linker hash entry.  */
 
 struct elf_i386_link_hash_entry
@@ -995,8 +1007,11 @@ struct elf_i386_link_hash_entry
   /* Don't call finish_dynamic_symbol on this symbol.  */
   unsigned int no_finish_dynamic_symbol : 1;
 
-  /* TRUE if symbol symbol is __tls_get_addr.  */
+  /* TRUE if symbol is __tls_get_addr.  */
   unsigned int tls_get_addr : 1;
+
+  /* TRUE if symbol is defined as a protected symbol.  */
+  unsigned int def_protected : 1;
 
   /* Reference count of C/C++ function pointer relocations in read-write
      section which can be resolved at run-time.  */
@@ -2590,6 +2605,8 @@ elf_i386_adjust_dynamic_symbol (struct bfd_link_info *info,
        the link may change h->type.  So fix it now.  */
     h->plt.offset = (bfd_vma) -1;
 
+  eh = (struct elf_i386_link_hash_entry *) h;
+
   /* If this is a weak symbol, and there is a real definition, the
      processor independent code will have arranged for us to see the
      real definition first, and we can just use the same value.  */
@@ -2599,7 +2616,9 @@ elf_i386_adjust_dynamic_symbol (struct bfd_link_info *info,
 		  || h->u.weakdef->root.type == bfd_link_hash_defweak);
       h->root.u.def.section = h->u.weakdef->root.u.def.section;
       h->root.u.def.value = h->u.weakdef->root.u.def.value;
-      if (ELIMINATE_COPY_RELOCS || info->nocopyreloc)
+      if (ELIMINATE_COPY_RELOCS
+	  || info->nocopyreloc
+	  || SYMBOL_NO_COPYRELOC (info, eh))
 	h->non_got_ref = h->u.weakdef->non_got_ref;
       return TRUE;
     }
@@ -2617,12 +2636,11 @@ elf_i386_adjust_dynamic_symbol (struct bfd_link_info *info,
   /* If there are no references to this symbol that do not use the
      GOT nor R_386_GOTOFF relocation, we don't need to generate a copy
      reloc.  */
-  eh = (struct elf_i386_link_hash_entry *) h;
   if (!h->non_got_ref && !eh->gotoff_ref)
     return TRUE;
 
   /* If -z nocopyreloc was given, we won't generate them either.  */
-  if (info->nocopyreloc)
+  if (info->nocopyreloc || SYMBOL_NO_COPYRELOC (info, eh))
     {
       h->non_got_ref = 0;
       return TRUE;
@@ -6780,50 +6798,41 @@ elf_i386_link_setup_gnu_properties (struct bfd_link_info *info)
   unsigned int plt_alignment, features;
   struct elf_i386_link_hash_table *htab;
   bfd *pbfd;
+  bfd *ebfd = NULL;
+  elf_property *prop;
 
   features = 0;
   if (info->ibt)
     features = GNU_PROPERTY_X86_FEATURE_1_IBT;
   if (info->shstk)
     features |= GNU_PROPERTY_X86_FEATURE_1_SHSTK;
-  if (features)
+
+  /* Find a normal input file with GNU property note.  */
+  for (pbfd = info->input_bfds;
+       pbfd != NULL;
+       pbfd = pbfd->link.next)
+    if (bfd_get_flavour (pbfd) == bfd_target_elf_flavour
+	&& bfd_count_sections (pbfd) != 0)
+      {
+	ebfd = pbfd;
+
+	if (elf_properties (pbfd) != NULL)
+	  break;
+      }
+
+  if (ebfd != NULL && features)
     {
-      /* Turn on GNU_PROPERTY_X86_FEATURE_1_IBT and
+      /* If features is set, add GNU_PROPERTY_X86_FEATURE_1_IBT and
 	 GNU_PROPERTY_X86_FEATURE_1_SHSTK.  */
-      bfd *ebfd = NULL;
-      elf_property *prop;
+      prop = _bfd_elf_get_property (ebfd,
+				    GNU_PROPERTY_X86_FEATURE_1_AND,
+				    4);
+      prop->u.number |= features;
+      prop->pr_kind = property_number;
 
-      for (pbfd = info->input_bfds;
-	   pbfd != NULL;
-	   pbfd = pbfd->link.next)
-	if (bfd_get_flavour (pbfd) == bfd_target_elf_flavour
-	    && bfd_count_sections (pbfd) != 0)
-	  {
-	    ebfd = pbfd;
-
-	    if (elf_properties (pbfd) != NULL)
-	      {
-		/* Find a normal input file with GNU property note.  */
-		prop = _bfd_elf_get_property (pbfd,
-					      GNU_PROPERTY_X86_FEATURE_1_AND,
-					      4);
-		/* Add GNU_PROPERTY_X86_FEATURE_1_IBT and
-		   GNU_PROPERTY_X86_FEATURE_1_SHSTK.  */
-		prop->u.number |= features;
-		prop->pr_kind = property_number;
-		break;
-	      }
-	  }
-
-      if (pbfd == NULL && ebfd != NULL)
+      /* Create the GNU property note section if needed.  */
+      if (pbfd == NULL)
 	{
-	  /* Create GNU_PROPERTY_X86_FEATURE_1_IBT if needed.  */
-	  prop = _bfd_elf_get_property (ebfd,
-					GNU_PROPERTY_X86_FEATURE_1_AND,
-					4);
-	  prop->u.number = features;
-	  prop->pr_kind = property_number;
-
 	  sec = bfd_make_section_with_flags (ebfd,
 					     NOTE_GNU_PROPERTY_SECTION_NAME,
 					     (SEC_ALLOC
@@ -6836,7 +6845,11 @@ elf_i386_link_setup_gnu_properties (struct bfd_link_info *info)
 	    info->callbacks->einfo (_("%F: failed to create GNU property section\n"));
 
 	  if (!bfd_set_section_alignment (ebfd, sec, 2))
-	    goto error_alignment;
+	    {
+error_alignment:
+	      info->callbacks->einfo (_("%F%A: failed to align section\n"),
+				      sec);
+	    }
 
 	  elf_section_type (sec) = SHT_NOTE;
 	}
@@ -7116,11 +7129,7 @@ elf_i386_link_setup_gnu_properties (struct bfd_link_info *info)
       if (sec != NULL
 	  && !bfd_set_section_alignment (sec->owner, sec,
 					 plt_alignment))
-	{
-error_alignment:
-	  info->callbacks->einfo (_("%F%A: failed to align section\n"),
-				  sec);
-	}
+	goto error_alignment;
     }
 
   return pbfd;
@@ -7141,6 +7150,21 @@ elf_i386_link_check_relocs (bfd *abfd, struct bfd_link_info *info)
 
   /* Invoke the regular ELF backend linker to do all the work.  */
   return _bfd_elf_link_check_relocs (abfd, info);
+}
+
+static void
+elf_i386_merge_symbol_attribute (struct elf_link_hash_entry *h,
+				 const Elf_Internal_Sym *isym,
+				 bfd_boolean definition,
+				 bfd_boolean dynamic ATTRIBUTE_UNUSED)
+{
+  if (definition)
+    {
+      struct elf_i386_link_hash_entry *eh
+	= (struct elf_i386_link_hash_entry *) h;
+      eh->def_protected = (ELF_ST_VISIBILITY (isym->st_other)
+			   == STV_PROTECTED);
+    }
 }
 
 #define TARGET_LITTLE_SYM		i386_elf32_vec
@@ -7198,6 +7222,7 @@ elf_i386_link_check_relocs (bfd *abfd, struct bfd_link_info *info)
 #define elf_backend_parse_gnu_properties      elf_i386_parse_gnu_properties
 #define elf_backend_merge_gnu_properties      elf_i386_merge_gnu_properties
 #define elf_backend_setup_gnu_properties      elf_i386_link_setup_gnu_properties
+#define elf_backend_merge_symbol_attribute    elf_i386_merge_symbol_attribute
 
 #include "elf32-target.h"
 

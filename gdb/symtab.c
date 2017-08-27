@@ -468,7 +468,7 @@ iterate_over_symtabs (const char *name,
      absolutizing a relative path.  */
   if (IS_ABSOLUTE_PATH (name))
     {
-      real_path.reset (gdb_realpath (name));
+      real_path = gdb_realpath (name);
       gdb_assert (IS_ABSOLUTE_PATH (real_path.get ()));
     }
 
@@ -3830,6 +3830,25 @@ skip_prologue_using_sal (struct gdbarch *gdbarch, CORE_ADDR func_addr)
     /* Don't return END_PC, which is past the end of the function.  */
     return prologue_sal.pc;
 }
+
+/* See symtab.h.  */
+
+symbol *
+find_function_alias_target (bound_minimal_symbol msymbol)
+{
+  if (!msymbol_is_text (msymbol.minsym))
+    return NULL;
+
+  CORE_ADDR addr = BMSYMBOL_VALUE_ADDRESS (msymbol);
+  symbol *sym = find_pc_function (addr);
+  if (sym != NULL
+      && SYMBOL_CLASS (sym) == LOC_BLOCK
+      && BLOCK_START (SYMBOL_BLOCK_VALUE (sym)) == addr)
+    return sym;
+
+  return NULL;
+}
+
 
 /* If P is of the form "operator[ \t]+..." where `...' is
    some legitimate operator text, return a pointer to the
@@ -4025,7 +4044,7 @@ output_partial_symbol_filename (const char *filename, const char *fullname,
 }
 
 static void
-sources_info (char *ignore, int from_tty)
+info_sources_command (char *ignore, int from_tty)
 {
   struct compunit_symtab *cu;
   struct symtab *s;
@@ -4591,20 +4610,20 @@ symtab_symbol_info (char *regexp, enum search_domain kind, int from_tty)
 }
 
 static void
-variables_info (char *regexp, int from_tty)
+info_variables_command (char *regexp, int from_tty)
 {
   symtab_symbol_info (regexp, VARIABLES_DOMAIN, from_tty);
 }
 
 static void
-functions_info (char *regexp, int from_tty)
+info_functions_command (char *regexp, int from_tty)
 {
   symtab_symbol_info (regexp, FUNCTIONS_DOMAIN, from_tty);
 }
 
 
 static void
-types_info (char *regexp, int from_tty)
+info_types_command (char *regexp, int from_tty)
 {
   symtab_symbol_info (regexp, TYPES_DOMAIN, from_tty);
 }
@@ -5874,13 +5893,13 @@ _initialize_symtab (void)
   symbol_cache_key
     = register_program_space_data_with_cleanup (NULL, symbol_cache_cleanup);
 
-  add_info ("variables", variables_info, _("\
+  add_info ("variables", info_variables_command, _("\
 All global and static variable names, or those matching REGEXP."));
   if (dbx_commands)
-    add_com ("whereis", class_info, variables_info, _("\
+    add_com ("whereis", class_info, info_variables_command, _("\
 All global and static variable names, or those matching REGEXP."));
 
-  add_info ("functions", functions_info,
+  add_info ("functions", info_functions_command,
 	    _("All function names, or those matching REGEXP."));
 
   /* FIXME:  This command has at least the following problems:
@@ -5891,10 +5910,10 @@ All global and static variable names, or those matching REGEXP."));
      print "struct foo *".
      I also think "ptype" or "whatis" is more likely to be useful (but if
      there is much disagreement "info types" can be fixed).  */
-  add_info ("types", types_info,
+  add_info ("types", info_types_command,
 	    _("All type names, or those matching REGEXP."));
 
-  add_info ("sources", sources_info,
+  add_info ("sources", info_sources_command,
 	    _("Source files in the program."));
 
   add_com ("rbreak", class_breakpoint, rbreak_command,

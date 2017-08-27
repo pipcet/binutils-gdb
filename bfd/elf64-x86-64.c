@@ -1061,6 +1061,17 @@ static const struct elf_x86_64_backend_data elf_x86_64_arch_bed =
 	       || (EH)->has_non_got_reloc			\
 	       || !(INFO)->dynamic_undefined_weak))))
 
+/* Should copy relocation be generated for a symbol.  Don't generate
+   copy relocation against a protected symbol defined in a shared
+   object with GNU_PROPERTY_NO_COPY_ON_PROTECTED.  */
+#define SYMBOL_NO_COPYRELOC(INFO, EH) \
+  ((EH)->def_protected \
+   && ((EH)->elf.root.type == bfd_link_hash_defined \
+       || (EH)->elf.root.type == bfd_link_hash_defweak) \
+   && elf_has_no_copy_on_protected ((EH)->elf.root.u.def.section->owner) \
+   && ((EH)->elf.root.u.def.section->owner->flags & DYNAMIC) != 0 \
+   && ((EH)->elf.root.u.def.section->flags & SEC_CODE) == 0)
+
 /* x86-64 ELF linker hash entry.  */
 
 struct elf_x86_64_link_hash_entry
@@ -1101,8 +1112,11 @@ struct elf_x86_64_link_hash_entry
   /* Don't call finish_dynamic_symbol on this symbol.  */
   unsigned int no_finish_dynamic_symbol : 1;
 
-  /* TRUE if symbol symbol is __tls_get_addr.  */
+  /* TRUE if symbol is __tls_get_addr.  */
   unsigned int tls_get_addr : 1;
+
+  /* TRUE if symbol is defined as a protected symbol.  */
+  unsigned int def_protected : 1;
 
   /* Reference count of C/C++ function pointer relocations in read-write
      section which can be resolved at run-time.  */
@@ -1880,7 +1894,8 @@ elf_x86_64_tls_transition (struct bfd_link_info *info, bfd *abfd,
 #define check_relocs_failed	sec_flg1
 
 static bfd_boolean
-elf_x86_64_need_pic (bfd *input_bfd, asection *sec,
+elf_x86_64_need_pic (struct bfd_link_info *info,
+		     bfd *input_bfd, asection *sec,
 		     struct elf_link_hash_entry *h,
 		     Elf_Internal_Shdr *symtab_hdr,
 		     Elf_Internal_Sym *isym,
@@ -1889,6 +1904,7 @@ elf_x86_64_need_pic (bfd *input_bfd, asection *sec,
   const char *v = "";
   const char *und = "";
   const char *pic = "";
+  const char *object;
 
   const char *name;
   if (h)
@@ -1906,7 +1922,10 @@ elf_x86_64_need_pic (bfd *input_bfd, asection *sec,
 	  v = _("protected symbol ");
 	  break;
 	default:
-	  v = _("symbol ");
+	  if (((struct elf_x86_64_link_hash_entry *) h)->def_protected)
+	    v = _("protected symbol ");
+	  else
+	    v = _("symbol ");
 	  pic = _("; recompile with -fPIC");
 	  break;
 	}
@@ -1920,10 +1939,18 @@ elf_x86_64_need_pic (bfd *input_bfd, asection *sec,
       pic = _("; recompile with -fPIC");
     }
 
+  if (bfd_link_dll (info))
+    object = _("a shared object");
+  else if (bfd_link_pie (info))
+    object = _("a PIE object");
+  else
+    object = _("a PDE object");
+
   /* xgettext:c-format */
   _bfd_error_handler (_("%B: relocation %s against %s%s`%s' can "
-			"not be used when making a shared object%s"),
-		      input_bfd, howto->name, und, v, name, pic);
+			"not be used when making %s%s"),
+		      input_bfd, howto->name, und, v, name,
+		      object, pic);
   bfd_set_error (bfd_error_bad_value);
   sec->check_relocs_failed = 1;
   return FALSE;
@@ -2519,7 +2546,7 @@ elf_x86_64_check_relocs (bfd *abfd, struct bfd_link_info *info,
 
 	case R_X86_64_TPOFF32:
 	  if (!bfd_link_executable (info) && ABI_64_P (abfd))
-	    return elf_x86_64_need_pic (abfd, sec, h, symtab_hdr, isym,
+	    return elf_x86_64_need_pic (info, abfd, sec, h, symtab_hdr, isym,
 					&x86_64_elf_howto_table[r_type]);
 	  if (eh != NULL)
 	    eh->has_got_reloc = 1;
@@ -2685,7 +2712,7 @@ elf_x86_64_check_relocs (bfd *abfd, struct bfd_link_info *info,
 		      && !h->def_regular
 		      && h->def_dynamic
 		      && (sec->flags & SEC_READONLY) == 0)))
-	    return elf_x86_64_need_pic (abfd, sec, h, symtab_hdr, isym,
+	    return elf_x86_64_need_pic (info, abfd, sec, h, symtab_hdr, isym,
 					&x86_64_elf_howto_table[r_type]);
 	  /* Fall through.  */
 
@@ -3033,6 +3060,8 @@ elf_x86_64_adjust_dynamic_symbol (struct bfd_link_info *info,
        the link may change h->type.  So fix it now.  */
     h->plt.offset = (bfd_vma) -1;
 
+  eh = (struct elf_x86_64_link_hash_entry *) h;
+
   /* If this is a weak symbol, and there is a real definition, the
      processor independent code will have arranged for us to see the
      real definition first, and we can just use the same value.	 */
@@ -3042,9 +3071,10 @@ elf_x86_64_adjust_dynamic_symbol (struct bfd_link_info *info,
 		  || h->u.weakdef->root.type == bfd_link_hash_defweak);
       h->root.u.def.section = h->u.weakdef->root.u.def.section;
       h->root.u.def.value = h->u.weakdef->root.u.def.value;
-      if (ELIMINATE_COPY_RELOCS || info->nocopyreloc)
+      if (ELIMINATE_COPY_RELOCS
+	  || info->nocopyreloc
+	  || SYMBOL_NO_COPYRELOC (info, eh))
 	{
-	  eh = (struct elf_x86_64_link_hash_entry *) h;
 	  h->non_got_ref = h->u.weakdef->non_got_ref;
 	  eh->needs_copy = h->u.weakdef->needs_copy;
 	}
@@ -3067,7 +3097,7 @@ elf_x86_64_adjust_dynamic_symbol (struct bfd_link_info *info,
     return TRUE;
 
   /* If -z nocopyreloc was given, we won't generate them either.  */
-  if (info->nocopyreloc)
+  if (info->nocopyreloc || SYMBOL_NO_COPYRELOC (info, eh))
     {
       h->non_got_ref = 0;
       return TRUE;
@@ -4932,13 +4962,19 @@ do_ifunc_pointer:
 	case R_X86_64_PC32:
 	case R_X86_64_PC32_BND:
 	  /* Don't complain about -fPIC if the symbol is undefined when
-	     building executable unless it is unresolved weak symbol.  */
+	     building executable unless it is unresolved weak symbol or
+	     -z nocopyreloc is used.  */
           if ((input_section->flags & SEC_ALLOC) != 0
 	      && (input_section->flags & SEC_READONLY) != 0
 	      && h != NULL
 	      && ((bfd_link_executable (info)
-		   && h->root.type == bfd_link_hash_undefweak
-		   && !resolved_to_zero)
+		   && ((h->root.type == bfd_link_hash_undefweak
+			&& !resolved_to_zero)
+		       || ((info->nocopyreloc
+			    || (eh->def_protected
+				&& elf_has_no_copy_on_protected (h->root.u.def.section->owner)))
+			   && h->def_dynamic
+			   && !(h->root.u.def.section->flags & SEC_CODE))))
 		  || bfd_link_dll (info)))
 	    {
 	      bfd_boolean fail = FALSE;
@@ -4965,7 +5001,7 @@ do_ifunc_pointer:
 		}
 
 	      if (fail)
-		return elf_x86_64_need_pic (input_bfd, input_section,
+		return elf_x86_64_need_pic (info, input_bfd, input_section,
 					    h, NULL, NULL, howto);
 	    }
 	  /* Fall through.  */
@@ -5707,15 +5743,29 @@ direct:
 	  && _bfd_elf_section_offset (output_bfd, info, input_section,
 				      rel->r_offset) != (bfd_vma) -1)
 	{
-	  _bfd_error_handler
-	    /* xgettext:c-format */
-	    (_("%B(%A+%#Lx): unresolvable %s relocation against symbol `%s'"),
-	     input_bfd,
-	     input_section,
-	     rel->r_offset,
-	     howto->name,
-	     h->root.root.string);
-	  return FALSE;
+	  switch (r_type)
+	    {
+	    case R_X86_64_32S:
+	      sec = h->root.u.def.section;
+	      if ((info->nocopyreloc
+		   || (eh->def_protected
+		       && elf_has_no_copy_on_protected (h->root.u.def.section->owner)))
+		  && !(h->root.u.def.section->flags & SEC_CODE))
+		return elf_x86_64_need_pic (info, input_bfd, input_section,
+					    h, NULL, NULL, howto);
+	      /* Fall through.  */
+
+	    default:
+	      _bfd_error_handler
+		/* xgettext:c-format */
+		(_("%B(%A+%#Lx): unresolvable %s relocation against symbol `%s'"),
+		 input_bfd,
+		 input_section,
+		 rel->r_offset,
+		 howto->name,
+		 h->root.root.string);
+	      return FALSE;
+	    }
 	}
 
 do_relocation:
@@ -7112,6 +7162,21 @@ elf_x86_64_merge_symbol (struct elf_link_hash_entry *h,
   return TRUE;
 }
 
+static void
+elf_x86_64_merge_symbol_attribute (struct elf_link_hash_entry *h,
+				   const Elf_Internal_Sym *isym,
+				   bfd_boolean definition,
+				   bfd_boolean dynamic ATTRIBUTE_UNUSED)
+{
+  if (definition)
+    {
+      struct elf_x86_64_link_hash_entry *eh
+	= (struct elf_x86_64_link_hash_entry *) h;
+      eh->def_protected = (ELF_ST_VISIBILITY (isym->st_other)
+			   == STV_PROTECTED);
+    }
+}
+
 static int
 elf_x86_64_additional_program_headers (bfd *abfd,
 				       struct bfd_link_info *info ATTRIBUTE_UNUSED)
@@ -7302,50 +7367,41 @@ elf_x86_64_link_setup_gnu_properties (struct bfd_link_info *info)
   unsigned int plt_alignment, features;
   struct elf_x86_64_link_hash_table *htab;
   bfd *pbfd;
+  bfd *ebfd = NULL;
+  elf_property *prop;
 
   features = 0;
   if (info->ibt)
     features = GNU_PROPERTY_X86_FEATURE_1_IBT;
   if (info->shstk)
     features |= GNU_PROPERTY_X86_FEATURE_1_SHSTK;
-  if (features)
+
+  /* Find a normal input file with GNU property note.  */
+  for (pbfd = info->input_bfds;
+       pbfd != NULL;
+       pbfd = pbfd->link.next)
+    if (bfd_get_flavour (pbfd) == bfd_target_elf_flavour
+	&& bfd_count_sections (pbfd) != 0)
+      {
+	ebfd = pbfd;
+
+	if (elf_properties (pbfd) != NULL)
+	  break;
+      }
+
+  if (ebfd != NULL && features)
     {
-      /* Turn on GNU_PROPERTY_X86_FEATURE_1_IBT and
+      /* If features is set, add GNU_PROPERTY_X86_FEATURE_1_IBT and
 	 GNU_PROPERTY_X86_FEATURE_1_SHSTK.  */
-      bfd *ebfd = NULL;
-      elf_property *prop;
+      prop = _bfd_elf_get_property (ebfd,
+				    GNU_PROPERTY_X86_FEATURE_1_AND,
+				    4);
+      prop->u.number |= features;
+      prop->pr_kind = property_number;
 
-      for (pbfd = info->input_bfds;
-	   pbfd != NULL;
-	   pbfd = pbfd->link.next)
-	if (bfd_get_flavour (pbfd) == bfd_target_elf_flavour
-	    && bfd_count_sections (pbfd) != 0)
-	  {
-	    ebfd = pbfd;
-
-	    if (elf_properties (pbfd) != NULL)
-	      {
-		/* Find a normal input file with GNU property note.  */
-		prop = _bfd_elf_get_property (pbfd,
-					      GNU_PROPERTY_X86_FEATURE_1_AND,
-					      4);
-		/* Add GNU_PROPERTY_X86_FEATURE_1_IBT and
-		   GNU_PROPERTY_X86_FEATURE_1_SHSTK.  */
-		prop->u.number |= features;
-		prop->pr_kind = property_number;
-		break;
-	      }
-	  }
-
-      if (pbfd == NULL && ebfd != NULL)
+      /* Create the GNU property note section if needed.  */
+      if (pbfd == NULL)
 	{
-	  /* Create GNU_PROPERTY_X86_FEATURE_1_IBT if needed.  */
-	  prop = _bfd_elf_get_property (ebfd,
-					GNU_PROPERTY_X86_FEATURE_1_AND,
-					4);
-	  prop->u.number = features;
-	  prop->pr_kind = property_number;
-
 	  sec = bfd_make_section_with_flags (ebfd,
 					     NOTE_GNU_PROPERTY_SECTION_NAME,
 					     (SEC_ALLOC
@@ -7785,6 +7841,8 @@ elf_x86_64_special_sections[]=
   elf_x86_64_common_definition
 #define elf_backend_merge_symbol \
   elf_x86_64_merge_symbol
+#define elf_backend_merge_symbol_attribute \
+  elf_x86_64_merge_symbol_attribute
 #define elf_backend_special_sections \
   elf_x86_64_special_sections
 #define elf_backend_additional_program_headers \

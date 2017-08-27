@@ -60,9 +60,9 @@ static void reverse_search_command (char *, int);
 
 static void forward_search_command (char *, int);
 
-static void line_info (char *, int);
+static void info_line_command (char *, int);
 
-static void source_info (char *, int);
+static void info_source_command (char *, int);
 
 /* Path of directories to search for source files.
    Same format as the PATH environment variable's value.  */
@@ -649,7 +649,7 @@ add_path (char *dirname, char **which_path, int parse_separators)
 
 
 static void
-source_info (char *ignore, int from_tty)
+info_source_command (char *ignore, int from_tty)
 {
   struct symtab *s = current_source_symtab;
   struct compunit_symtab *cust;
@@ -911,9 +911,9 @@ done:
       if (fd < 0)
 	*filename_opened = NULL;
       else if ((opts & OPF_RETURN_REALPATH) != 0)
-	*filename_opened = gdb_realpath (filename);
+	*filename_opened = gdb_realpath (filename).release ();
       else
-	*filename_opened = gdb_abspath (filename);
+	*filename_opened = gdb_abspath (filename).release ();
     }
 
   errno = last_errno;
@@ -994,13 +994,12 @@ get_substitute_path_rule (const char *path)
 }
 
 /* If the user specified a source path substitution rule that applies
-   to PATH, then apply it and return the new path.  This new path must
-   be deallocated afterwards.
-   
+   to PATH, then apply it and return the new path.
+
    Return NULL if no substitution rule was specified by the user,
    or if no rule applied to the given PATH.  */
-   
-char *
+
+gdb::unique_xmalloc_ptr<char>
 rewrite_source_path (const char *path)
 {
   const struct substitute_path_rule *rule = get_substitute_path_rule (path);
@@ -1019,7 +1018,7 @@ rewrite_source_path (const char *path)
   strcpy (new_path, rule->to);
   strcat (new_path, path + from_len);
 
-  return new_path;
+  return gdb::unique_xmalloc_ptr<char> (new_path);
 }
 
 int
@@ -1030,7 +1029,6 @@ find_and_open_source (const char *filename,
   char *path = source_path;
   const char *p;
   int result;
-  struct cleanup *cleanup;
 
   /* Quick way out if we already know its full name.  */
 
@@ -1039,7 +1037,7 @@ find_and_open_source (const char *filename,
       /* The user may have requested that source paths be rewritten
          according to substitution rules he provided.  If a substitution
          rule applies to this path, then apply it.  */
-      char *rewritten_fullname = rewrite_source_path (*fullname);
+      char *rewritten_fullname = rewrite_source_path (*fullname).release ();
 
       if (rewritten_fullname != NULL)
         {
@@ -1050,7 +1048,7 @@ find_and_open_source (const char *filename,
       result = gdb_open_cloexec (*fullname, OPEN_MODE, 0);
       if (result >= 0)
 	{
-	  char *lpath = gdb_realpath (*fullname);
+	  char *lpath = gdb_realpath (*fullname).release ();
 
 	  xfree (*fullname);
 	  *fullname = lpath;
@@ -1062,21 +1060,17 @@ find_and_open_source (const char *filename,
       *fullname = NULL;
     }
 
-  cleanup = make_cleanup (null_cleanup, NULL);
-
+  gdb::unique_xmalloc_ptr<char> rewritten_dirname;
   if (dirname != NULL)
     {
       /* If necessary, rewrite the compilation directory name according
          to the source path substitution rules specified by the user.  */
 
-      char *rewritten_dirname = rewrite_source_path (dirname);
+      rewritten_dirname = rewrite_source_path (dirname);
 
       if (rewritten_dirname != NULL)
-        {
-          make_cleanup (xfree, rewritten_dirname);
-          dirname = rewritten_dirname;
-        }
-      
+	dirname = rewritten_dirname.get ();
+
       /* Replace a path entry of $cdir with the compilation directory
 	 name.  */
 #define	cdir_len	5
@@ -1098,17 +1092,15 @@ find_and_open_source (const char *filename,
 	}
     }
 
+  gdb::unique_xmalloc_ptr<char> rewritten_filename;
   if (IS_ABSOLUTE_PATH (filename))
     {
       /* If filename is absolute path, try the source path
 	 substitution on it.  */
-      char *rewritten_filename = rewrite_source_path (filename);
+      rewritten_filename = rewrite_source_path (filename);
 
       if (rewritten_filename != NULL)
-        {
-          make_cleanup (xfree, rewritten_filename);
-          filename = rewritten_filename;
-        }
+	filename = rewritten_filename.get ();
     }
 
   result = openp (path, OPF_SEARCH_IN_PATH | OPF_RETURN_REALPATH, filename,
@@ -1122,7 +1114,6 @@ find_and_open_source (const char *filename,
 			OPEN_MODE, fullname);
     }
 
-  do_cleanups (cleanup);
   return result;
 }
 
@@ -1164,23 +1155,20 @@ symtab_to_fullname (struct symtab *s)
 	close (fd);
       else
 	{
-	  char *fullname;
-	  struct cleanup *back_to;
+	  gdb::unique_xmalloc_ptr<char> fullname;
 
 	  /* rewrite_source_path would be applied by find_and_open_source, we
 	     should report the pathname where GDB tried to find the file.  */
 
 	  if (SYMTAB_DIRNAME (s) == NULL || IS_ABSOLUTE_PATH (s->filename))
-	    fullname = xstrdup (s->filename);
+	    fullname.reset (xstrdup (s->filename));
 	  else
-	    fullname = concat (SYMTAB_DIRNAME (s), SLASH_STRING,
-			       s->filename, (char *) NULL);
+	    fullname.reset (concat (SYMTAB_DIRNAME (s), SLASH_STRING,
+				    s->filename, (char *) NULL));
 
-	  back_to = make_cleanup (xfree, fullname);
-	  s->fullname = rewrite_source_path (fullname);
+	  s->fullname = rewrite_source_path (fullname.get ()).release ();
 	  if (s->fullname == NULL)
-	    s->fullname = xstrdup (fullname);
-	  do_cleanups (back_to);
+	    s->fullname = fullname.release ();
 	}
     } 
 
@@ -1502,7 +1490,7 @@ print_source_lines (struct symtab *s, int line, int stopline,
 /* Print info on range of pc's in a specified line.  */
 
 static void
-line_info (char *arg, int from_tty)
+info_line_command (char *arg, int from_tty)
 {
   struct symtabs_and_lines sals;
   struct symtab_and_line sal;
@@ -2037,10 +2025,10 @@ Setting the value to an empty string sets it to $cdir:$cwd, the default."),
 			    show_directories_command,
 			    &setlist, &showlist);
 
-  add_info ("source", source_info,
+  add_info ("source", info_source_command,
 	    _("Information about the current source file."));
 
-  add_info ("line", line_info, _("\
+  add_info ("line", info_line_command, _("\
 Core addresses of the code for a source line.\n\
 Line can be specified as\n\
   LINENUM, to list around that line in current file,\n\

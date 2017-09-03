@@ -617,7 +617,7 @@ elf32_wasm32_link_hash_table_create (bfd *abfd)
   if (!_bfd_elf_link_hash_table_init (&ret->root, abfd,
                                       elf32_wasm32_link_hash_newfunc,
                                       sizeof (struct elf32_wasm32_link_hash_entry),
-                                      EM_WEBASSEMBLY))
+                                      WASM_ELF_DATA))
     {
       free (ret);
       return NULL;
@@ -2371,7 +2371,7 @@ elf32_wasm32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
 }
 
 #define ELF_ARCH		bfd_arch_wasm32
-#define ELF_TARGET_ID		EM_WEBASSEMBLY
+#define ELF_TARGET_ID		WASM_ELF_DATA
 #define ELF_MACHINE_CODE	EM_WEBASSEMBLY
 /* FIXME we don't have paged executables, see:
    https://github.com/pipcet/binutils-gdb/issues/4  */

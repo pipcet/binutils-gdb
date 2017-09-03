@@ -51,7 +51,9 @@ SECTIONS
     . = ALIGN(., 16);
     *(.tm_clone_table*);
     . = ALIGN(., 16);
-    *(__libc_IO_vtables);
+    PROVIDE(__start___libc_IO_vtables = .);
+    *(__libc_IO_vtables)
+    PROVIDE(__stop___libc_IO_vtables = .);
     . = ALIGN(., 16);
     *(.rodata*);
     . = ALIGN(., 16);
@@ -69,9 +71,13 @@ SECTIONS
     *(__libc_subfreeres);
     __stop___libc_subfreeres = .;
     . = ALIGN(., 16);
+    PROVIDE(__start___libc_thread_subfreeres = .);
     *(__libc_thread_subfreeres);
+    PROVIDE(__stop___libc_thread_subfreeres = .);
     . = ALIGN(., 16);
+    PROVIDE(__start___libc_freeres_ptrs = .);
     *(__libc_freeres_ptrs);
+    PROVIDE(__stop___libc_freeres_ptrs = .);
     . = ALIGN(., 16);
     PROVIDE_HIDDEN (__init_array_start = .);
     KEEP (*(SORT_BY_INIT_PRIORITY(.init_array.*) SORT_BY_INIT_PRIORITY(.ctors.*)));

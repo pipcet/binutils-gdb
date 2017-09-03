@@ -2653,7 +2653,6 @@ copy_object (bfd *ibfd, bfd *obfd, const bfd_arch_info_type *input_arch)
 	      continue;
 	    }
 
-	  bfd_byte *contents;
 	  if (bfd_malloc_and_get_section (ibfd, osec, &contents))
 	    {
 	      if (fwrite (contents, 1, size, f) != size)

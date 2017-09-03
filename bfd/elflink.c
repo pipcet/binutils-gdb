@@ -2757,7 +2757,7 @@ _bfd_elf_fix_symbol_flags (struct elf_link_hash_entry *h,
       bfd_boolean force_local;
 
       force_local = (ELF_ST_VISIBILITY (h->other) == STV_INTERNAL
-		     || ELF_ST_VISIBILITY (h->other) == STV_HIDDEN);
+		     /* || ELF_ST_VISIBILITY (h->other) == STV_HIDDEN */);
       (*bed->elf_backend_hide_symbol) (eif->info, h, force_local);
     }
 
@@ -4857,7 +4857,7 @@ error_free_dyn:
 	    switch (ELF_ST_VISIBILITY (h->other))
 	      {
 	      case STV_INTERNAL:
-	      case STV_HIDDEN:
+              //case STV_HIDDEN:
 		(*bed->elf_backend_hide_symbol) (info, h, TRUE);
 		dynsym = FALSE;
 		break;

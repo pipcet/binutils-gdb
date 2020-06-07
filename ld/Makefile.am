@@ -877,6 +877,8 @@ $(ALL_EMULATION_SOURCES) $(ALL_64_EMULATION_SOURCES): $(GEN_DEPENDS)
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ev850_rh850.Pc@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/evanilla.Pc@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/evaxnbsd.Pc@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ewasm32.Pc@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ewasm64.Pc@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/exgateelf.Pc@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ez80.Pc@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ez8001.Pc@am__quote@
@@ -957,21 +959,6 @@ $(ALL_EMULATION_SOURCES) $(ALL_64_EMULATION_SOURCES): $(GEN_DEPENDS)
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ehppa64linux.Pc@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ei386pep.Pc@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/emmo.Pc@am__quote@
-
-easmjs.c: $(srcdir)/emulparams/asmjs.sh \
-  $(srcdir)/emulparams/asmjs.sh $(ELF_DEPS) \
-  $(srcdir)/emultempl/asmjs.em $(srcdir)/scripttempl/asmjs.sc \
-  ${GEN_DEPENDS}
-
-ewasm32.c: $(srcdir)/emulparams/wasm32.sh \
-  $(srcdir)/emulparams/wasm32.sh $(ELF_DEPS) \
-  $(srcdir)/emultempl/wasm32.em $(srcdir)/scripttempl/wasm32.sc \
-  ${GEN_DEPENDS}
-
-ewasm64.c: $(srcdir)/emulparams/wasm64.sh \
-  $(srcdir)/emulparams/wasm64.sh $(ELF_DEPS) \
-  $(srcdir)/emultempl/wasm64.em $(srcdir)/scripttempl/wasm64.sc \
-  ${GEN_DEPENDS}
 
 # We need this for automake to use YLWRAP.
 EXTRA_ld_new_SOURCES = deffilep.y ldlex.l

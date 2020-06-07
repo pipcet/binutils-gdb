@@ -696,6 +696,7 @@ extern const bfd_target arm_pei_be_vec;
 extern const bfd_target arm_pei_le_vec;
 extern const bfd_target arm_pei_wince_be_vec;
 extern const bfd_target arm_pei_wince_le_vec;
+extern const bfd_target asmjs_elf32_vec;
 extern const bfd_target avr_elf32_vec;
 extern const bfd_target bfin_elf32_vec;
 extern const bfd_target bfin_elf32_fdpic_vec;
@@ -1330,6 +1331,7 @@ static const bfd_target * const _bfd_target_vector[] =
 	&vax_elf32_vec,
 
 	&visium_elf32_vec,
+        &wasm64_elf64_vec,
 
 	&wasm_vec,
 	&wasm32_elf32_vec,

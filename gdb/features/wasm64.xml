@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<!-- Copyright (C) 2007-2016 Free Software Foundation, Inc.
+
+     Copying and distribution of this file, with or without modification,
+     are permitted in any medium without royalty provided the copyright
+     notice and this notice are preserved.  -->
+
+<!DOCTYPE feature SYSTEM "gdb-target.dtd">
+<feature name="org.gnu.gdb.wasm64">
+  <reg name="fp" bitsize="64" type="data_ptr"/>
+  <reg name="pc" bitsize="64" type="code_ptr"/>
+  <reg name="sp" bitsize="64" type="data_ptr"/>
+  <reg name="rv" bitsize="64" type="uint64"/>
+  <reg name="a0" bitsize="64" type="uint64"/>
+  <reg name="a1" bitsize="64" type="uint64"/>
+  <reg name="a2" bitsize="64" type="uint64"/>
+  <reg name="a3" bitsize="64" type="uint64"/>
+  <reg name="r0" bitsize="64" type="uint64"/>
+  <reg name="r1" bitsize="64" type="uint64"/>
+  <reg name="r2" bitsize="64" type="uint64"/>
+  <reg name="r3" bitsize="64" type="uint64"/>
+  <reg name="r4" bitsize="64" type="uint64"/>
+  <reg name="r5" bitsize="64" type="uint64"/>
+  <reg name="r6" bitsize="64" type="uint64"/>
+  <reg name="r7" bitsize="64" type="uint64"/>
+  <reg name="i0" bitsize="64" type="uint64"/>
+  <reg name="i1" bitsize="64" type="uint64"/>
+  <reg name="i2" bitsize="64" type="uint64"/>
+  <reg name="i3" bitsize="64" type="uint64"/>
+  <reg name="i4" bitsize="64" type="uint64"/>
+  <reg name="i5" bitsize="64" type="uint64"/>
+  <reg name="i6" bitsize="64" type="uint64"/>
+  <reg name="i7" bitsize="64" type="uint64"/>
+  <reg name="f0" bitsize="64" type="ieee_double"/>
+  <reg name="f1" bitsize="64" type="ieee_double"/>
+  <reg name="f2" bitsize="64" type="ieee_double"/>
+  <reg name="f3" bitsize="64" type="ieee_double"/>
+  <reg name="f4" bitsize="64" type="ieee_double"/>
+  <reg name="f5" bitsize="64" type="ieee_double"/>
+  <reg name="f6" bitsize="64" type="ieee_double"/>
+  <reg name="f7" bitsize="64" type="ieee_double"/>
+</feature>

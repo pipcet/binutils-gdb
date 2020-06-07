@@ -23,8 +23,19 @@
 /* Relocation types.  */
 
 START_RELOC_NUMBERS (elf_wasm32_reloc_type)
-  RELOC_NUMBER (R_WASM32_NONE,            	  0)
-  RELOC_NUMBER (R_WASM32_32,           	  	  1)
-END_RELOC_NUMBERS (R_WASM32_max = 1)
+  RELOC_NUMBER (R_WASM32_NONE,            	   0)
+  RELOC_NUMBER (R_WASM32_32,           	  	   1)
+  RELOC_NUMBER (R_WASM32_REL32,           	   2)
+  RELOC_NUMBER (R_WASM32_LEB128,                   3)
+  RELOC_NUMBER (R_WASM32_LEB128_GOT,               4)
+  RELOC_NUMBER (R_WASM32_LEB128_PLT,               5)
+  RELOC_NUMBER (R_WASM32_PLT_INDEX,                6)
+  RELOC_NUMBER (R_WASM32_32_CODE,                  7)
+  RELOC_NUMBER (R_WASM32_COPY,                     8)
+  RELOC_NUMBER (R_WASM32_LEB128_GOT_CODE,          9)
+  RELOC_NUMBER (R_WASM32_CODE_POINTER,            10)
+  RELOC_NUMBER (R_WASM32_INDEX,                   11)
+  RELOC_NUMBER (R_WASM32_PLT_SIG,                 12)
+END_RELOC_NUMBERS (R_WASM32_max = 12)
 
 #endif /* _ELF_WASM32_H */

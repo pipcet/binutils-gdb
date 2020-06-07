@@ -638,6 +638,11 @@ proc copy_setup { } {
 	return 1
     }
 
+    if { [istarget wasm32-*-*] } {
+        # work around https://github.com/pipcet/binutils-gdb/issues/4
+        set flags "-static $flags"
+    }
+
     if { $res != "" } {
 	lappend flags "additional_flags=[lindex $res 1]"
 	set add_libs "testglue.o"

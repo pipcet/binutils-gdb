@@ -440,6 +440,10 @@
 /* C-SKY historically used 39, the same value as MCORE, from which the
    architecture was derived.  */
 #define EM_CSKY_OLD		EM_MCORE
+#define EM_ASMJS		0x534a
+#define EM_WASM	         	0x4157
+#define EM_WASM32		0x4157
+#define EM_WASM64		0x4157
 
 /* See the above comment before you add a new EM_* value here.  */
 

@@ -165,6 +165,7 @@ alpha*)		 targ_archs=bfd_alpha_arch ;;
 am33_2.0*)	 targ_archs=bfd_mn10300_arch ;;
 arc*)		 targ_archs=bfd_arc_arch ;;
 arm*)		 targ_archs=bfd_arm_arch ;;
+asmjs*)		 targ_archs=bfd_asmjs_arch ;;
 bfin*)		 targ_archs=bfd_bfin_arch ;;
 c30*)		 targ_archs=bfd_tic30_arch ;;
 c4x*)		 targ_archs=bfd_tic4x_arch ;;
@@ -204,6 +205,7 @@ tilepro*)	 targ_archs=bfd_tilepro_arch ;;
 v850*)		 targ_archs="bfd_v850_arch bfd_v850_rh850_arch" ;;
 visium*)	 targ_archs=bfd_visium_arch ;;
 wasm32)		 targ_archs=bfd_wasm32_arch ;;
+wasm64)          targ_archs=bfd_wasm64_arch ;;
 x86_64*)	 targ_archs=bfd_i386_arch ;;
 xtensa*)	 targ_archs=bfd_xtensa_arch ;;
 xgate)		 targ_archs=bfd_xgate_arch ;;
@@ -401,6 +403,10 @@ case "${targ}" in
   arm9e-*-elf)
     targ_defvec=arm_elf32_le_vec
     targ_selvecs=arm_elf32_be_vec
+    ;;
+
+  asmjs-*-*)
+    targ_defvec=asmjs_elf32_vec
     ;;
 
   avr-*-*)
@@ -1384,6 +1390,11 @@ case "${targ}" in
 
   wasm32-*-*)
     targ_defvec=wasm32_elf32_vec
+    targ_selvecs="wasm_vec"
+    ;;
+
+  wasm64-*-*)
+    targ_defvec=wasm64_elf64_vec
     targ_selvecs="wasm_vec"
     ;;
 

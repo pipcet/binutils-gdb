@@ -100,6 +100,7 @@ TARGET_LIBOPCODES_CFILES = \
 	arc-ext.c \
 	arc-opc.c \
 	arm-dis.c \
+	asmjs-dis.c \
 	avr-dis.c \
 	bfin-dis.c \
 	cgen-asm.c \
@@ -255,6 +256,7 @@ TARGET_LIBOPCODES_CFILES = \
 	visium-dis.c \
 	visium-opc.c \
 	wasm32-dis.c \
+	wasm64-dis.c \
 	xc16x-asm.c \
 	xc16x-desc.c \
 	xc16x-dis.c \

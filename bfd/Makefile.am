@@ -94,6 +94,7 @@ ALL_MACHINES = \
 	cpu-alpha.lo \
 	cpu-arc.lo \
 	cpu-arm.lo \
+	cpu-asmjs.lo \
 	cpu-avr.lo \
 	cpu-bfin.lo \
 	cpu-bpf.lo \
@@ -166,6 +167,7 @@ ALL_MACHINES = \
 	cpu-vax.lo \
 	cpu-visium.lo \
 	cpu-wasm32.lo \
+	cpu-wasm64.lo \
 	cpu-xc16x.lo \
 	cpu-xgate.lo \
 	cpu-xstormy16.lo \
@@ -178,6 +180,7 @@ ALL_MACHINES_CFILES = \
 	cpu-alpha.c \
 	cpu-arc.c \
 	cpu-arm.c \
+	cpu-asmjs.c \
 	cpu-avr.c \
 	cpu-bfin.c \
 	cpu-bpf.c \
@@ -250,6 +253,7 @@ ALL_MACHINES_CFILES = \
 	cpu-vax.c \
 	cpu-visium.c \
 	cpu-wasm32.c \
+	cpu-wasm64.c \
 	cpu-xc16x.c \
 	cpu-xgate.c \
 	cpu-xstormy16.c \
@@ -294,6 +298,7 @@ BFD32_BACKENDS = \
 	elf32-am33lin.lo \
 	elf32-arc.lo \
 	elf32-arm.lo \
+	elf32-asmjs.lo \
 	elf32-avr.lo \
 	elf32-bfin.lo \
 	elf32-cr16.lo \
@@ -430,6 +435,7 @@ BFD32_BACKENDS_CFILES = \
 	elf32-am33lin.c \
 	elf32-arc.c \
 	elf32-arm.c \
+	elf32-asmjs.c \
 	elf32-avr.c \
 	elf32-bfin.c \
 	elf32-cr16.c \
@@ -566,6 +572,7 @@ BFD64_BACKENDS = \
 	elf64-s390.lo \
 	elf64-sparc.lo \
 	elf64-tilegx.lo \
+	elf64-wasm64.lo \
 	elf64-x86-64.lo \
 	elfxx-x86.lo \
 	elf64-bpf.lo \
@@ -600,6 +607,7 @@ BFD64_BACKENDS_CFILES = \
 	elf64-s390.c \
 	elf64-sparc.c \
 	elf64-tilegx.c \
+	elf64-wasm64.c \
 	elf64-x86-64.c \
 	elfxx-x86.c \
 	elf64-bpf.c \

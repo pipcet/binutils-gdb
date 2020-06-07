@@ -187,7 +187,10 @@ arm*-*-*)
 	gdb_target_obs="arm-pikeos-tdep.o"
 	gdb_sim=../sim/arm/libsim.a
 	;;
-
+asmjs-*-*)
+        # Target: ASMJS virtual machine
+        gdb_target_obs="asmjs-tdep.o"
+        ;;
 avr-*-*)
 	# Target: AVR
 	gdb_target_obs="avr-tdep.o"
@@ -700,6 +703,16 @@ vax-*-*)
 	# Target: VAX
 	gdb_target_obs="vax-tdep.o"
 	;;
+
+wasm32-*-*)
+        # Target: WebAssembly virtual machine
+        gdb_target_obs="wasm32-tdep.o"
+        ;;
+
+wasm64-*-*)
+        # Target: WebAssembly virtual machine
+        gdb_target_obs="wasm64-tdep.o"
+        ;;
 
 x86_64-*-darwin*)
 	# Target: Darwin/x86-64

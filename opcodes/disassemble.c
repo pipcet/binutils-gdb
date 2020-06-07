@@ -28,6 +28,7 @@
 #define ARCH_alpha
 #define ARCH_arc
 #define ARCH_arm
+#define ARCH_asmjs
 #define ARCH_avr
 #define ARCH_bfin
 #define ARCH_cr16
@@ -94,6 +95,7 @@
 #define ARCH_vax
 #define ARCH_visium
 #define ARCH_wasm32
+#define ARCH_wasm64
 #define ARCH_xstormy16
 #define ARCH_xc16x
 #define ARCH_xgate
@@ -156,6 +158,11 @@ disassembler (enum bfd_architecture a,
 	disassemble = print_insn_big_arm;
       else
 	disassemble = print_insn_little_arm;
+      break;
+#endif
+#ifdef ARCH_asmjs
+    case bfd_arch_asmjs:
+      disassemble = print_insn_little_asmjs;
       break;
 #endif
 #ifdef ARCH_avr
@@ -479,6 +486,11 @@ disassembler (enum bfd_architecture a,
       disassemble = print_insn_wasm32;
       break;
 #endif
+#ifdef ARCH_wasm64
+    case bfd_arch_wasm64:
+      disassemble = print_insn_wasm64;
+      break;
+#endif
 #ifdef ARCH_xgate
     case bfd_arch_xgate:
       disassemble = print_insn_xgate;
@@ -691,10 +703,25 @@ disassemble_init_for_target (struct disassemble_info * info)
       info->symbol_is_valid = riscv_symbol_is_valid;
       break;
 #endif
+#ifdef ARCH_asmjs
+      /*
+        case bfd_arch_wasm32:
+      info->symbol_is_valid = wasm32_symbol_is_valid;
+      info->disassembler_needs_relocs = TRUE;
+      break; */
+#endif
 #ifdef ARCH_wasm32
     case bfd_arch_wasm32:
       disassemble_init_wasm32 (info);
       break;
+#endif
+#ifdef ARCH_wasm64
+      /*
+    case bfd_arch_wasm32:
+      info->symbol_is_valid = wasm32_symbol_is_valid;
+      info->disassembler_needs_relocs = TRUE;
+      break;
+      */
 #endif
 #ifdef ARCH_s390
     case bfd_arch_s390:

@@ -684,6 +684,7 @@ ALL_EMULATION_SOURCES = \
 	earmnto.c \
 	earmpe.c \
 	earmsymbian.c \
+	easmjs.c \
 	eavr1.c \
 	eavr2.c \
 	eavr25.c \
@@ -874,6 +875,8 @@ ALL_EMULATION_SOURCES = \
 	ev850_rh850.c \
 	evanilla.c \
 	evaxnbsd.c \
+	ewasm32.c \
+	ewasm64.c \
 	exgateelf.c \
 	ez80.c \
 	ez8001.c \
@@ -1241,6 +1244,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/earmnto.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/earmpe.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/earmsymbian.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/easmjs.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eavr1.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eavr2.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eavr25.Po@am__quote@
@@ -1495,6 +1499,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ev850_rh850.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/evanilla.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/evaxnbsd.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ewasm32.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ewasm64.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/exgateelf.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ez80.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ez8001.Po@am__quote@
@@ -2561,6 +2567,11 @@ $(ALL_EMULATION_SOURCES) $(ALL_64_EMULATION_SOURCES): $(GEN_DEPENDS)
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ei386pep.Pc@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/emmo.Pc@am__quote@
 
+easmjs.c: $(srcdir)/emulparams/asmjs.sh \
+  $(srcdir)/emulparams/asmjs.sh $(ELF_DEPS) \
+  $(srcdir)/emultempl/asmjs.em $(srcdir)/scripttempl/asmjs.sc \
+  ${GEN_DEPENDS}
+
 check-DEJAGNU: site.exp
 	srcroot=`cd $(srcdir) && pwd`; export srcroot; \
 	r=`pwd`; export r; \
@@ -2640,6 +2651,16 @@ diststuff: info $(EXTRA_DIST)
 info-recursive: ld.1
 distclean-local:
 	rm -rf ldscripts
+
+ewasm32.c: $(srcdir)/emulparams/wasm32.sh \
+  $(srcdir)/emulparams/wasm32.sh $(ELF_DEPS) \
+  $(srcdir)/emultempl/wasm32.em $(srcdir)/scripttempl/wasm32.sc \
+  ${GEN_DEPENDS}
+
+ewasm64.c: $(srcdir)/emulparams/wasm64.sh \
+  $(srcdir)/emulparams/wasm64.sh $(ELF_DEPS) \
+  $(srcdir)/emultempl/wasm64.em $(srcdir)/scripttempl/wasm64.sc \
+  ${GEN_DEPENDS}
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

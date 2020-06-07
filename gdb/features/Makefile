@@ -46,6 +46,10 @@
 # List of .dat files to create in ../regformats/
 WHICH = arm/arm-with-iwmmxt arm/arm-with-vfpv2 arm/arm-with-vfpv3 \
 	arm/arm-with-neon \
+	asmjs \
+	i386/i386 i386/i386-linux \
+	i386/i386-mmx-linux \
+	i386/amd64 i386/amd64-linux \
 	mips-linux mips-dsp-linux \
 	microblaze-with-stack-protect \
 	mips64-linux mips64-dsp-linux \
@@ -67,12 +71,13 @@ WHICH = arm/arm-with-iwmmxt arm/arm-with-vfpv2 arm/arm-with-vfpv3 \
 	s390-linux32v2 s390-linux64v2 s390x-linux64v2 \
 	s390-te-linux64 s390x-te-linux64 s390-vx-linux64 s390x-vx-linux64 \
 	s390-tevx-linux64 s390x-tevx-linux64 \
-	s390-gs-linux64 s390x-gs-linux64 \
-	tic6x-c64xp-linux tic6x-c64x-linux tic6x-c62x-linux
+	tic6x-c64xp-linux tic6x-c64x-linux tic6x-c62x-linux \
+	wasm32 wasm64
 
-# Record which registers should be sent to GDB by default after stop.
+# record which registers should be sent to gdb by default after stop.
 aarch64-expedite = x29,sp,pc
 arm-expedite = r11,sp,pc
+asmjs-expedite = sp,pc
 i386-expedite = ebp,esp,eip
 amd64-expedite = rbp,rsp,rip
 x32-expedite = rbp,rsp,rip
@@ -95,7 +100,12 @@ s390-vx-linux64-expedite = r14l,r15l,pswa
 s390-tevx-linux64-expedite = r14l,r15l,pswa
 s390-gs-linux64-expedite = r14,r15,pswa
 s390x-expedite = r14,r15,pswa
-tic6x-expedite = A15,PC
+tic6x-expedite = a15,pc
+tic6x-c64xp-linux-expedite = A15,PC
+tic6x-c64x-linux-expedite = A15,PC
+tic6x-c62x-linux-expedite = A15,PC
+wasm32-expedite = sp,pc
+wasm64-expedite = sp,pc
 
 
 XSLTPROC = xsltproc
@@ -135,6 +145,7 @@ XMLTOC = \
 	rs6000/powerpc-altivec32.xml \
 	rs6000/powerpc-altivec32l.xml \
 	rs6000/powerpc-altivec64.xml \
+	asmjs.xml \
 	rs6000/powerpc-altivec64l.xml \
 	rs6000/powerpc-e500.xml \
 	rs6000/powerpc-e500l.xml \
@@ -173,6 +184,8 @@ XMLTOC = \
 	s390x-vx-linux64.xml \
 	s390-gs-linux64.xml \
 	s390x-gs-linux64.xml
+	wasm32.xml \
+	wasm64.xml
 
 TDESC_CFILES = $(patsubst %.xml,%.c,$(XMLTOC))
 GDB = false

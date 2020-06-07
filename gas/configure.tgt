@@ -53,6 +53,7 @@ case ${cpu} in
   arc*eb)		cpu_type=arc endian=big ;;
   arm*be|arm*b)		cpu_type=arm endian=big ;;
   arm*)			cpu_type=arm endian=little ;;
+  asmjs)                cpu_type=asmjs endian=little ;;
   bfin*)		cpu_type=bfin endian=little ;;
   c4x*)			cpu_type=tic4x ;;
   cr16*)		cpu_type=cr16 endian=little ;;
@@ -110,6 +111,7 @@ case ${cpu} in
   v850*)		cpu_type=v850 ;;
   visium)		cpu_type=visium endian=big ;;
   wasm32)               cpu_type=wasm32 endian=little ;;
+  wasm64)               cpu_type=wasm64 endian=little ;;
   x86_64*)		cpu_type=i386 arch=x86_64;;
   xgate)		cpu_type=xgate ;;
   xtensa*)		cpu_type=xtensa arch=xtensa ;;
@@ -158,6 +160,8 @@ case ${generic_target} in
 					fmt=coff em=wince-pe ;;
   arm-*-pe)				fmt=coff em=pe ;;
   arm-*-fuchsia*)			fmt=elf ;;
+
+  asmjs-*-*)                            fmt=elf ;;
 
   avr-*-*)				fmt=elf bfd_gas=yes ;;
 
@@ -413,6 +417,8 @@ case ${generic_target} in
   visium-*-elf)				fmt=elf ;;
 
   wasm32-*-*)                           fmt=elf ;;
+
+  wasm64-*-*)                           fmt=elf ;;
 
   xstormy16-*-*)			fmt=elf ;;
   

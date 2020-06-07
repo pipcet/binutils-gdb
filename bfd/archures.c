@@ -327,6 +327,8 @@ DESCRIPTION
 .#define bfd_mach_arm_ep9312	11
 .#define bfd_mach_arm_iWMMXt	12
 .#define bfd_mach_arm_iWMMXt2	13
+.  bfd_arch_asmjs,
+.#define bfd_mach_asmjs         1
 .#define bfd_mach_arm_5TEJ      14
 .#define bfd_mach_arm_6         15
 .#define bfd_mach_arm_6KZ       16
@@ -540,8 +542,10 @@ DESCRIPTION
 .#define bfd_mach_nios2r2	2
 .  bfd_arch_visium,    {* Visium.  *}
 .#define bfd_mach_visium	1
-.  bfd_arch_wasm32,    {* WebAssembly.  *}
-.#define bfd_mach_wasm32	1
+.  bfd_arch_wasm32,     {* WebAssembly *}
+.#define bfd_mach_wasm32        1
+.  bfd_arch_wasm64,
+.#define bfd_mach_wasm64        1
 .  bfd_arch_pru,       {* PRU.  *}
 .#define bfd_mach_pru		0
 .  bfd_arch_nfp,       {* Netronome Flow Processor *}
@@ -614,6 +618,7 @@ extern const bfd_arch_info_type bfd_aarch64_arch;
 extern const bfd_arch_info_type bfd_alpha_arch;
 extern const bfd_arch_info_type bfd_arc_arch;
 extern const bfd_arch_info_type bfd_arm_arch;
+extern const bfd_arch_info_type bfd_asmjs_arch;
 extern const bfd_arch_info_type bfd_avr_arch;
 extern const bfd_arch_info_type bfd_bfin_arch;
 extern const bfd_arch_info_type bfd_cr16_arch;
@@ -687,6 +692,7 @@ extern const bfd_arch_info_type bfd_v850_rh850_arch;
 extern const bfd_arch_info_type bfd_vax_arch;
 extern const bfd_arch_info_type bfd_visium_arch;
 extern const bfd_arch_info_type bfd_wasm32_arch;
+extern const bfd_arch_info_type bfd_wasm64_arch;
 extern const bfd_arch_info_type bfd_xstormy16_arch;
 extern const bfd_arch_info_type bfd_xtensa_arch;
 extern const bfd_arch_info_type bfd_xc16x_arch;
@@ -703,6 +709,7 @@ static const bfd_arch_info_type * const bfd_archures_list[] =
     &bfd_alpha_arch,
     &bfd_arc_arch,
     &bfd_arm_arch,
+    &bfd_asmjs_arch,
     &bfd_avr_arch,
     &bfd_bfin_arch,
     &bfd_cr16_arch,
@@ -774,6 +781,7 @@ static const bfd_arch_info_type * const bfd_archures_list[] =
     &bfd_vax_arch,
     &bfd_visium_arch,
     &bfd_wasm32_arch,
+    &bfd_wasm64_arch,
     &bfd_xstormy16_arch,
     &bfd_xtensa_arch,
     &bfd_xc16x_arch,

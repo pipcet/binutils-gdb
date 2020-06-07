@@ -99,7 +99,7 @@ wasm_section_name_to_code (const char *name)
 /* Read an LEB128-encoded integer from ABFD's I/O stream, reading one
    byte at a time.  Set ERROR_RETURN if no complete integer could be
    read, LENGTH_RETURN to the number of bytes read (including bytes in
-   incomplete numbers).  SIGN means interpret the number as SLEB128. */
+   incomplete numbers).  SIGN means interpret the number as SLEB128.  */
 
 static bfd_vma
 wasm_read_leb128 (bfd *		  abfd,

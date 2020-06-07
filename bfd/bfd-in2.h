@@ -1727,6 +1727,8 @@ enum bfd_architecture
 #define bfd_mach_arm_ep9312    11
 #define bfd_mach_arm_iWMMXt    12
 #define bfd_mach_arm_iWMMXt2   13
+  bfd_arch_asmjs,
+#define bfd_mach_asmjs         1
 #define bfd_mach_arm_5TEJ      14
 #define bfd_mach_arm_6         15
 #define bfd_mach_arm_6KZ       16
@@ -1956,6 +1958,10 @@ enum bfd_architecture
 #define bfd_mach_ck803         5
 #define bfd_mach_ck807         6
 #define bfd_mach_ck810         7
+  bfd_arch_wasm32,     /* WebAssembly */
+#define bfd_mach_wasm32        1
+  bfd_arch_wasm64,
+#define bfd_mach_wasm64        1
   bfd_arch_last
   };
 
@@ -6190,6 +6196,20 @@ assembler and not (currently) written to any object files.  */
   BFD_RELOC_VISIUM_HI16_PCREL,
   BFD_RELOC_VISIUM_LO16_PCREL,
   BFD_RELOC_VISIUM_IM16_PCREL,
+
+/* asm.js relocations.  */
+  BFD_RELOC_ASMJS_HEX16,
+  BFD_RELOC_ASMJS_HEX16R4,
+  BFD_RELOC_ASMJS_HEX16R12,
+  BFD_RELOC_ASMJS_LEB128,
+  BFD_RELOC_ASMJS_LEB128_R32,
+  BFD_RELOC_ASMJS_LEB128_GOT,
+  BFD_RELOC_ASMJS_LEB128_GOT_CODE,
+  BFD_RELOC_ASMJS_LEB128_PLT,
+  BFD_RELOC_ASMJS_PLT_INDEX,
+  BFD_RELOC_ASMJS_ABS32_CODE,
+  BFD_RELOC_ASMJS_COPY,
+  BFD_RELOC_ASMJS_LAZY,
 
 /* WebAssembly relocations.  */
   BFD_RELOC_WASM32_LEB128,

@@ -132,6 +132,7 @@ TARGET_CPU_CFILES = \
 	config/tc-alpha.c \
 	config/tc-arc.c \
 	config/tc-arm.c \
+	config/tc-asmjs.c \
 	config/tc-avr.c \
 	config/tc-bfin.c \
 	config/tc-bpf.c \
@@ -195,6 +196,7 @@ TARGET_CPU_CFILES = \
 	config/tc-vax.c \
 	config/tc-visium.c \
 	config/tc-wasm32.c \
+	config/tc-wasm64.c \
 	config/tc-xstormy16.c \
 	config/tc-xc16x.c \
 	config/tc-xgate.c \
@@ -208,6 +210,7 @@ TARGET_CPU_HFILES = \
 	config/tc-alpha.h \
 	config/tc-arc.h \
 	config/tc-arm.h \
+	config/tc-asmjs.h \
 	config/tc-avr.h \
 	config/tc-bfin.h \
 	config/tc-bpf.h \
@@ -270,6 +273,7 @@ TARGET_CPU_HFILES = \
 	config/tc-vax.h \
 	config/tc-visium.h \
 	config/tc-wasm32.h \
+	config/tc-wasm64.h \
 	config/tc-xstormy16.h \
 	config/tc-xc16x.h \
 	config/tc-xgate.h \

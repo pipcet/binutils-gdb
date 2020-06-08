@@ -43,6 +43,7 @@ earmelfb_nbsd.c
 earmnto.c
 earmpe.c
 earmsymbian.c
+easmjs.c
 eavr1.c
 eavr2.c
 eavr25.c
@@ -297,6 +298,8 @@ ev850.c
 ev850_rh850.c
 evanilla.c
 evaxnbsd.c
+ewasm32.c
+ewasm64.c
 exgateelf.c
 ez80.c
 ez8001.c

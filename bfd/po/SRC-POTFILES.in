@@ -48,6 +48,7 @@ cpu-alpha.c
 cpu-arc.c
 cpu-arm.c
 cpu-arm.h
+cpu-asmjs.c
 cpu-avr.c
 cpu-bfin.c
 cpu-bpf.c
@@ -122,6 +123,7 @@ cpu-v850_rh850.c
 cpu-vax.c
 cpu-visium.c
 cpu-wasm32.c
+cpu-wasm64.c
 cpu-xc16x.c
 cpu-xgate.c
 cpu-xstormy16.c
@@ -155,6 +157,7 @@ elf32-am33lin.c
 elf32-arc.c
 elf32-arm.c
 elf32-arm.h
+elf32-asmjs.c
 elf32-avr.c
 elf32-avr.h
 elf32-bfin.c
@@ -252,6 +255,7 @@ elf64-s390.c
 elf64-sparc.c
 elf64-tilegx.c
 elf64-tilegx.h
+elf64-wasm64.c
 elf64-x86-64.c
 elf64.c
 elfcode.h

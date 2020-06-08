@@ -44,6 +44,8 @@ config/tc-arc.c
 config/tc-arc.h
 config/tc-arm.c
 config/tc-arm.h
+config/tc-asmjs.c
+config/tc-asmjs.h
 config/tc-avr.c
 config/tc-avr.h
 config/tc-bfin.c
@@ -169,6 +171,8 @@ config/tc-visium.c
 config/tc-visium.h
 config/tc-wasm32.c
 config/tc-wasm32.h
+config/tc-wasm64.c
+config/tc-wasm64.h
 config/tc-xc16x.c
 config/tc-xc16x.h
 config/tc-xgate.c

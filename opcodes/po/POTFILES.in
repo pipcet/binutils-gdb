@@ -15,6 +15,7 @@ arc-dis.c
 arc-ext.c
 arc-opc.c
 arm-dis.c
+asmjs-dis.c
 avr-dis.c
 bfin-dis.c
 bpf-asm.c
@@ -215,6 +216,7 @@ vax-dis.c
 visium-dis.c
 visium-opc.c
 wasm32-dis.c
+wasm64-dis.c
 xc16x-asm.c
 xc16x-desc.c
 xc16x-desc.h

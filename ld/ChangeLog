@@ -1,3 +1,17 @@
+2020-06-07  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* testsuite/ld-elf/shared.exp: Pass $LFLAGS to PR ld/21703
+	shared test.
+
+2020-06-07  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* testsuite/ld-elf/shared.exp: Xfail pr20995/pr20995-2 for
+	tic6x-*-*.
+
+2020-06-07  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* testsuite/ld-elf/pr11304.d: Skip tic6x-*-elf.
+
 2020-06-06  Alan Modra  <amodra@gmail.com>
 
 	* testsuite/ld-elf/comm-data.exp: Don't xfail arm or bfin-linux.

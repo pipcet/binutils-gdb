@@ -3975,7 +3975,7 @@ case "${target}" in
     noconfigdirs="$noconfigdirs target-newlib target-libgloss"
     ;;
   wasm32-*-*)
-    noconfigdirs="$noconfigdirs ld"
+    noconfigdirs="$noconfigdirs gdb"
     ;;
 esac
 

@@ -879,19 +879,17 @@ elf32_wasm32_adjust_dynamic_symbol (struct bfd_link_info *info,
       return TRUE;
     }
 
-#if 0 /* XXX */
   /* If this is a weak symbol, and there is a real definition, the
      processor independent code will have arranged for us to see the
      real definition first, and we can just use the same value.  */
-  if (h->u.weakdef != NULL)
+  if (h->is_weakalias)
     {
-      BFD_ASSERT (h->u.weakdef->root.type == bfd_link_hash_defined
-                  || h->u.weakdef->root.type == bfd_link_hash_defweak);
-      h->root.u.def.section = h->u.weakdef->root.u.def.section;
-      h->root.u.def.value = h->u.weakdef->root.u.def.value;
+      struct elf_link_hash_entry *def = weakdef (h);
+      BFD_ASSERT (def->root.type == bfd_link_hash_defined);
+      h->root.u.def.section = def->root.u.def.section;
+      h->root.u.def.value = def->root.u.def.value;
       return TRUE;
     }
-#endif
 
   /* This is a reference to a symbol defined by a dynamic object which
      is not a function.  */
@@ -1119,12 +1117,14 @@ elf32_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec,
           if (h != NULL && ! bfd_link_pic (info))
             h->non_got_ref = 1;
 
+	  goto make_dynamic_reloc_section;
           break;
         case R_WASM32_32:
           if (h != NULL && bfd_link_executable (info))
             h->non_got_ref = 1;
         /* FALLTHROUGH */
-        default:
+        default: ;
+	make_dynamic_reloc_section: ;
           if (bfd_link_pic (info) &&
               r_symndx != STN_UNDEF &&
               (sec->flags & SEC_ALLOC) != 0)
@@ -1618,12 +1618,10 @@ elf32_wasm32_size_dynamic_sections (bfd * output_bfd,
             s->flags |= SEC_EXCLUDE;
           else
             {
-#if 0
               if (strcmp (s->name, ".rela.plt") != 0)
                 {
                   const char *outname =
-                    bfd_get_section_name (output_bfd,
-                                          htab->srelplt->output_section);
+		    htab->srelplt->output_section->name;
 
                   asection *target = bfd_get_section_by_name (output_bfd,
                                                               outname + 4);
@@ -1634,7 +1632,6 @@ elf32_wasm32_size_dynamic_sections (bfd * output_bfd,
                       && (target->flags & SEC_ALLOC) != 0)
                     reltext_exist = TRUE;
                 }
-#endif
             }
 
           /* We use the reloc_count field as a counter if we need to
@@ -2075,14 +2072,11 @@ elf32_wasm32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
                    && ELF_ST_VISIBILITY (h->other) == STV_DEFAULT)
             {
 	    }
-#if 0
           else if (!bfd_link_relocatable (info))
             (*info->callbacks->undefined_symbol)
-              (info, h->root.root.string, input_bfd,
-               input_section, rel->r_offset,
-               (info->unresolved_syms_in_objects == RM_GENERATE_ERROR
-                || ELF_ST_VISIBILITY (h->other)));
-#endif
+              (info, hh->root.root.root.string,
+	       input_bfd, input_section,
+	       rel->r_offset, TRUE);
         }
       if (sec != NULL && discarded_section (sec))
         {

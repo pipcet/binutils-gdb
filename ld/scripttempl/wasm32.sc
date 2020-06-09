@@ -375,7 +375,10 @@ SECTIONS
   {
     *(.interp);
   }
-  .hash : { *(.hash) }
+  .hash :
+  {
+    *(.hash);
+  }
 EOF
 
 . $srcdir/scripttempl/DWARF.sc

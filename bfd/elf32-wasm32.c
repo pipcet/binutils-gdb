@@ -795,6 +795,9 @@ add_symbol_to_plt (bfd *output_bfd, struct bfd_link_info *info,
         {
           int c = *p++;
 
+	  if (!c)
+	    abort ();
+
           switch (c)
             {
             case 'i':
@@ -1212,20 +1215,18 @@ finish_plt_entry (bfd *output_bfd, struct bfd_link_info *info,
                    (i % 5 == 4) ? 0x00 : 0x80,
                    ds->spltfun->contents + hh->pltfunction + i);
 
-#if 0
       set_uleb128 (output_bfd,
-                   bfd_asymbol_value (&hh->pltsig->root.u.def)
+                   hh->pltsig->root.u.def.value
                    + hh->pltsig->root.u.def.section->output_offset,
                    ds->spltfun->contents + hh->pltfunction,
                    ds->spltfun->contents + hh->pltfunction + 5);
 
       if (hh->pltstub_sigoff)
         set_uleb128 (output_bfd,
-                     bfd_asymbol_value (&hh->pltsig->root.u.def)
+                     hh->pltsig->root.u.def.value
                      + hh->pltsig->root.u.def.section->output_offset,
                      splt->contents + h->plt.offset + hh->pltstub_sigoff,
                      splt->contents + h->plt.offset + hh->pltstub_sigoff + 5);
-#endif
 
       if (PLTNAME) {
         struct elf32_wasm32_link_hash_entry *h4 = (struct elf32_wasm32_link_hash_entry *)h;

@@ -375,8 +375,8 @@ SECTIONS
   {
     *(.interp);
   }
-  # The next line must be on a single line, because glibc performs sed
-  # manipulation on this linker script.
+  /* The next line must be on a single line, because glibc performs sed
+   * manipulation on this linker script. */
   .hash : { *(.hash); }
 EOF
 

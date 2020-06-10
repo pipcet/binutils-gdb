@@ -698,10 +698,10 @@ wasm32_create_dynamic_sections (bfd * abfd ATTRIBUTE_UNUSED,
 
        rleb128_32 1f - 0f  ; function size
 0:     .byte 0             ; no locals
-       get_local 0         ; if there's at least one argument
+       local.get 0         ; if there's at least one argument
        ...
-       get_local <n-1>     ; if there are at least n arguments
-       get_global $plt
+       local.get <n-1>     ; if there are at least n arguments
+       global.get $plt
        i32.const <pltindex>
        i32.add
        call_indirect <pltsig> 0
@@ -729,12 +729,12 @@ build_plt_stub (bfd *output_bfd,
 
   for (i = 0; i < nargs; i++)
     {
-      *p++ = 0x20; /* get_local */
+      *p++ = 0x20; /* local.get */
       *p++ = 0x80; *p++ = 0x80; *p++ = 0x80; *p++ = 0x80; *p++ = 0;
       set_uleb128 (output_bfd, i, p - 5, ret + maxsize);
     }
 
-  *p++ = 0x23; /* get_global */
+  *p++ = 0x23; /* global.get */
   *p++ = 0x01; /* $plt */
   *p++ = 0x41; /* i32.const */
   *pltstub_pltoff = p - ret;

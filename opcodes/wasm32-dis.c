@@ -40,6 +40,7 @@ enum wasm_class
 {
   wasm_typed,
   wasm_special,
+  wasm_escape,
   wasm_break,
   wasm_break_if,
   wasm_break_table,
@@ -47,14 +48,14 @@ enum wasm_class
   wasm_call,
   wasm_call_import,
   wasm_call_indirect,
-  wasm_get_local,
-  wasm_set_local,
-  wasm_tee_local,
+  wasm_local_get,
+  wasm_local_set,
+  wasm_local_tee,
   wasm_drop,
-  wasm_constant_i32,
-  wasm_constant_i64,
-  wasm_constant_f32,
-  wasm_constant_f64,
+  wasm_i32_const,
+  wasm_i64_const,
+  wasm_f32_const,
+  wasm_f64_const,
   wasm_unary,
   wasm_binary,
   wasm_conv,
@@ -89,18 +90,22 @@ static const wasm32_options_t options[] =
   { "globals",   N_("Name well-known globals") },
 };
 
-#define WASM_OPCODE(opcode, name, intype, outtype, clas, signedness)     \
-  { name, wasm_ ## clas, opcode },
+#define WASM_OPCODE(opcode, name, intype, outtype, class, signedness)   \
+  { name, wasm_ ## class, 1, { opcode } },
+#define WASM_OPCODE_2(prefix, opcode, name, intype, outtype, class, signedness) \
+  { name, wasm_ ## class, 2, { prefix, opcode } },
+#define WASM_OPCODE_MAX_LEN 2
 
 struct wasm32_opcode_s
 {
   const char *name;
   enum wasm_class clas;
-  unsigned char opcode;
+  int len;
+  unsigned char opcode[WASM_OPCODE_MAX_LEN];
 } wasm32_opcodes[] =
 {
 #include "opcode/wasm.h"
-  { NULL, 0, 0 }
+  { NULL, 0, 0, { 0, } }
 };
 
 /* Parse the disassembler options in OPTS and initialize INFO.  */
@@ -281,17 +286,30 @@ print_insn_wasm32 (bfd_vma pc, struct disassemble_info *info)
 
   opcode = buffer[0];
 
+  len = 1;
+
   for (op = wasm32_opcodes; op->name; op++)
-    if (op->opcode == opcode)
+    if (op->len == 1 && op->opcode[0] == opcode)
       break;
+
+  while (op->clas == wasm_escape)
+    {
+      char opcodes[WASM_OPCODE_MAX_LEN];
+      for (int i = 0; i < len; i++)
+	opcodes[i] = buffer[i];
+
+      for (op = wasm32_opcodes; op->name; op++)
+	if (op->len == len &&
+	    memcmp (opcodes, op->opcode, len) == 0)
+	  break;
+    }
 
   if (!op->name)
     {
-      prin (stream, "\t.byte 0x%02x\n", buffer[0]);
-      return 1;
+      for (int i = 0; i < len; i++)
+	prin (stream, "\t.byte 0x%02x\n", buffer[i]);
+      return len;
     }
-
-  len = 1;
 
   prin (stream, "\t");
   prin (stream, "%s", op->name);
@@ -327,6 +345,7 @@ print_insn_wasm32 (bfd_vma pc, struct disassemble_info *info)
   switch (op->clas)
     {
     case wasm_special:
+    case wasm_escape:
     case wasm_eqz:
     case wasm_binary:
     case wasm_unary:
@@ -380,8 +399,8 @@ print_insn_wasm32 (bfd_vma pc, struct disassemble_info *info)
     case wasm_return:
       break;
 
-    case wasm_constant_i32:
-    case wasm_constant_i64:
+    case wasm_i32_const:
+    case wasm_i64_const:
       val = wasm_read_leb128 (pc + len, info, &error, &bytes_read, TRUE);
       if (error)
 	return -1;
@@ -389,7 +408,7 @@ print_insn_wasm32 (bfd_vma pc, struct disassemble_info *info)
       prin (stream, " %" PRId64, val);
       break;
 
-    case wasm_constant_f32:
+    case wasm_f32_const:
       {
 	double fconstant;
 	int ret;
@@ -403,7 +422,7 @@ print_insn_wasm32 (bfd_vma pc, struct disassemble_info *info)
       }
       break;
 
-    case wasm_constant_f64:
+    case wasm_f64_const:
       {
 	double fconstant;
 	int ret;
@@ -451,9 +470,9 @@ print_insn_wasm32 (bfd_vma pc, struct disassemble_info *info)
       }
       break;
 
-    case wasm_get_local:
-    case wasm_set_local:
-    case wasm_tee_local:
+    case wasm_local_get:
+    case wasm_local_set:
+    case wasm_local_tee:
       {
 	uint32_t local_index;
 	val = wasm_read_leb128 (pc + len, info, &error, &bytes_read,

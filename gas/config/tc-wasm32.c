@@ -32,20 +32,21 @@ enum wasm_class
   wasm_typed,			/* a typed opcode: block, loop, or if */
   wasm_special,			/* a special opcode: unreachable, nop, else,
 				   or end */
+  wasm_escape,			/* an escape prefix: currently 0xfc */
   wasm_break,			/* "br" */
   wasm_break_if,		/* "br_if" opcode */
   wasm_break_table,		/* "br_table" opcode */
   wasm_return,			/* "return" opcode */
   wasm_call,			/* "call" opcode */
   wasm_call_indirect,		/* "call_indirect" opcode */
-  wasm_get_local,		/* "get_local" and "get_global" */
-  wasm_set_local,		/* "set_local" and "set_global" */
-  wasm_tee_local,		/* "tee_local" */
+  wasm_local_get,		/* "local.get" and "global.get" */
+  wasm_local_set,		/* "local.set" and "global.set" */
+  wasm_local_tee,		/* "local.tee" */
   wasm_drop,			/* "drop" */
-  wasm_constant_i32,		/* "i32.const" */
-  wasm_constant_i64,		/* "i64.const" */
-  wasm_constant_f32,		/* "f32.const" */
-  wasm_constant_f64,		/* "f64.const" */
+  wasm_i32_const,		/* "i32.const" */
+  wasm_i64_const,		/* "i64.const" */
+  wasm_f32_const,		/* "f32.const" */
+  wasm_f64_const,		/* "f64.const" */
   wasm_unary,			/* unary operators */
   wasm_binary,			/* binary operators */
   wasm_conv,			/* conversion operators */
@@ -60,18 +61,21 @@ enum wasm_class
 };
 
 #define WASM_OPCODE(opcode, name, intype, outtype, class, signedness)   \
-  { name, wasm_ ## class, opcode },
+  { name, wasm_ ## class, 1, { opcode } },
+#define WASM_OPCODE_2(prefix, opcode, name, intype, outtype, class, signedness) \
+  { name, wasm_ ## class, 2, { prefix, opcode } },
+#define WASM_OPCODE_MAX_LEN 2
 
 struct wasm32_opcode_s
 {
   const char *name;
   enum wasm_class clas;
-  unsigned char opcode;
+  int len;
+  unsigned char opcode[WASM_OPCODE_MAX_LEN];
 } wasm32_opcodes[] =
 {
 #include "opcode/wasm.h"
-  {
-  NULL, 0, 0}
+  { NULL, 0, 0, { 0, } }
 };
 
 const char comment_chars[] = ";#";
@@ -591,7 +595,8 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
   char *str = *line;
   unsigned long block_type = 0;
 
-  FRAG_APPEND_1_CHAR (opcode->opcode);
+  for (int i = 0; i < opcode->len; i++)
+    FRAG_APPEND_1_CHAR (opcode->opcode[i]);
   str = skip_space (str);
   if (str[0] == '[')
     {
@@ -642,6 +647,7 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
     {
     case wasm_drop:
     case wasm_special:
+    case wasm_escape:
     case wasm_binary:
     case wasm_unary:
     case wasm_relational:
@@ -671,9 +677,9 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
       if (!wasm32_uleb128 (&str, 32))
 	as_bad (_("missing offset"));
       break;
-    case wasm_set_local:
-    case wasm_get_local:
-    case wasm_tee_local:
+    case wasm_local_set:
+    case wasm_local_get:
+    case wasm_local_tee:
       if (!wasm32_uleb128 (&str, 32))
 	as_bad (_("missing local index"));
       break;
@@ -697,16 +703,16 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
       if (!wasm32_uleb128 (&str, 32))
 	as_bad (_("missing table index"));
       break;
-    case wasm_constant_i32:
+    case wasm_i32_const:
       wasm32_sleb128 (&str, 32);
       break;
-    case wasm_constant_i64:
+    case wasm_i64_const:
       wasm32_sleb128 (&str, 64);
       break;
-    case wasm_constant_f32:
+    case wasm_f32_const:
       wasm32_f32 (&str);
       return;
-    case wasm_constant_f64:
+    case wasm_f64_const:
       wasm32_f64 (&str);
       return;
     case wasm_break_table:

@@ -1,3 +1,3 @@
         .text
-        get_local 0
-        get_global 0
+        local.get 0
+        global.get 0

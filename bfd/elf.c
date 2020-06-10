@@ -5385,34 +5385,6 @@ vma_page_aligned_bias (bfd_vma vma, ufile_ptr off, bfd_vma maxpagesize)
   return ((vma - off) % maxpagesize);
 }
 
-static void
-print_segment_map (const struct elf_segment_map *m)
-{
-  unsigned int j;
-  const char *pt = get_segment_type (m->p_type);
-  char buf[32];
-
-  if (pt == NULL)
-    {
-      if (m->p_type >= PT_LOPROC && m->p_type <= PT_HIPROC)
-	sprintf (buf, "LOPROC+%7.7x",
-		 (unsigned int) (m->p_type - PT_LOPROC));
-      else if (m->p_type >= PT_LOOS && m->p_type <= PT_HIOS)
-	sprintf (buf, "LOOS+%7.7x",
-		 (unsigned int) (m->p_type - PT_LOOS));
-      else
-	snprintf (buf, sizeof (buf), "%8.8x",
-		  (unsigned int) m->p_type);
-      pt = buf;
-    }
-  fflush (stdout);
-  fprintf (stderr, "%s:", pt);
-  for (j = 0; j < m->count; j++)
-    fprintf (stderr, " %s", m->sections [j]->name);
-  putc ('\n',stderr);
-  fflush (stderr);
-}
-
 static bfd_boolean
 write_zeros (bfd *abfd, file_ptr pos, bfd_size_type len)
 {
@@ -5953,63 +5925,6 @@ assign_file_positions_for_load_sections (bfd *abfd,
 	}
 
       off -= off_adjust;
-
-      /* PR ld/20815 - Check that the program header segment, if
-	 present, will be loaded into memory.  */
-      if (p->p_type == PT_PHDR
-	  && phdr_load_seg == NULL
-	  && !(bed->elf_backend_allow_non_load_phdr != NULL
-	       && bed->elf_backend_allow_non_load_phdr (abfd, phdrs, alloc)))
-	{
-	  /* The fix for this error is usually to edit the linker script being
-	     used and set up the program headers manually.  Either that or
-	     leave room for the headers at the start of the SECTIONS.  */
-	  _bfd_error_handler (_("%pB: error: PHDR segment not covered"
-				" by LOAD segment"),
-			      abfd);
-	  if (link_info == NULL)
-	    return FALSE;
-	  /* Arrange for the linker to exit with an error, deleting
-	     the output file unless --noinhibit-exec is given.  */
-	  link_info->callbacks->info ("%X");
-	}
-
-      /* Check that all sections are in a PT_LOAD segment.
-	 Don't check funky gdb generated core files.  */
-      if (p->p_type == PT_LOAD && bfd_get_format (abfd) != bfd_core)
-	{
-	  bfd_boolean check_vma = TRUE;
-
-	  for (i = 1; i < m->count; i++)
-	    if (m->sections[i]->vma == m->sections[i - 1]->vma
-		&& ELF_SECTION_SIZE (&(elf_section_data (m->sections[i])
-				       ->this_hdr), p) != 0
-		&& ELF_SECTION_SIZE (&(elf_section_data (m->sections[i - 1])
-				       ->this_hdr), p) != 0)
-	      {
-		/* Looks like we have overlays packed into the segment.  */
-		check_vma = FALSE;
-		break;
-	      }
-
-	  for (i = 0; i < m->count; i++)
-	    {
-	      Elf_Internal_Shdr *this_hdr;
-	      asection *sec;
-
-	      sec = m->sections[i];
-	      this_hdr = &(elf_section_data(sec)->this_hdr);
-	      if (!ELF_SECTION_IN_SEGMENT_1 (this_hdr, p, check_vma, 0)
-		  && !ELF_TBSS_SPECIAL (this_hdr, p))
-		{
-		  _bfd_error_handler
-		    /* xgettext:c-format */
-		    (_("%pB: section `%pA' can't be allocated in segment %d"),
-		     abfd, sec, j);
-		  print_segment_map (m);
-		}
-	    }
-	}
     }
 
   elf_next_file_pos (abfd) = off;

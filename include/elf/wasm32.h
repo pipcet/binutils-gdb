@@ -36,6 +36,8 @@ START_RELOC_NUMBERS (elf_wasm32_reloc_type)
   RELOC_NUMBER (R_WASM32_CODE_POINTER,            10)
   RELOC_NUMBER (R_WASM32_INDEX,                   11)
   RELOC_NUMBER (R_WASM32_PLT_SIG,                 12)
-END_RELOC_NUMBERS (R_WASM32_max = 12)
+  RELOC_NUMBER (R_WASM32_REL32_CODE,           	  13)
+  RELOC_NUMBER (R_WASM32_PLT_LAZY,           	  14)
+END_RELOC_NUMBERS (R_WASM32_max = 14)
 
 #endif /* _ELF_WASM32_H */

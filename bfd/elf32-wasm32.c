@@ -82,6 +82,21 @@ static reloc_howto_type elf32_wasm32_howto_table[] =
          0xffffffff,		/* dst_mask */
          FALSE),		/* pcrel_offset */
 
+  /* 32-bit relative relocation.  */
+  HOWTO (R_WASM32_REL32_CODE,	/* type */
+         0,			/* rightshift */
+         2,			/* size (0 = byte, 1 = short, 2 = long) */
+         32,			/* bitsize */
+         TRUE,			/* pc_relative */
+         0,			/* bitpos */
+         complain_overflow_bitfield,/* complain_on_overflow */
+         bfd_elf_generic_reloc,	/* special_function */
+         "R_WASM32_REL32_CODE",	/* name */
+         FALSE,			/* partial_inplace */
+         0xffffffff,		/* src_mask */
+         0xffffffff,		/* dst_mask */
+         FALSE),		/* pcrel_offset */
+
   /* Standard LEB-128 relocation.  */
   HOWTO (R_WASM32_LEB128,	/* type */
          0,			/* rightshift */
@@ -228,6 +243,21 @@ static reloc_howto_type elf32_wasm32_howto_table[] =
          complain_overflow_bitfield,/* complain_on_overflow */
          bfd_elf_generic_reloc,	/* special_function */
          "R_WASM32_PLT_SIG",       /* name */
+         FALSE,			/* partial_inplace */
+         0,			/* src_mask */
+         0,			/* dst_mask */
+         FALSE),		/* pcrel_offset */
+
+  /* Dummy relocation to specify PLT laziness.  */
+  HOWTO (R_WASM32_PLT_LAZY,     /* type */
+         0,			/* rightshift */
+         0,			/* size (0 = byte, 1 = short, 2 = long) */
+         32,			/* bitsize */
+         FALSE,			/* pc_relative */
+         0,			/* bitpos */
+         complain_overflow_bitfield,/* complain_on_overflow */
+         bfd_elf_generic_reloc,	/* special_function */
+         "R_WASM32_PLT_LAZY",       /* name */
          FALSE,			/* partial_inplace */
          0,			/* src_mask */
          0,			/* dst_mask */
@@ -1322,9 +1352,10 @@ elf32_wasm32_finish_dynamic_symbol (bfd * output_bfd,
          initialized in the relocate_section function.  */
       if (bfd_link_pic (info)
           && (info->symbolic || h->dynindx == -1)
-          && h->def_regular)
+          && h->def_regular
+	  && (h->got.offset & 2) == 0)
         {
-          rel.r_info = ELF32_R_INFO (0, R_WASM32_REL32);
+          rel.r_info = ELF32_R_INFO (0, (h->got.offset & 2) ? R_WASM32_REL32_CODE : R_WASM32_REL32);
           rel.r_addend = (h->root.u.def.value
                           + h->root.u.def.section->output_section->vma
                           + h->root.u.def.section->output_offset);
@@ -2200,7 +2231,7 @@ elf32_wasm32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
                       h->got.offset |= 1;
                     }
                 }
-              relocation = sgot->output_offset/*XXX*/ + (off & -4);
+              relocation = /*sgot->output_offset XXX*/ + (off & -4);
             }
           else
             {
@@ -2255,8 +2286,8 @@ elf32_wasm32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
                 }
               relocation = sgot->output_offset + (off&-4);
             }
+	  relocation += 0x40; /* XXX magic constant */
 
-          relocation += 0x40; /* XXX magic constant */
           goto final_link_relocate;
 
         case R_WASM32_32:

@@ -378,7 +378,8 @@ SECTIONS
   }
   /* The next line must be on a single line, because glibc performs sed
    * manipulation on this linker script. */
-  .hash : { *(.hash); }
+  .hash (INFO) : { *(.hash); }
+  .gnu.hash (INFO) : { *(.gnu.hash); }
 EOF
 
 . $srcdir/scripttempl/DWARF.sc

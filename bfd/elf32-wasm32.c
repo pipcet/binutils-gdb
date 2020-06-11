@@ -2031,7 +2031,10 @@ elf32_wasm32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
       else /* Global symbol. */
         {
           if (sym_hashes == NULL)
-            return FALSE;
+	    {
+	      fprintf (stderr, "no sym_hashes!\n");
+	      return FALSE;
+	    }
 
           h = sym_hashes[r_symndx - symtab_hdr->sh_info];
           hh = (struct elf32_wasm32_link_hash_entry *)h;
@@ -2157,7 +2160,10 @@ elf32_wasm32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
 
                   if (h->dynindx == -1)
                     if (! bfd_elf_link_record_dynamic_symbol (info, h))
-                      return FALSE;
+		      {
+			fprintf (stderr, "failed to record dynamic symbol!\n");
+			return FALSE;
+		      }
 
                   sgot->size += 4;
                 }
@@ -2276,7 +2282,10 @@ elf32_wasm32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
                   sreloc = _bfd_elf_get_dynamic_reloc_section
                     (input_bfd, input_section, /*rela?*/ TRUE);
                   if (sreloc == NULL)
-                    return FALSE;
+		    {
+		      fprintf (stderr, "no sreloc section\n");
+		      return FALSE;
+		    }
                 }
 
               skip = FALSE;
@@ -2371,7 +2380,10 @@ elf32_wasm32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
                     name = (bfd_elf_string_from_elf_section
                             (input_bfd, symtab_hdr->sh_link, sym->st_name));
                     if (name == NULL)
-                      return FALSE;
+		      {
+			fprintf (stderr, "no name in reloc overflow!\n");
+			return FALSE;
+		      }
                     if (*name == '\0')
                       name = bfd_section_name (sec);
                   }

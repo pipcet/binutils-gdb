@@ -5666,7 +5666,7 @@ expression via the @code{ORIGIN(@var{memory})} and
 @cindex ELF program headers
 @cindex program segments
 @cindex segments, ELF
-The ELF object file format uses @dfn{program headers}, also knows as
+The ELF object file format uses @dfn{program headers}, also known as
 @dfn{segments}.  The program headers describe how the program should be
 loaded into memory.  You can print them out by using the @code{objdump}
 program with the @samp{-p} option.

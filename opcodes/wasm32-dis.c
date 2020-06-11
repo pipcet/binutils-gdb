@@ -294,13 +294,11 @@ print_insn_wasm32 (bfd_vma pc, struct disassemble_info *info)
 
   while (op->clas == wasm_escape)
     {
-      char opcodes[WASM_OPCODE_MAX_LEN];
-      for (int i = 0; i < len; i++)
-	opcodes[i] = buffer[i];
+      len++;
 
       for (op = wasm32_opcodes; op->name; op++)
 	if (op->len == len &&
-	    memcmp (opcodes, op->opcode, len) == 0)
+	    memcmp (buffer, op->opcode, len) == 0)
 	  break;
     }
 

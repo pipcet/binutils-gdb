@@ -195,7 +195,7 @@ SECTIONS
     KEEP(*(.space.import.*));
     KEEP(*(.space.import_.plt));
     KEEP(*(.space.import_.pplt));
-    .wasm.pc_end = .;
+    .wasm.import_end = .;
   }
   .space.function 0 (INFO) :
   {

@@ -6220,6 +6220,8 @@ assembler and not (currently) written to any object files.  */
   BFD_RELOC_WASM32_CODE_POINTER,
   BFD_RELOC_WASM32_INDEX,
   BFD_RELOC_WASM32_PLT_SIG,
+  BFD_RELOC_WASM32_REL32_CODE,
+  BFD_RELOC_WASM32_PLT_LAZY,
 
 /* C-SKY relocations.  */
   BFD_RELOC_CKCORE_NONE,

@@ -2167,6 +2167,7 @@ elf32_wasm32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
               bfd_put_8 (abfd, 0, contents + rel->r_offset + 2);
               bfd_put_8 (abfd, 0, contents + rel->r_offset + 3);
               bfd_put_8 (abfd, 0, contents + rel->r_offset + 4);
+	      r = bfd_reloc_ok;
               break;
             }
 

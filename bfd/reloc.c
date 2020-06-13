@@ -411,6 +411,7 @@ bfd_get_reloc_size (reloc_howto_type *howto)
     case 3: return 0;
     case 4: return 8;
     case 5: return 3;
+    case 7: return 10;
     default: abort ();
     }
 }
@@ -572,9 +573,6 @@ read_reloc (bfd *abfd, bfd_byte *data, reloc_howto_type *howto)
 
     case 5:
       return bfd_get_24 (abfd, data);
-
-    default:
-      abort ();
     }
   return 0;
 }
@@ -611,9 +609,6 @@ write_reloc (bfd *abfd, bfd_vma val, bfd_byte *data, reloc_howto_type *howto)
     case 5:
       bfd_put_24 (abfd, val, data);
       break;
-
-    default:
-      abort ();
     }
 }
 

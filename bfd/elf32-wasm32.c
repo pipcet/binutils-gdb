@@ -1230,7 +1230,7 @@ finish_plt_entry (bfd *output_bfd, struct bfd_link_info *info,
       plt_index = hh->plt_index;
       memcpy (splt->contents + h->plt.offset, hh->pltstub, hh->pltstub_size);
 
-      set_uleb128 (output_bfd, plt_index,
+      set_uleb128 (output_bfd, plt_index + plt_bias,
                    splt->contents + h->plt.offset + hh->pltstub_pltoff,
                    splt->contents + h->plt.offset + hh->pltstub_pltoff + 5);
 
@@ -1239,7 +1239,7 @@ finish_plt_entry (bfd *output_bfd, struct bfd_link_info *info,
                    (i % 5 == 4) ? 0x00 : 0x80,
                    spltelem->contents + 5 * plt_index + i);
 
-      set_uleb128 (output_bfd, plt_index,
+      set_uleb128 (output_bfd, plt_index + plt_bias,
                    spltelem->contents + 5 * plt_index,
                    spltelem->contents + 5 * plt_index + 5);
 
@@ -1305,7 +1305,7 @@ finish_plt_entry (bfd *output_bfd, struct bfd_link_info *info,
       }
 
       /* Fill in the entry in the .rela.plt section.  */
-      rel.r_offset = plt_index;
+      rel.r_offset = plt_index + plt_bias;
       rel.r_info = ELF32_R_INFO (h->dynindx, R_WASM32_PLT_INDEX);
       rel.r_addend = 0;
       loc = srel->contents + plt_index * sizeof (Elf32_External_Rela);

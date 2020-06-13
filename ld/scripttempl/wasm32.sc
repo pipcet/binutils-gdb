@@ -7,7 +7,7 @@ EOF
 else
 cat <<EOF
 ENTRY(_start)
-STARTUP(/home/pip/wasm/lib/wasm32-headers.o)
+STARTUP(wasm32-headers.o)
 SECTIONS
 {
   . = 8192;

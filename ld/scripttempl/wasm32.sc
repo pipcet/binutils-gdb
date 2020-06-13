@@ -35,13 +35,16 @@ SECTIONS
   }
   .got :
   {
-     . = ALIGN(., 16);
-     __data_start = .;
-     *(.got)
+    . = ALIGN(., 16);
+    __data_start = .;
+    *(.got)
+    . = ALIGN(., 16);
   }
   .got.plt :
   {
+    . = ALIGN(., 16);
     *(.got.plt)
+    . = ALIGN(., 16);
   }
   .data :
   {

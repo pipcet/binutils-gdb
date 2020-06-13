@@ -62,7 +62,7 @@ static reloc_howto_type elf32_wasm32_howto_table[] =
 	 complain_overflow_bitfield,/* complain_on_overflow */
 	 bfd_elf_generic_reloc,	/* special_function */
 	 "R_WASM32_32",	/* name */
-	 FALSE,			/* partial_inplace */
+	 TRUE,			/* partial_inplace */
 	 0xffffffff,		/* src_mask */
 	 0xffffffff,		/* dst_mask */
 	 FALSE),		/* pcrel_offset */
@@ -153,7 +153,7 @@ static reloc_howto_type elf32_wasm32_howto_table[] =
          complain_overflow_bitfield,/* complain_on_overflow */
          bfd_elf_generic_reloc,	/* special_function */
          "R_WASM32_32_CODE",	/* name */
-         FALSE,			/* partial_inplace */
+         TRUE,			/* partial_inplace */
          0xffffffff,		/* src_mask */
          0xffffffff,		/* dst_mask */
          FALSE),		/* pcrel_offset */
@@ -355,7 +355,8 @@ elf32_wasm32_info_to_howto_rela (bfd *abfd ATTRIBUTE_UNUSED,
   return cache_ptr->howto != NULL;
 }
 
-/* Whether to generate a "name" section entry for PLT stubs.  */
+/* Whether to generate a "name" section entry for PLT stubs.  Should
+   be a user option.  */
 #define PLTNAME 1
 
 #define TARGET_LITTLE_SYM	wasm32_elf32_vec
@@ -1154,14 +1155,12 @@ elf32_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec,
           if (h != NULL && ! bfd_link_pic (info))
             h->non_got_ref = 1;
 
-	  goto make_dynamic_reloc_section;
           break;
         case R_WASM32_32:
           if (h != NULL && bfd_link_executable (info))
             h->non_got_ref = 1;
         /* FALLTHROUGH */
         default: ;
-	make_dynamic_reloc_section: ;
           if (bfd_link_pic (info) &&
               r_symndx != STN_UNDEF &&
               (sec->flags & SEC_ALLOC) != 0)
@@ -1231,7 +1230,7 @@ finish_plt_entry (bfd *output_bfd, struct bfd_link_info *info,
       plt_index = hh->plt_index;
       memcpy (splt->contents + h->plt.offset, hh->pltstub, hh->pltstub_size);
 
-      set_uleb128 (output_bfd, plt_index + plt_bias,
+      set_uleb128 (output_bfd, plt_index,
                    splt->contents + h->plt.offset + hh->pltstub_pltoff,
                    splt->contents + h->plt.offset + hh->pltstub_pltoff + 5);
 
@@ -1240,7 +1239,7 @@ finish_plt_entry (bfd *output_bfd, struct bfd_link_info *info,
                    (i % 5 == 4) ? 0x00 : 0x80,
                    spltelem->contents + 5 * plt_index + i);
 
-      set_uleb128 (output_bfd, plt_index + plt_bias,
+      set_uleb128 (output_bfd, plt_index,
                    spltelem->contents + 5 * plt_index,
                    spltelem->contents + 5 * plt_index + 5);
 
@@ -1306,7 +1305,7 @@ finish_plt_entry (bfd *output_bfd, struct bfd_link_info *info,
       }
 
       /* Fill in the entry in the .rela.plt section.  */
-      rel.r_offset = plt_index + plt_bias;
+      rel.r_offset = plt_index;
       rel.r_info = ELF32_R_INFO (h->dynindx, R_WASM32_PLT_INDEX);
       rel.r_addend = 0;
       loc = srel->contents + plt_index * sizeof (Elf32_External_Rela);
@@ -2149,8 +2148,6 @@ elf32_wasm32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
               bfd_vma plt_bias = ds->spltidx->output_offset;
               bfd_vma plt_index = hh->plt_index;
 
-              plt_index = hh->plt_index;
-
               relocation = plt_index + plt_bias;
               addend = rel->r_addend;
             }
@@ -2295,11 +2292,10 @@ elf32_wasm32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
 
         case R_WASM32_32:
         case R_WASM32_32_CODE:
-        case R_WASM32_LEB128:
           if (bfd_link_pic (info)
-              && (sym == NULL && (h == NULL
-				  || ELF_ST_VISIBILITY (h->other) == STV_DEFAULT
-				  || h->root.type != bfd_link_hash_undefweak))
+              && (h == NULL
+		  || ELF_ST_VISIBILITY (h->other) == STV_DEFAULT
+		  || h->root.type != bfd_link_hash_undefweak)
               && r_symndx != STN_UNDEF
               && (input_section->flags & SEC_ALLOC) != 0)
             {
@@ -2374,6 +2370,7 @@ elf32_wasm32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
                 continue;
             }
         /* FALLTHROUGH */
+        case R_WASM32_LEB128:
         case R_WASM32_REL32:
           addend = rel->r_addend;
         final_link_relocate:

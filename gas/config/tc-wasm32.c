@@ -694,7 +694,7 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
     case wasm_current_memory:
     case wasm_grow_memory:
       if (!wasm32_uleb128 (&str, 32))
-	as_bad (_("missing reserved current_memory/grow_memory argument"));
+	as_bad (_("missing reserved memory.size/memory.grow argument"));
       break;
     case wasm_call:
       if (!wasm32_uleb128 (&str, 32))

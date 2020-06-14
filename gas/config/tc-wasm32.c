@@ -64,7 +64,10 @@ enum wasm_class
   { name, wasm_ ## class, 1, { opcode } },
 #define WASM_OPCODE_2(prefix, opcode, name, intype, outtype, class, signedness) \
   { name, wasm_ ## class, 2, { prefix, opcode } },
-#define WASM_OPCODE_MAX_LEN 2
+#define WASM_PROPOSED_OPCODE(opcode, ...)
+#define WASM_PROPOSED_OPCODE_2(opcode, ...)
+#define WASM_PROPOSED_OPCODE_3(opcode, ...)
+#define WASM_OPCODE_MAX_LEN 3
 
 struct wasm32_opcode_s
 {

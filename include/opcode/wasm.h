@@ -277,6 +277,19 @@ WASM_OPCODE_2 (0xfc, 0x05, "i64.trunc_sat_f32_u", f32, i64, conv, unsigned)
 WASM_OPCODE_2 (0xfc, 0x06, "i64.trunc_sat_f64_s", f64, i64, conv, signed)
 WASM_OPCODE_2 (0xfc, 0x07, "i64.trunc_sat_f64_u", f64, i64, conv, unsigned)
 
+WASM_PROPOSED_OPCODE (0xfe, THREADS,
+		      "escape_fe", void, void, escape, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x00, THREADS,
+			"memory.atomic.notify", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x01, THREADS,
+			"memory.atomic.notify", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x02, THREADS,
+			"memory.atomic.notify", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x03, THREADS,
+			"escape_fe03", void, void, escape, agnostic,)
+WASM_PROPOSED_OPCODE_3 (0xfe, 0x03, 0x00, THREADS,
+			"memory.atomic.notify", access, agnostic)
+
 WASM_PROPOSED_OPCODE_2 (0xfe, 0x10, THREADS,
 			"i32.atomic.load", access, agnostic)
 WASM_PROPOSED_OPCODE_2 (0xfe, 0x11, THREADS,

@@ -60,6 +60,57 @@ enum wasm_class
   wasm_signature		/* "signature", which isn't an opcode */
 };
 
+enum wasm_immediate
+{
+  wasm_block_type,              /* block type, usually 0x40 */
+  wasm_block,                   /* relative block depth, LEB-128 */
+  wasm_block_table,             /* LEB-128 count followed by count LEB-128s */
+  wasm_memarg,                  /* ??? */
+  wasm_i32,
+  wasm_i64,
+  wasm_f32,
+  wasm_f64,
+  wasm_function,                /* LEB-128 function index */
+  wasm_local,                   /* LEB-128 local index */
+  wasm_global,                  /* LEB-128 global index */
+};
+
+#define WASM_OPCODE_MAX_LEN 3
+#define WASM_OPCODE_MAX_IMMEDIATES 3
+struct new_wasm32_opcode_s
+{
+  const char *name;
+  int immediate_len;
+  enum wasm_immediate immediates[WASM_OPCODE_MAX_IMMEDIATES];
+  int opcode_len;
+  char opcodes[WASM_OPCODE_MAX_LEN];
+  char *proposal;
+} new_wasm32_opcodes[] =
+{
+#define WASM_OPCODE(bytes, proposal, mnemonic, immediates, intype, outype) \
+  {									\
+    mnemonic,								\
+    sizeof ((immediate_type[]) immediates), immediates,		\
+    sizeof ((char[]) bytes), bytes,				\
+    proposal							\
+  }
+
+#define WASM_PREFIX(bytes, proposal, mnemonic)		\
+  {							\
+    mnemonic,						\
+    0, {},						\
+    sizeof ((char[]) bytes), bytes,			\
+    proposal						\
+  }
+
+#if 0
+#include "opcode/wasm.h"
+#endif
+  { NULL, 0, {}, 0, {}, 0 }
+};
+#undef WASM_OPCODE
+#undef WASM_PREFIX
+
 #define WASM_OPCODE(opcode, name, intype, outtype, class, signedness)   \
   { name, wasm_ ## class, 1, { opcode } },
 #define WASM_OPCODE_2(prefix, opcode, name, intype, outtype, class, signedness) \
@@ -67,7 +118,6 @@ enum wasm_class
 #define WASM_PROPOSED_OPCODE(opcode, ...)
 #define WASM_PROPOSED_OPCODE_2(opcode, ...)
 #define WASM_PROPOSED_OPCODE_3(opcode, ...)
-#define WASM_OPCODE_MAX_LEN 3
 
 struct wasm32_opcode_s
 {
@@ -88,7 +138,7 @@ const char line_separator_chars[] = "";
 const char *md_shortopts = "m:";
 
 const char EXP_CHARS[] = "eE";
-const char FLT_CHARS[] = "dD";
+const char FLT_CHARS[] = "dD"; /* XXX */
 
 /* The target specific pseudo-ops which we support.  */
 

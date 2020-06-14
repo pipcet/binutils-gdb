@@ -21,13 +21,39 @@
 /* WebAssembly opcodes.  Each opcode invokes the WASM_OPCODE macro
    with the following arguments:
 
-   1. Code byte.
+   1. Code bytes.
    2. Mnemonic.
+   3. Immediate types.
    3. Input type.
    4. Output type.
    5. Opcode class.
-   6. Signedness information.
 */
+
+#if 0
+WASM_OPCODE ({0x00}, "unreachable", {}, void, void)
+WASM_OPCODE ({0x01}, "nop", {}, void, void)
+WASM_OPCODE ({0x02}, "block", {wasm_block_type}, void, void)
+WASM_OPCODE ({0x03}, "loop", {wasm_block_type}, void, void)
+WASM_OPCODE ({0x04}, "if", {wasm_block_type}, void, void)
+WASM_OPCODE ({0x05}, "else", {}, void, void)
+WASM_OPCODE ({0x06}, "try", EXCEPTIONS, {}, void, void)
+WASM_OPCODE ({0x0b}, "end", {}, void, void)
+WASM_OPCODE ({0x0c}, "br", {wasm_block}, void, void)
+WASM_OPCODE ({0x0d}, "br_if", {wasm_block}, i32, void)
+WASM_OPCODE ({0x0e}, "br_table", {wasm_block_table}, i32, void)
+WASM_OPCODE ({0x0f}, "return", {}, void, void)
+WASM_OPCODE ({0x10}, "call", {wasm_function}, many, any_or_void)
+WASM_OPCODE ({0x11}, "call_indirect", {}, many, any_or_void)
+WASM_OPCODE ({0x12}, "return_call", TAIL_CALL, {wasm_function}, many, any_or_void)
+WASM_OPCODE ({0x13}, "return_call_indirect", TAIL_CALL, {}, many, any_or_void)
+WASM_OPCODE ({0x1a}, "drop", {}, any, void)
+WASM_OPCODE ({0x1b}, "select", {}, any_three, any)
+WASM_OPCODE ({0x20}, "local.get", {wasm_local}, void, any)
+WASM_OPCODE ({0x21}, "local.set", {wasm_local}, void, any)
+WASM_OPCODE ({0x22}, "local.tee", {wasm_local}, void, any)
+WASM_OPCODE ({0x23}, "global.get", {wasm_global}, void, any)
+WASM_OPCODE ({0x24}, "global.get", {wasm_global}, void, any)
+#endif
 
 WASM_OPCODE (0x00, "unreachable", void, void, special, agnostic)
 WASM_OPCODE (0x01, "nop", void, void, special, agnostic)
@@ -430,5 +456,5 @@ WASM_PROPOSED_OPCODE_2 (0xfe, 0x4e, THREADS,
 			"i64.atomic.rmw32.cmpxchg_u", access, agnostic)
 
 /* This isn't, strictly speaking, an opcode, but is treated as such by
-   the assembler.  */
+   the assembler.  XXX is this still true?  */
 WASM_OPCODE (0x60, "signature", void, void, signature, agnostic)

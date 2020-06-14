@@ -42,6 +42,16 @@ WASM_OPCODE (0x05, "else", void, void, special, agnostic)
 #define WASM_PROPOSAL_NONTRAPPING_CONVERSIONS "non-trapping conversions"
 /* https://github.com/WebAssembly/exception-handling/blob/master/proposals/Exceptions.md */
 #define WASM_PROPOSAL_BULK_MEMORY "https://github.com/WebAssembly/bulk-memory-operations/blob/master/proposals/bulk-memory-operations/Overview.md"
+WASM_PROPOSED_OPCODE (0x06, EXCEPTIONS,
+		      "try", void, void, special, agnostic)
+WASM_PROPOSED_OPCODE (0x07, EXCEPTIONS,
+		      "catch", void, void, special, agnostic)
+WASM_PROPOSED_OPCODE (0x08, EXCEPTIONS,
+		      "throw", void, void, special, agnostic)
+WASM_PROPOSED_OPCODE (0x09, EXCEPTIONS,
+		      "rethrow", void, void, special, agnostic)
+WASM_PROPOSED_OPCODE (0x0a, EXCEPTIONS,
+		      "br_on_exn", void, void, special, agnostic)
 /* "end": Not listed as an instruction in the WebAssembly spec.  */
 WASM_OPCODE (0x0b, "end", void, void, special, agnostic)
 WASM_OPCODE (0x0c, "br", void, void, break, agnostic)
@@ -51,6 +61,11 @@ WASM_OPCODE (0x0f, "return", void, void, return, agnostic)
 
 WASM_OPCODE (0x10, "call", any, any, call, agnostic)
 WASM_OPCODE (0x11, "call_indirect", any, any, call_indirect, agnostic)
+
+WASM_PROPOSED_OPCODE (0x12, TAIL_CALL,
+		      "return_call", any, void, call, agnostic)
+WASM_PROPOSED_OPCODE (0x13, TAIL_CALL,
+		      "return_call_indirect", any, void, call, agnostic)
 
 WASM_OPCODE (0x1a, "drop", any, any, drop, agnostic)
 WASM_OPCODE (0x1b, "select", any, any, select, agnostic)
@@ -244,10 +259,158 @@ WASM_OPCODE_2 (0xfc, 0x01, "i32.trunc_sat_f32_u", f32, i32, conv, unsigned)
 WASM_OPCODE_2 (0xfc, 0x02, "i32.trunc_sat_f64_s", f64, i32, conv, signed)
 WASM_OPCODE_2 (0xfc, 0x03, "i32.trunc_sat_f64_u", f64, i32, conv, unsigned)
 WASM_OPCODE_2 (0xfc, 0x04, "i64.trunc_sat_f32_s", f32, i64, conv, signed)
+WASM_PROPOSED_OPCODE_2 (0xfc, 0x08, BULK_MEMORY,
+			"memory.init", void, void, memory, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfc, 0x09, BULK_MEMORY,
+			"data.drop", void, void, memory, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfc, 0x0a, BULK_MEMORY,
+			"memory.copy", void, void, memory, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfc, 0x0b, BULK_MEMORY,
+			"memory.fill", void, void, memory, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfc, 0x0c, BULK_MEMORY,
+			"table.init", void, void, memory, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfc, 0x0d, BULK_MEMORY,
+			"elem.drop", void, void, memory, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfc, 0x0e, BULK_MEMORY,
+			"table.copy", void, void, memory, agnostic)
 WASM_OPCODE_2 (0xfc, 0x05, "i64.trunc_sat_f32_u", f32, i64, conv, unsigned)
 WASM_OPCODE_2 (0xfc, 0x06, "i64.trunc_sat_f64_s", f64, i64, conv, signed)
 WASM_OPCODE_2 (0xfc, 0x07, "i64.trunc_sat_f64_u", f64, i64, conv, unsigned)
 
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x10, THREADS,
+			"i32.atomic.load", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x11, THREADS,
+			"i64.atomic.load", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x12, THREADS,
+			"i32.atomic.load8_u", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x13, THREADS,
+			"i32.atomic.load16_u", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x14, THREADS,
+			"i64.atomic.load8_u", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x15, THREADS,
+			"i64.atomic.load16_u", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x16, THREADS,
+			"i64.atomic.load32_u", access, agnostic)
+
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x17, THREADS,
+			"i32.atomic.store", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x18, THREADS,
+			"i64.atomic.store", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x19, THREADS,
+			"i32.atomic.store8", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x19, THREADS,
+			"i32.atomic.store16", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x1b, THREADS,
+			"i64.atomic.store8", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x1c, THREADS,
+			"i64.atomic.store16", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x1d, THREADS,
+			"i64.atomic.store32", access, agnostic)
+
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x1e, THREADS,
+			"i32.atomic.rmw.add", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x1f, THREADS,
+			"i64.atomic.rmw.add", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x20, THREADS,
+			"i32.atomic.rmw8.add_u", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x21, THREADS,
+			"i32.atomic.rmw16.add_u", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x22, THREADS,
+			"i64.atomic.rmw8.add_u", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x23, THREADS,
+			"i64.atomic.rmw16.add_u", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x24, THREADS,
+			"i64.atomic.rmw32.add_u", access, agnostic)
+
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x25, THREADS,
+			"i32.atomic.rmw.sub", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x26, THREADS,
+			"i64.atomic.rmw.sub", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x27, THREADS,
+			"i32.atomic.rmw8.sub_u", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x28, THREADS,
+			"i32.atomic.rmw16.sub_u", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x29, THREADS,
+			"i64.atomic.rmw8.sub_u", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x2a, THREADS,
+			"i64.atomic.rmw16.sub_u", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x2b, THREADS,
+			"i64.atomic.rmw32.sub_u", access, agnostic)
+
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x2c, THREADS,
+			"i32.atomic.rmw.and", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x2d, THREADS,
+			"i64.atomic.rmw.and", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x2e, THREADS,
+			"i32.atomic.rmw8.and_u", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x2f, THREADS,
+			"i32.atomic.rmw16.and_u", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x30, THREADS,
+			"i64.atomic.rmw8.and_u", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x31, THREADS,
+			"i64.atomic.rmw16.and_u", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x32, THREADS,
+			"i64.atomic.rmw32.and_u", access, agnostic)
+
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x33, THREADS,
+			"i32.atomic.rmw.or", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x34, THREADS,
+			"i64.atomic.rmw.or", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x35, THREADS,
+			"i32.atomic.rmw8.or_u", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x36, THREADS,
+			"i32.atomic.rmw16.or_u", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x37, THREADS,
+			"i64.atomic.rmw8.or_u", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x38, THREADS,
+			"i64.atomic.rmw16.or_u", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x39, THREADS,
+			"i64.atomic.rmw32.or_u", access, agnostic)
+
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x3a, THREADS,
+			"i32.atomic.rmw.xor", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x3b, THREADS,
+			"i64.atomic.rmw.xor", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x3c, THREADS,
+			"i32.atomic.rmw8.xor_u", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x3d, THREADS,
+			"i32.atomic.rmw16.xor_u", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x3e, THREADS,
+			"i64.atomic.rmw8.xor_u", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x3f, THREADS,
+			"i64.atomic.rmw16.xor_u", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x40, THREADS,
+			"i64.atomic.rmw32.xor_u", access, agnostic)
+
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x41, THREADS,
+			"i32.atomic.rmw.xchg_u", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x42, THREADS,
+			"i64.atomic.rmw.xchg_u", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x43, THREADS,
+			"i32.atomic.rmw8.xchg_u", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x44, THREADS,
+			"i32.atomic.rmw16.xchg_u", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x45, THREADS,
+			"i64.atomic.rmw8.xchg_u", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x46, THREADS,
+			"i64.atomic.rmw16.xchg_u", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x47, THREADS,
+			"i64.atomic.rmw32.xchg_u", access, agnostic)
+
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x48, THREADS,
+			"i32.atomic.rmw.cmpxchg_u", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x49, THREADS,
+			"i64.atomic.rmw.cmpxchg_u", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x4a, THREADS,
+			"i32.atomic.rmw8.cmpxchg_u", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x4b, THREADS,
+			"i32.atomic.rmw16.cmpxchg_u", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x4c, THREADS,
+			"i64.atomic.rmw8.cmpxchg_u", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x4d, THREADS,
+			"i64.atomic.rmw16.cmpxchg_u", access, agnostic)
+WASM_PROPOSED_OPCODE_2 (0xfe, 0x4e, THREADS,
+			"i64.atomic.rmw32.cmpxchg_u", access, agnostic)
 /* This isn't, strictly speaking, an opcode, but is treated as such by
    the assembler.  */
 WASM_OPCODE (0x60, "signature", void, void, signature, agnostic)

@@ -36,6 +36,12 @@ WASM_OPCODE (0x03, "loop", void, void, typed, agnostic)
 WASM_OPCODE (0x04, "if", void, void, typed, agnostic)
 /* "else": Not listed as an instruction in the WebAssembly spec.  */
 WASM_OPCODE (0x05, "else", void, void, special, agnostic)
+#define WASM_PROPOSAL_EXCEPTIONS "Exceptions"
+#define WASM_PROPOSAL_THREADS "https://github.com/WebAssembly/threads/blob/master/proposals/threads/Overview.md"
+#define WASM_PROPOSAL_TAIL_CALL "https://github.com/WebAssembly/tail-call/tree/master/proposals/tail-call"
+#define WASM_PROPOSAL_NONTRAPPING_CONVERSIONS "non-trapping conversions"
+/* https://github.com/WebAssembly/exception-handling/blob/master/proposals/Exceptions.md */
+#define WASM_PROPOSAL_BULK_MEMORY "https://github.com/WebAssembly/bulk-memory-operations/blob/master/proposals/bulk-memory-operations/Overview.md"
 /* "end": Not listed as an instruction in the WebAssembly spec.  */
 WASM_OPCODE (0x0b, "end", void, void, special, agnostic)
 WASM_OPCODE (0x0c, "br", void, void, break, agnostic)

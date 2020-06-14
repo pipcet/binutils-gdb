@@ -246,6 +246,8 @@ WASM_OPCODE (0xbd, "i64.reinterpret_f64", f64, i64, conv, agnostic)
 WASM_OPCODE (0xbe, "f32.reinterpret_i32", i32, f32, conv, agnostic)
 WASM_OPCODE (0xbf, "f64.reinterpret_i64", i64, f64, conv, agnostic)
 
+/* The following are listed in the spec, but also listed as proposed on
+ * https://github.com/WebAssembly/sign-extension-ops/blob/master/proposals/sign-extension-ops/Overview.md */
 WASM_OPCODE (0xc0, "i32.extend8_s", i32, i32, conv, signed)
 WASM_OPCODE (0xc1, "i32.extend16_s", i32, i32, conv, signed)
 WASM_OPCODE (0xc2, "i64.extend8_s", i64, i64, conv, signed)
@@ -254,6 +256,8 @@ WASM_OPCODE (0xc4, "i64.extend32_s", i64, i64, conv, signed)
 
 WASM_OPCODE (0xfc, "escape_fc", void, void, escape, agnostic)
 
+/* The following are listed in the spec, but also listed as proposed on
+ *  */
 WASM_OPCODE_2 (0xfc, 0x00, "i32.trunc_sat_f32_s", f32, i32, conv, signed)
 WASM_OPCODE_2 (0xfc, 0x01, "i32.trunc_sat_f32_u", f32, i32, conv, unsigned)
 WASM_OPCODE_2 (0xfc, 0x02, "i32.trunc_sat_f64_s", f64, i32, conv, signed)
@@ -424,6 +428,7 @@ WASM_PROPOSED_OPCODE_2 (0xfe, 0x4d, THREADS,
 			"i64.atomic.rmw16.cmpxchg_u", access, agnostic)
 WASM_PROPOSED_OPCODE_2 (0xfe, 0x4e, THREADS,
 			"i64.atomic.rmw32.cmpxchg_u", access, agnostic)
+
 /* This isn't, strictly speaking, an opcode, but is treated as such by
    the assembler.  */
 WASM_OPCODE (0x60, "signature", void, void, signature, agnostic)

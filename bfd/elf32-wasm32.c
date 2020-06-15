@@ -2151,7 +2151,8 @@ elf32_wasm32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
               relocation = plt_index + plt_bias;
               addend = rel->r_addend;
             }
-          else if (relocation == 0 && h->root.type == bfd_link_hash_undefweak)
+          else if (relocation == 0 && h->root.type == bfd_link_hash_undefweak
+		   && FALSE)
             {
               /* This is a special case.  We don't know which function
                  signature the code expected, so we have to force this

@@ -1265,7 +1265,7 @@ finish_plt_entry (bfd *output_bfd, struct bfd_link_info *info,
         struct elf32_wasm32_link_hash_entry *h4 = (struct elf32_wasm32_link_hash_entry *)h;
 
         bfd_vma index = plt_index + plt_bias;
-        const char *str = h->root.root.string ? h->root.root.string : "";;
+        const char *str = h->root.root.string ? h->root.root.string : "";
         size_t len = strlen(str);
         int i;
 

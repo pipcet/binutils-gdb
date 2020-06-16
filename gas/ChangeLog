@@ -1,3 +1,105 @@
+2020-06-16  Lili Cui  <lili.cui@intel.com>
+
+	* config/tc-i386.c (cpu_arch): Correct noavx512_vp2intersect
+	cpu_arch to CPU_ANY_VP2INTERSECT_FLAGS.
+	* doc/c-i386.texi: Add avx512_vp2intersect.
+
+2020-06-16  Jan Beulich  <jbeulich@suse.com>
+
+	* config/tc-i386.c (md_assemble): Drop SSE4a from SSE check
+	conditional.
+	* testsuite/gas/i386/sse-check.s: Adjust comment.
+	* testsuite/gas/i386/sse-check-error.l,
+	testsuite/gas/i386/sse-check-warn.e,
+	testsuite/gas/i386/x86-64-sse-check-error.l: Adjust
+	expectations.
+
+2020-06-16  Alan Modra  <amodra@gmail.com>
+
+	* config/tc-tic30.h: Remove OBJ_AOUT support.
+	* configure.tgt: Delete tic30-*-*aout* entry.
+
+2020-06-15  Max Filippov  <jcmvbkbc@gmail.com>
+
+	* config/tc-xtensa.c (XTHAL_ABI_WINDOWED, XTHAL_ABI_CALL0): New
+	macros.
+	(elf32xtensa_abi): New declaration.
+	(option_abi_windowed, option_abi_call0): New enum constants.
+	(md_longopts): Add entries for --abi-windowed and --abi-call0.
+	(md_parse_option): Add handlers for --abi-windowed and
+	--abi-call0.
+	(xtensa_add_config_info): Use xtensa_abi_choice instead of
+	XSHAL_ABI to format ABI tag.
+	* doc/as.texi (Target Xtensa options): Add --abi-windowed and
+	--abi-call0 to the list of options.
+	* doc/c-xtensa.texi: Add description for options --abi-windowed
+	and --abi-call0.
+	* testsuite/gas/xtensa/abi-call0.d: New test definition.
+	* testsuite/gas/xtensa/abi-windowed.d: New test definition.
+	* testsuite/gas/xtensa/abi.s: New test source.
+
+2020-06-14  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR gas/26115
+	* testsuite/gas/i386/tsxldtrk.d: Replace xsuspldtrk with
+	xsusldtrk.
+	* testsuite/gas/i386/tsxldtrk.s: Likewise.
+	* testsuite/gas/i386/x86-64-tsxldtrk.d: Likewise.
+	* testsuite/gas/i386/x86-64-tsxldtrk.s: Likewise.
+
+2020-06-12  Nelson Chu  <nelson.chu@sifive.com>
+
+	* testsuite/gas/riscv/priv-reg-fail-version-1p9.d: Removed.
+	* testsuite/gas/riscv/priv-reg-fail-version-1p9.l: Likewise.
+	* testsuite/gas/riscv/priv-reg-version-1p9.d: Likewise.
+
+2020-06-09  Seth Girvan  <snth@snthhacks.com>
+
+	* doc/c-avr.texi: Improve wording.
+
+2020-06-09  Jan Beulich  <jbeulich@suse.com>
+
+	* testsuite/gas/i386/x86-64-pseudos-bad.s,
+	testsuite/gas/i386/x86-64-pseudos-bad.l: New.
+
+2020-06-09  Jan Beulich  <jbeulich@suse.com>
+
+	* testsuite/gas/i386/prefix.s: Add bogus prefix-with-VEX/EVEX
+	encoding tests.
+	* testsuite/gas/i386/prefix.d: Adjust expectations.
+
+2020-06-09  Jan Beulich  <jbeulich@suse.com>
+
+	* testsuite/gas/i386/prefix.s: Add bogus REP / EVEX.W prefix
+	with VEX/EVEX encoding tests.
+	* testsuite/gas/i386/prefix.d: Adjust expectations.
+
+2020-06-09  Jan Beulich  <jbeulich@suse.com>
+
+	* config/tc-i386.c (process_suffix): Restrict defaulting to 'q'
+	suffix.
+	* testsuite/gas/i386/noreg64.s: Add lcall/ljmp cases.
+	* testsuite/gas/i386/noreg64.d: Adjust expectations.
+	* testsuite/gas/i386/noreg-intel64.d,
+	testsuite/gas/i386/noreg-intel64.l,
+	testsuite/gas/i386/noreg-intel64.s: New.
+	* testsuite/gas/i386/i386.exp: Run new tests.
+
+2020-06-09  Jan Beulich  <jbeulich@suse.com>
+
+	* config/tc-i386.c (vex_encoding_error): New enumerator.
+	(VEX_check_operands): Rename to VEX_check_encoding. Check
+	for vex_encoding_error. Move Imm4 handling ...
+	(check_VecOperands): ... here.
+	(match_template): Call VEX_check_encoding when there are no
+	operands. Split construct calling check_VecOperands and
+	VEX_check_encoding (when there are operands).
+	(check_register): Don't blindly set vex_encoding_evex.
+	* testsuite/gas/i386/pseudos-bad.s,
+	testsuite/gas/i386/pseudos-bad.l: New.
+	* testsuite/gas/i386/i386.exp: Run new test.
+	* testsuite/gas/i386/xmmhi64.s: Drop {vex2}.
+
 2020-06-08  Alex Coplan  <alex.coplan@arm.com>
 
 	* config/tc-arm.c (insns): Add dfb.

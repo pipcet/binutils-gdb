@@ -1,3 +1,168 @@
+2020-06-16  Alan Modra  <amodra@gmail.com>
+
+	* testsuite/ld-elf/pr23428.c: Define _DEFAULT_SOURCE.
+	* testsuite/ld-elf/indirect1b.c: Replace asm with __asm__.
+	* testsuite/ld-elf/indirect2.c: Likewise.
+	* testsuite/ld-elf/indirect3b.c: Likewise.
+	* testsuite/ld-elf/indirect4b.c: Likewise.
+	* testsuite/ld-elf/pr14323-2.c: Likewise.
+	* testsuite/ld-elf/pr18720b.c: Likewise.
+	* testsuite/ld-elf/pr19553c.c: Likewise.
+	* testsuite/ld-elf/pr23428.c: Likewise.
+	* testsuite/ld-elfvers/vers27b.c: Likewise.
+	* testsuite/ld-elfvsb/common.c: Likewise.
+	* testsuite/ld-elfvsb/main.c: Likewise.
+	* testsuite/ld-elfvsb/sh1.c: Likewise.
+	* testsuite/ld-elfvsb/test.c: Likewise.
+	* testsuite/ld-pe/aligncomm-1.c: Likewise.
+	* testsuite/ld-pe/aligncomm-2.c: Likewise.
+	* testsuite/ld-pe/aligncomm-3.c: Likewise.
+	* testsuite/ld-pe/aligncomm-4.c: Likewise.
+	* testsuite/ld-plugin/pr23958.c: Likewise.
+	* testsuite/ld-size/size-1b.c: Likewise.
+	* testsuite/ld-size/size-2b.c: Likewise.
+	* testsuite/ld-size/size-3a.c: Likewise.
+	* testsuite/ld-size/size-3b.c: Likewise.
+	* testsuite/ld-size/size-3c.c: Likewise.
+	* testsuite/ld-size/size-4b.c: Likewise.
+	* testsuite/ld-size/size-5b.c: Likewise.
+	* testsuite/ld-size/size-6a.c: Likewise.
+	* testsuite/ld-size/size-7a.c: Likewise.
+	* testsuite/ld-size/size-8a.c: Likewise.
+	* testsuite/ld-size/size-9b.c: Likewise.
+	* testsuite/ld-size/size-10b.c: Likewise.
+
+2020-06-16  Alan Modra  <amodra@gmail.com>
+
+	* emulparams/tic30aout.sh: Delete file.
+	* scripttempl/tic30aout.sc: Delete file.
+	* Makefile.am: Remove etic30aout.c from ALL_EMULATION_SOURCES and
+	delete dependency.
+	* configure.tgt: Delete tic30-*-*aout* entry.
+	* testsuite/ld-scripts/sane1.d: Delete tic30-*-aout mention.
+	* testsuite/ld-scripts/segment-start.d: Likewise.
+	* Makefile.in: Regenerate.
+	* po/BLD-POTFILES.in: Regenerate.
+
+2020-06-15  Max Filippov  <jcmvbkbc@gmail.com>
+
+	* emultempl/xtensaelf.em (XSHAL_ABI): Remove macro definition.
+	(XTHAL_ABI_UNDEFINED, XTHAL_ABI_WINDOWED, XTHAL_ABI_CALL0): New
+	macros.
+	(elf32xtensa_abi): New declaration.
+	(xt_config_info_unpack_and_check): Set elf32xtensa_abi if it is
+	undefined.  Use xtensa_abi_choice instead of XSHAL_ABI to test
+	ABI tag consistency.
+	(xtensa_add_config_info): Use xtensa_abi_choice instead of
+	XSHAL_ABI to format ABI tag.
+	(PARSE_AND_LIST_PROLOGUE): Define OPTION_ABI_WINDOWED,
+	OPTION_ABI_CALL0 and declare elf32xtensa_abi.
+	(PARSE_AND_LIST_LONGOPTS): Add entries for --abi-windowed and
+	--abi-call0.
+	(PARSE_AND_LIST_OPTIONS): Add help text for --abi-windowed and
+	--abi-call0.
+	(PARSE_AND_LIST_ARGS_CASES): Add handlers for --abi-windowed and
+	--abi-call0.
+	* ld.texi: Add description for options --abi-windowed and
+	--abi-call0.
+
+2020-06-15  Roland McGrath  <mcgrathr@google.com>
+
+	* NEWS: Mention -z start-stop-visibility=... option for ELF.
+	* ld.texi (Options): Document -z start-stop-visibility=... option.
+	* ldmain.c (main): Initialize link_info.start_stop_visibility.
+	* emultempl/elf.em (gld${EMULATION_NAME}_handle_option):
+	Parse -z start-stop-visibility=... option.
+
+2020-06-15  Alan Modra  <amodra@gmail.com>
+
+	* testsuite/ld-scripts/include.exp: Don't load ld-lib.exp.
+	* testsuite/ld-scripts/phdrs3.exp: Likewise.
+	* testsuite/ld-scripts/rgn-at.exp: Likewise.
+	* testsuite/ld-scripts/rgn-over.exp: Likewise.
+	* testsuite/ld-scripts/sort.exp: Likewise.
+	* testsuite/ld-discard/discard.exp: Likewise.  Use is_elf_format.
+
+2020-06-15  Alan Modra  <amodra@gmail.com>
+
+	PR 26103
+	* testsuite/ld-linkonce/ref1.s,
+	* testsuite/ld-linkonce/ref2.s,
+	* testsuite/ld-linkonce/sym1.s,
+	* testsuite/ld-linkonce/sym2.s,
+	* testsuite/ld-linkonce/sym3.s: New test files.
+	* testsuite/ld-linkonce/linkonce.exp: Run tests for PE too.
+	Add pr26103 test.  Remove unnecessary load_lib.
+
+2020-06-15  Alan Modra  <amodra@gmail.com>
+
+	* testsuite/ld-linkonce/zeroeh_x.s: Rename from x.s.
+	* testsuite/ld-linkonce/zeroeh_y.s: Rename from y.s.
+	* testsuite/ld-linkonce/zeroehl32.d: Adjust for renaming.  Support
+	big-endian output.  Run for powerpc.
+
+2020-06-11  Alan Modra  <amodra@gmail.com>
+
+	* testsuite/ld-plugin/lto.exp (lto_link_tests): Move lto-6,
+	pr12760, pr23818 and pr23958 tests to..
+	(lto_link_elf_tests): ..here.
+
+2020-06-11  Nick Clifton  <nickc@redhat.com>
+
+	* testsuite/ld-elf/pr26094-1b.c (main): Change return type to
+	int.
+
+2020-06-10  Alan Modra  <amodra@gmail.com>
+
+	* testsuite/ld-elf/linux-x86.exp: Build tests when non-native.
+	(check_pr25749b): Add optional args.  Set expected pass file
+	from args.  Run -1b and -2a tests with passall.out.
+	* testsuite/ld-elf/passall.out: New file.
+	* testsuite/ld-elf/pr25749-1.c: Adjust to pass with older glibc.
+	* testsuite/ld-elf/pr25749-2.c: Likewise.
+	* testsuite/lib/ld-lib.exp (run_ld_link_exec_tests): Use
+	regexp_diff to compare expected output from running binary.
+
+2020-06-10  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR ld/26094
+	* testsuite/ld-elf/pr26094-1.ver: New fike.
+	* testsuite/ld-elf/pr26094-1a.c: Likewise.
+	* testsuite/ld-elf/pr26094-1a.rd: Likewise.
+	* testsuite/ld-elf/pr26094-1b.c: Likewise.
+	* testsuite/ld-elf/pr26094-1b.rd: Likewise.
+	* testsuite/ld-elf/pr26094-1c.c: Likewise.
+	* testsuite/ld-elf/shared.exp: Run ld/26094 tests.
+
+2020-06-09  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR ld/18801
+	* testsuite/ld-i386/i386.exp: Run ifunc-textrel-1a,
+	ifunc-textrel-1b, ifunc-textrel-2a and ifunc-textrel-2b.
+	* testsuite/ld-x86-64/x86-64.exp: Likewise.
+	* testsuite/ld-i386/ifunc-textrel-1a.d: Likewise.
+	* testsuite/ld-i386/ifunc-textrel-1b.d: Likewise.
+	* testsuite/ld-i386/ifunc-textrel-2a.d: Likewise.
+	* testsuite/ld-i386/ifunc-textrel-2b.d: Likewise.
+	* testsuite/ld-x86-64/ifunc-textrel-1.s: Likewise.
+	* testsuite/ld-x86-64/ifunc-textrel-1a.d: Likewise.
+	* testsuite/ld-x86-64/ifunc-textrel-1b.d: Likewise.
+	* testsuite/ld-x86-64/ifunc-textrel-2.s: Likewise.
+	* testsuite/ld-x86-64/ifunc-textrel-2a.d: Likewise.
+	* testsuite/ld-x86-64/ifunc-textrel-2b.d: Likewise.
+	* testsuite/ld-i386/pr18801a.d: Expect warning for IFUNC
+	resolvers.
+	* testsuite/ld-i386/pr18801b.d: Likewise.
+	* estsuite/ld-x86-64/pr18801a.d: Likewise.
+	* estsuite/ld-x86-64/pr18801b.d: Likewise.
+
+2020-06-09  Alan Modra  <amodra@gmail.com>
+
+	PR 26065
+	* testsuite/ld-elf/shared.exp: Compile dl4main.c -fPIC.
+	(dl4e, dl4f): Expect dl4a.out.
+	* testsuite/ld-elf/dl4e.out: Delete.
+
 2020-06-07  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* testsuite/ld-elf/shared.exp: Pass $LFLAGS to PR ld/21703

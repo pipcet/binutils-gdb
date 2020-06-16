@@ -1,3 +1,88 @@
+2020-06-15  Tom Tromey  <tromey@adacore.com>
+
+	* windows-nat.c (windows_nat::handle_output_debug_string):
+	Update.
+	(windows_nat::handle_ms_vc_exception): Update.
+	* target.h (target_read_string): Change API.
+	* target.c (target_read_string): Change API.
+	* solib-svr4.c (open_symbol_file_object, svr4_read_so_list):
+	Update.
+	* solib-frv.c (frv_current_sos): Update.
+	* solib-dsbt.c (dsbt_current_sos): Update.
+	* solib-darwin.c (darwin_current_sos): Update.
+	* linux-thread-db.c (inferior_has_bug): Update.
+	* expprint.c (print_subexp_standard): Update.
+	* ada-lang.c (ada_main_name, ada_tag_name_from_tsd)
+	(ada_exception_message_1): Update.
+
+2020-06-15  Tom Tromey  <tromey@adacore.com>
+
+	* linux-tdep.c (dump_mapping_p): Use target_read_memory.
+
+2020-06-15  Tom Tromey  <tromey@adacore.com>
+
+	* valprint.c (read_string): Update comment.
+	* target.c (MIN): Remove.
+	(target_read_string): Rewrite.
+
+2020-06-15  Tom Tromey  <tromey@adacore.com>
+
+	* corefile.c (read_memory_string): Remove.
+	* ada-valprint.c (ada_value_print_ptr): Update.
+	* ada-lang.h (ada_tag_name): Change return type.
+	* ada-lang.c (type_from_tag): Update.
+	(ada_tag_name_from_tsd): Change return type.  Use
+	target_read_string.
+	(ada_tag_name): Likewise.
+	* gdbcore.h (read_memory_string): Don't declare.
+
+2020-06-14  Hannes Domani  <ssbssa@yahoo.de>
+
+	* symtab.c (rbreak_command): Ignore Windows drive colon.
+
+2020-06-12  Simon Marchi  <simon.marchi@efficios.com>
+
+	* NEWS: Mention removed GDBserver host support.
+
+2020-06-12  Nelson Chu  <nelson.chu@sifive.com>
+
+	* features/riscv/rebuild-csr-xml.sh: Updated.
+
+2020-06-11  Tom Tromey  <tom@tromey.com>
+
+	PR gdb/18318:
+	* c-exp.y (lex_one_token): Handle 'p' like 'e'.
+
+2020-06-09  Jonny Grant  <jg@jguk.org>
+2020-06-09  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* main.c (captured_main_1): Don't print new line after help.
+	(print_gdb_help): add mailing list and IRC channel information
+	to --help.  Add new lines between items in the footer.  Remove
+	quotes around bug url.
+
+2020-06-11  Keith Seitz  <keiths@redhat.com>
+
+	PR gdb/21356
+	* gdbtypes.c (resolve_dynamic_union, resolve_dynamic_struct):
+	Resolve typedefs for type length calculations.
+
+2020-06-10  Tom de Vries  <tdevries@suse.de>
+
+	PR ada/24713
+	* dwarf2/index-write.c (struct mapped_symtab): Add m_string_obstack.
+	(write_psymbols): Enable .gdb_index for ada.
+	* dwarf2/read.c: Remove comment stating .gdb_index is unsupported for
+	ada.
+
+2020-06-10  Tom de Vries  <tdevries@suse.de>
+
+	* dwarf2/read.c (dw2_symtab_iter_init_common): Factor out of ...
+	(dw2_symtab_iter_init): ... here.  Add variant with "offset_type
+	namei" instead of "const char *name" argument.
+	(dw2_map_matching_symbols): Use "offset_type namei" variant of
+	dw2_symtab_iter_init.
+
 2020-06-08  Simon Marchi  <simon.marchi@efficios.com>
 
 	* gdbtypes.h (TYPE_FIELD_TYPE): Remove.  Change all call sites
@@ -1650,7 +1735,7 @@
 2020-05-20  Tom Tromey  <tromey@adacore.com>
 
 	* ada-lang.c (bound_name, MAX_ADA_DIMENS): Remove.
-        (desc_one_bound, desc_index_type): Compute field name.
+	(desc_one_bound, desc_index_type): Compute field name.
 
 2020-05-20  Tom de Vries  <tdevries@suse.de>
 
@@ -2506,8 +2591,8 @@
 
 2020-04-25  Kamil Rytarowski  <n54@gmx.com>
 
-       * inf-ptrace.c (inf_ptrace_target::wait): Remove
-       `PT_GET_PROCESS_STATE' block.
+	* inf-ptrace.c (inf_ptrace_target::wait): Remove
+	`PT_GET_PROCESS_STATE' block.
 
 2020-04-24  Tom Tromey  <tom@tromey.com>
 

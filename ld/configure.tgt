@@ -885,9 +885,6 @@ spu-*-elf*)		targ_emul=elf32_spu
 wasm-*-*)		targ_emul=wasm ;;
 wasm32-*-*)		targ_emul=wasm32 ;;
 wasm64-*-*)		targ_emul=wasm64 ;;
-tic30-*-*aout*)		targ_emul=tic30aout
-			targ_extra_ofiles=
-			;;
 tic30-*-*coff*)		targ_emul=tic30coff
 			targ_extra_ofiles=
 			;;

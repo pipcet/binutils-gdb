@@ -2141,7 +2141,12 @@ elf32_wasm32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
 
           if (ELF_ST_VISIBILITY (h->other) == STV_INTERNAL
               || ELF_ST_VISIBILITY (h->other) == STV_HIDDEN)
-              h->plt.offset = (bfd_vma) -1;
+	    {
+	      /* We'd like to do this, but it causes invalid LEB128s
+		 in our PLT section, where this symbol has already
+		 been allocated.  */
+              /* h->plt.offset = (bfd_vma) -1; */
+	    }
 
           if (h->plt.offset != (bfd_vma) -1)
             {

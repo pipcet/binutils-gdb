@@ -159,9 +159,8 @@ SECTIONS
   {
     KEEP(*(.space.function_index.import_.null));
     *(.space.function_index.import);
-    PROVIDE(_start = .);
-    *(.space.function_index);
     *(.space.function_index.*);
+    *(.space.function_index);
     .wasm.plt_bias = .;
     *(.space.function_index_.plt);
     *(.space.function_index_.pplt);

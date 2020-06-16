@@ -202,8 +202,8 @@ SECTIONS
   .space.function 0 (INFO) :
   {
     /* There is no function space for imports */
-    KEEP(*(.space.function));
     KEEP(*(.space.function.*));
+    KEEP(*(.space.function*));
     KEEP(*(.space.function_.plt));
     KEEP(*(.space.function_.pplt));
   }
@@ -260,8 +260,8 @@ SECTIONS
   {
     KEEP(*(.space.name.function.import_.null));
     *(.space.name.function.import);
-    *(.space.name.function);
     *(.space.name.function.*);
+    *(.space.name.function*);
     *(.space.name.function_.plt);
     *(.space.name.function_.pplt);
   }
@@ -352,8 +352,8 @@ SECTIONS
   {
     KEEP(*(.wasm.name.function.import_.null));
     *(.wasm.name.function.import);
-    *(.wasm.name.function);
     *(.wasm.name.function.*);
+    *(.wasm.name.function*);
     *(.wasm.name.function_.plt);
     *(.wasm.name.function_.pplt);
   }

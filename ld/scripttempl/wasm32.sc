@@ -169,8 +169,8 @@ SECTIONS
   .space.pc 0 (INFO) :
   {
     KEEP(*(.space.pc.import));
-    KEEP(*(.space.pc));
     KEEP(*(.space.pc.*));
+    KEEP(*(.space.pc));
     KEEP(*(.space.pc_.plt));
     KEEP(*(.space.pc_.pplt));
     .wasm.pc_end = .;
@@ -178,14 +178,14 @@ SECTIONS
   .space.global_index 0 (INFO) :
   {
     KEEP(*(.space.global_index.import));
-    KEEP(*(.space.global_index));
     KEEP(*(.space.global_index.*));
+    KEEP(*(.space.global_index));
   }
   .space.type 0 (INFO) :
   {
     *(.space.type.import);
-    *(.space.type);
     *(.space.type.*);
+    *(.space.type);
     *(.space.type_.plt);
     *(.space.type_.pplt);
   }
@@ -193,8 +193,8 @@ SECTIONS
   {
     KEEP(*(.space.import_.null));
     KEEP(*(.space.import.import));
-    KEEP(*(.space.import));
     KEEP(*(.space.import.*));
+    KEEP(*(.space.import));
     KEEP(*(.space.import_.plt));
     KEEP(*(.space.import_.pplt));
     .wasm.import_end = .;
@@ -210,32 +210,32 @@ SECTIONS
   .space.table 0 (INFO) :
   {
     KEEP(*(.space.table.import));
-    KEEP(*(.space.table));
     KEEP(*(.space.table.*));
+    KEEP(*(.space.table));
     KEEP(*(.space.table_.plt));
     KEEP(*(.space.table_.pplt));
   }
   .space.memory 0 (INFO) :
   {
     KEEP(*(.space.memory.import));
-    KEEP(*(.space.memory));
     KEEP(*(.space.memory.*));
+    KEEP(*(.space.memory));
     KEEP(*(.space.memory_.plt));
     KEEP(*(.space.memory_.pplt));
   }
   .space.global 0 (INFO) :
   {
     KEEP(*(.space.global.import));
-    KEEP(*(.space.global));
     KEEP(*(.space.global.*));
+    KEEP(*(.space.global));
     KEEP(*(.space.global_.plt));
     KEEP(*(.space.global_.pplt));
   }
   .space.export 0 (INFO) :
   {
     KEEP(*(.space.export.import));
-    KEEP(*(.space.export));
     KEEP(*(.space.export.*));
+    KEEP(*(.space.export));
     KEEP(*(.space.export_.plt));
     KEEP(*(.space.export_.pplt));
   }
@@ -243,16 +243,16 @@ SECTIONS
   {
     KEEP(*(.space.element.import_.null))
     *(.space.element.import);
-    *(.space.element);
     *(.space.element.*);
+    *(.space.element);
     *(.space.element_.plt);
     *(.space.element_.pplt);
   }
   .space.code 0 (INFO) :
   {
     /* There is no code space for imports. */
-    *(.space.code);
     *(.space.code.*);
+    *(.space.code);
     *(.space.code_.plt);
     *(.space.code_.pplt);
   }
@@ -261,15 +261,15 @@ SECTIONS
     KEEP(*(.space.name.function.import_.null));
     *(.space.name.function.import);
     *(.space.name.function.*);
-    *(.space.name.function*);
+    *(.space.name.function);
     *(.space.name.function_.plt);
     *(.space.name.function_.pplt);
   }
   .space.name.local 0 (INFO) :
   {
     *(.space.name.local.import);
-    *(.space.name.local);
     *(.space.name.local.*);
+    *(.space.name.local);
     *(.space.name.local_.plt);
     *(.space.name.local_.pplt);
   }
@@ -277,8 +277,8 @@ SECTIONS
   .wasm.type :
   {
     *(.wasm.type.import);
-    *(.wasm.type);
     *(.wasm.type.*);
+    *(.wasm.type);
     *(.wasm.type_.plt);
     *(.wasm.type_.pplt);
   }
@@ -286,48 +286,48 @@ SECTIONS
   {
     KEEP(*(.wasm.import_.null));
     KEEP(*(.wasm.import.import));
-    KEEP(*(.wasm.import));
     KEEP(*(.wasm.import.*));
+    KEEP(*(.wasm.import));
     KEEP(*(.wasm.import_.plt));
     KEEP(*(.wasm.import_.pplt));
   }
   .wasm.function :
   {
     /* There is no function payload for imports */
-    *(.wasm.function);
     *(.wasm.function.*);
+    *(.wasm.function);
     *(.wasm.function_.plt);
     *(.wasm.function_.pplt);
   }
   .wasm.table :
   {
     KEEP(*(.wasm.table.import));
-    KEEP(*(.wasm.table));
     KEEP(*(.wasm.table.*));
+    KEEP(*(.wasm.table));
     KEEP(*(.wasm.table_.plt));
     KEEP(*(.wasm.table_.pplt));
   }
   .wasm.memory :
   {
     KEEP(*(.wasm.memory.import));
-    KEEP(*(.wasm.memory));
     KEEP(*(.wasm.memory.*));
+    KEEP(*(.wasm.memory));
     KEEP(*(.wasm.memory_.plt));
     KEEP(*(.wasm.memory_.pplt));
   }
   .wasm.global :
   {
     KEEP(*(.wasm.global.import));
-    KEEP(*(.wasm.global));
     KEEP(*(.wasm.global.*));
+    KEEP(*(.wasm.global));
     KEEP(*(.wasm.global_.plt));
     KEEP(*(.wasm.global_.pplt));
   }
  .wasm.export :
   {
     KEEP(*(.wasm.export.import));
-    KEEP(*(.wasm.export));
     KEEP(*(.wasm.export.*));
+    KEEP(*(.wasm.export));
     KEEP(*(.wasm.export_.plt));
     KEEP(*(.wasm.export_.pplt));
   }
@@ -335,16 +335,16 @@ SECTIONS
   {
     KEEP(*(.wasm.element.import_.null));
     *(.wasm.element.import);
-    *(.wasm.element);
     *(.wasm.element.*);
+    *(.wasm.element);
     *(.wasm.element_.plt);
     *(.wasm.element_.pplt);
   }
   .wasm.code :
   {
     /* There is no code payload for imports */
-    *(.wasm.code);
     *(.wasm.code.*);
+    *(.wasm.code);
     *(.wasm.code_.plt);
     *(.wasm.code_.pplt);
   }
@@ -353,7 +353,7 @@ SECTIONS
     KEEP(*(.wasm.name.function.import_.null));
     *(.wasm.name.function.import);
     *(.wasm.name.function.*);
-    *(.wasm.name.function*);
+    *(.wasm.name.function);
     *(.wasm.name.function_.plt);
     *(.wasm.name.function_.pplt);
   }
@@ -361,8 +361,8 @@ SECTIONS
   .wasm.name.local :
   {
     *(.wasm.name.local.import);
-    *(.wasm.name.local);
     *(.wasm.name.local.*);
+    *(.wasm.name.local);
     *(.wasm.name.local_.plt);
     *(.wasm.name.local_.pplt);
   }

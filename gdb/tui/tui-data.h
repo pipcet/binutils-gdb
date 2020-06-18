@@ -130,8 +130,8 @@ public:
 #define CMD_NAME                "cmd"
 #define DATA_NAME               "regs"
 #define DISASSEM_NAME           "asm"
+#define STATUS_NAME		"status"
 #define MIN_WIN_HEIGHT          3
-#define MIN_CMD_WIN_HEIGHT      3
 
 /* Strings to display in the TUI status line.  */
 #define SINGLE_KEY              "(SingleKey)"

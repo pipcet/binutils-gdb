@@ -44,13 +44,7 @@
 #   make GDB=/path/to/gdb XMLTOC="xml files" FEATURE_XMLFILES="xml files" cfiles
 
 # List of .dat files to create in ../regformats/
-WHICH = arm/arm-with-iwmmxt arm/arm-with-vfpv2 arm/arm-with-vfpv3 \
-	arm/arm-with-neon \
-	asmjs \
-	i386/i386 i386/i386-linux \
-	i386/i386-mmx-linux \
-	i386/amd64 i386/amd64-linux \
-	mips-linux mips-dsp-linux \
+WHICH = mips-linux mips-dsp-linux \
 	microblaze-with-stack-protect \
 	mips64-linux mips64-dsp-linux \
 	nios2-linux \
@@ -166,7 +160,6 @@ XMLTOC = \
 	rs6000/powerpc-vsx64.xml \
 	rs6000/powerpc-vsx64l.xml \
 	rs6000/rs6000.xml \
-	rx.xml \
 	s390-linux32.xml \
 	s390-linux32v1.xml \
 	s390-linux32v2.xml \

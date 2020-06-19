@@ -382,6 +382,8 @@ SECTIONS
    * manipulation on this linker script. */
   .hash (INFO) : { *(.hash); }
   .gnu.hash (INFO) : { *(.gnu.hash); }
+  .gnu.version (INFO) : { *(.gnu.version); }
+  .gnu.version_r (INFO) : { *(.gnu.version_r); }
 EOF
 
 . $srcdir/scripttempl/DWARF.sc

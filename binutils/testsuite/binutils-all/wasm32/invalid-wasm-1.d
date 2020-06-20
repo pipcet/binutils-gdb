@@ -3,4 +3,4 @@
 #as:
 #objcopy: -Ielf32-wasm32 -Obinary
 #objdump: -bwasm -sD
-#error: : File format not recognized
+#error: : file format not recognized

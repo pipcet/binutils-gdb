@@ -1,3 +1,231 @@
+2020-06-18  Pedro Alves  <palves@redhat.com>
+
+	PR gdb/25412
+	* gdbthread.h (delete_thread, delete_thread_silent)
+	(find_thread_ptid): Update comments.
+	* thread.c (current_thread_): New global.
+	(is_current_thread): Move higher, and reimplement.
+	(inferior_thread): Reimplement.
+	(set_thread_exited): Use bool.  Add assertions.
+	(add_thread_silent): Simplify thread-reuse handling by always
+	calling delete_thread.
+	(delete_thread): Remove intro comment.
+	(find_thread_ptid): Skip exited threads.
+	(switch_to_thread_no_regs): Write to current_thread_.
+	(switch_to_no_thread): Check CURRENT_THREAD_ instead of
+	INFERIOR_PTID.  Clear current_thread_.
+
+2020-06-18  Pedro Alves  <palves@redhat.com>
+
+	* aix-thread.c (pd_update): Use switch_to_thread.
+
+2020-06-18  Pedro Alves  <palves@redhat.com>
+
+	* ravenscar-thread.c (ravenscar_thread_target): Update.
+	(ravenscar_thread_target::update_inferior_ptid): Rename to ...
+	(ravenscar_thread_target::add_active_thread): ... this.  Don't
+	set m_base_ptid here.  Update to avoid referencing inferior_ptid.
+	(ravenscar_thread_target::wait): Don't write to inferior_ptid.
+
+2020-06-18  Pedro Alves  <palves@redhat.com>
+
+	* nat/windows-nat.c (current_windows_thread): Remove.
+	* nat/windows-nat.h (current_windows_thread): Remove.
+	* windows-nat.c (windows_nat_target::stopped_by_sw_breakpoint):
+	Adjust.
+	(display_selectors): Adjust to fetch the current
+	windows_thread_info based on inferior_ptid.
+	(fake_create_process): No longer write to current_windows_thread.
+	(windows_nat_target::get_windows_debug_event):
+	Don't set inferior_ptid or current_windows_thread.
+	(windows_nat_target::wait): Adjust to not rely on
+	current_windows_thread.
+	(do_initial_windows_stuff): Now a method of windows_nat_target.
+	Switch to the last_ptid thread.
+	(windows_nat_target::attach): Adjust.
+	(windows_nat_target::detach): Use switch_to_no_thread instead of
+	writing to inferior_ptid directly.
+	(windows_nat_target::create_inferior): Adjust.
+
+2020-06-18  Pedro Alves  <palves@redhat.com>
+
+	* windows-nat.c (do_initial_windows_stuff): No longer set inferior_ptid.
+
+2020-06-18  Pedro Alves  <palves@redhat.com>
+
+	* go32-nat.c (go32_nat_target::create_inferior): Switch to thread
+	after creating it, instead of writing to inferior_ptid.  Don't
+	write to inferior_ptid.
+
+2020-06-18  Pedro Alves  <palves@redhat.com>
+
+	* fork-child.c (postfork_hook): Don't write to inferior_ptid.
+
+2020-06-18  Pedro Alves  <palves@redhat.com>
+
+	* bsd-kvm.c (bsd_kvm_target_open): Switch to thread after adding
+	it, instead of writing to inferior_ptid.
+
+2020-06-18  Pedro Alves  <palves@redhat.com>
+
+	* btrace.c (btrace_fetch): Use switch_to_thread instead of writing
+	to inferior_ptid.
+
+2020-06-18  Pedro Alves  <palves@redhat.com>
+
+	* bsd-kvm.c (bsd_kvm_target::close): Use switch_to_no_thread
+	instead of writing to inferior_ptid directly.
+
+2020-06-18  Pedro Alves  <palves@redhat.com>
+
+	* corelow.c (core_target::close): Use switch_to_no_thread instead
+	of writing to inferior_ptid directly.
+	(add_to_thread_list, core_target_open): Use switch_to_thread
+	instead of writing to inferior_ptid directly.
+
+2020-06-18  Pedro Alves  <palves@redhat.com>
+
+	* darwin-nat.c (darwin_nat_target::decode_message): Don't write to
+	inferior_ptid.
+	(darwin_nat_target::stop_inferior, darwin_nat_target::kill): Avoid
+	inferior_ptid.
+	(darwin_attach_pid): Use switch_to_no_thread instead of writing to
+	inferior_ptid directly.
+	(darwin_nat_target::init_thread_list): Switch to thread, instead
+	of writing to inferior_ptid.
+	(darwin_nat_target::attach): Don't write to inferior_ptid.
+	(darwin_nat_target::get_ada_task_ptid): Avoid inferior_ptid.
+
+2020-06-18  Pedro Alves  <palves@redhat.com>
+
+	* gnu-nat.c (gnu_nat_target::create_inferior): Switch to the added
+	thread.
+	(gnu_nat_target::attach): Don't write to inferior_ptid directly.
+	Instead use switch_to_thread.
+	(gnu_nat_target::detach): Use switch_to_no_thread
+	instead of writing to inferior_ptid directly.  Used passed-in
+	inferior instead of looking up the inferior by pid.
+
+2020-06-18  Pedro Alves  <palves@redhat.com>
+
+	* go32-nat.c (go32_nat_target::create_inferior): Don't write to
+	inferior_ptid.
+
+2020-06-18  Pedro Alves  <palves@redhat.com>
+
+	* nto-procfs.c (nto_procfs_target::update_thread_list): Avoid
+	inferior_ptid.
+	(nto_procfs_target::attach): Avoid inferior_ptid.  Switch to
+	thread.
+	(nto_procfs_target::detach): Avoid referencing
+	inferior_ptid.  Use switch_to_no_thread instead of writing to
+	inferior_ptid directly.
+	(nto_procfs_target::mourn_inferior): Use switch_to_no_thread
+	instead of writing to inferior_ptid directly.
+	(nto_procfs_target::create_inferior): Avoid inferior_ptid.  Switch
+	to thread.
+
+2020-06-18  Pedro Alves  <palves@redhat.com>
+
+	* remote-sim.c (gdbsim_target::create_inferior): Switch to thread
+	after creating it, instead of writing to inferior_ptid.
+	(gdbsim_target_open): Use switch_to_no_thread instead of writing
+	to inferior_ptid directly.
+	(gdbsim_target::wait): Don't write to inferior_ptid.
+
+2020-06-18  Pedro Alves  <palves@redhat.com>
+
+	* remote.c (remote_target::remote_notice_new_inferior): Use
+	switch_to_thread instead of writing to inferior_ptid directly.
+	(remote_target::add_current_inferior_and_thread): Use
+	switch_to_no_thread instead of writing to inferior_ptid directly.
+	(extended_remote_target::attach): Use switch_to_inferior_no_thread
+	and switch_to_thread instead of using set_current_inferior or
+	writing to inferior_ptid directly.
+
+2020-06-18  Pedro Alves  <palves@redhat.com>
+
+	* tracectf.c (ctf_target_open): Switch to added thread instead of
+	writing to inferior_ptid directly.
+	(ctf_target::close): Use switch_to_no_thread instead of writing to
+	inferior_ptid directly.
+
+2020-06-18  Pedro Alves  <palves@redhat.com>
+
+	* tracefile-tfile.c (tfile_target_open): Don't write to
+	inferior_ptid directly, instead switch to added thread.
+	(tfile_target::close): Use switch_to_no_thread instead of writing
+	to inferior_ptid directly.
+
+2020-06-18  Pedro Alves  <palves@redhat.com>
+
+	* procfs.c (procfs_target::attach): Don't write to inferior_ptid.
+	(procfs_target::detach): Use switch_to_no_thread
+	instead of writing to inferior_ptid directly.
+	(do_attach): Change return type to void.  Switch to the added
+	thread.
+	(procfs_target::create_inferior): Switch to the added thread.
+	(procfs_do_thread_registers): Don't write to inferior_ptid.
+
+2020-06-18  Pedro Alves  <palves@redhat.com>
+
+	* infrun.c (generic_mourn_inferior): Use switch_to_thread instead
+	of writing to inferior_ptid.
+	(scoped_restore_exited_inferior): Delete.
+	(handle_vfork_child_exec_or_exit): Simplify using
+	scoped_restore_current_pspace_and_thread.  Use switch_to_thread
+	instead of writing to inferior_ptid.
+	(THREAD_STOPPED_BY): Delete.
+	(thread_stopped_by_watchpoint, thread_stopped_by_sw_breakpoint)
+	(thread_stopped_by_hw_breakpoint): Delete.
+	(save_waitstatus): Use
+	scoped_restore_current_thread+switch_to_thread, and call
+	target_stopped_by_watchpoint instead of
+	thread_stopped_by_watchpoint, target_stopped_by_sw_breakpoint
+	instead of thread_stopped_by_sw_breakpoint, and
+	target_stopped_by_hw_breakpoint instead of
+	thread_stopped_by_hw_breakpoint.
+	(handle_inferior_event)
+	<TARGET_WAITKIND_EXITED/TARGET_WAITKIND_SIGNALLED>: Don't write to
+	inferior_ptid directly, nor
+	set_current_inferior/set_current_program_space.  Use
+	switch_to_thread / switch_to_inferior_no_thread instead.
+
+2020-06-18  Pedro Alves  <palves@redhat.com>
+
+	* target.c (generic_mourn_inferior): Use switch_to_no_thread
+	instead of writing to inferior_ptid.
+
+2020-06-18  Pedro Alves  <palves@redhat.com>
+
+	* inf-ptrace.c (inf_ptrace_target::create_inferior): Switch to the
+	added thread.
+	(inf_ptrace_target::attach): Don't write to inferior_ptid.  Switch
+	to the added thread.
+	(inf_ptrace_target::detach_success): Use switch_to_no_thread
+	instead of writing to inferior_ptid.
+
+2020-06-18  Pedro Alves  <palves@redhat.com>
+
+	* gdbarch-selftests.c: Include "progspace-and-thread.h".
+	(register_to_value_test): Mock a program_space too.  Heap-allocate
+	the address space.  Don't write to inferior_ptid.  Use
+	switch_to_thread instead.
+
+2020-06-18  Pedro Alves  <palves@redhat.com>
+
+	* linux-tdep.c (find_signalled_thread(thread_info *,void *)):
+	Delete.
+	(find_signalled_thread()): New, factored out from
+	linux_make_corefile_notes and adjusted to handle exited threads.
+	(linux_make_corefile_notes): Adjust to use the new
+	find_signalled_thread.
+
+2020-06-18  Pedro Alves  <palves@redhat.com>
+
+	* linux-tdep.c (btrace_fetch): Save/restore current thread instead
+	of saving/restoring inferior_ptid.
+
 2020-06-17  Tom Tromey  <tom@tromey.com>
 
 	* tui/tui-win.h (tui_scroll_forward, tui_scroll_backward)

@@ -1,3 +1,81 @@
+2020-06-20  Alan Modra  <amodra@gmail.com>
+
+	* testsuite/lib/ld-lib.exp (default_ld_compile): Don't perror on
+	a compiler error.
+	(default_ld_assemble): Similarly for an assembler error.
+	(default_ld_nm): Similarly for an nm error.
+	(run_ld_link_tests): Report ld_assemble errors as a fail.
+	(check_as_cfi): Remove now unnecessary perror substitution.
+	* testsuite/ld-elf/exclude.exp: Report ld_nm error return as test
+	fails rather then unresolved.
+	* testsuite/ld-gc/gc.exp: Likewise.
+	* testsuite/ld-scripts/alignof.exp: Likewise.
+	* testsuite/ld-scripts/defined.exp: Likewise.
+	* testsuite/ld-scripts/script.exp: Likewise.
+	* testsuite/ld-scripts/sizeof.exp: Likewise.
+	* testsuite/ld-selective/selective.exp: Likewise.
+	* testsuite/ld-scripts/extern.exp: Likewise.  Return on ld_link
+	failure.
+	* testsuite/ld-elfweak/elfweak.exp: Report compiler errors as
+	test unresolved.
+	* testsuite/ld-fastcall/fastcall.exp: Report assember errors as
+	test fails.
+	* testsuite/ld-i386/i386.exp (iamcu_tests): Likewise.
+	* testsuite/ld-ia64/line.exp: Likewise.
+	* testsuite/ld-mep/mep.exp: Likewise.
+	* testsuite/ld-mips-elf/mips-elf-flags.exp: Likewise.
+	* testsuite/ld-nios2/nios2.exp: Likewise.
+	* testsuite/ld-scripts/alignof.exp: Likewise.
+	* testsuite/ld-x86-64/line.exp: Likewise.
+	* testsuite/ld-x86-64/x86-64.exp: Likewise.
+	* testsuite/ld-scripts/log2.exp: Formatting.
+	* testsuite/ld-tic6x/tic6x.exp: Report ld_link errors as a test fail.
+
+2020-06-20  Alan Modra  <amodra@gmail.com>
+
+	* testsuite/ld-alpha/alpha.exp: Exclude *ecoff targets.
+	* testsuite/ld-elf/binutils.exp: Likewise.
+	* testsuite/ld-elf/tls.exp: Likewise.
+	* testsuite/ld-elf/tls_common.exp: Likewise.
+	* testsuite/ld-scripts/phdrs2.exp: Likewise.
+
+2020-06-20  Alan Modra  <amodra@gmail.com>
+
+	* testsuite/ld-sh/sh.exp: Don't run relax tests for non-ELF.
+	Fail when ld_assemble fails.  Use elseif to reduce indentation.
+
+2020-06-19  Alan Modra  <amodra@gmail.com>
+
+	* testsuite/ld-elf/dynamic-1.rd: Accept st_other notations.
+	* testsuite/ld-elf/rdynamic-1.rd: Likewise.
+	* testsuite/ld-elf/pr9676.rd: Likewise.
+	* testsuite/ld-elf/pr9679.rd: Likewise.
+	* testsuite/ld-elfvers/vers30.dsym: Likewise.
+	* testsuite/ld-elfvers/vers31.dsym: Likewise.
+	* testsuite/ld-plugin/pr22983.1.d: Likewise.
+	* testsuite/ld-plugin/pr22983.2.d: Likewise.
+	* testsuite/ld-plugin/pr22983.3.d: Likewise.
+	* testsuite/ld-plugin/pr22983.4.d: Likewise.
+	* testsuite/ld-ifunc/ifunc.exp: Exclude alpha.
+
+2020-06-19  Alan Modra  <amodra@gmail.com>
+
+	* emultempl/elf.em (gld${EMULATION_NAME}_handle_option): Omit
+	-z relro and -z norelro when target support for GNU_RELRO is lacking.
+	(gld${EMULATION_NAME}_before_parse): Ignore RELRO default too.
+	* emultempl/aarch64elf.em (gld${EMULATION_NAME}_before_parse): Ignore
+	RELRO default when target support for GNU_RELRO is lacking.
+	* emultempl/armelf.em (gld${EMULATION_NAME}_before_parse): Likewise.
+	* emultempl/linux.em (gld${EMULATION_NAME}_before_parse): Likewise.
+	* emultempl/scoreelf.em (gld${EMULATION_NAME}_before_parse): Likewise.
+	* testsuite/config/default.exp (ld_elf_shared_opt): Don't set.
+	* testsuite/ld-elf/pr16322.d: xfail when no relro support.
+	* testsuite/ld-elf/pr22393-1a.d: Likewise.
+	* testsuite/ld-elf/pr22393-1b.d: Likewise.
+	* testsuite/ld-elf/shared.exp (pr20995-2.so, pr20995-2): Likewise.
+	* testsuite/lib/ld-lib.exp (run_ld_link_tests): Use check_relro_support
+	to decide whether to pass extra ld option "-z norelro".
+
 2020-06-17  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* testsuite/ld-elf/linux-x86.exp (check_pr25749a): Append "-w"

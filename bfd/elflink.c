@@ -4113,10 +4113,12 @@ elf_link_add_object_symbols (bfd *abfd, struct bfd_link_info *info)
 
 	  msg[sz] = '\0';
 
+#if 0
 	  if (! (_bfd_generic_link_add_one_symbol
 		 (info, abfd, name, BSF_WARNING, s, 0, msg,
 		  FALSE, bed->collect, NULL)))
 	    goto error_return;
+#endif
 
 	  if (bfd_link_executable (info))
 	    {

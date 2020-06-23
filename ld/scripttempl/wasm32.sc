@@ -397,6 +397,7 @@ cat <<EOF
   PROVIDE (_etext = .);
   PROVIDE (etext = .);
   /*   /DISCARD/ : { *(*) } */
+  /DISCARD/ : { *(.gnu.warning .gnu.warning.*) }
 }
 EOF
 fi

@@ -6,5 +6,5 @@
 
 Disassembly of section \.text:$
 00000000 <\.text>:$
-   0:	20 00       		get_local 0
-   2:	23 00       		get_global 0 <\$got>
+   0:	20 00       		local.get 0
+   2:	23 00       		global.get 0 <\$got>

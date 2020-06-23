@@ -21,9 +21,6 @@
 # wasm32 assembler testsuite.
 
 if [istarget wasm32-*-*] {
-    run_dump_test "allinsn"
-    # no GOT/PLT relocs yet.
-    setup_xfail "wasm32-*-*"
     run_dump_test "reloc"
     run_list_test "illegal"
     run_list_test "illegal-2"

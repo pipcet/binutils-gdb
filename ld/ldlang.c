@@ -6854,7 +6854,7 @@ lang_end (void)
 	  ts = bfd_get_section_by_name (link_info.output_bfd, entry_section);
 	  if (ts != NULL)
 	    {
-	      if (warn)
+	      if (warn && FALSE)
 		einfo (_("%P: warning: cannot find entry symbol %s;"
 			 " defaulting to %V\n"),
 		       entry_symbol.name,

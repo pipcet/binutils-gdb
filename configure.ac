@@ -1203,9 +1203,6 @@ case "${target}" in
   vax-*-*)
     noconfigdirs="$noconfigdirs target-newlib target-libgloss"
     ;;
-  wasm32-*-*)
-    noconfigdirs="$noconfigdirs gdb"
-    ;;
 esac
 
 # If we aren't building newlib, then don't build libgloss, since libgloss

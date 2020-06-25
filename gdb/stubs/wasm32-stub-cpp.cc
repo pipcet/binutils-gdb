@@ -26,11 +26,17 @@
 
 asm("\t.include \"wasm32-import-macros.s\"\n"
 
-    "\t.import3_pic debug,write_debug,write_debug\n"
-    "\t.import3_pic debug,read_debug,read_debug\n"
-    "\t.import3_pic debug,check_debug,check_debug\n"
-    "\t.import3_pic debug,wait_debug,wait_debug\n");
+    "\t.import3 debug,write_debug,write_debug\n"
+    "\t.import3 debug,read_debug,read_debug\n"
+    "\t.import3 debug,check_debug,check_debug\n"
+    "\t.import3 debug,wait_debug,wait_debug\n");
 
+extern "C" {
+extern int read_debug(char *, int) __attribute__((stackcall));
+extern int write_debug(char *, int) __attribute__((stackcall));
+extern int wait_debug(void) __attribute__((stackcall));
+extern int check_debug(void) __attribute__((stackcall));
+};
 struct wasm32_registers {
   unsigned long fp;
   unsigned long pc;
@@ -1160,12 +1166,6 @@ breakpoint (void *regp)
   return 0;
 }
 
-extern "C" {
-extern int read_debug(char *, int) __attribute__((stackcall));
-extern int write_debug(char *, int) __attribute__((stackcall));
-extern int wait_debug(void) __attribute__((stackcall));
-extern int check_debug(void) __attribute__((stackcall));
-};
 char 
 getDebugChar (void)
 {
@@ -1187,8 +1187,10 @@ int breakpoint2(void *regp) asm("breakpoint2");
 
 int breakpoint2(void *regp)
 {
-  breakpoint(regp);
-  for (;;);
+  struct wasm32_registers regs;
+
+  gdbstub_main (&regs, 5);
+  return 0;
   //asm volatile("return (fp|0)+32+80;");
 }
 
@@ -1244,11 +1246,10 @@ struct __GDBStub {
   bool running;
   __GDBStub()
   {
-    if (check_debug())
-      {
-        gdbstub_entry(__builtin_frame_address(0), 0);
-        running = true;
-      }
+    if (false) {
+      gdbstub_entry(__builtin_frame_address(0), 0);
+      running = true;
+    }
   }
 
   ~__GDBStub()

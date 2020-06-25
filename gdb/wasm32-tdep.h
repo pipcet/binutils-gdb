@@ -79,10 +79,6 @@ enum gdb_regnum {
 /* Number of machine registers.  The only define actually required
    is gdbarch_num_regs.  The other definitions are used for documentation
    purposes and code readability.  */
-/* For 26 bit WASM32 code, a fake copy of the PC is placed in register 25 (PS)
-   (and called PS for processor status) so the status bits can be cleared
-   from the PC (register 15).  For 32 bit WASM32 code, a copy of CPSR is placed
-   in PS.  */
 #define NUM_FREGS	8	/* Number of floating point registers.  */
 #define NUM_SREGS	2	/* Number of status registers.  */
 #define NUM_GREGS	16	/* Number of general purpose registers.  */
@@ -101,10 +97,6 @@ struct gdbarch_tdep
    instruction, including the breakpoint (usually at the end of the instruction
    sequence) and any scratch words, etc.  */
 #define DISPLACED_MODIFIED_INSNS	8
-
-struct displaced_step_closure
-{
-};
 
 extern int wasm32_process_record (struct gdbarch *gdbarch,
 			       struct regcache *regcache, CORE_ADDR addr);

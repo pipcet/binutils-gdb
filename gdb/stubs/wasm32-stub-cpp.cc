@@ -1246,7 +1246,7 @@ struct __GDBStub {
   bool running;
   __GDBStub()
   {
-    if (false) {
+    if (check_debug ()) {
       gdbstub_entry(__builtin_frame_address(0), 0);
       running = true;
     }

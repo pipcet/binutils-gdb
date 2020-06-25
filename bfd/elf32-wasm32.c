@@ -62,7 +62,7 @@ static reloc_howto_type elf32_wasm32_howto_table[] =
 	 complain_overflow_bitfield,/* complain_on_overflow */
 	 bfd_elf_generic_reloc,	/* special_function */
 	 "R_WASM32_32",	/* name */
-	 TRUE,			/* partial_inplace */
+	 FALSE,			/* partial_inplace */
 	 0xffffffff,		/* src_mask */
 	 0xffffffff,		/* dst_mask */
 	 FALSE),		/* pcrel_offset */
@@ -153,7 +153,7 @@ static reloc_howto_type elf32_wasm32_howto_table[] =
          complain_overflow_bitfield,/* complain_on_overflow */
          bfd_elf_generic_reloc,	/* special_function */
          "R_WASM32_32_CODE",	/* name */
-         TRUE,			/* partial_inplace */
+         FALSE,			/* partial_inplace */
          0xffffffff,		/* src_mask */
          0xffffffff,		/* dst_mask */
          FALSE),		/* pcrel_offset */

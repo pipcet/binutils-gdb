@@ -30,7 +30,6 @@
 #include "dis-asm.h"		/* For register styles.  */
 #include "regcache.h"
 #include "reggroups.h"
-#include "doublest.h"
 #include "value.h"
 #include "arch-utils.h"
 #include "osabi.h"
@@ -38,21 +37,17 @@
 #include "frame-base.h"
 #include "trad-frame.h"
 #include "objfiles.h"
-#include "dwarf2-frame.h"
 #include "gdbtypes.h"
 #include "prologue-value.h"
 #include "remote.h"
 #include "target-descriptions.h"
 #include "user-regs.h"
-#include "observer.h"
 
 #include "wasm32-tdep.h"
 
 #include "elf-bfd.h"
 #include "coff/internal.h"
 #include "elf/wasm32.h"
-
-#include "vec.h"
 
 #include "record.h"
 #include "record-full.h"
@@ -205,7 +200,6 @@ wasm32_memory_insert_breakpoint (struct gdbarch *gdbarch ATTRIBUTE_UNUSED,
 				struct bp_target_info *bp_tgt)
 {
   CORE_ADDR addr = bp_tgt->reqstd_address;
-  unsigned char buf[4];
   int val;
 
   addr >>= 4;
@@ -306,7 +300,6 @@ wasm32_prev_register (struct frame_info *this_frame,
 		     void **this_cache,
 		     int prev_regnum)
 {
-  struct trad_frame_saved_reg *regs = trad_frame_alloc_saved_regs (this_frame);
   int i;
   unsigned off;
 
@@ -335,10 +328,10 @@ wasm32_prev_register (struct frame_info *this_frame,
   }
   for (i = 0, off = 0; i < prev_regnum && off < regsize; i++)
     {
-      unsigned long size = (i >= 24 && i <= 31) ? 8 : 4;
+      unsigned long nsize = (i >= 24 && i <= 31) ? 8 : 4;
       if (regmask&(1<<i))
 	{
-	  off += (off&(size>>1)) + size;
+	  off += (off&(nsize>>1)) + nsize;
 	}
     }
 
@@ -359,7 +352,6 @@ wasm32_this_id (struct frame_info *this_frame,
 		      void **this_cache,
 		      struct frame_id *this_id)
 {
-  struct arm_prologue_cache *cache;
   struct frame_id id;
   CORE_ADDR pc, func;
 
@@ -452,7 +444,7 @@ wasm32_push_dummy_code (struct gdbarch *gdbarch, CORE_ADDR sp, CORE_ADDR funaddr
 static CORE_ADDR
 wasm32_push_dummy_call (struct gdbarch *gdbarch, struct value *function,
 		       struct regcache *regcache, CORE_ADDR bp_addr, int nargs,
-		       struct value **args, CORE_ADDR sp, int struct_return,
+		       struct value **args, CORE_ADDR sp, function_call_return_method method,
 		       CORE_ADDR struct_addr)
 {
   enum bfd_endian byte_order = gdbarch_byte_order (gdbarch);
@@ -532,23 +524,13 @@ wasm32_gdbarch_init (struct gdbarch_info info, struct gdbarch_list *arches)
 {
   struct gdbarch_tdep *tdep;
   struct gdbarch *gdbarch;
-  struct gdbarch_list *best_arch;
   struct tdesc_arch_data *tdesc_data = NULL;
-  int i, is_m = 0;
-  int have_wmmx_registers = 0;
-  int have_neon = 0;
-  int have_fpa_registers = 1;
+  int i;
   const struct target_desc *tdesc = info.target_desc;
 
   /* Check any target description for validity.  */
   if (tdesc_has_registers (tdesc))
     {
-      /* For most registers we require GDB's default names; but also allow
-	 the numeric names for sp / lr / pc, as a convenience.  */
-      static const char *const wasm32_sp_names[] = { "r13", "sp", NULL };
-      static const char *const wasm32_lr_names[] = { "r14", "lr", NULL };
-      static const char *const wasm32_pc_names[] = { "r15", "pc", NULL };
-
       const struct tdesc_feature *feature = NULL;
       int valid_p;
 
@@ -558,15 +540,6 @@ wasm32_gdbarch_init (struct gdbarch_info info, struct gdbarch_list *arches)
       for (i = 0; i < WASM32_SP_REGNUM; i++)
 	valid_p &= tdesc_numbered_register (feature, tdesc_data, i,
 					    wasm32_register_names[i]);
-      valid_p &= tdesc_numbered_register_choices (feature, tdesc_data,
-						  WASM32_SP_REGNUM,
-						  wasm32_sp_names);
-      valid_p &= tdesc_numbered_register_choices (feature, tdesc_data,
-						  WASM32_FP_REGNUM,
-						  wasm32_lr_names);
-      valid_p &= tdesc_numbered_register_choices (feature, tdesc_data,
-						  WASM32_PC_REGNUM,
-						  wasm32_pc_names);
 
       if (!valid_p)
 	{
@@ -620,7 +593,7 @@ wasm32_gdbarch_init (struct gdbarch_info info, struct gdbarch_list *arches)
 
   frame_unwind_append_unwinder (gdbarch, &wasm32_unwind);
 
-  dwarf2_append_unwinders (gdbarch);
+  //dwarf2_append_unwinders (gdbarch);
 
   /* Watchpoints are not steppable.  */
   set_gdbarch_have_nonsteppable_watchpoint (gdbarch, 1);
@@ -651,16 +624,5 @@ extern initialize_file_ftype _initialize_wasm32_tdep; /* -Wmissing-prototypes */
 void
 _initialize_wasm32_tdep (void)
 {
-  struct ui_file *stb;
-  long length;
-  struct cmd_list_element *new_set, *new_show;
-  const char *setname;
-  const char *setdesc;
-  const char *const *regnames;
-  int numregs, i, j;
-  static char *helptext;
-  char regdesc[1024], *rdptr = regdesc;
-  size_t rest = sizeof (regdesc);
-
   gdbarch_register (bfd_arch_wasm32, wasm32_gdbarch_init, NULL);
 }

@@ -10030,7 +10030,8 @@ elf_link_output_extsym (struct bfd_hash_entry *bh, void *data)
       && h->def_regular
       && !h->dynamic_def
       && h->ref_dynamic_nonweak
-      && !elf_link_check_versioned_symbol (flinfo->info, bed, h))
+      && !elf_link_check_versioned_symbol (flinfo->info, bed, h)
+      && FALSE)
     {
       bfd *def_bfd;
       const char *msg;

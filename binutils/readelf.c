@@ -2550,7 +2550,7 @@ get_machine_name (unsigned e_machine)
       /* Large numbers...  */
     case EM_MT:                 return "Morpho Techologies MT processor";
     case EM_ALPHA:		return "Alpha";
-    case EM_WEBASSEMBLY:	return "Web Assembly";
+    case EM_WEBASSEMBLY:	return "WebAssembly";
     case EM_DLX:		return "OpenDLX";
     case EM_XSTORMY16:		return "Sanyo XStormy16 CPU core";
     case EM_IQ2000:       	return "Vitesse IQ2000";

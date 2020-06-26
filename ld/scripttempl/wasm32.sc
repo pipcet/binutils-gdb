@@ -14,7 +14,7 @@ SECTIONS
   .interp (INFO) : { *(.interp) }
   . = 16384;
   .wasm.data = .;
-  .asmjs.header 16384 :
+  .header 16384 :
   {
      LONG(ABSOLUTE(__data_start));
      LONG(0);

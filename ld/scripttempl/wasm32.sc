@@ -46,7 +46,7 @@ SECTIONS
     *(.got.plt)
     . = ALIGN(., 16);
   }
-  .data :
+  .data : SUBALIGN(16)
   {
     . = ALIGN(., 16);
     *(.data*);

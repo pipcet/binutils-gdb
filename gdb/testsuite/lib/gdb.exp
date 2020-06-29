@@ -1236,6 +1236,28 @@ proc gdb_test_multiple { command message args } {
     return $result
 }
 
+# Usage: gdb_test_multiline NAME INPUT RESULT {INPUT RESULT} ...
+# Run a test named NAME, consisting of multiple lines of input.
+# After each input line INPUT, search for result line RESULT.
+# Succeed if all results are seen; fail otherwise.
+
+proc gdb_test_multiline { name args } {
+    global gdb_prompt
+    set inputnr 0
+    foreach {input result} $args {
+	incr inputnr
+	if {[gdb_test_multiple $input "$name: input $inputnr: $input" {
+	    -re "\[\r\n\]*($result)\[\r\n\]+($gdb_prompt | *>)$" {
+		pass $gdb_test_name
+	    }
+	}]} {
+	    return 1
+	}
+    }
+    return 0
+}
+
+
 # gdb_test COMMAND PATTERN MESSAGE QUESTION RESPONSE
 # Send a command to gdb; test the result.
 #
@@ -3826,7 +3848,8 @@ set gdb_saved_set_unbuffered_mode_obj ""
 #   - ldflags=flag: Add FLAG to the linker flags.
 #   - incdir=path: Add PATH to the searched include directories.
 #   - libdir=path: Add PATH to the linker searched directories.
-#   - ada, c++, f77: Compile the file as Ada, C++ or Fortran.
+#   - ada, c++, f77, f90, go, rust: Compile the file as Ada, C++,
+#     Fortran 77, Fortran 90, Go or Rust.
 #   - debug: Build with debug information.
 #   - optimize: Build with optimization.
 
@@ -3848,6 +3871,31 @@ proc gdb_compile {source dest type options} {
 	# -fdiagnostics-color is not a rustcc option.
     } else {
 	set new_options [universal_compile_options]
+    }
+
+    # Some C/C++ testcases unconditionally pass -Wno-foo as additional
+    # options to disable some warning.  That is OK with GCC, because
+    # by design, GCC accepts any -Wno-foo option, even if it doesn't
+    # support -Wfoo.  Clang however warns about unknown -Wno-foo by
+    # default, unless you pass -Wno-unknown-warning-option as well.
+    # We do that here, so that individual testcases don't have to
+    # worry about it.
+    if {[lsearch -exact $options getting_compiler_info] == -1
+	&& [lsearch -exact $options rust] == -1
+	&& [lsearch -exact $options ada] == -1
+	&& [lsearch -exact $options f77] == -1
+	&& [lsearch -exact $options f90] == -1
+	&& [lsearch -exact $options go] == -1
+	&& [test_compiler_info "clang-*"]} {
+	lappend new_options "additional_flags=-Wno-unknown-warning-option"
+    }
+
+    # Treating .c input files as C++ is deprecated in Clang, so
+    # explicitly force C++ language.
+    if { [lsearch -exact $options getting_compiler_info] == -1
+	 && [lsearch -exact $options c++] != -1
+	 && [test_compiler_info "clang-*"]} {
+	lappend new_options additional_flags=-x\ c++
     }
 
     # Place (and look for) Fortran `.mod` files in the output
@@ -5055,6 +5103,8 @@ proc default_gdb_init { test_file_name } {
 	rename ::unknown ::dejagnu_unknown
 	proc unknown { args } {
 	    # Use tcl's unknown.
+	    set cmd [lindex $args 0]
+	    unresolved "testcase aborted due to invalid command name: $cmd"
 	    return [uplevel 1 ::gdb_tcl_unknown $args]
 	}
     }
@@ -7143,9 +7193,16 @@ proc cmp_file_string { file str msg } {
 }
 
 # Does the compiler support CTF debug output using '-gt' compiler
-# flag?  If not then we should skip these tests.
+# flag?  If not then we should skip these tests.  We should also
+# skip them if libctf was explicitly disabled.
 
 gdb_caching_proc skip_ctf_tests {
+    global enable_libctf
+
+    if {$enable_libctf eq "no"} {
+	return 1
+    }
+
     return ![gdb_can_simple_compile ctfdebug {
 	int main () {
 	    return 0;

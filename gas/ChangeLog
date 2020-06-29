@@ -1,3 +1,158 @@
+2020-06-29  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* tc-i386.c (build_vex_prefix): Support VEX base opcode length > 1.
+	(md_assemble): Don't process ImmExt without operands.
+
+2020-06-29  Hans-Peter Nilsson  <hp@bitrange.com>
+
+	PR gas/25331
+	* config/tc-mmix.c (md_assemble) <fixup for
+	BFD_RELOC_MMIX_BASE_PLUS_OFFSET>: This fixup affects 1 byte, not 8.
+	Also, set its fx_no_overflow.
+	(md_convert_frag) <case ENCODE_RELAX (STATE_PUSHJSTUB, STATE_ZERO)>: 
+	Similarly this fixup affects 4 bytes, not 8 and needs its
+	fx_no_overflow set.
+	* config/tc-mmix.h (TC_FX_SIZE_SLACK): Don't define.
+	* testsuite/gas/mmix/pr25331.d, testsuite/gas/mmix/pr25331.s: New test.
+
+2020-06-29  Alan Modra  <amodra@gmail.com>
+
+	* config/tc-s12z.c: Use C style comments.
+	* config/tc-z80.c: Likewise.
+	* config/tc-xtensa.c (emit_ld_r_n): Remove commented out code.
+
+2020-06-26  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/tc-i386.c (md_assemble): Process ImmExt without
+	operands.
+
+2020-06-26  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/tc-i386.c (check_VecOperands): Replace vecsib with sib.
+	Replace VecSIB128, VecSIB256 and VecSIB512 with VECSIB128,
+	VECSIB256 and VECSIB512, respectively.
+	(build_modrm_byte): Replace vecsib with sib.
+
+2020-06-26  Jan Beulich  <jbeulich@suse.com>
+
+	* testsuite/gas/i386/nop-1-suffix.d: New.
+	* testsuite/gas/i386/i386.exp: Run new test.
+
+2020-06-26  Pat Bernardi  <bernardi@adacore.com>
+
+	* config/tc-m68k.c (m68k_elf_gnu_attribute): New function.
+	(md_pseudo_table): Handle "gnu_attribute".
+	* doc/as.texi: Document GNU attribute for M68K.
+
+2020-06-25  Nick Clifton  <nickc@redhat.com>
+
+	PR 26141
+	* config/tc-arm.c (arm_force_relocation): Force resolution of
+	BFD_RELOC_THUMB_PCREL_BRANCH12 relocations.
+	* testsuite/gas/arm/plt-1.d: Adjust expected disassembly.
+
+2020-06-25  Jan Beulich  <jbeulich@suse.com>
+
+	* config/tc-i386.c (md_assemble): Move call to process_immext()
+	...
+	(process_operands): ... here.
+
+2020-06-25  Jan Beulich  <jbeulich@suse.com>
+
+	* config/tc-i386.c (process_suffix): Skip ambiguous operand size
+	diagnostic when there is a sizing prefix.  Switch to word/dword/
+	qword encoding when there is a sizing prefix and no (explicit or
+	derived) suffix.
+	(update_imm): Handle presence of a sizing prefix.
+	* testsuite/gas/i386/noreg16-data32.d,
+	testsuite/gas/i386/noreg32-data16.d,
+	testsuite/gas/i386/noreg32-data16.e,
+	testsuite/gas/i386/noreg64-data16.d,
+	testsuite/gas/i386/noreg64-data16.e,
+	testsuite/gas/i386/noreg64-rex64.d: New.
+	* testsuite/gas/i386/i386.exp: Run new tests.
+	* testsuite/gas/i386/noreg32.s, testsuite/gas/i386/noreg64.s:
+	Introduce and use pfx* macros.
+	* testsuite/gas/i386/noreg16.s: Likewise. Replace 32-bit
+	addressing.
+	* testsuite/gas/i386/noreg16.d: Adjust expectations.
+
+2020-06-25  Jan Beulich  <jbeulich@suse.com>
+
+	* testsuite/gas/i386/avx-16bit.d,
+	testsuite/gas/i386/avx-scalar.d, testsuite/gas/i386/avx.d,
+	testsuite/gas/i386/avx512f-16bit.d,
+	testsuite/gas/i386/avx512f.d,
+	testsuite/gas/i386/evex-lig256.d,
+	testsuite/gas/i386/evex-lig512.d
+	testsuite/gas/i386/evex-wig1.d, testsuite/gas/i386/katmai.d,
+	testsuite/gas/i386/noreg16.d, testsuite/gas/i386/noreg32.d,
+	testsuite/gas/i386/ptwrite.d, testsuite/gas/i386/simd.d,
+	testsuite/gas/i386/sse2-16bit.d,
+	testsuite/gas/i386/sse2.d, testsuite/gas/i386/sse2avx.d: Adjust
+	expectations.
+
+2020-06-25  Jan Beulich  <jbeulich@suse.com>
+
+	* config/tc-i386.c (md_assemble): Also reject explicit REX
+	prefixes with VEX and alike encoded insns. Zap consumed bits
+	from i.rex.
+	(output_insn): Don't ignore REX prefix for VEX and alike
+	encodings; abort() instead if encountered.
+	* testsuite/gas/i386/x86-64-pseudos.s: Move REX-with-VEX cases
+	...
+	* testsuite/gas/i386/x86-64-pseudos-bad.s: ... here.
+	* testsuite/gas/i386/x86-64-pseudos.d,
+	testsuite/gas/i386/x86-64-pseudos-bad.l: Adjust expectations.
+
+2020-06-25  Jan Beulich  <jbeulich@suse.com>
+
+	* config/tc-i386.c (process_operands): Translate explicit REX
+	prefix into i.rex for SSE2AVX templates.
+	(set_rex_vrex): New helper.
+	(build_modrm_byte): Use it.
+	* testsuite/gas/i386/x86-64-sse2avx.s: Add cases with explict
+	REX prefixes.
+	* testsuite/gas/i386/x86-64-sse2avx.d: Adjust expectations.
+
+2020-06-25  Jan Beulich  <jbeulich@suse.com>
+
+	* config/tc-i386.c (cpu_flags_match): Only match SSE2AVX
+	templates when there's no data size prefix.
+	(md_assemble): Reject data size prefix also for legacy encoded
+	SIMD templates.
+	* testsuite/gas/i386/prefix32.s, testsuite/gas/i386/prefix64.s:
+	Uncomment previously not working line.
+	* testsuite/gas/i386/sse2avx.s: Add ldmxcsr/stmxcsr cases with
+	data16 prefix.
+	* testsuite/gas/i386/prefix32.l, testsuite/gas/i386/prefix64.l,
+	testsuite/gas/i386/sse2avx.d: Adjust expectations.
+
+2020-06-25  Jan Beulich  <jbeulich@suse.com>
+
+	* config/tc-i386.c (build_evex_prefix): Drop early setting of
+	vec_length.
+
+2020-06-23  Nelson Chu  <nelson.chu@sifive.com>
+
+	* config/tc-riscv.c (explicit_priv_attr): Rename explicit_csr to
+	explicit_priv_attr.  It used to indicate CSR or priv instructions are
+	explictly used.
+	(riscv_is_priv_insn): Return True if it is a privileged instruction.
+	(riscv_ip): Call riscv_is_priv_insn to check whether the instruction
+	is privileged or not.  If it is, then set explicit_priv_attr to TRUE.
+	(riscv_write_out_attrs): Clarification of when to generate the elf
+	priv spec attributes.
+	* testsuite/gas/riscv/attribute-11.s: Add comments.
+	* testsuite/gas/riscv/attribute-14.s: New testcase.  Use symbol
+	`priv_insn_<n>` to decide which priv instruction is expected to used.
+	(<n> is a to e.)
+	* testsuite/gas/riscv/attribute-14a.d: Likewise.
+	* testsuite/gas/riscv/attribute-14b.d: Likewise.
+	* testsuite/gas/riscv/attribute-14c.d: Likewise.
+	* testsuite/gas/riscv/attribute-14d.d: Likewise.
+	* testsuite/gas/riscv/attribute-14e.d: Likewise.
+
 2020-06-22  Nelson Chu  <nelson.chu@sifive.com>
 
 	* config/tc-riscv.c (buf_size, buf): Remove the unused variables.

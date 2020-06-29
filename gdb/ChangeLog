@@ -1,3 +1,559 @@
+2020-06-29  Simon Marchi  <simon.marchi@efficios.com>
+
+	* gdbarch.sh (displaced_step_copy_insn): Update doc.
+	* gdbarch.h: Re-generate.
+
+2020-06-28  Tom Tromey  <tom@tromey.com>
+
+	* command.h (cmd_types): Remove.
+	(cmd_type): Don't declare.
+	* cli/cli-decode.h (enum cmd_types): Uncomment.  No longer a
+	typedef.
+	* cli/cli-cmds.c (setting_cmd): Use cmd->type directly.
+	* cli/cli-decode.c (cmd_type): Remove.
+
+2020-06-27  Pedro Alves  <palves@redhat.com>
+
+	* fork-child.c (prefork_hook): Adjust.
+	* infcmd.c (set_inferior_io_terminal, get_inferior_io_terminal):
+	Delete.
+	(set_inferior_tty_command, show_inferior_tty_command): Adjust.
+	* inferior.c (inferior::set_tty, inferior::tty): New methods.
+	* inferior.h (set_inferior_io_terminal, get_inferior_io_terminal):
+	Remove declarations.
+	(struct inferior) <set_tty, tty>: New methods.
+	(struct inferior) <terminal>: Rename to ...
+	(struct inferior) <m_terminal>: ... this and make private.
+	* main.c (captured_main_1): Adjust.
+	* mi/mi-cmd-env.c (mi_cmd_inferior_tty_set): Adjust.
+	(mi_cmd_inferior_tty_show): Adjust.
+	* nto-procfs.c (nto_procfs_target::create_inferior): Adjust.
+	* windows-nat.c (windows_nat_target::create_inferior): Adjust.
+
+2020-06-26  Nick Alcock  <nick.alcock@oracle.com>
+
+	* configure.ac: Add --enable-libctf: handle --disable-static
+	properly.
+	* acinclude.m4: sinclude ../config/enable.m4.
+	* Makefile.in (aclocal_m4_deps): Adjust accordingly.
+	(LIBCTF): Substitute in.
+	(CTF_DEPS): New, likewise.
+	(CLIBS): libctf needs symbols from libbfd: move earlier.
+	(CDEPS): Use CTF_DEPS, not LIBCTF, now LIBCTF can include rpath
+	flags.
+	* ctfread.c: Surround in ENABLE_LIBCTF.
+	(elfctf_build_psymtabs) [!ENABLE_LIBCTF]: New stub.
+	* configure: Regenerate.
+	* config.in: Likewise.
+
+2020-06-25  Simon Marchi  <simon.marchi@efficios.com>
+
+	* infcmd.c (set_inferior_io_terminal): Use make_unique_xstrdup.
+
+2020-06-25  Simon Marchi  <simon.marchi@efficios.com>
+
+	* inferior.h (struct inferior) <terminal>: Change type to
+	gdb::unique_xmalloc_ptr<char>.
+	* inferior.c (inferior::~inferior): Don't free inf->terminal.
+	* infcmd.c (set_inferior_io_terminal): Don't free terminal
+	field, adjust to unique pointer.
+	(get_inferior_io_terminal): Adjust to unique pointer.
+
+2020-06-25  Andrew Burgess  <andrew.burgess@embecosm.com>
+
+	* riscv-tdep.c (riscv_print_registers_info): Loop over all
+	registers, not just the known core set of registers.
+
+2020-06-25  Andrew Burgess  <andrew.burgess@embecosm.com>
+
+	* riscv-tdep.c (riscv_register_name): Return NULL for duplicate
+	fflags, frm, and fcsr registers.
+	(riscv_register_reggroup_p): Remove unknown CSRs from save and
+	restore groups.
+	(riscv_tdesc_unknown_reg): New function.
+	(riscv_gdbarch_init): Pass riscv_tdesc_unknown_reg to
+	tdesc_use_registers.
+	* riscv-tdep.h (struct gdbarch_tdep): Add
+	unknown_csrs_first_regnum, unknown_csrs_count,
+	duplicate_fflags_regnum, duplicate_frm_regnum, and
+	duplicate_fcsr_regnum fields.
+
+2020-06-25  Andrew Burgess  <andrew.burgess@embecosm.com>
+
+	* target-descriptions.c (tdesc_use_registers): Add new parameter a
+	callback, use the callback (when not null) to help number unknown
+	registers.
+	* target-descriptions.h (tdesc_unknown_register_ftype): New typedef.
+	(tdesc_use_registers): Add extra parameter to declaration.
+
+2020-06-25  Andrew Burgess  <andrew.burgess@embecosm.com>
+
+	* riscv-tdep.c (value_of_riscv_user_reg): Moved to here from later
+	in the file.
+	(class riscv_pending_register_alias): Likewise.
+	(riscv_register_feature::register_info): Change 'required_p' field
+	to 'required', and change its type.  Add 'check' member function.
+	(riscv_register_feature::register_info::check): Define new member
+	function.
+	(riscv_xreg_feature): Change initialisation of 'required' field.
+	(riscv_freg_feature): Likewise.
+	(riscv_virtual_feature): Likewise.
+	(riscv_csr_feature): Likewise.
+	(riscv_check_tdesc_feature): Take extra parameter, the csr
+	tdesc_feature, rewrite the function to use the new
+	riscv_register_feature::register_info::check function.
+	(riscv_gdbarch_init): Pass the csr tdesc_feature where needed.
+
+2020-06-25  Andrew Burgess  <andrew.burgess@embecosm.com>
+
+	* features/Makefile: Remove all references to the deleted files
+	below.
+	* features/riscv/32bit-csr.c: Deleted.
+	* features/riscv/32bit-csr.xml: Deleted.
+	* features/riscv/64bit-csr.c: Deleted.
+	* features/riscv/64bit-csr.xml: Deleted.
+	* features/riscv/rebuild-csr-xml.sh: Deleted.
+
+2020-06-25  Andrew Burgess  <andrew.burgess@embecosm.com>
+
+	* riscv-tdep.c (struct riscv_register_feature::register_info): Fix
+	whitespace error for declaration of names member variable.
+	(struct riscv_register_feature): Add new prefer_first_name member
+	variable, and fix whitespace error in declaration of registers.
+	(riscv_xreg_feature): Initialize prefer_first_name field.
+	(riscv_freg_feature): Likewise.
+	(riscv_virtual_feature): Likewise.
+	(riscv_csr_feature): Likewise.
+	(riscv_register_name): Expand on comments.  Remove register name
+	modifications for CSR and virtual registers.
+
+2020-06-25  Andrew Burgess  <andrew.burgess@embecosm.com>
+
+	* riscv-tdep.c (struct riscv_register_feature): Fix whitespace
+	errors.
+
+2020-06-25  Andrew Burgess  <andrew.burgess@embecosm.com>
+
+	* riscv-tdep.c (riscv_create_csr_aliases): Handle csr aliases from
+	riscv-opc.h.
+	(class riscv_pending_register_alias): New class.
+	(riscv_check_tdesc_feature): Take vector of pending aliases and
+	populate it as appropriate.
+	(riscv_setup_register_aliases): Delete.
+	(riscv_gdbarch_init): Create vector of pending aliases and pass it
+	to riscv_check_tdesc_feature in all cases.  Use the vector to
+	create the register aliases.
+
+2020-06-25  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* sol2-tdep.c (sol2_static_transform_name): Remove.
+	(sol2_init_abi): Don't register it.
+	* gdbarch.sh (static_transform_name): Remove.
+	* gdbarch.c, gdbarch.h: Regenerate.
+
+	* dbxread.c (read_dbx_symtab) <'S'>: Remove call to
+	gdbarch_static_transform_name.
+	* mdebugread.c (parse_partial_symbols) <'S'>: Likewise.
+	* stabsread.c (define_symbol) <'X'>: Remove.
+	(define_symbol) <'S'>: Remove gdbarch_static_transform_name
+	handling.
+	<'V'>: Likewise.
+	* xcoffread.c (scan_xcoff_symtab): Remove gdbarch.
+	<'S'>: Remove call to gdbarch_static_transform_name.
+
+2020-06-25  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* procfs.c (procfs_pre_trace): New function.
+	(procfs_target::create_inferior): Pass it to fork_inferior.
+
+2020-06-25  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* configure.tgt <sparc-*-linux*> (gdb_target_obs): Remove
+	sparc-sol2-tdep.o, sol2-tdep.o, sparc64-sol2-tdep.o.
+	<sparc64-*-linux*> (gdb_target_obs): Remove sparc64-sol2-tdep.o,
+	sol2-tdep.o, sparc-sol2-tdep.o.
+	* sparc-sol2-tdep.c (sparc32_sol2_init_abi): Make static.
+	* sparc-tdep.h (sparc32_sol2_init_abi): Remove.
+	* sparc64-sol2-tdep.c (sparc64_sol2_init_abi): Make static.
+	* sparc64-tdep.h (sparc64_sol2_init_abi): Remove.
+
+2020-06-25  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* amd64-sol2-tdep.c (amd64_sol2_sigtramp_p): Remove.
+	(amd64_sol2_init_abi): Use sol2_sigtramp_p.
+	Call sol2_init_abi.
+ 	Remove calls to set_gdbarch_skip_solib_resolver,
+	set_gdbarch_core_pid_to_str.
+	* i386-sol2-tdep.c (i386_sol2_sigtramp_p): Remove.
+	(i386_sol2_static_transform_name): Remove.
+	(i386_sol2_init_abi): Call sol2_init_abi.
+	Remove calls to set_gdbarch_sofun_address_maybe_missing,
+	set_gdbarch_static_transform_name,
+	set_gdbarch_skip_solib_resolver, set_gdbarch_core_pid_to_str.
+	Use sol2_sigtramp_p.
+	* sol2-tdep.c (sol2_pc_in_sigtramp): New function.
+	(sol2_sigtramp_p): New function.
+	(sol2_static_transform_name): New function.
+	(sol2_skip_solib_resolver, sol2_core_pid_to_str): Make static.
+	(sol2_init_abi): New function.
+	* sol2-tdep.h (sol2_sigtramp_p, sol2_init_abi): Declare.
+	(sol2_skip_solib_resolver, sol2_core_pid_to_str): Remove.
+	* sparc-sol2-tdep.c (sparc_sol2_pc_in_sigtramp): Remove.
+	(sparc32_sol2_sigtramp_frame_sniffer): Just call sol2_sigtramp_p.
+	(sparc_sol2_static_transform_name): Remove.
+	(sparc32_sol2_init_abi): Call sol2_init_abi.
+	Remove calls to set_gdbarch_sofun_address_maybe_missing,
+	set_gdbarch_static_transform_name,
+	set_gdbarch_skip_solib_resolver,
+	set_gdbarch_core_pid_to_str.
+	* sparc-tdep.h (sparc_sol2_pc_in_sigtramp)
+	(sparc_sol2_static_transform_name): Remove
+	* sparc64-sol2-tdep.c (sparc64_sol2_sigtramp_frame_sniffer): Just
+	call sol2_sigtramp_p.
+	(sparc64_sol2_init_abi): Call sol2_init_abi.
+	Remove calls to set_gdbarch_sofun_address_maybe_missing,
+	set_gdbarch_static_transform_name,
+	set_gdbarch_skip_solib_resolver, set_gdbarch_core_pid_to_str.
+
+2020-06-24  Philippe Waroquiers  <philippe.waroquiers@skynet.be>
+
+	* symfile-add-flags.h: New flag SYMFILE_ALWAYS_CONFIRM.
+	* exec.c (validate_exec_file): If from_tty, set both
+	SYMFILE_VERBOSE (== from_tty) and SYMFILE_ALWAYS_CONFIRM.
+	* symfile.c (symbol_file_add_with_addrs): if always_confirm
+	and from_tty, unconditionally ask a confirmation.
+
+2020-06-23  Andrew Burgess  <andrew.burgess@embecosm.com>
+
+	* target-descriptions.c (tdesc_architecture_name): Protect against
+	NULL pointer dereference.
+	(maint_print_xml_tdesc_cmd): New function.
+	(_initialize_target_descriptions): Register new 'maint print
+	xml-tdesc' command and give it the filename completer.
+	* NEWS: Mention new 'maint print xml-tdesc' command.
+
+2020-06-23  Andrew Burgess  <andrew.burgess@embecosm.com>
+
+	* target-descriptions.c (class tdesc_compatible_info): New class.
+	(struct target_desc): Change type of compatible vector.
+	(tdesc_compatible_p): Update for change in type of
+	target_desc::compatible.
+	(tdesc_compatible_info_list): New function.
+	(tdesc_compatible_info_arch_name): New function.
+	(tdesc_add_compatible): Update for change in type of
+	target_desc::compatible.
+	(print_c_tdesc::visit_pre): Likewise.
+
+2020-06-23  Andrew Burgess  <andrew.burgess@embecosm.com>
+
+	* target-descriptions.c (print_c_tdesc::print_c_tdesc): Change
+	whitespace to underscore.
+	(maint_print_c_tdesc_cmd): Use fake filename for target
+	descriptions that came from the target.
+	(_initialize_target_descriptions): Add filename command completion
+	for 'maint print c-tdesc'.
+
+2020-06-23  Simon Marchi  <simon.marchi@efficios.com>
+
+	* dwarf2/loc.c (decode_debug_loclists_addresses): Add empty
+	lines.
+
+2020-06-23  Simon Marchi  <simon.marchi@efficios.com>
+
+	* dwarf2/loc.c (decode_debug_loc_dwo_addresses): Add empty
+	lines.
+	(dwarf2_find_location_expression): Likewise.
+	(call_site_parameter_matches): Likewise.
+	(dwarf2_compile_expr_to_ax): Likewise.
+	(disassemble_dwarf_expression): Likewise.
+	(loclist_describe_location): Likewise.
+
+2020-06-23  Pedro Alves  <palves@redhat.com>
+
+	* gdbarch-selftests.c: Don't include inferior.h, gdbthread.h or
+	progspace-and-thread.h.  Include scoped-mock-context.h instead.
+	(register_to_value_test): Use scoped_mock_context.
+	* regcache.c: Include "scoped-mock-context.h".
+	(cooked_read_test): Don't error out if a target is already pushed.
+	Use scoped_mock_context.  Adjust.
+	* scoped-mock-context.h: New file.
+
+2020-06-23  Andrew Burgess  <andrew.burgess@embecosm.com>
+
+	* ada-lang.c (ada_language_data): Delete la_is_string_type_p
+	initializer.
+	(ada_language::is_string_type_p): New member function.
+	* c-lang.c (c_language_data): Delete la_is_string_type_p
+	initializer.
+	(cplus_language_data): Likewise.
+	(asm_language_data): Likewise.
+	(minimal_language_data): Likewise.
+	* d-lang.c (d_language_data): Likewise.
+	* f-lang.c (f_is_string_type_p): Delete function, implementation
+	moved to f_language::is_string_type_p.
+	(f_language_data): Delete la_is_string_type_p initializer.
+	(f_language::is_string_type_p): New member function,
+	implementation from f_is_string_type_p.
+	* go-lang.c (go_is_string_type_p): Delete function, implementation
+	moved to go_language::is_string_type_p.
+	(go_language_data): Delete la_is_string_type_p initializer.
+	(go_language::is_string_type_p): New member function,
+	implementation from go_is_string_type_p.
+	* language.c (language_defn::is_string_type_p): Define new member
+	function.
+	(default_is_string_type_p): Make static, add comment copied from
+	header file.
+	(unknown_language_data): Delete la_is_string_type_p initializer.
+	(unknown_language::is_string_type_p): New member function.
+	(auto_language_data): Delete la_is_string_type_p initializer.
+	(auto_language::is_string_type_p): New member function.
+	* language.h (language_data): Delete la_is_string_type_p field.
+	(language_defn::is_string_type_p): Declare new function.
+	(default_is_string_type_p): Delete desclaration, move comment to
+	definition.
+	* m2-lang.c (m2_is_string_type_p): Delete function, implementation
+	moved to m2_language::is_string_type_p.
+	(m2_language_data): Delete la_is_string_type_p initializer.
+	(m2_language::is_string_type_p): New member function,
+	implementation from m2_is_string_type_p.
+	* objc-lang.c (objc_language_data): Delete la_is_string_type_p
+	initializer.
+	* opencl-lang.c (opencl_language_data): Likewise.
+	* p-lang.c (pascal_is_string_type_p): Delete function,
+	implementation moved to pascal_language::is_string_type_p.
+	(pascal_language_data): Delete la_is_string_type_p initializer.
+	(pascal_language::is_string_type_p): New member function,
+	implementation from pascal_is_string_type_p.
+	* rust-lang.c (rust_is_string_type_p): Delete function,
+	implementation moved to rust_language::is_string_type_p.
+	(rust_language_data): Delete la_is_string_type_p initializer.
+	(rust_language::is_string_type_p): New member function,
+	implementation from rust_is_string_type_p.
+	* valprint.c (val_print_scalar_or_string_type_p): Update call to
+	is_string_type_p.
+
+2020-06-23  Andrew Burgess  <andrew.burgess@embecosm.com>
+
+	* ada-lang.c (ada_language_data): Delete la_print_typedef
+	initializer.
+	(ada_language::print_typedef): New member function.
+	* c-lang.c (c_language_data): Delete la_print_typedef initializer.
+	(cplus_language_data): Likewise.
+	(asm_language_data): Likewise.
+	(minimal_language_data): Likewise.
+	* d-lang.c (d_language_data): Likewise.
+	* f-lang.c (f_language_data): Likewise.
+	(f_language::print_typedef): New member function.
+	* go-lang.c (go_language_data): Delete la_print_typedef
+	initializer.
+	* language.c (language_defn::print_typedef): Define member
+	function.
+	(unknown_language_data): Delete la_print_typedef initializer.
+	(unknown_language::print_typedef): New member function.
+	(auto_language_data): Delete la_print_typedef initializer.
+	(auto_language::print_typedef): New member function.
+	* language.h (language_data): Delete la_print_typedef field.
+	(language_defn::print_typedef): Declare new member function.
+	(LA_PRINT_TYPEDEF): Update call to print_typedef.
+	(default_print_typedef): Delete declaration.
+	* m2-lang.c (m2_language_data): Delete la_print_typedef
+	initializer.
+	(m2_language::print_typedef): New member function.
+	* objc-lang.c (objc_language_data): Delete la_print_typedef
+	initializer.
+	* opencl-lang.c (opencl_language_data): Likewise.
+	* p-lang.c (pascal_language_data): Likewise.
+	(pascal_language::print_typedef): New member function.
+	* rust-lang.c (rust_print_typedef): Delete function,
+	implementation moved to rust_language::print_typedef.
+	(rust_language): Delete la_print_typedef initializer.
+	(rust_language::print_typedef): New member function,
+	implementation from rust_print_typedef.
+	* typeprint.c (default_print_typedef): Delete.
+
+2020-06-23  Andrew Burgess  <andrew.burgess@embecosm.com>
+
+	* ada-lang.c (ada_language_data): Delete la_printstr initializer.
+	(ada_language::printstr): New member function.
+	* c-lang.c (c_language_data): Delete la_printstr initializer.
+	(cplus_language_data): Likewise.
+	(asm_language_data): Likewise.
+	(minimal_language_data): Likewise.
+	* d-lang.c (d_language_data): Likewise.
+	* f-lang.c (f_printstr): Rename to f_language::printstr.
+	(f_language_data): Delete la_printstr initializer.
+	(f_language::printstr): New member function, implementation from
+	f_printstr.
+	* go-lang.c (go_language_data): Delete la_printstr initializer.
+	* language.c (language_defn::printstr): Define new member
+	function.
+	(unk_lang_printstr): Delete.
+	(unknown_language_data): Delete la_printstr initializer.
+	(unknown_language::printstr): New member function.
+	(auto_language_data): Delete la_printstr initializer.
+	(auto_language::printstr): New member function.
+	* language.h (language_data): Delete la_printstr field.
+	(language_defn::printstr): Declare new member function.
+	(LA_PRINT_STRING): Update call to printstr.
+	* m2-lang.c (m2_printstr): Rename to m2_language::printstr.
+	(m2_language_data): Delete la_printstr initializer.
+	(m2_language::printstr): New member function, implementation from
+	m2_printstr.
+	* objc-lang.c (objc_language_data): Delete la_printstr
+	initializer.
+	* opencl-lang.c (opencl_language_data): Likewise.
+	* p-lang.c (pascal_printstr): Rename to pascal_language::printstr.
+	(pascal_language_data): Delete la_printstr initializer.
+	(pascal_language::printstr): New member function, implementation
+	from pascal_printstr.
+	* p-lang.h (pascal_printstr): Delete declaration.
+	* rust-lang.c (rust_printstr): Update header comment.
+	(rust_language_data): Delete la_printstr initializer.
+	(rust_language::printstr): New member function.
+
+2020-06-23  Andrew Burgess  <andrew.burgess@embecosm.com>
+
+	* ada-lang.c (ada_language_data): Delete la_printchar initializer.
+	(ada_language::printchar): New member function.
+	* c-lang.c (c_language_data): Delete la_printchar initializer.
+	(cplus_language_data): Likewise.
+	(asm_language_data): Likewise.
+	(minimal_language_data): Likewise.
+	* d-lang.c (d_language_data): Likewise.
+	* f-lang.c (f_printchar): Rename to f_language::printchar.
+	(f_language_data): Delete la_printchar initializer.
+	(f_language::printchar): New member function, implementation from
+	f_printchar.
+	* go-lang.c (go_language_data): Delete la_printchar initializer.
+	* language.c (unk_lang_printchar): Delete.
+	(language_defn::printchar): Define new member function.
+	(unknown_language_data): Delete la_printchar initializer.
+	(unknown_language::printchar): New member function.
+	(auto_language_data): Delete la_printchar initializer.
+	(auto_language::printchar): New member function.
+	* language.h (language_data): Delete la_printchar field.
+	(language_defn::printchar): Declare new member function.
+	(LA_PRINT_CHAR): Update call to printchar.
+	* m2-lang.c (m2_language_data): Delete la_printchar initializer.
+	(m2_language::printchar): New member function.
+	* objc-lang.c (objc_language_data): Delete la_printchar
+	initializer.
+	* opencl-lang.c (opencl_language_data): Likewise.
+	* p-lang.c (pascal_language_data): Delete la_printchar
+	initializer.
+	(pascal_language::printchar): New member function.
+	* rust-lang.c (rust_printchar): Rename to
+	rust_language::printchar.
+	(rust_language_data): Delete la_printchar initializer.
+	(rust_language::printchar): New member function, implementation
+	from rust_printchar.
+
+2020-06-23  Andrew Burgess  <andrew.burgess@embecosm.com>
+
+	* ada-lang.c (emit_char): Renamed to ada_language::emitchar.
+	(ada_language_data): Delete la_emitchar initializer.
+	(ada_language::emitchar): New member function, implementation from
+	emit_char.
+	* c-lang.c (c_language_data): Delete la_emitchar initializer.
+	(cplus_language_data): Likewise.
+	(asm_language_data): Likewise.
+	(minimal_language_data): Likewise.
+	* d-lang.c (d_language_data): Likewise.
+	* f-lang.c (f_emit_char): Rename to f_language::emitchar.
+	(f_language_data): Delete la_emitchar initializer.
+	(f_language::emitchar): New member function, implementation from
+	f_emit_char.
+	* go-lang.c (go_language_data): Delete la_emitchar initializer.
+	* language.c (unk_lang_emit_char): Delete.
+	(language_defn::emitchar): New member function definition.
+	(unknown_language_data): Delete la_emitchar initializer.
+	(unknown_language::emitchar): New member function.
+	(auto_language_data): Delete la_emitchar initializer.
+	(auto_language::emitchar): New member function.
+	* language.h (language_data): Delete la_emitchar field.
+	(language_defn::emitchar): New member field declaration.
+	(LA_EMIT_CHAR): Update call to emitchar.
+	* m2-lang.c (m2_emit_char): Rename to m2_language::emitchar.
+	(m2_language_data): Delete la_emitchar initializer.
+	(m2_language::emitchar): New member function, implementation from
+	m2_emit_char.
+	* objc-lang.c (objc_language_data): Delete la_emitchar
+	initializer.
+	* opencl-lang.c (opencl_language_data): Likewise.
+	* p-lang.c (pascal_emit_char): Rename to pascal_language::emitchar.
+	(pascal_language_data): Delete la_emitchar initializer.
+	(pascal_language::emitchar): New member function, implementation
+	from pascal_emit_char.
+	* rust-lang.c (rust_emitchar): Rename to rust_language::emitchar.
+	(rust_language_data): Delete la_emitchar initializer.
+	(rust_language::emitchar): New member function, implementation
+	from rust_emitchar.
+
+2020-06-23  Andrew Burgess  <andrew.burgess@embecosm.com>
+
+	* ada-lang.c (resolve): Rename to ada_language::post_parser.
+	(ada_language_data): Delete la_post_parser initializer.
+	(ada_language::post_parser): New member function.
+	* c-lang.c (c_language_data): Delete la_post_parser initializer.
+	(cplus_language_data): Likewise.
+	(asm_language_data): Likewise.
+	(minimal_language_data): Likewise.
+	* d-lang.c (d_language_data): Likewise.
+	* f-lang.c (f_language_data): Likewise.
+	* go-lang.c (go_language_data): Likewise.
+	* language.c (unknown_language_data): Likewise.
+	(auto_language_data): Likewise.
+	* language.h (language_data): Delete la_post_parser field.
+	(language_defn::post_parser): New member function.
+	* m2-lang.c (m2_language_data): Delete la_post_parser initializer.
+	* objc-lang.c (objc_language_data): Likewise.
+	* opencl-lang.c (opencl_language_data): Likewise.
+	* p-lang.c (pascal_language_data): Likewise.
+	* parse.c (parse_exp_in_context): Update call to post_parser.
+	(null_post_parser): Delete definition.
+	* parser-defs.h (null_post_parser): Delete declaration.
+	* rust-lang.c (rust_language_data): Delete la_post_parser
+	initializer.
+
+2020-06-23  Andrew Burgess  <andrew.burgess@embecosm.com>
+
+	* ada-lang.c (parse): Rename to ada_language::parser.
+	(ada_language_data): Delete la_parser initializer.
+	(ada_language::parser): New member function, implementation from
+	parse.
+	* c-lang.c (c_language_data): Delete la_parser initializer.
+	(cplus_language_data): Likewise.
+	(asm_language_data): Likewise.
+	(minimal_language_data): Likewise.
+	* d-lang.c (d_language_data): Likewise.
+	(d_language::parser): New member function.
+	* f-lang.c (f_language_data): Delete la_parser initializer.
+	(f_language::parser): New member function.
+	* go-lang.c (go_language_data): Delete la_parser initializer.
+	(go_language::parser): New member function.
+	* language.c (unk_lang_parser): Delete.
+	(language_defn::parser): Define new member function.
+	(unknown_language_data): Delete la_parser initializer.
+	(unknown_language::parser): New member function.
+	(auto_language_data): Delete la_parser initializer.
+	(auto_language::parser): New member function.
+	* language.h (language_data): Delete la_parser field.
+	(language_defn::parser): Declare new member function.
+	* m2-lang.c (m2_language_data): Delete la_parser initializer.
+	(m2_language::parser): New member function.
+	* objc-lang.c (objc_language_data): Delete la_parser initializer.
+	* opencl-lang.c (opencl_language_data): Likewise.
+	* p-lang.c (pascal_language_data): Likewise.
+	(pascal_language::parser): New member function.
+	* parse.c (parse_exp_in_context): Update call to parser.
+	* rust-lang.c (rust_language_data): Delete la_parser initializer.
+	(rust_language::parser): New member function.
+
+2020-06-23  Andrew Burgess  <andrew.burgess@embecosm.com>
+
+	* top.c (print_gdb_configuration): Print --with-python-libdir
+	configuration value.
+
 2020-06-22  Philippe Waroquiers  <philippe.waroquiers@skynet.be>
 
 	* NEWS: Mention change to the alias command.

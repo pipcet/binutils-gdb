@@ -2093,49 +2093,8 @@ csky_elf_size_dynamic_sections (bfd *output_bfd ATTRIBUTE_UNUSED,
     }
 
   if (htab->elf.dynamic_sections_created)
-    {
-      /* Add some entries to the .dynamic section.  We fill in the
-	 values later, in csky_elf_finish_dynamic_sections, but we
-	 must add the entries now so that we get the correct size for
-	 the .dynamic section.  The DT_DEBUG entry is filled in by the
-	 dynamic linker and used by the debugger.  */
-#define add_dynamic_entry(TAG, VAL) \
-  _bfd_elf_add_dynamic_entry (info, TAG, VAL)
-
-      if (bfd_link_executable (info) && !add_dynamic_entry (DT_DEBUG, 0))
-	return FALSE;
-
-      if (htab->elf.sgot->size != 0 || htab->elf.splt->size)
-	{
-	  if (!add_dynamic_entry (DT_PLTGOT, 0)
-	      || !add_dynamic_entry (DT_PLTRELSZ, 0)
-	      || !add_dynamic_entry (DT_PLTREL, DT_RELA)
-	      || !add_dynamic_entry (DT_JMPREL, 0))
-	    return FALSE;
-	}
-
-      if (relocs)
-	{
-	  if (!add_dynamic_entry (DT_RELA, 0)
-	      || !add_dynamic_entry (DT_RELASZ, 0)
-	      || !add_dynamic_entry (DT_RELAENT,
-				     sizeof (Elf32_External_Rela)))
-	    return FALSE;
-
-	  /* If any dynamic relocs apply to a read-only section,
-	     then we need a DT_TEXTREL entry.  */
-	  if ((info->flags & DF_TEXTREL) == 0)
-	    elf_link_hash_traverse (&htab->elf,
-				    _bfd_elf_maybe_set_textrel, info);
-
-	  if ((info->flags & DF_TEXTREL) != 0
-	      && !add_dynamic_entry (DT_TEXTREL, 0))
-	    return FALSE;
-	}
-    }
-#undef add_dynamic_entry
-
-  return TRUE;
+    htab->elf.dt_pltgot_required = htab->elf.sgot->size != 0;
+  return _bfd_elf_add_dynamic_tags (output_bfd, info, relocs);
 }
 
 /* Finish up dynamic symbol handling.  We set the contents of various
@@ -3779,8 +3738,8 @@ csky_relocate_contents (reloc_howto_type *howto,
 
   /* FIXME: these macros should be defined at file head or head file head.  */
 #define CSKY_INSN_ADDI_TO_SUBI        0x04000000
-#define CSKY_INSN_MOV_RTB             0xc41d4820   // mov32 rx, r29, 0
-#define CSKY_INSN_MOV_RDB             0xc41c4820   // mov32 rx, r28, 0
+#define CSKY_INSN_MOV_RTB             0xc41d4820   /* mov32 rx, r29, 0 */
+#define CSKY_INSN_MOV_RDB             0xc41c4820   /* mov32 rx, r28, 0 */
 #define CSKY_INSN_GET_ADDI_RZ(x)      (((x) & 0x03e00000) >> 21)
 #define CSKY_INSN_SET_MOV_RZ(x)       ((x) & 0x0000001f)
 #define CSKY_INSN_JSRI_TO_LRW         0xea9a0000

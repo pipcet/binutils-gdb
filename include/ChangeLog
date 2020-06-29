@@ -1,3 +1,37 @@
+2020-06-29  Alan Modra  <amodra@gmail.com>
+
+	* coff/internal.h: Use C style comments.
+	* coff/pe.h: Likewise.
+	* elf/ppc64.h: Likewise.
+
+2020-06-26  Nick Alcock  <nick.alcock@oracle.com>
+
+	* ctf-api.h (ctf_arc_bufopen): New.
+
+2020-06-26  Pat Bernardi  <bernardi@adacore.com>
+
+	* elf/m68k.h: Add enum for GNU object attribute with floating point
+	tag name and values.
+
+2020-06-25  Nick Clifton  <nickc@redhat.com>
+
+	* libiberty.h (bsearch_r): Remove use of the register keyword from
+	the prototype.
+
+2020-06-24  H.J. Lu  <hongjiu.lu@intel.com>
+
+	Sync with GCC
+	2020-06-23  Nick Alcock  <nick.alcock@oracle.com>
+
+	* libiberty.h (bsearch_r): New.
+
+	2020-04-17  Martin Liska  <mliska@suse.cz>
+		    Jonathan Yong <10walls@gmail.com>
+
+	PR gcov-profile/94570
+	* filenames.h (defined): Do not define HAVE_DOS_BASED_FILE_SYSTEM
+	for CYGWIN.
+
 2020-06-22  Alex Coplan  <alex.coplan@arm.com>
 
 	* opcode/aarch64.h (AARCH64_FEATURE_SHA2): Normalize.

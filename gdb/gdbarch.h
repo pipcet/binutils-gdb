@@ -1007,9 +1007,7 @@ extern void set_gdbarch_max_insn_length (struct gdbarch *gdbarch, ULONGEST max_i
    not the copy at TO.  The caller should update it to point at TO later.
   
    Return a pointer to data of the architecture's choice to be passed
-   to gdbarch_displaced_step_fixup.  Or, return NULL to indicate that
-   the instruction's effects have been completely simulated, with the
-   resulting state written back to REGS.
+   to gdbarch_displaced_step_fixup.
   
    For a general explanation of displaced stepping and how GDB uses it,
    see the comments in infrun.c.
@@ -1111,14 +1109,6 @@ extern int gdbarch_core_read_description_p (struct gdbarch *gdbarch);
 typedef const struct target_desc * (gdbarch_core_read_description_ftype) (struct gdbarch *gdbarch, struct target_ops *target, bfd *abfd);
 extern const struct target_desc * gdbarch_core_read_description (struct gdbarch *gdbarch, struct target_ops *target, bfd *abfd);
 extern void set_gdbarch_core_read_description (struct gdbarch *gdbarch, gdbarch_core_read_description_ftype *core_read_description);
-
-/* Handle special encoding of static variables in stabs debug info. */
-
-extern int gdbarch_static_transform_name_p (struct gdbarch *gdbarch);
-
-typedef const char * (gdbarch_static_transform_name_ftype) (const char *name);
-extern const char * gdbarch_static_transform_name (struct gdbarch *gdbarch, const char *name);
-extern void set_gdbarch_static_transform_name (struct gdbarch *gdbarch, gdbarch_static_transform_name_ftype *static_transform_name);
 
 /* Set if the address in N_SO or N_FUN stabs may be zero. */
 

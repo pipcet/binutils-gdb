@@ -767,9 +767,7 @@ V;ULONGEST;max_insn_length;;;0;0
 # not the copy at TO.  The caller should update it to point at TO later.
 #
 # Return a pointer to data of the architecture's choice to be passed
-# to gdbarch_displaced_step_fixup.  Or, return NULL to indicate that
-# the instruction's effects have been completely simulated, with the
-# resulting state written back to REGS.
+# to gdbarch_displaced_step_fixup.
 #
 # For a general explanation of displaced stepping and how GDB uses it,
 # see the comments in infrun.c.
@@ -842,8 +840,6 @@ F;void;overlay_update;struct obj_section *osect;osect
 
 M;const struct target_desc *;core_read_description;struct target_ops *target, bfd *abfd;target, abfd
 
-# Handle special encoding of static variables in stabs debug info.
-F;const char *;static_transform_name;const char *name;name
 # Set if the address in N_SO or N_FUN stabs may be zero.
 v;int;sofun_address_maybe_missing;;;0;0;;0
 

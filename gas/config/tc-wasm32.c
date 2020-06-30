@@ -391,7 +391,7 @@ wasm32_put_uleb128 (unsigned long value)
    <expr>@plt{__sigchar_<signature>}.  */
 
 static bfd_boolean
-wasm32_leb128 (char **line, int bits, int sign)
+wasm32_leb128 (char **line, int bits, int sign, long long initval)
 {
   char *t = input_line_pointer;
   char *str = *line;
@@ -411,7 +411,7 @@ wasm32_leb128 (char **line, int bits, int sign)
 
   if (ex.X_op == O_constant && *input_line_pointer != '@' && *input_line_pointer != '%')
     {
-      long value = ex.X_add_number;
+      long value = ex.X_add_number + initval;
 
       str = input_line_pointer;
       str = skip_space (str);
@@ -519,18 +519,18 @@ wasm32_leb128 (char **line, int bits, int sign)
    or a relocation for it.  */
 
 static bfd_boolean
-wasm32_uleb128 (char **line, int bits)
+wasm32_uleb128 (char **line, int bits, long long initval)
 {
-  return wasm32_leb128 (line, bits, 0);
+  return wasm32_leb128 (line, bits, 0, initval);
 }
 
 /* Read an integer expression and produce a signed LEB128 integer, or
    a relocation for it.  */
 
 static bfd_boolean
-wasm32_sleb128 (char **line, int bits)
+wasm32_sleb128 (char **line, int bits, long long initval)
 {
-  return wasm32_leb128 (line, bits, 1);
+  return wasm32_leb128 (line, bits, 1, initval);
 }
 
 /* Read an f32.  (Like float_cons ('f')).  */
@@ -722,7 +722,7 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
       if (str[0] == 'a' && str[1] == '=')
 	{
 	  str += 2;
-	  if (!wasm32_uleb128 (&str, 32))
+	  if (!wasm32_uleb128 (&str, 32, 0))
 	    as_bad (_("missing alignment hint"));
 	}
       else
@@ -730,40 +730,40 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
 	  as_bad (_("missing alignment hint"));
 	}
       str = skip_space (str);
-      if (!wasm32_uleb128 (&str, 32))
+      if (!wasm32_sleb128 (&str, 32, -4096))
 	as_bad (_("missing offset"));
       break;
     case wasm_local_set:
     case wasm_local_get:
     case wasm_local_tee:
-      if (!wasm32_uleb128 (&str, 32))
+      if (!wasm32_uleb128 (&str, 32, 0))
 	as_bad (_("missing local index"));
       break;
     case wasm_break:
     case wasm_break_if:
-      if (!wasm32_uleb128 (&str, 32))
+      if (!wasm32_uleb128 (&str, 32, 0))
 	as_bad (_("missing break count"));
       break;
     case wasm_current_memory:
     case wasm_grow_memory:
-      if (!wasm32_uleb128 (&str, 32))
+      if (!wasm32_uleb128 (&str, 32, 0))
 	as_bad (_("missing reserved memory.size/memory.grow argument"));
       break;
     case wasm_call:
-      if (!wasm32_uleb128 (&str, 32))
+      if (!wasm32_uleb128 (&str, 32, 0))
 	as_bad (_("missing call argument"));
       break;
     case wasm_call_indirect:
-      if (!wasm32_uleb128 (&str, 32))
+      if (!wasm32_uleb128 (&str, 32, 0))
 	as_bad (_("missing call signature"));
-      if (!wasm32_uleb128 (&str, 32))
+      if (!wasm32_uleb128 (&str, 32, 0))
 	as_bad (_("missing table index"));
       break;
     case wasm_i32_const:
-      wasm32_sleb128 (&str, 32);
+      wasm32_sleb128 (&str, 32, 0);
       break;
     case wasm_i64_const:
-      wasm32_sleb128 (&str, 64);
+      wasm32_sleb128 (&str, 64, 0);
       break;
     case wasm_f32_const:
       wasm32_f32 (&str);
@@ -775,7 +775,7 @@ wasm32_operands (struct wasm32_opcode_s *opcode, char **line)
       {
 	do
 	  {
-	    wasm32_uleb128 (&str, 32);
+	    wasm32_uleb128 (&str, 32, 0);
 	    str = skip_space (str);
 	  }
 	while (str[0]);

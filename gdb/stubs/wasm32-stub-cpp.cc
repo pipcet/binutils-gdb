@@ -1166,7 +1166,7 @@ breakpoint (void *regp)
   return 0;
 }
 
-char 
+char
 getDebugChar (void)
 {
   char ch;

@@ -262,6 +262,22 @@ static reloc_howto_type elf32_wasm32_howto_table[] =
          0,			/* src_mask */
          0,			/* dst_mask */
          FALSE),		/* pcrel_offset */
+
+  /* LEB-128 PLT index.  As a special case, this is replaced with five
+     0x00 bytes for undefined weak symbols.  */
+  HOWTO (R_WASM32_LEB128_PLT0,	/* type */
+         0,			/* rightshift */
+         7,			/* size - 16 bytes*/
+         32,			/* bitsize */
+         FALSE,			/* pc_relative */
+         0,			/* bitpos */
+         complain_overflow_signed,/* complain_on_overflow */
+         elf32_wasm32_leb128_reloc,/* special_function */
+         "R_WASM32_LEB128_PLT0",/* name */
+         FALSE,			/* partial_inplace */
+         0xffffffffffffffff,	/* src_mask */
+         0xffffffffffffffff,	/* dst_mask */
+         FALSE),		/* pcrel_offset */
 };
 
 /* Look up the relocation R_NAME.  */
@@ -301,6 +317,8 @@ elf32_wasm32_reloc_type_lookup (bfd *abfd ATTRIBUTE_UNUSED,
     return elf32_wasm32_reloc_name_lookup(abfd, "R_WASM32_LEB128_GOT_CODE");
   case BFD_RELOC_WASM32_LEB128_PLT:
     return elf32_wasm32_reloc_name_lookup(abfd, "R_WASM32_LEB128_PLT");
+  case BFD_RELOC_WASM32_LEB128_PLT0:
+    return elf32_wasm32_reloc_name_lookup(abfd, "R_WASM32_LEB128_PLT0");
   case BFD_RELOC_WASM32_PLT_INDEX:
     return elf32_wasm32_reloc_name_lookup(abfd, "R_WASM32_PLT_INDEX");
   case BFD_RELOC_WASM32_PLT_LAZY:
@@ -1023,6 +1041,7 @@ elf32_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec,
 
       if (dynobj == NULL
           && (r_type == R_WASM32_LEB128_PLT
+              || r_type == R_WASM32_LEB128_PLT0
               || r_type == R_WASM32_LEB128_GOT
               || r_type == R_WASM32_LEB128_GOT_CODE))
         {
@@ -1054,6 +1073,7 @@ elf32_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec,
           case R_WASM32_LEB128_GOT:
           case R_WASM32_LEB128_GOT_CODE:
           case R_WASM32_LEB128_PLT:
+          case R_WASM32_LEB128_PLT0:
             elf_hash_table (info)->dynobj = dynobj = abfd;
             if (! _bfd_elf_create_got_section (dynobj, info))
               return FALSE;
@@ -1062,7 +1082,8 @@ elf32_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec,
             break;
           }
 
-      if (r_type != R_WASM32_LEB128_PLT)
+      if (r_type != R_WASM32_LEB128_PLT &&
+	  r_type != R_WASM32_LEB128_PLT0)
         pltsig = NULL;
 
       switch (r_type)
@@ -1134,6 +1155,7 @@ elf32_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec,
 
 
         case R_WASM32_LEB128_PLT:
+        case R_WASM32_LEB128_PLT0:
           if (h)
             {
               h->needs_plt = 1;
@@ -1177,8 +1199,9 @@ elf32_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec,
             }
         }
 
-      if (r_type == R_WASM32_LEB128_PLT)
-        {
+      if (r_type == R_WASM32_LEB128_PLT ||
+	  r_type == R_WASM32_LEB128_PLT0)
+         {
           if (h == NULL)
             continue;
           else
@@ -1835,7 +1858,8 @@ wasm32_relocate_contents (reloc_howto_type *howto,
   if (howto->type == R_WASM32_LEB128
       || howto->type == R_WASM32_LEB128_GOT
       || howto->type == R_WASM32_LEB128_GOT_CODE
-      || howto->type == R_WASM32_LEB128_PLT)
+      || howto->type == R_WASM32_LEB128_PLT
+      || howto->type == R_WASM32_LEB128_PLT0)
     {
       int len = 0;
       int i;
@@ -2131,6 +2155,7 @@ elf32_wasm32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
       switch ((int)r_type)
         {
         case R_WASM32_LEB128_PLT:
+        case R_WASM32_LEB128_PLT0:
           /* Relocation is to the entry for this symbol in the
              procedure linkage table.  */
 

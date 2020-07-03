@@ -495,7 +495,7 @@ wasm32_leb128 (char **line, int bits, int sign)
   else if (gotrel)
     relname = "R_WASM32_LEB128_GOT";
   else if (pltrel)
-    relname = "R_WASM32_LEB128_PLT";
+    relname = "R_WASM32_LEB128_PLT0";
   else
     relname = "R_WASM32_LEB128";
 
@@ -833,6 +833,7 @@ int
 wasm32_force_relocation (fixS * f)
 {
   if (f->fx_r_type == BFD_RELOC_WASM32_LEB128_PLT
+      || f->fx_r_type == BFD_RELOC_WASM32_LEB128_PLT0
       || f->fx_r_type == BFD_RELOC_WASM32_LEB128_GOT)
     return 1;
 
@@ -849,6 +850,7 @@ wasm32_fix_adjustable (fixS * fixP)
     return TRUE;
 
   if (fixP->fx_r_type == BFD_RELOC_WASM32_LEB128_PLT
+      || fixP->fx_r_type == BFD_RELOC_WASM32_LEB128_PLT0
       || fixP->fx_r_type == BFD_RELOC_WASM32_LEB128_GOT)
     return FALSE;
 

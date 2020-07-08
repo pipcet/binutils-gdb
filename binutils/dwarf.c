@@ -2574,6 +2574,9 @@ read_and_display_attr_value (unsigned long           attribute,
 	      case DW_FORM_strp:
 		add_dwo_name ((const char *) fetch_indirect_string (uvalue));
 		break;
+	      case DW_FORM_GNU_strp_alt:
+		add_dwo_name ((const char *) fetch_alt_indirect_string (uvalue));
+		break;
 	      case DW_FORM_GNU_str_index:
 		add_dwo_name (fetch_indexed_string (uvalue, this_set, offset_size, FALSE));
 		break;
@@ -2594,6 +2597,9 @@ read_and_display_attr_value (unsigned long           attribute,
 	      {
 	      case DW_FORM_strp:
 		add_dwo_dir ((const char *) fetch_indirect_string (uvalue));
+		break;
+	      case DW_FORM_GNU_strp_alt:
+		add_dwo_dir (fetch_alt_indirect_string (uvalue));
 		break;
 	      case DW_FORM_line_strp:
 		add_dwo_dir ((const char *) fetch_indirect_line_string (uvalue));
@@ -7633,10 +7639,8 @@ init_dwarf_regnames_by_bfd_arch_and_mach (enum bfd_architecture arch,
 	{
 	case bfd_mach_x86_64:
 	case bfd_mach_x86_64_intel_syntax:
-	case bfd_mach_x86_64_nacl:
 	case bfd_mach_x64_32:
 	case bfd_mach_x64_32_intel_syntax:
-	case bfd_mach_x64_32_nacl:
 	  init_dwarf_regnames_x86_64 ();
 	  break;
 

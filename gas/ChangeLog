@@ -1,3 +1,103 @@
+2020-07-06  Jan Beulich  <jbeulich@suse.com>
+
+	* testsuite/gas/i386/x86-64-avx512bw-wig1.d,
+	testsuite/gas/i386/x86-64-avx512bw-wig1-intel.d,
+	testsuite/gas/i386/x86-64-evex-wig1.d,
+	testsuite/gas/i386/x86-64-evex-wig1-intel.d: Adjust
+	expectations.
+
+2020-07-06  Jan Beulich  <jbeulich@suse.com>
+
+	* testsuite/gas/i386/avx512f-opts.s: Add EVEX movq tests.
+	* testsuite/gas/i386/x86-64-avx512f-opts.s: Add blank line.
+	* testsuite/gas/i386/avx512f-opts-intel.d,
+	testsuite/gas/i386/avx512f-opts.d
+	testsuite/gas/i386/x86-64-avx512f-opts-intel.d
+	testsuite/gas/i386/x86-64-avx512f-opts.d: Adjust expectations.
+
+2020-07-06  Yuri Chornoivan  <yurchor@ukr.net>
+
+	PR 26204
+	* config/tc-arm.c: Fix spelling mistake.
+	* config/tc-riscv.c: Likewise.
+	* config/tc-z80.c: Likewise.
+	* po/gas.pot: Regenerate.
+
+2020-07-06  Nick Clifton  <nickc@redhat.com>
+
+	* po/uk.po: Updated Ukranian translation.
+
+2020-07-04  Nick Clifton  <nickc@redhat.com>
+
+	* configure: Regenerate.
+	* po/gas.pot: Regenerate.
+
+2020-07-04  Nick Clifton  <nickc@redhat.com>
+
+	* version.m4: Change version number to 2.35.50.
+	* configure: Regenerate.
+	* po/bfd.pot: Regenerate.
+
+2020-07-04  Nick Clifton  <nickc@redhat.com>
+
+	Binutils 2.35 branch created.
+
+2020-07-03  Alan Modra  <amodra@gmail.com>
+
+	PR 26028
+	* testsuite/gas/ia64/unwind-ilp32.d: Add -T to readelf options.
+
+2020-07-02  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/tc-i386.c (build_modrm_byte): Check vexswapsources to
+	swap two source operands.
+
+2020-07-02  Nick Clifton  <nickc@redhat.com>
+
+	* testsuite/gas/all/fill-1.d: Skip for MeP targets.
+
+2020-07-02  Alex Coplan  <alex.coplan@arm.com>
+
+	* config/tc-aarch64.c (reg_name_p): Fix cast so that we don't
+	segfault on negative chars.
+	* testsuite/gas/aarch64/reglike-label-unicode-segv.d: New test.
+	* testsuite/gas/aarch64/reglike-label-unicode-segv.s: Input.
+
+2020-07-02  Nick Clifton  <nickc@redhat.com>
+
+	PR 26028
+	* testsuite/gas/ia64/group-2.d: Add -T option to readelf
+	command line.
+	* testsuite/gas/ia64/unwind.d: Likewise.
+	* testsuite/gas/mmix/bspec-1.d: Likewise.
+	* testsuite/gas/mmix/bspec-2.d: Likewise.
+	* testsuite/gas/mmix/comment-1.d: Likewise.
+	* testsuite/gas/tic6x/scomm-directive-4.d: Likewise.
+
+2020-07-01  Alan Modra  <amodra@gmail.com>
+
+	* config/tc-xc16x.c (md_apply_fix): Add FIXME.
+
+2020-07-01  Alan Modra  <amodra@gmail.com>
+
+	* testsuite/gas/all/eqv-dot.d: xfail targets that set linkrelax
+	in data sections, and mep.
+
+2020-06-30  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* NEWS: Mention x86 NaCl target support removal.
+	* config/tc-i386.c: Remove x86 NaCl target support.
+	* config/tc-i386.h: Likewise.
+	* configure.tgt: Likewise.
+	* testsuite/gas/i386/i386.exp: Likewise.
+	* testsuite/gas/i386/iamcu-1.d: Likewise.
+	* testsuite/gas/i386/iamcu-2.d: Likewise.
+	* testsuite/gas/i386/iamcu-3.d: Likewise.
+	* testsuite/gas/i386/iamcu-4.d: Likewise.
+	* testsuite/gas/i386/iamcu-5.d: Likewise.
+	* testsuite/gas/i386/k1om.d: Likewise.
+	* testsuite/gas/i386/l1om.d: Likewise.
+
 2020-06-30  Nelson Chu  <nelson.chu@sifive.com>
 
 	* config/tc-riscv.c (riscv_csr_class_check): Removed.  Move the

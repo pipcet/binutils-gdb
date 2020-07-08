@@ -1,3 +1,60 @@
+2020-07-06  Nick Clifton  <nickc@redhat.com>
+
+	* po/bg.po: Updated Bulgarian translation.
+	* po/pt.po: Updated Portuguese translation.
+	* po/uk.po: Updated Ukranian translation.
+
+2020-07-06  Alan Modra  <amodra@gmail.com>
+
+	* readelf.c (print_dynamic_symbol): Don't sprintf to buffer to
+	find string length.
+
+2020-07-04  Nick Clifton  <nickc@redhat.com>
+
+	* configure: Regenerate.
+	* po/binutils.pot: Regenerate.
+
+2020-07-04  Nick Clifton  <nickc@redhat.com>
+
+	Binutils 2.35 branch created.
+
+2020-07-02  Nick Clifton  <nickc@redhat.com>
+
+	PR 26028
+	* readelf.c (print_symbol): Handle truncation of symbol names.
+	(options): Add -T/--silent-truncation option.
+	(parse_args): Handle the option.
+	(print_dynamic_symbol): Correct calculation of width available to
+	display symbol name.
+	* doc/binutils.texi: Document the -T option to readelf.
+	* NEWS: Mention the new feature.
+
+2020-06-30  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* NEWS: Mention x86 NaCl target support removal.
+	* dwarf.c (init_dwarf_regnames_by_bfd_arch_and_mach): Remove
+	x86 NaCl target support.
+	* testsuite/binutils-all/elfedit-1.d: Likewise.
+	* testsuite/binutils-all/i386/i386.exp: Likewise.
+	* testsuite/binutils-all/x86-64/objects.exp: Likewise.
+	* testsuite/binutils-all/x86-64/pr23494a-x32.d: Likewise.
+	* testsuite/binutils-all/x86-64/pr23494a.d: Likewise.
+	* testsuite/binutils-all/x86-64/pr23494b-x32.d: Likewise.
+	* testsuite/binutils-all/x86-64/pr23494b.d: Likewise.
+	* testsuite/binutils-all/x86-64/pr23494c-x32.d: Likewise.
+	* testsuite/binutils-all/x86-64/pr23494c.d: Likewise.
+	* testsuite/binutils-all/x86-64/pr23494d-x32.d: Likewise.
+	* testsuite/binutils-all/x86-64/pr23494d.d: Likewise.
+	* testsuite/binutils-all/x86-64/pr23494e-x32.d: Likewise.
+	* testsuite/binutils-all/x86-64/pr23494e.d: Likewise.
+	* testsuite/binutils-all/x86-64/x86-64.exp: Likewise.
+
+2020-06-30  Nick Clifton  <nickc@redhat.com>
+
+	* dwarf.c (read_and_display_attr_value): Support
+	DW_FORM_GNU_strp_alt when used with DW_AT_dwo_name and
+	DW_AT_comp_dir.
+
 2020-06-30  Alan Modra  <amodra@gmail.com>
 
 	* testsuite/binutils-all/readelf.exp (readelf_dump_test): Remove

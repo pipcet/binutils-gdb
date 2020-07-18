@@ -12435,6 +12435,7 @@ and vector registers (in the selected stack frame).
 Print the names and values of all registers, including floating-point
 and vector registers (in the selected stack frame).
 
+@anchor{info_registers_reggroup}
 @item info registers @var{reggroup} @dots{}
 Print the name and value of the registers in each of the specified
 @var{reggroup}s.  The @var{reggroup} can be any of those returned by
@@ -27339,6 +27340,10 @@ script in the specified extension language.
 
 If this file does not exist, then @value{GDBN} will look for
 @var{script-name} file in all of the directories as specified below.
+(On MS-Windows/MS-DOS, the drive letter of the executable's leading
+directories is converted to a one-letter subdirectory, i.e.@:
+@file{d:/usr/bin/} is converted to @file{/d/usr/bin/}, because Windows
+filesystems disallow colons in file names.)
 
 Note that loading of these files requires an accordingly configured
 @code{auto-load safe-path} (@pxref{Auto-loading safe path}).

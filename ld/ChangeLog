@@ -1,3 +1,223 @@
+2020-07-09  Alan Modra  <amodra@gmail.com>
+
+	* emulparams/ppcpe.sh: Delete.
+	* scripttempl/ppcpe.sc: Delete.
+	* emulparams/ppclynx.sh: Delete.
+	* Makefile.am (ALL_EMULATION_SOURCES): Remove ppc PE and lynxos.
+	* configure.tgt: Likewise.
+	* emultempl/beos.em: Remove powerpc PE support.
+	* emultempl/pe.em: Likewise.
+	* po/BLD-POTFILES.in: Regenerate.
+	* Makefile.in: Regenerate.
+
+2020-07-09  Alan Modra  <amodra@gmail.com>
+
+	* testsuite/ld-gc/gc.exp: Don't set -mminimal-toc for powerpc64,
+	and remove powerpc64 xfail.  Use -fno-PIE for ppc32.
+
+2020-07-09  Alan Modra  <amodra@gmail.com>
+
+	PR 18841
+	* testsuite/ld-ifunc/ifunc.exp: Run pr18841 tests non-pie.
+
+2020-07-08  Alan Modra  <amodra@gmail.com>
+
+	* testsuite/lib/ld-lib.exp (ar_simple_create): Pass options before
+	ar command.
+	* testsuite/ld-powerpc/aix52.exp: Run for rs6000-aix5.2.  Update
+	match files.
+	* testsuite/ld-powerpc/aix-abs-branch-1.dd: Update.
+	* testsuite/ld-powerpc/aix-core-sec-1.hd: Update.
+	* testsuite/ld-powerpc/aix-gc-1-32.dd: Update.
+	* testsuite/ld-powerpc/aix-gc-1-64.dd: Update.
+	* testsuite/ld-powerpc/aix-glink-1-32.dd: Update.
+	* testsuite/ld-powerpc/aix-glink-1-64.dd: Update.
+	* testsuite/ld-powerpc/aix-glink-2-32.dd: Update.
+	* testsuite/ld-powerpc/aix-glink-2-64.dd: Update.
+	* testsuite/ld-powerpc/aix-no-dup-syms-1-rel.rd: Update.
+	* testsuite/ld-powerpc/aix-ref-1-32.od: Update.
+	* testsuite/ld-powerpc/aix-ref-1-64.od: Update.
+	* testsuite/ld-powerpc/aix-toc-1-32.dd: Update.
+	* testsuite/ld-powerpc/aix-toc-1-64.dd: Update.
+	* testsuite/ld-powerpc/aix-weak-3-32.dd: Update.
+	* testsuite/ld-powerpc/aix-weak-3-64.dd: Update.
+	* testsuite/ld-powerpc/aix-abs-branch-1.nd: Delete, replace with..
+	* testsuite/ld-powerpc/aix-abs-branch-1-32.nd,
+	* testsuite/ld-powerpc/aix-abs-branch-1-64.nd: ..these new files.
+	* testsuite/ld-powerpc/aix-abs-reloc-1.nd: Delete, replace with..
+	* testsuite/ld-powerpc/aix-abs-reloc-1-32.nd,
+	* testsuite/ld-powerpc/aix-abs-reloc-1-64.nd: ..these new files.
+	* testsuite/ld-powerpc/aix-abs-reloc-1.od: Delete, replace with..
+	* testsuite/ld-powerpc/aix-abs-reloc-1-32.od,
+	* testsuite/ld-powerpc/aix-abs-reloc-1-64.od: ..these new files.
+	* testsuite/ld-powerpc/aix-export-1-all.dd: Delete, replace with..
+	* testsuite/ld-powerpc/aix-export-1-all-32.dd,
+	* testsuite/ld-powerpc/aix-export-1-all-64.dd: ..these new files.
+	* testsuite/ld-powerpc/aix-export-1-full.dd: Delete, replace with..
+	* testsuite/ld-powerpc/aix-export-1-full-32.dd,
+	* testsuite/ld-powerpc/aix-export-1-full-64.dd: ..these new files.
+	* testsuite/ld-powerpc/aix-export-2.nd: Delete, replace with..
+	* testsuite/ld-powerpc/aix-export-2-32.nd,
+	* testsuite/ld-powerpc/aix-export-2-64.nd: ..these new files.
+	* testsuite/ld-powerpc/aix-gc-1.nd: Delete, replace with..
+	* testsuite/ld-powerpc/aix-gc-1-32.nd,
+	* testsuite/ld-powerpc/aix-gc-1-64.nd: ..these new files.
+	* testsuite/ld-powerpc/aix-glink-3.dd: Delete, replace with..
+	* testsuite/ld-powerpc/aix-glink-3-32.dd,
+	* testsuite/ld-powerpc/aix-glink-3-64.dd: ..these new files.
+	* testsuite/ld-powerpc/aix-lineno-1a.dd: Delete, replace with..
+	* testsuite/ld-powerpc/aix-lineno-1a-32.dd,
+	* testsuite/ld-powerpc/aix-lineno-1a-64.dd: ..these new files.
+	* testsuite/ld-powerpc/aix-lineno-1a.nd: Delete, replace with..
+	* testsuite/ld-powerpc/aix-lineno-1a-32.nd,
+	* testsuite/ld-powerpc/aix-lineno-1a-64.nd: ..these new files.
+	* testsuite/ld-powerpc/aix-lineno-1b.dd: Delete, replace with..
+	* testsuite/ld-powerpc/aix-lineno-1b-32.dd,
+	* testsuite/ld-powerpc/aix-lineno-1b-64.dd: ..these new files.
+	* testsuite/ld-powerpc/aix-lineno-1b.nd: Delete, replace with..
+	* testsuite/ld-powerpc/aix-lineno-1b-32.nd,
+	* testsuite/ld-powerpc/aix-lineno-1b-64.nd: ..these new files.
+	* testsuite/ld-powerpc/aix-no-dup-syms-1-dso.dnd: Delete, replace with..
+	* testsuite/ld-powerpc/aix-no-dup-syms-1-dso-32.dnd,
+	* testsuite/ld-powerpc/aix-no-dup-syms-1-dso-64.dnd: ..these new files.
+	* testsuite/ld-powerpc/aix-no-dup-syms-1-dso.drd: Delete, replace with..
+	* testsuite/ld-powerpc/aix-no-dup-syms-1-dso-32.drd,
+	* testsuite/ld-powerpc/aix-no-dup-syms-1-dso-64.drd: ..these new files.
+	* testsuite/ld-powerpc/aix-no-dup-syms-1-dso.nd: Delete, replace with..
+	* testsuite/ld-powerpc/aix-no-dup-syms-1-dso-32.nd,
+	* testsuite/ld-powerpc/aix-no-dup-syms-1-dso-64.nd: ..these new files.
+	* testsuite/ld-powerpc/aix-no-dup-syms-1-dso.rd: Delete, replace with..
+	* testsuite/ld-powerpc/aix-no-dup-syms-1-dso-32.rd,
+	* testsuite/ld-powerpc/aix-no-dup-syms-1-dso-64.rd: ..these new files.
+	* testsuite/ld-powerpc/aix-weak-1-dso.dnd: Delete, replace with..
+	* testsuite/ld-powerpc/aix-weak-1-dso-32.dnd,
+	* testsuite/ld-powerpc/aix-weak-1-dso-64.dnd: ..these new files.
+	* testsuite/ld-powerpc/aix-weak-1-dso.hd: Delete, replace with..
+	* testsuite/ld-powerpc/aix-weak-1-dso-32.hd,
+	* testsuite/ld-powerpc/aix-weak-1-dso-64.hd: ..these new files.
+	* testsuite/ld-powerpc/aix-weak-1-dso.nd: Delete, replace with..
+	* testsuite/ld-powerpc/aix-weak-1-dso-32.nd,
+	* testsuite/ld-powerpc/aix-weak-1-dso-64.nd: ..these new files.
+	* testsuite/ld-powerpc/aix-weak-1-gcdso.dnd: Delete, replace with..
+	* testsuite/ld-powerpc/aix-weak-1-gcdso-32.dnd,
+	* testsuite/ld-powerpc/aix-weak-1-gcdso-64.dnd: ..these new files.
+	* testsuite/ld-powerpc/aix-weak-1-gcdso.hd: Delete, replace with..
+	* testsuite/ld-powerpc/aix-weak-1-gcdso-32.hd,
+	* testsuite/ld-powerpc/aix-weak-1-gcdso-64.hd: ..these new files.
+	* testsuite/ld-powerpc/aix-weak-1-gcdso.nd: Delete, replace with..
+	* testsuite/ld-powerpc/aix-weak-1-gcdso-32.nd,
+	* testsuite/ld-powerpc/aix-weak-1-gcdso-64.nd: ..these new files.
+	* testsuite/ld-powerpc/aix-weak-2a.nd: Delete, replace with..
+	* testsuite/ld-powerpc/aix-weak-2a-32.nd,
+	* testsuite/ld-powerpc/aix-weak-2a-64.nd: ..these new files.
+	* testsuite/ld-powerpc/aix-weak-2b.nd: Delete, replace with..
+	* testsuite/ld-powerpc/aix-weak-2b-32.nd,
+	* testsuite/ld-powerpc/aix-weak-2b-64.nd: ..these new files.
+	* testsuite/ld-powerpc/aix-weak-2c.nd: Delete, replace with..
+	* testsuite/ld-powerpc/aix-weak-2c-32.nd,
+	* testsuite/ld-powerpc/aix-weak-2c-64.nd: ..these new files.
+	* testsuite/ld-powerpc/aix-weak-2c.od: Delete, replace with..
+	* testsuite/ld-powerpc/aix-weak-2c-32.od,
+	* testsuite/ld-powerpc/aix-weak-2c-64.od: ..these new files.
+
+2020-07-07  Alan Modra  <amodra@gmail.com>
+
+	* testsuite/ld-scripts/section-match-1.d: xfail h8300.
+
+2020-07-07  Alan Modra  <amodra@gmail.com>
+
+	* testsuite/ld-scripts/align.exp: Don't exclude xcoff.  Pass
+	-bnogc ld option for xcoff.
+	* testsuite/ld-scripts/provide.exp: Likewise.
+	* testsuite/ld-scripts/data.exp: Pass -bnogc ld option for xcoff.
+	* testsuite/ld-scripts/default-script.exp: Likewise.
+	* testsuite/ld-scripts/defined.exp: Likewise.
+	* testsuite/ld-scripts/empty-address.exp: Likewise.
+	* testsuite/ld-scripts/expr.exp: Likewise.
+	* testsuite/ld-scripts/include.exp: Likewise.
+	* testsuite/ld-scripts/script.exp: Likewise.
+	* testsuite/ld-scripts/assign-loc.d: Don't exclude xcoff.
+	* testsuite/ld-scripts/defined3.d: Likewise.
+	* testsuite/ld-scripts/defined4.d: Likewise.
+	* testsuite/ld-scripts/pr18963.d: Likewise.
+	* testsuite/ld-scripts/sane1.d: Likewise.
+	* testsuite/ld-scripts/segment-start.d: Likewise.
+	* testsuite/ld-scripts/include-1.d: Likewise, and relax text vma.
+	* testsuite/ld-scripts/defined5.d: Update xfail and comment.
+	* testsuite/ld-scripts/defined5.s: Tweak "defined" to be at
+	non-zero section offset.
+	* testsuite/ld-scripts/fill16.d: xfail for xcoff.
+	* testsuite/ld-scripts/provide-2.d: Accept more symbols.
+	* testsuite/ld-scripts/provide-4.d: Likewise.
+	* testsuite/ld-scripts/provide-5.d: Likewise.
+	* testsuite/ld-scripts/provide-6.d: Likewise.
+	* testsuite/ld-scripts/provide-7.d: Likewise.
+	* testsuite/ld-scripts/align.t: Accept xcoff mapped .text and .data.
+	* testsuite/ld-scripts/defined3.t: Likewise.
+	* testsuite/ld-scripts/defined4.t: Likewise.
+	* testsuite/ld-scripts/defined5.t: Likewise.
+	* testsuite/ld-scripts/fill.t: Likewise.
+	* testsuite/ld-scripts/include-subdata.t: Likewise.
+	* testsuite/ld-scripts/provide-1.t: Likewise.
+	* testsuite/ld-scripts/provide-2.t: Likewise.
+	* testsuite/ld-scripts/provide-3.t: Likewise.
+	* testsuite/ld-scripts/provide-4.t: Likewise.
+	* testsuite/ld-scripts/provide-5.t: Likewise.
+	* testsuite/ld-scripts/provide-6.t: Likewise.
+	* testsuite/ld-scripts/provide-7.t: Likewise.
+	* testsuite/ld-scripts/provide-8.t: Likewise.
+	* testsuite/ld-scripts/assign-loc.t: Add required xcoff sections.
+	* testsuite/ld-scripts/sizeof.t: Likewise.
+	* testsuite/ld-scripts/align2.t: Likewise, and mapped sections.
+	* testsuite/ld-scripts/align5.t: Likewise.
+	* testsuite/ld-scripts/default-script.t: Likewise.
+	* testsuite/ld-scripts/empty-address-1.t: Likewise.
+	* testsuite/ld-scripts/empty-address-2a.t: Likewise.
+	* testsuite/ld-scripts/empty-address-2b.t: Likewise.
+	* testsuite/ld-scripts/empty-address-3a.t: Likewise.
+	* testsuite/ld-scripts/empty-address-3b.t: Likewise.
+	* testsuite/ld-scripts/empty-address-3c.t: Likewise.
+	* testsuite/ld-scripts/include-sections.t: Likewise.
+	* testsuite/ld-scripts/pr14962.t: Likewise.
+	* testsuite/ld-scripts/sane1.t: Likewise.
+
+2020-07-07  Alan Modra  <amodra@gmail.com>
+
+	* testsuite/ld-scripts/align.exp: Use is_pecoff_format.
+	* testsuite/ld-scripts/defined.exp: Likewise.
+	* testsuite/ld-scripts/provide.exp: Likewise.
+	* testsuite/ld-scripts/weak.exp: Likewise.
+	* testsuite/ld-scripts/empty-address.exp: Likewise.  Reset LDFLAGS
+	on exit.
+	* testsuite/ld-scripts/expr.exp: Set LDFLAGS earlier, and with
+	--image-base for PE.
+	* testsuite/ld-scripts/include.exp: Set LDFLAGS for PE.
+	* testsuite/ld-scripts/script.exp: Use is_pecoff_format, and
+	set LDFLAGS as well as flags.
+
+2020-07-07  Alan Modra  <amodra@gmail.com>
+
+	* testsuite/ld-checks/checks.exp: Use is_xcoff_format.
+	* testsuite/ld-powerpc/powerpc.exp: Likewise.
+	* testsuite/ld-scripts/print-memory-usage.exp: Likewise.
+	* testsuite/ld-srec/srec.exp: Likewise.
+	* testsuite/ld-undefined/require-defined.exp: Likewise.
+	* testsuite/ld-scripts/expr2.d: Likewise.
+	* testsuite/ld-scripts/section-match-1.d: Only run for ELF.
+	* testsuite/ld-elfvers/vers.exp: Delete dead code.
+	* testsuite/ld-elfvsb/elfvsb.exp: Likewise.
+	* testsuite/ld-elfweak/elfweak.exp: Likewise.
+
+2020-07-07  Alan Modra  <amodra@gmail.com>
+
+	* emultempl/aix.em (gld${EMULATION_NAME}_find_exp_assignment): Handle
+	etree_provided.
+
+2020-07-07  Alan Modra  <amodra@gmail.com>
+
+	* testsuite/ld-sh/vxworks1-lib.rd: Update expected output.
+	* testsuite/ld-sh/vxworks4.d: Likewise.
+
 2020-07-06  Yuri Chornoivan  <yurchor@ukr.net>
 
 	PR 26204

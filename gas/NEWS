@@ -1,5 +1,9 @@
 -*- text -*-
 
+* Add {disp16} pseudo prefix to x86 assembler.
+
+* Add support for Intel AMX instructions.
+
 * Configure with --enable-x86-used-note by default for Linux/x86.
 
 Changes in 2.35:

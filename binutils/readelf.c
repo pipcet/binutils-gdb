@@ -4827,12 +4827,15 @@ parse_args (struct dump_data *dumpdata, int argc, char ** argv)
 	  request_dump (dumpdata, CTF_DUMP);
 	  break;
 	case OPTION_CTF_SYMBOLS:
+	  free (dump_ctf_symtab_name);
 	  dump_ctf_symtab_name = strdup (optarg);
 	  break;
 	case OPTION_CTF_STRINGS:
+	  free (dump_ctf_strtab_name);
 	  dump_ctf_strtab_name = strdup (optarg);
 	  break;
 	case OPTION_CTF_PARENT:
+	  free (dump_ctf_parent_name);
 	  dump_ctf_parent_name = strdup (optarg);
 	  break;
 	case OPTION_DYN_SYMS:
@@ -14216,7 +14219,11 @@ dump_ctf_archive_member (ctf_file_t *ctf, const char *name, void *arg)
 			  "Function objects", "Variables", "Types", "Strings",
 			  ""};
   const char **thing;
+  ctf_next_t *it = NULL;
+  char *errtext;
+  int is_warning;
   size_t i;
+  int err = 0;
 
   /* Only print out the name of non-default-named archive members.
      The name .ctf appears everywhere, even for things that aren't
@@ -14249,10 +14256,25 @@ dump_ctf_archive_member (ctf_file_t *ctf, const char *name, void *arg)
 	{
 	  error (_("Iteration failed: %s, %s\n"), *thing,
 		 ctf_errmsg (ctf_errno (ctf)));
-	  return 1;
+	  err = 1;
+	  goto out;
 	}
     }
-  return 0;
+
+ out:
+  /* Dump accumulated errors and warnings.  */
+  while ((errtext = ctf_errwarning_next (ctf, &it, &is_warning)) != NULL)
+    {
+      error (_("%s: `%s'\n"), is_warning ? _("warning"): _("error"),
+	     errtext);
+      free (errtext);
+    }
+  if (ctf_errno (ctf) != ECTF_NEXT_END)
+    {
+      error (_("CTF error: cannot get CTF errors: `%s'\n"),
+	     ctf_errmsg (ctf_errno (ctf)));
+    }
+  return err;
 }
 
 static bfd_boolean
@@ -14300,7 +14322,7 @@ dump_section_as_ctf (Elf_Internal_Shdr * section, Filedata * filedata)
       symsectp = shdr_to_ctf_sect (&symsect, symtab_sec, filedata);
       symsect.cts_data = symdata;
     }
-  if (dump_ctf_strtab_name && dump_ctf_symtab_name[0] != 0)
+  if (dump_ctf_strtab_name && dump_ctf_strtab_name[0] != 0)
     {
       if ((strtab_sec = find_section (filedata, dump_ctf_strtab_name)) == NULL)
 	{
@@ -18186,6 +18208,9 @@ decode_x86_feature_2 (unsigned int bitmask)
 	  break;
 	case GNU_PROPERTY_X86_FEATURE_2_ZMM:
 	  printf ("ZMM");
+	  break;
+	case GNU_PROPERTY_X86_FEATURE_2_TMM:
+	  printf ("TMM");
 	  break;
 	case GNU_PROPERTY_X86_FEATURE_2_FXSR:
 	  printf ("FXSR");

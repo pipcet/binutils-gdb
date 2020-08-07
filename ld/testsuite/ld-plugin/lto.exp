@@ -62,6 +62,7 @@ set lto_no_fat ""
 if { [check_lto_fat_available] } {
   set lto_fat "-ffat-lto-objects"
   set lto_no_fat "-fno-fat-lto-objects"
+  set no_lto "-fno-lto"
 }
 
 # Simple LTO tests and generate input files for complex LTO tests.
@@ -210,6 +211,36 @@ set lto_link_tests [list \
   [list "Build pr26163a.o" \
    "" "-O2 -fno-lto" \
    {pr26163a.c}] \
+  [list "Build pr26262b.o" \
+   "" "-O2" \
+   {pr26262b.c} {} "" "c"] \
+  [list "Build pr26262c.o" \
+   "" "-O2" \
+   {pr26262c.c} {} "" "c"] \
+  [list "Build pr26267a.o" \
+   "" "-O2 -flto $lto_no_fat" \
+   {pr26267a.c} {} "" "c"] \
+  [list "Build pr26267b.o" \
+   "" "-O2" \
+   {pr26267b.c} {} "" "c"] \
+  [list "Build pr26267c.o" \
+   "" "-O2" \
+   {pr26267c.c} {} "" "c"] \
+  [list "Build pr26267a" \
+   "" "-O2" \
+   {pr26267a.c} {} "" "c"] \
+  [list "Build pr26267a" \
+   "-flto tmpdir/pr26267a.o tmpdir/pr26267b.o tmpdir/pr26267c.o" \
+   "-flto $lto_no_fat" \
+   {dummy.c} \
+   {{error_output "pr26267.err"}} \
+   "pr26267a"] \
+  [list "Build pr26267b" \
+   "-flto tmpdir/pr26267b.o tmpdir/pr26267c.o tmpdir/pr26267a.o" \
+   "-flto $lto_no_fat" \
+   {dummy.c} \
+   {{error_output "pr26267.err"}} \
+   "pr26267b"] \
 ]
 
 if { [at_least_gcc_version 10 0] } {
@@ -292,7 +323,7 @@ set lto_link_elf_tests [list \
    "-shared" "-O2 -fpic" \
    {pr15146b.c} {} "pr15146b.so" "c"] \
   [list "Build pr15146c.so" \
-   "-shared -Wl,--no-as-needed tmpdir/pr15146b.so" "-O2 -fpic" \
+   "-shared -Wl,--no-as-needed tmpdir/pr15146b.so" "-O2 -fpic $no_lto" \
    {pr15146c.c} {} "pr15146c.so" "c"] \
   [list "PR ld/15146 (1)" \
    "-O2 -flto -fuse-linker-plugin -Wl,-rpath-link,. -Wl,--no-copy-dt-needed-entries -Wl,--no-as-needed tmpdir/pr15146a.o tmpdir/pr15146c.so" "" \
@@ -510,6 +541,16 @@ set lto_run_tests [list \
    {pr26163b.c} "pr24406-2" "pass.out" \
    "-flto -O2" "c" "" \
    "tmpdir/pr26163a.o -Wl,--defsym,g=real_g"] \
+  [list "Run pr26262a" \
+   "-O2 -flto" "" \
+   {pr26262a.c} "pr26262a" "pass.out" \
+   "-flto -O2" "c" "" \
+   "tmpdir/pr26262b.o tmpdir/pr26262c.o"] \
+  [list "Run pr26262b" \
+   "-flto -O2 tmpdir/pr26262b.o tmpdir/pr26262c.o" "" \
+   {pr26262a.c} "pr26262b" "pass.out" \
+   "-flto -O2" "c" "" \
+   ""] \
 ]
 
 if { [at_least_gcc_version 4 7] } {

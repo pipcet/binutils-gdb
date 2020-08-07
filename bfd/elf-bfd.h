@@ -550,6 +550,16 @@ enum elf_target_os
   is_nacl	/* Native Client.  */
 };
 
+/* Used by bfd_sym_from_r_symndx to cache a small number of local
+   symbols.  */
+#define LOCAL_SYM_CACHE_SIZE 32
+struct sym_cache
+{
+  bfd *abfd;
+  unsigned long indx[LOCAL_SYM_CACHE_SIZE];
+  Elf_Internal_Sym sym[LOCAL_SYM_CACHE_SIZE];
+};
+
 /* ELF linker hash table.  */
 
 struct elf_link_hash_table
@@ -677,6 +687,9 @@ struct elf_link_hash_table
   /* A linked list of dynamic BFD's loaded in the link.  */
   struct elf_link_loaded_list *dyn_loaded;
 
+  /* Small local sym cache.  */
+  struct sym_cache sym_cache;
+
   /* Short-cuts to get to dynamic linker sections.  */
   asection *sgot;
   asection *sgotplt;
@@ -718,16 +731,6 @@ struct elf_link_hash_table
 /* Returns TRUE if the hash table is a struct elf_link_hash_table.  */
 #define is_elf_hash_table(htab)						\
   (((struct bfd_link_hash_table *) (htab))->type == bfd_link_elf_hash_table)
-
-/* Used by bfd_sym_from_r_symndx to cache a small number of local
-   symbols.  */
-#define LOCAL_SYM_CACHE_SIZE 32
-struct sym_cache
-{
-  bfd *abfd;
-  unsigned long indx[LOCAL_SYM_CACHE_SIZE];
-  Elf_Internal_Sym sym[LOCAL_SYM_CACHE_SIZE];
-};
 
 /* Constant information held for an ELF backend.  */
 
@@ -1402,6 +1405,14 @@ struct elf_backend_data
      Returns TRUE if it did so and FALSE if the caller should.  */
   bfd_boolean (*elf_backend_write_section)
     (bfd *, struct bfd_link_info *, asection *, bfd_byte *);
+
+  /* This function, if defined, returns TRUE if it is section symbols
+     only that are considered local for the purpose of partitioning the
+     symbol table into local and global symbols.  This should be NULL
+     for most targets, in which case the correct thing will be done.
+     MIPS ELF, at least on the Irix 5, has special requirements.  */
+  bfd_boolean (*elf_backend_elfsym_local_is_section)
+    (bfd *);
 
   /* The level of IRIX compatibility we're striving for.
      MIPS ELF specific function.  */

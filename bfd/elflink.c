@@ -505,6 +505,16 @@ bfd_elf_link_record_dynamic_symbol (struct bfd_link_info *info,
       const char *name;
       size_t indx;
 
+      if (h->root.type == bfd_link_hash_defined
+	  || h->root.type == bfd_link_hash_defweak)
+	{
+	  /* An IR symbol should not be made dynamic.  */
+	  if (h->root.u.def.section != NULL
+	      && h->root.u.def.section->owner != NULL
+	      && (h->root.u.def.section->owner->flags & BFD_PLUGIN) != 0)
+	    return TRUE;
+	}
+
       /* XXX: The ABI draft says the linker must turn hidden and
 	 internal symbols into STB_LOCAL symbols when producing the
 	 DSO. However, if ld.so honors st_other in the dynamic table,
@@ -5201,15 +5211,11 @@ elf_link_add_object_symbols (bfd *abfd, struct bfd_link_info *info)
 		break;
 	      }
 
-	  /* Don't add DT_NEEDED for references from the dummy bfd nor
-	     for unmatched symbol.  */
 	  if (!add_needed
 	      && matched
 	      && definition
 	      && ((dynsym
-		   && h->ref_regular_nonweak
-		   && (old_bfd == NULL
-		       || (old_bfd->flags & BFD_PLUGIN) == 0))
+		   && h->ref_regular_nonweak)
 		  || (h->ref_dynamic_nonweak
 		      && (elf_dyn_lib_class (abfd) & DYN_AS_NEEDED) != 0
 		      && !on_needed_list (elf_dt_name (abfd),
@@ -8181,7 +8187,7 @@ bfd_elf_match_symbols_in_sections (asection *sec1, asection *sec2,
       if (isymbuf1 == NULL)
 	goto done;
 
-      if (!info->reduce_memory_overheads)
+      if (info != NULL && !info->reduce_memory_overheads)
 	{
 	  ssymbuf1 = elf_create_symbuf (symcount1, isymbuf1);
 	  elf_tdata (bfd1)->symbuf = ssymbuf1;
@@ -8195,7 +8201,7 @@ bfd_elf_match_symbols_in_sections (asection *sec1, asection *sec2,
       if (isymbuf2 == NULL)
 	goto done;
 
-      if (ssymbuf1 != NULL && !info->reduce_memory_overheads)
+      if (ssymbuf1 != NULL && info != NULL && !info->reduce_memory_overheads)
 	{
 	  ssymbuf2 = elf_create_symbuf (symcount2, isymbuf2);
 	  elf_tdata (bfd2)->symbuf = ssymbuf2;
@@ -12271,6 +12277,9 @@ bfd_elf_final_link (bfd *abfd, struct bfd_link_info *info)
 
   if (info->strip != strip_all || emit_relocs)
     {
+      bfd_boolean name_local_sections;
+      const char *name;
+
       file_ptr off = elf_next_file_pos (abfd);
 
       _bfd_elf_assign_file_position_for_section (symtab_hdr, off, TRUE);
@@ -12293,10 +12302,15 @@ bfd_elf_final_link (bfd *abfd, struct bfd_link_info *info)
 
       /* Output a symbol for each section.  We output these even if we are
 	 discarding local symbols, since they are used for relocs.  These
-	 symbols have no names.  We store the index of each one in the
-	 index field of the section, so that we can find it again when
+	 symbols usually have no names.  We store the index of each one in
+	 the index field of the section, so that we can find it again when
 	 outputting relocs.  */
 
+      name_local_sections
+	= (bed->elf_backend_name_local_section_symbols
+	   && bed->elf_backend_name_local_section_symbols (abfd));
+
+      name = NULL;
       elfsym.st_size = 0;
       elfsym.st_info = ELF_ST_INFO (STB_LOCAL, STT_SECTION);
       elfsym.st_other = 0;
@@ -12311,12 +12325,21 @@ bfd_elf_final_link (bfd *abfd, struct bfd_link_info *info)
 	      elfsym.st_shndx = i;
 	      if (!bfd_link_relocatable (info))
 		elfsym.st_value = o->vma;
-	      if (elf_link_output_symstrtab (&flinfo, NULL, &elfsym, o,
+	      if (name_local_sections)
+		name = o->name;
+	      if (elf_link_output_symstrtab (&flinfo, name, &elfsym, o,
 					     NULL) != 1)
 		goto error_return;
 	    }
 	}
     }
+
+  /* On some targets like Irix 5 the symbol split between local and global
+     ones recorded in the sh_info field needs to be done between section
+     and all other symbols.  */
+  if (bed->elf_backend_elfsym_local_is_section
+      && bed->elf_backend_elfsym_local_is_section (abfd))
+    symtab_hdr->sh_info = bfd_get_symcount (abfd);
 
   /* Allocate some memory to hold information read in from the input
      files.  */
@@ -12544,7 +12567,8 @@ bfd_elf_final_link (bfd *abfd, struct bfd_link_info *info)
      converted to local in a version script.  */
 
   /* The sh_info field records the index of the first non local symbol.  */
-  symtab_hdr->sh_info = bfd_get_symcount (abfd);
+  if (!symtab_hdr->sh_info)
+    symtab_hdr->sh_info = bfd_get_symcount (abfd);
 
   if (dynamic
       && htab->dynsym != NULL
@@ -12602,10 +12626,13 @@ bfd_elf_final_link (bfd *abfd, struct bfd_link_info *info)
 		 the original st_name with the dynstr_index.  */
 	      sym = e->isym;
 	      sym.st_other &= ~ELF_ST_VISIBILITY (-1);
+	      sym.st_shndx = SHN_UNDEF;
 
 	      s = bfd_section_from_elf_index (e->input_bfd,
 					      e->isym.st_shndx);
-	      if (s != NULL)
+	      if (s != NULL
+		  && s->output_section != NULL
+		  && elf_section_data (s->output_section) != NULL)
 		{
 		  sym.st_shndx =
 		    elf_section_data (s->output_section)->this_idx;
@@ -13782,8 +13809,7 @@ _bfd_elf_gc_keep (struct bfd_link_info *info)
       if (h != NULL
 	  && (h->root.type == bfd_link_hash_defined
 	      || h->root.type == bfd_link_hash_defweak)
-	  && !bfd_is_abs_section (h->root.u.def.section)
-	  && !bfd_is_und_section (h->root.u.def.section))
+	  && !bfd_is_const_section (h->root.u.def.section))
 	h->root.u.def.section->flags |= SEC_KEEP;
     }
 }
@@ -14537,7 +14563,8 @@ _bfd_elf_section_already_linked (bfd *abfd,
       if (((flags & SEC_GROUP) == (l->sec->flags & SEC_GROUP)
 	   && ((flags & SEC_GROUP) != 0
 	       || strcmp (name, l->sec->name) == 0))
-	  || (l->sec->owner->flags & BFD_PLUGIN) != 0)
+	  || (l->sec->owner->flags & BFD_PLUGIN) != 0
+	  || (sec->owner->flags & BFD_PLUGIN) != 0)
 	{
 	  /* The section has already been linked.  See if we should
 	     issue a warning.  */

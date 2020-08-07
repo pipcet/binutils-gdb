@@ -1,3 +1,263 @@
+2020-08-07  David Faust  <david.faust@oracle.com>
+
+	* elf64-bpf.c (bpf_elf_relocate_section): Ensure signed division for
+	DISP16 and DISP32 relocations.
+
+2020-08-05  David Faust  <david.faust@oracle.com>
+
+	* elf64-bpf.c (bpf_elf_generic_reloc): New function.
+	(bpf_elf_howto_table): Use it here.
+	(bpf_elf_relocate_section): Use addends recorded in input_bfd for
+	instruction and data relocations.
+
+2020-08-03  Alan Modra  <amodra@gmail.com>
+
+	* vms-lib.c (vms_traverse_index): Sanity check size remaining
+	before accessing vms_idx or vms_elfidx.
+
+2020-08-03  Alan Modra  <amodra@gmail.com>
+
+	PR 26330
+	* elf.c (_bfd_elf_get_symtab_upper_bound): Sanity check symbol table
+	size against file size.  Correct LONG_MAX limit check.
+	(_bfd_elf_get_dynamic_symtab_upper_bound): Likewise.
+	(_bfd_elf_get_reloc_upper_bound): Don't check file size if writing.
+	(_bfd_elf_get_dynamic_reloc_upper_bound): Likewise.
+	* elf64-x86-64-.c (elf_x86_64_get_synthetic_symtab): Use
+	bfd_malloc_and_get_section.
+
+2020-07-31  Alan Modra  <amodra@gmail.com>
+
+	PR 26314
+	* elflink.c (bfd_elf_link_record_dynamic_symbol): Don't allow
+	IR symbols to become dynamic.
+	(elf_link_add_object_symbols): Don't exclude IR symbols when
+	deciding whether an as-needed shared library is needed.
+
+2020-07-30  Szabolcs Nagy  <szabolcs.nagy@arm.com>
+
+	PR ld/26312
+	* elfnn-aarch64.c (elfNN_aarch64_init_small_plt0_entry): Set sh_entsize
+	to 0.
+	(elfNN_aarch64_finish_dynamic_sections): Remove sh_entsize setting.
+
+2020-07-30  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* bfd.m4 (BFD_SYS_PROCFS_H): New macro.
+	(BFD_HAVE_SYS_PROCFS_TYPE): Require BFD_SYS_PROCFS_H.
+	Don't define _STRUCTURED_PROC.
+	(BFD_HAVE_SYS_PROCFS_TYPE_MEMBER): Likewise.
+	* elf.c [HAVE_SYS_PROCFS_H] (_STRUCTURED_PROC): Don't define.
+	* configure.ac: Use BFD_SYS_PROCFS_H to check for <sys/procfs.h>.
+	* configure, config.in: Regenerate.
+	* Makefile.am (AM_CPPFLAGS): Add LARGEFILE_CPPFLAGS.
+	* Makefile.in, doc/Makefile.in: Regenerate.
+
+2020-07-30  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* elf-bfd.h (sym_cache): Moved before elf_link_hash_table.
+	(elf_link_hash_table): Add sym_cache.
+	* elf32-arm.c (elf32_arm_link_hash_table): Remove sym_cache.
+	(elf32_arm_check_relocs): Updated.
+	(elf32_arm_size_dynamic_sections): Likewise.
+	* elf32-bfin.c (bfin_link_hash_table): Removed.
+	(bfin_link_hash_newfunc): Updated.
+	(bfin_hash_table): Removed.
+	* elf32-csky.c (csky_elf_link_hash_table): Remove sym_cache.
+	(csky_elf_check_relocs): Updated.
+	* elf32-hppa.c (elf32_hppa_link_hash_table): Remove sym_cache.
+	(elf32_hppa_check_relocs): Updated.
+	* elf32-i386.c (elf_i386_tls_transition): Updated.
+	(elf_i386_convert_load_reloc): Likewise.
+	(elf_i386_check_relocs): Likewise.
+	* elf32-m32r.c (elf_m32r_link_hash_table): Removed.
+	(m32r_elf_hash_table): Updated.
+	(m32r_elf_link_hash_table_create): Likewise.
+	(m32r_elf_create_dynamic_sections): Likewise.
+	(m32r_elf_adjust_dynamic_symbol): Likewise.
+	(allocate_dynrelocs): Likewise.
+	(m32r_elf_size_dynamic_sections): Likewise.
+	(m32r_elf_relocate_section): Likewise.
+	(m32r_elf_finish_dynamic_symbol): Likewise.
+	(m32r_elf_check_relocs): Likewise.
+	* elf32-m68hc1x.h (m68hc11_elf_link_hash_table): Remove
+	sym_cache.
+	* elf32-m68k.c (elf_m68k_link_hash_table): Likewise.
+	(elf_m68k_check_relocs): Updated.
+	* elf32-metag.c (elf_metag_link_hash_table): Remove sym_cache.
+	(elf_metag_check_relocs): Updated.
+	* elf32-microblaze.c (elf32_mb_link_hash_table): Remove sym_sec.
+	(microblaze_elf_check_relocs): Updated.
+	* elf32-nds32.c (nds32_elf_link_hash_table_create): Likewise.
+	(nds32_elf_create_dynamic_sections): Likewise.
+	(nds32_elf_adjust_dynamic_symbol): Likewise.
+	(nds32_elf_check_relocs): Likewise.
+	* elf32-nds32.h (elf_nds32_link_hash_table): Remove sdynbss,
+	srelbss and aym_cache.
+	* elf32-nios2.c (elf32_nios2_link_hash_table): Remove sym_cache.
+	(nios2_elf32_check_relocs): Updated.
+	* elf32-or1k.c (elf_or1k_link_hash_table): Remove sym_sec.
+	(or1k_elf_check_relocs): Updated.
+	* elf32-ppc.c (ppc_elf_check_relocs): Remove sym_cache.
+	(ppc_elf_check_relocs): Updated.
+	* elf32-s390.c (elf_s390_link_hash_table): Remove sym_cache.
+	(elf_s390_check_relocs): Updated.
+	(elf_s390_finish_dynamic_sections): Likewise.
+	* elf32-sh.c (elf_sh_link_hash_table): Remove sdynbss, srelbss
+	and aym_cache.
+	(sh_elf_create_dynamic_sections): Updated.
+	(sh_elf_adjust_dynamic_symbol): Likewise.
+	(sh_elf_size_dynamic_sections): Likewise.
+	(sh_elf_check_relocs): Likewise.
+	* elf32-tic6x.c (elf32_tic6x_link_hash_table): Remove sym_cache.
+	(elf32_tic6x_check_relocs): Updated.
+	* elf32-tilepro.c (tilepro_elf_link_hash_table): Removed.
+	(tilepro_elf_hash_table): Updated.
+	(tilepro_elf_link_hash_table_create): Likewise.
+	(tilepro_elf_check_relocs): Likewise.
+	(tilepro_elf_adjust_dynamic_symbol): Likewise.
+	(allocate_dynrelocs): Likewise.
+	(tilepro_elf_size_dynamic_sections): Likewise.
+	(tilepro_elf_relocate_section): Likewise.
+	(tilepro_elf_finish_dynamic_symbol): Likewise.
+	(tilepro_finish_dyn): Likewise.
+	(tilepro_elf_finish_dynamic_sections): Likewise.
+	* elf64-ppc.c (ppc_link_hash_table): Remove sym_cache.
+	(ppc64_elf_before_check_relocs): Updated.
+	(ppc64_elf_check_relocs): Likewise.
+	* elf64-s390.c (elf_s390_link_hash_table): Remove sym_cache.
+	(elf_s390_check_relocs): Updated.
+	(elf_s390_relocate_section): Likewise.
+	(elf_s390_finish_dynamic_sections): Likewise.
+	* elf64-x86-64.c (elf_x86_64_tls_transition): Likewise.
+	(elf_x86_64_check_relocs): Likewise.
+	* elfnn-aarch64.c (elf_aarch64_link_hash_table): Remove
+	sym_cache.
+	(elfNN_aarch64_check_relocs): Updated.
+	* elfnn-riscv.c (riscv_elf_link_hash_table): Remove sym_cache.
+	(riscv_elf_check_relocs): Updated.
+	* elfxx-mips.c (mips_elf_link_hash_table): Remove sym_cache.
+	(mips_elf_resolve_got_page_ref): Updated.
+	* elfxx-sparc.c (_bfd_sparc_elf_check_relocs): Likewise.
+	* elfxx-sparc.h (_bfd_sparc_elf_link_hash_table): Remove
+	sym_cache.
+	* elfxx-tilegx.c (tilegx_elf_link_hash_table): Likewise.
+	(tilegx_elf_check_relocs): Updated.
+	* elfxx-x86.h (elf_x86_link_hash_table): Remove sym_cache.
+
+2020-07-29  Maciej W. Rozycki  <macro@linux-mips.org>
+
+	* elflink.c (bfd_elf_final_link): Give local symbols a name if
+	so requested.
+	* elfxx-mips.c (_bfd_mips_elf_name_local_section_symbols): Only
+	return TRUE if making ET_REL output.
+
+2020-07-29  Maciej W. Rozycki  <macro@linux-mips.org>
+
+	* elf-bfd.h (elf_backend_data): Add
+	`elf_backend_elfsym_local_is_section' member.
+	* elfxx-target.h (elf_backend_elfsym_local_is_section): New
+	macro.
+	(elfNN_bed): Add `elf_backend_elfsym_local_is_section' member.
+	* elflink.c (bfd_elf_final_link): Use it to determine whether
+	set the `.symtab' section's `sh_info' value to the index of the
+	first non-local or non-section symbol.
+	* elf32-mips.c (mips_elf32_elfsym_local_is_section): New
+	function.
+	(elf_backend_elfsym_local_is_section): New macro.
+	* elfn32-mips.c (mips_elf_n32_elfsym_local_is_section): New
+	function.
+	(elf_backend_elfsym_local_is_section): New macro.
+
+2020-07-29  Alan Modra  <amodra@gmail.com>
+
+	* elflink.c (bfd_elf_final_link): Don't segfault on local dynsyms
+	defined in excluded sections.
+
+2020-07-28  Alan Modra  <amodra@gmail.com>
+
+	* elf.c (assign_section_numbers): Comment.  Don't segfault on
+	discarded sections when setting linked-to section for generic
+	ELF linker.
+	* elflink.c (bfd_elf_match_symbols_in_sections): Allow NULL info.
+
+2020-07-27  Alan Modra  <amodra@gmail.com>
+
+	* xcofflink.c (xcoff_need_ldrel_p): Accept --just-symbols symbols and
+	similar as absolute.
+	(bfd_xcoff_import_symbol): Don't fuss over absolute symbol
+	redefinitions here.
+
+2020-07-24  Nick Clifton  <nickc@redhat.com>
+
+	* config.bfd: Move xc16x target to the obsolete list.
+
+2020-07-22  Kevin Buettner  <kevinb@redhat.com>
+
+	* binary.c (binary_get_section_contents): Seek using offset
+	from section's file position.
+
+2020-07-22  Kevin Buettner  <kevinb@redhat.com>
+
+	* elf.c (_bfd_elf_make_section_from_phdr): Remove hack for GDB.
+
+2020-07-22  Max Filippov  <jcmvbkbc@gmail.com>
+
+	PR 26246
+	* elf32-xtensa.c (removed_literal_compare): Use correct pointer
+	type for the first function argument. Rename pointers to reflect
+	that they have distinct types.
+
+2020-07-20  Alan Modra  <amodra@gmail.com>
+
+	* elflink.c (_bfd_elf_gc_keep): Use bfd_is_const_section.
+
+2020-07-19  Alan Modra  <amodra@gmail.com>
+
+	* elf64-ppc.c (struct ppc_link_hash_table): Add has_power10_relocs.
+	(select_alt_stub): New function.
+	(ppc_get_stub_entry): Use it here.
+	(ppc64_elf_check_relocs): Set had_power10_relocs rather than
+	power10_stubs.
+	(ppc64_elf_size_stubs): Clear power10_stubs here instead.  Don't
+	merge notoc stubs with other varieties when power10_stubs is "auto".
+	Instead dup the stub hash table entry.
+	(plt_stub_size, ppc_build_one_stub, ppc_size_one_stub): Adjust
+	tests of power10_stubs.
+
+2020-07-15  Alan Modra  <amodra@gmail.com>
+
+	PR 26239
+	* coffgen.c (_bfd_coff_close_and_cleanup): Free dwarf2 info.
+
+2020-07-15  Nick Clifton  <nickc@redhat.com>
+
+	PR26240
+	* coffgen.c (coff_get_normalized_symtab): Fix off-by-one error in
+	check for aux entries that overflow the buufer.
+
+2020-07-15  Hans-Peter Nilsson  <hp@bitrange.com>
+
+	* elf64-mmix.c (mmix_elf_relax_section): Improve accounting for
+	R_MMIX_PUSHJ_STUBBABLE relocs against undefined symbols.
+
+2020-07-15  Markus Böck  <markus.boeck02@gmail.com>
+	    Alan Modra  <amodra@gmail.com>
+
+	PR 26198
+	* coffgen.c (_bfd_coff_section_already_linked): Allow for plugin
+	objects both before and after normal object files.
+	* elflink.c (_bfd_elf_section_already_linked): Likewise.
+
+2020-07-10  Alan Modra  <amodra@gmail.com>
+
+	* elf64-ppc.h (struct ppc64_elf_params): Add power10_stubs.
+	* elf64-ppc.c (struct ppc_link_hash_table): Delete
+	power10_stubs.
+	(ppc64_elf_check_relocs): Adjust setting of power10_stubs.
+	(plt_stub_size, ppc_build_one_stub, ppc_size_one_stub): Adjust
+	uses of power10_stubs.
+
 2020-07-09  Alan Modra  <amodra@gmail.com>
 
 	* coff-ppc.c: Delete.

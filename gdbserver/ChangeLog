@@ -1,3 +1,49 @@
+2020-07-30  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* configure, config.in: Regenerate.
+
+2020-07-26  Eli Zaretskii  <eliz@gnu.org>
+
+	* configure.ac (AC_CHECK_HEADERS): Add ws2tcpip.h.
+	When checking whether socklen_t type is defined, use ws2tcpip.h if
+	it is available and sys/socket.h isn't.
+	* configure: Regenerate.
+	* config.in: Regenerate.
+
+2020-07-22  Pedro Alves  <pedro@palves.net>
+
+	* inferiors.cc (switch_to_process): New, moved here from
+	thread-db.cc, and made extern.
+	* inferiors.h (switch_to_process): Declare.
+	* server.cc: Include "gdbsupport/scoped_restore.h".
+	(handle_qxfer_threads_proper): Now returns bool.  Prepare to
+	access memory around target calls.
+	(handle_qxfer_threads): Handle errors.
+	* thread-db.cc (switch_to_process): Moved to inferiors.cc.
+
+2020-07-21  Simon Marchi  <simon.marchi@efficios.com>
+
+	* linux-low.cc (stopped_pids): Make static.
+
+2020-07-17  Andrew Burgess  <andrew.burgess@embecosm.com>
+
+	* tdesc.cc (allocate_target_description): Add header comment.
+	(target_desc_deleter::operator()): New function.
+	* tdesc.h (struct target_desc): Declare as final.
+
+2020-07-13  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* server.cc (handle_query): Use std::vector of
+	std::string for `qsupported` vector.  Use separate
+	vector for unknowns.
+	* target.h (class process_stratum_target) <process_qsupported>:
+	Change parameters to array_view of const char *.
+	(target_process_qsupported): Remove `count` parameter.
+	* target.cc (process_stratum_target::process_qsupported): Change
+	parameters to array_view of const char *.
+	* linux-x86-low.cc (class x86_target) <process_qsupported>:
+	Likewise.
+
 2020-06-29  Tom de Vries  <tdevries@suse.de>
 
 	* ax.h: Include gdbsupport/debug_agent.h.

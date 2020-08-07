@@ -1,3 +1,561 @@
+2020-08-07  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* read.c (read_a_source_file): Ignore rest of line on overflow
+	error.
+
+2020-08-06  Alex Coplan  <alex.coplan@arm.com>
+
+	* read.c (read_a_source_file): Use long for local labels, detect
+	overflow and raise an error for overly-long labels.
+	* testsuite/gas/all/gas.exp: Add local-label-overflow test.
+	* testsuite/gas/all/local-label-overflow.d: New test.
+	* testsuite/gas/all/local-label-overflow.l: Error output.
+	* testsuite/gas/all/local-label-overflow.s: Input.
+
+2020-08-04  Christian Groessler  <chris@groessler.org>
+
+	* gas/testsuite/gas/z8k/inout.d: Adapt to correct encoding of
+	"sout/soutb #imm,reg"
+
+2020-08-04  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* NEWS: Mention {disp16} pseudo prefix.
+
+2020-08-04  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* testsuite/gas/i386/x86-64-pseudos.d: Revert an accidental
+	change.
+
+2020-08-04  Mark Wielaard  <mark@klomp.org>
+
+	* dwarf2dbg.c (out_debug_abbrev): When DWARF2_VERSION >= 4, use
+	DW_FORM_udata for DW_AT_high_pc.
+	(out_debug_info): Use emit_leb128_expr for DW_AT_high_pc, when
+	DWARF2_VERSION >= 4.
+	* read.c (emit_leb128_exp): No longer static.
+	* read.h (emit_leb128_exp): Define.
+
+2020-08-02  Mark Wielaard  <mark@klomp.org>
+
+	* gas/dwarf2dbg.c (out_dir_and_file_list): For DWARF5 emit at
+	least one directory if there is at least one file. Use dirs[1]
+	if dirs[0] is not set, or if there is no dirs[1] the current
+	working directory. Use files[1] filename, when files[0] filename
+	isn't set.
+
+2020-08-02  Mark Wielaard  <mark@klomp.org>
+
+	* dwarf2dbg.c (out_debug_info): Emit unit type and abbrev offset
+	for DWARF5.
+	* gas/testsuite/gas/elf/dwarf-4-cu.d: New file.
+	* gas/testsuite/gas/elf/dwarf-4-cu.s: Likewise.
+	* gas/testsuite/gas/elf/dwarf-5-cu.d: Likewise.
+	* gas/testsuite/gas/elf/dwarf-5-cu.s: Likewise.
+	* testsuite/gas/elf/elf.exp: Run dwarf-4-cu and dwarf-5-cu.
+
+2020-08-02  Mark Wielaard  <mark@klomp.org>
+
+	* doc/as.texi (--gdwarf-[345]): Fix typo.
+
+2020-08-03  Jozef Lawrynowicz  <jozef.l@mittosystems.com>
+
+	* config/tc-msp430.c (OPTION_MOVE_DATA): Remove.
+	(md_parse_option): Remove case for OPTION_MOVE_DATA.
+	(md_longopts): Remove "md" entry.
+	(md_show_usage): Likewise.
+
+2020-07-30  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR gas/26305
+	* config/tc-i386.c (_i386_insn::disp_encoding): Add
+	disp_encoding_16bit.
+	(parse_insn): Check Prefix_XXX for pseudo prefixes.  Handle
+	{disp16}.
+	(build_modrm_byte): Handle {disp16}.
+	(i386_index_check): Check invalid {disp16} and {disp32} pseudo
+	prefixes.
+	* doc/c-i386.texi: Update {disp32} documentation and document
+	{disp16}.
+	* testsuite/gas/i386/i386.exp: Run x86-64-inval-pseudo.
+	* testsuite/gas/i386/inval-pseudo.s: Add {disp32}/{disp16}
+	tests.
+	* testsuite/gas/i386/pseudos.s: Add {disp8}/{disp32} vmovaps
+	tests with 128-byte displacement.  Add {disp16} tests.
+	* testsuite/gas/i386/x86-64-pseudos.s: Add {disp8}/{disp32}
+	vmovaps test.  Add (%r13)/(%r13d) tests.
+	* testsuite/gas/i386/x86-64-inval-pseudo.l: New file.
+	* testsuite/gas/i386/x86-64-inval-pseudo.s: Likewise.
+	* testsuite/gas/i386/inval-pseudo.l: Updated.
+	* testsuite/gas/i386/pseudos.d: Likewise.
+	* testsuite/gas/i386/x86-64-pseudos.d: Likewise.
+
+2020-07-30  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* Makefile.am (AM_CPPFLAGS): Add LARGEFILE_CPPFLAGS.
+	* Makefile.in, doc/Makefile.in: Regenerate.
+	* configure: Regenerate.
+
+2020-07-30  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* testsuite/gas/elf/dwarf2-3.d:Pass --gdwarf-3 to assembler.
+	* testsuite/gas/elf/dwarf2-5.d: Likewise.
+	* testsuite/gas/i386/dw2-compress-3a.d: Likewise.
+	* testsuite/gas/i386/dw2-compress-3b.d: Likewise.
+	* testsuite/gas/i386/dw2-compressed-3a.d: Likewise.
+	* testsuite/gas/i386/dw2-compressed-3b.d: Likewise.
+
+2020-07-30  Nick Clifton  <nickc@redhat.com>
+
+	* as.c (dwarf_level): Initialise to 3 in case this is not set on
+	the command line.
+
+2020-07-29  Maciej W. Rozycki  <macro@linux-mips.org>
+
+	* testsuite/gas/mips/global-local-symtab-sort-o32.d: New test.
+	* testsuite/gas/mips/global-local-symtab-sort-o32t.d: New test.
+	* testsuite/gas/mips/global-local-symtab-sort-n32.d: New test.
+	* testsuite/gas/mips/global-local-symtab-sort-n32t.d: New test.
+	* testsuite/gas/mips/global-local-symtab-sort-n64.d: New test.
+	* testsuite/gas/mips/global-local-symtab-sort-n64t.d: New test.
+	* testsuite/gas/mips/mips.exp: Run the new tests.
+
+2020-07-29  Maciej W. Rozycki  <macro@linux-mips.org>
+
+	* testsuite/gas/mips/global-local-symtab-o32.d: New test.
+	* testsuite/gas/mips/global-local-symtab-o32t.d: New test.
+	* testsuite/gas/mips/global-local-symtab-n32.d: New test.
+	* testsuite/gas/mips/global-local-symtab-n32t.d: New test.
+	* testsuite/gas/mips/global-local-symtab-n64.d: New test.
+	* testsuite/gas/mips/global-local-symtab.s: New test source.
+	* testsuite/gas/mips/mips.exp: Run the new tests.
+
+2020-07-28  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR gas/26305
+	* config/tc-i386.c (build_modrm_byte): Use disp32/disp16 on
+	(%bp)/(%ebp)/(%rbp) for {disp32}.
+	* doc/c-i386.texi: Update {disp32} documentation.
+	* testsuite/gas/i386/pseudos.s: Add (%bp)/(%ebp) tests.
+	* testsuite/gas/i386/x86-64-pseudos.s: Add (%ebp)/(%rbp) tests.
+	* testsuite/gas/i386/pseudos.d: Updated.
+	* testsuite/gas/i386/x86-64-pseudos.d: Likewise.
+
+2020-07-27  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* doc/as.texi: Replace preceeded with preceded.
+
+2020-07-22  Maciej W. Rozycki  <macro@linux-mips.org>
+
+	* testsuite/gas/mips/jal-svr4pic-irix.d: New file.
+	* testsuite/gas/mips/mips1@jal-svr4pic-irix.d: New file.
+	* testsuite/gas/mips/mipsr6@jal-svr4pic-irix.d: New file.
+	* testsuite/gas/mips/micromips@jal-svr4pic-irix.d: New file.
+	* testsuite/gas/mips/r3000@jal-svr4pic-irix.d: New file.
+	* testsuite/gas/mips/jal-svr4pic-local-irix.d: New file.
+	* testsuite/gas/mips/mips1@jal-svr4pic-local-irix.d: New file.
+	* testsuite/gas/mips/micromips@jal-svr4pic-local-irix.d: New
+	file.
+	* testsuite/gas/mips/r3000@jal-svr4pic-local-irix.d: New file.
+	* testsuite/gas/mips/jal-svr4pic-noreorder-irix.d: New file.
+	* testsuite/gas/mips/mips1@jal-svr4pic-noreorder-irix.d: New
+	file.
+	* testsuite/gas/mips/mipsr6@jal-svr4pic-noreorder-irix.d: New
+	file.
+	* testsuite/gas/mips/micromips@jal-svr4pic-noreorder-irix.d: New
+	file.
+	* testsuite/gas/mips/r3000@jal-svr4pic-noreorder-irix.d: New
+	file.
+	* testsuite/gas/mips/jal-xgot-irix.d: New file.
+	* testsuite/gas/mips/jalr2-irix.d: New file.
+	* testsuite/gas/mips/micromips-branch-relax-insn32-pic-irix.d:
+	New file.
+	* testsuite/gas/mips/micromips-branch-relax-pic-irix.d: New
+	file.
+	* testsuite/gas/mips/mips-abi32-pic2-irix.d: New file.
+	* testsuite/gas/mips/jal-svr4pic-local.d: Don't exclude
+	`*-*-irix*' targets.  Add source file designator.
+	* testsuite/gas/mips/mips1@jal-svr4pic-local.d: Don't exclude
+	`*-*-irix*' targets.
+	* testsuite/gas/mips/r3000@jal-svr4pic-local.d: Likewise.
+	* testsuite/gas/mips/micromips@jal-svr4pic-local.d: Likewise.
+	* testsuite/gas/mips/jalr2.d: Add name designator.
+	* testsuite/gas/mips/mips.exp: Use respective IRIX variants for
+	tests involving the JALR relocation throughout.
+
+2020-07-22  Maciej W. Rozycki  <macro@linux-mips.org>
+
+	* testsuite/gas/mips/mips.exp: Use a helper variable for
+	IRIX/non-IRIX test selection.
+
+2020-07-21  Jan Beulich  <jbeulich@suse.com>
+
+	* testsuite/gas/i386/evex-no-scale-64.d,
+	testsuite/gas/i386/addr32.d,
+	testsuite/gas/i386/x86-64-addr32-intel.d,
+	testsuite/gas/i386/x86-64-addr32.d: Adjust expectations.
+
+2020-07-21  Cooper Qu  <cooper.qu@linux.alibaba.com>
+
+	* config/tc-csky.c (md_begin): Fix tests of arch and mach flags.
+
+2020-07-21  Jan Beulich  <jbeulich@suse.com>
+
+	* testsuite/gas/i386/evex-no-scale-32.d,
+	testsuite/gas/i386/evex-no-scale-64.d: Add #source and #pass.
+	* testsuite/gas/i386/evex-no-scale-32.s,
+	testsuite/gas/i386/evex-no-scale-64.s: Rename / fold into ...
+	* testsuite/gas/i386/evex-no-scale.s: ... this. Use .struct
+	instead of .section.
+	* testsuite/gas/i386/i386.exp: Move above tests out of ELF-
+	specific section.
+
+2020-07-21  Maciej W. Rozycki  <macro@linux-mips.org>
+
+	* config/tc-mips.c (prev_reloc_op_frag): Remove variable.
+	(my_getSmallExpression): Adjust accordingly.
+
+2020-07-20  Jan Beulich  <jbeulich@suse.com>
+
+	PR gas/4572
+	* config/tc-i386.c (i386_comment_chars): Drop TE_I386AIX from
+	conditional around it.
+	(md_begin): Insert backslash into operand_chars[] when slash is
+	a comment character.
+	* config/tc-i386-intel.c (i386_operator): Recognize \/, \%, and
+	\* as operators when / may be a comment character.
+	* testsuite/gas/i386/svr4.s, testsuite/gas/i386/svr4.d: New.
+	* testsuite/gas/i386/i386.exp: Run new test.
+
+2020-07-20  Jan Beulich  <jbeulich@suse.com>
+
+	PR gas/4572
+	* app.c (last_char): Drop TC_ARM conditional around it.
+	(struct app_save): Drop TC_ARM conditional around last_char.
+	(app_push, app_pop): Drop TC_ARM conditional from last_char
+	accesses.
+	(do_scrub_chars): Likewise. Drop TC_ARM conditional from
+	backslash-precedes-comment-character check.
+
+2020-07-20  Jan Beulich  <jbeulich@suse.com>
+
+	* config/tc-i386.c (frag_opcode_byte): New.
+	(output_branch): Emit error when in absolute section.
+	(output_jump, output_insn): Use frag_opcode_byte. Handle being
+	in absolute section.
+	(output_interseg_jump, output_disp, output_imm): Handle being in
+	absolute section.
+	* testsuite/gas/i386/sizing.s,
+	testsuite/gas/i386/sizing32.d,
+	testsuite/gas/i386/sizing64.d: New.
+	* testsuite/gas/i386/i386.exp: Run new tests.
+
+2020-07-20  Jan Beulich  <jbeulich@suse.com>
+
+	* testsuite/gas/i386/i386.exp: Include *-*-vxworks alongside
+	is_elf_format as applicable; merely exclude iamcu tests.
+
+2020-07-19  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR gas/26263
+	* config/tc-i386.c (i386_validate_fix): Change PLT32 reloc
+	against section to PC32 reloc.
+	* testsuite/gas/i386/relax-5.d: Updated.
+	* testsuite/gas/i386/x86-64-relax-4.d: Likewise.
+
+2020-07-15  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR gas/26237
+	* testsuite/gas/i386/evex-no-scale-64.d: Updated.
+	* testsuite/gas/i386/addr32.d: Likewise.
+	* testsuite/gas/i386/x86-64-addr32-intel.d: Likewise.
+	* testsuite/gas/i386/x86-64-addr32.d: Likewise.
+
+2020-07-15  Nick Clifton  <nickc@redhat.com>
+
+	* write.c (create_note_reloc): Add desc2_size parameter.  Zero out
+	the addend field of REL relocations.  Store the full addend into
+	the note for REL relocations.
+
+2020-07-15  Jan Beulich  <jbeulich@suse.com>
+
+	* testsuite/gas/i386/x86-64-stack.s: Adjust 32-bit push
+	immediate.
+	* testsuite/gas/i386/x86-64-stack-intel.d,
+	testsuite/gas/i386/x86-64-stack-suffix.d,
+	testsuite/gas/i386/x86-64-stack.d: Adjust expectations.
+
+2020-07-15  Jan Beulich  <jbeulich@suse.com>
+
+	* testsuite/gas/i386/disassem.d,
+	testsuite/gas/i386/ilp32/x86-64-branch.d,
+	testsuite/gas/i386/intel.d, testsuite/gas/i386/jump16.d,
+	testsuite/gas/i386/lfence-load.d, testsuite/gas/i386/noreg16.d,
+	testsuite/gas/i386/noreg32.d,
+	testsuite/gas/i386/noreg64-rex64.d,
+	testsuite/gas/i386/noreg64.d, testsuite/gas/i386/notrack.d,
+	testsuite/gas/i386/opcode.d,
+	testsuite/gas/i386/solaris/x86-64-branch-2.d,
+	testsuite/gas/i386/solaris/x86-64-jump.d,
+	testsuite/gas/i386/solaris/x86-64-mpx-branch-1.d,
+	testsuite/gas/i386/solaris/x86-64-nop-3.d,
+	testsuite/gas/i386/solaris/x86-64-nop-4.d,
+	testsuite/gas/i386/solaris/x86-64-nop-5.d,
+	testsuite/gas/i386/solaris/x86-64-relax-2.d,
+	testsuite/gas/i386/solaris/x86-64-relax-3.d,
+	testsuite/gas/i386/x86-64-align-branch-1a.d,
+	testsuite/gas/i386/x86-64-align-branch-1b.d,
+	testsuite/gas/i386/x86-64-align-branch-1c.d,
+	testsuite/gas/i386/x86-64-align-branch-1d.d,
+	testsuite/gas/i386/x86-64-align-branch-1e.d,
+	testsuite/gas/i386/x86-64-align-branch-1f.d,
+	testsuite/gas/i386/x86-64-align-branch-1g.d,
+	testsuite/gas/i386/x86-64-align-branch-1h.d,
+	testsuite/gas/i386/x86-64-align-branch-1i.d,
+	testsuite/gas/i386/x86-64-align-branch-2a.d,
+	testsuite/gas/i386/x86-64-align-branch-2b.d,
+	testsuite/gas/i386/x86-64-align-branch-2c.d,
+	testsuite/gas/i386/x86-64-align-branch-3.d,
+	testsuite/gas/i386/x86-64-align-branch-4a.d,
+	testsuite/gas/i386/x86-64-align-branch-4b.d,
+	testsuite/gas/i386/x86-64-align-branch-5.d,
+	testsuite/gas/i386/x86-64-align-branch-6.d,
+	testsuite/gas/i386/x86-64-branch-2.d,
+	testsuite/gas/i386/x86-64-branch-3.d,
+	testsuite/gas/i386/x86-64-branch.d,
+	testsuite/gas/i386/x86-64-disassem.d,
+	testsuite/gas/i386/x86-64-disp32.d,
+	testsuite/gas/i386/x86-64-gotpcrel-no-relax.d,
+	testsuite/gas/i386/x86-64-gotpcrel.d,
+	testsuite/gas/i386/x86-64-ifunc.d,
+	testsuite/gas/i386/x86-64-jump.d,
+	testsuite/gas/i386/x86-64-lfence-byte.d,
+	testsuite/gas/i386/x86-64-lfence-indbr-a.d,
+	testsuite/gas/i386/x86-64-lfence-indbr-b.d,
+	testsuite/gas/i386/x86-64-lfence-indbr-c.d,
+	testsuite/gas/i386/x86-64-lfence-load.d,
+	testsuite/gas/i386/x86-64-lfence-ret-a.d,
+	testsuite/gas/i386/x86-64-lfence-ret-b.d,
+	testsuite/gas/i386/x86-64-lfence-ret-c.d,
+	testsuite/gas/i386/x86-64-lfence-ret-d.d,
+	testsuite/gas/i386/x86-64-lfence-ret-e.d,
+	testsuite/gas/i386/x86-64-mpx-add-bnd-prefix.d,
+	testsuite/gas/i386/x86-64-mpx-branch-1.d,
+	testsuite/gas/i386/x86-64-mpx.d,
+	testsuite/gas/i386/x86-64-nop-3.d,
+	testsuite/gas/i386/x86-64-nop-4.d,
+	testsuite/gas/i386/x86-64-nop-5.d,
+	testsuite/gas/i386/x86-64-nops-7.d,
+	testsuite/gas/i386/x86-64-notrack.d,
+	testsuite/gas/i386/x86-64-opcode.d,
+	testsuite/gas/i386/x86-64-relax-2.d,
+	testsuite/gas/i386/x86-64-relax-3.d,
+	testsuite/gas/i386/x86-64-relax-4.d,
+	testsuite/gas/i386/x86-64-rtm.d,
+	testsuite/gas/i386/x86-64-stack.d,
+	testsuite/gas/i386/x86-64-unique.d,
+	testsuite/gas/i386/x86_64-intel.d: Adjust expectations.
+
+2020-07-14  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR gas/26237
+	* testsuite/gas/i386/addr32.s: Add tests for 32-bit wrapped around
+	address.
+	* testsuite/gas/i386/x86-64-addr32.s: Likewise.
+	* testsuite/gas/i386/addr32.d: Updated.
+	* testsuite/gas/i386/x86-64-addr32-intel.d: Likewise.
+	* testsuite/gas/i386/x86-64-addr32.d: Likewise.
+	* testsuite/gas/i386/ilp32/x86-64-addr32-intel.d: Likewise.
+	* testsuite/gas/i386/ilp32/x86-64-addr32.d: Likewise.
+
+2020-07-14  Jan Beulich  <jbeulich@suse.com>
+
+	* testsuite/gas/i386/intel.s: Use dr<N> instead of db<N>.
+	* testsuite/gas/i386/intel-intel.d: Disambiguate name.
+	* testsuite/gas/i386/intel.d,
+	testsuite/gas/i386/opcode-intel.d: Adjust expectations.
+
+2020-07-14  Jan Beulich  <jbeulich@suse.com>
+
+	* testsuite/gas/i386/prefix.d: Adjust expectations.
+
+2020-07-14  Jan Beulich  <jbeulich@suse.com>
+
+	* testsuite/gas/i386/x86-64-avx-intel.d,
+	testsuite/gas/i386/x86-64-sse4_2-intel.d: Adjust expectations.
+
+2020-07-14  Jan Beulich  <jbeulich@suse.com>
+
+	* testsuite/gas/i386/movbe-suffix.d,
+	testsuite/gas/i386/x86-64-movbe-suffix.d: New.
+	* testsuite/gas/i386/i386.exp: Run new tests.
+
+2020-07-14  Jan Beulich  <jbeulich@suse.com>
+
+	* testsuite/gas/i386/crc32-suffix.d,
+	testsuite/gas/i386/x86-64-crc32-suffix.d: New.
+	* testsuite/gas/i386/i386.exp: Run new tests.
+	* testsuite/gas/i386/arch-10-bdver1.d,
+	testsuite/gas/i386/arch-10-bdver2.d,
+	testsuite/gas/i386/arch-10-bdver3.d,
+	testsuite/gas/i386/arch-10-bdver4.d,
+	testsuite/gas/i386/arch-10-btver1.d,
+	testsuite/gas/i386/arch-10-btver2.d,
+	testsuite/gas/i386/arch-10-lzcnt.d,
+	testsuite/gas/i386/arch-10-prefetchw.d,
+	testsuite/gas/i386/arch-10.d, testsuite/gas/i386/arch-2.d,
+	testsuite/gas/i386/arch-3.d, testsuite/gas/i386/arch-5.d,
+	testsuite/gas/i386/arch-6.d, testsuite/gas/i386/crc32.d,
+	testsuite/gas/i386/sse-noavx.d, testsuite/gas/i386/sse4_2.d,
+	testsuite/gas/i386/x86-64-arch-2-bdver1.d,
+	testsuite/gas/i386/x86-64-arch-2-bdver2.d,
+	testsuite/gas/i386/x86-64-arch-2-bdver3.d,
+	testsuite/gas/i386/x86-64-arch-2-bdver4.d,
+	testsuite/gas/i386/x86-64-arch-2-btver1.d,
+	testsuite/gas/i386/x86-64-arch-2-btver2.d,
+	testsuite/gas/i386/x86-64-arch-2-lzcnt.d,
+	testsuite/gas/i386/x86-64-arch-2-prefetchw.d,
+	testsuite/gas/i386/x86-64-arch-2.d,
+	testsuite/gas/i386/x86-64-crc32.d,
+	testsuite/gas/i386/x86-64-pseudos.d,
+	testsuite/gas/i386/x86-64-sse-noavx.d,
+	testsuite/gas/i386/x86-64-sse4_2.d: Adjust expectations.
+
+2020-07-14  Jan Beulich  <jbeulich@suse.com>
+
+	* testsuite/gas/i386/x86-64-pseudos.s: Add empty-REX tests for
+	ModR/M-encoded byte register cases.
+	* testsuite/gas/i386/x86-64-pseudos.d,
+	testsuite/gas/i386/x86-64-reg-intel.d,
+	testsuite/gas/i386/x86-64-reg.d: Adjust expectations.
+
+2020-07-14  Jan Beulich  <jbeulich@suse.com>
+
+	* testsuite/gas/i386/x86-64-pseudos.s: Add empty-REX tests for
+	not-ModR/M-encoded byte register cases.
+	* testsuite/gas/i386/x86-64-pseudos.d: Adjust expectations.
+
+2020-07-14  Jan Beulich  <jbeulich@suse.com>
+
+	* testsuite/gas/i386/ilp32/x86-64-arch-1.d,
+	testsuite/gas/i386/ilp32/x86-64-arch-2.d,
+	testsuite/gas/i386/ilp32/x86-64-avx-intel.d,
+	testsuite/gas/i386/ilp32/x86-64-avx.d,
+	testsuite/gas/i386/ilp32/x86-64-crc32-intel.d,
+	testsuite/gas/i386/ilp32/x86-64-crc32.d,
+	testsuite/gas/i386/ilp32/x86-64-gotpcrel.d,
+	testsuite/gas/i386/ilp32/x86-64-ifunc.d,
+	testsuite/gas/i386/ilp32/x86-64-reg-intel.d,
+	testsuite/gas/i386/ilp32/x86-64-reg.d,
+	testsuite/gas/i386/ilp32/x86-64-rep-suffix.d,
+	testsuite/gas/i386/ilp32/x86-64-sse4_2-intel.d,
+	testsuite/gas/i386/ilp32/x86-64-sse4_2.d,
+	testsuite/gas/i386/ilp32/x86-64-stack-intel.d,
+	testsuite/gas/i386/ilp32/x86-64-stack-suffix.d,
+	testsuite/gas/i386/ilp32/x86-64-stack.d: Reference parent dir
+	dump expectations.
+
+2020-07-13  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/tc-i386.c (offset_in_range): Remove 32-bit sign
+	extension.
+
+2020-07-13  Nick Clifton  <nickc@redhat.com>
+
+	* po/fr.po: Updated French translation.
+
+2020-07-13  Alan Modra  <amodra@gmail.com>
+
+	* testsuite/gas/elf/dwarf2-7.d: Remove most xfails.
+	* testsuite/gas/elf/dwarf2-12.d: Likewise.
+	* testsuite/gas/elf/dwarf2-13.d: Likewise.
+	* testsuite/gas/elf/dwarf2-14.d: Likewise.
+
+2020-07-11  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/tc-i386.c (output_insn): Check i.xstate to set
+	GNU_PROPERTY_X86_FEATURE_2_TMM.
+	* testsuite/gas/i386/i386.exp: Run x86-64-property-7,
+	x86-64-property-8 and x86-64-property-9.
+	* testsuite/gas/i386/x86-64-property-7.d: New file.
+	* testsuite/gas/i386/x86-64-property-7.s: Likewise.
+	* testsuite/gas/i386/x86-64-property-8.d: Likewise.
+	* testsuite/gas/i386/x86-64-property-8.s: Likewise.
+	* testsuite/gas/i386/x86-64-property-9.d: Likewise.
+	* testsuite/gas/i386/x86-64-property-9.s: Likewise.
+
+2020-07-10  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/tc-i386.c (_i386_insn): Remove has_regmmx, has_regxmm,
+	has_regymm, has_regzmm and has_regtmm.  Add xstate.
+	(md_assemble): Set i.xstate from operand types in instruction
+	template.
+	(build_modrm_byte): Updated.
+	(output_insn): Check i.xstate.
+	* testsuite/gas/i386/i386.exp: Run property-6 and
+	x86-64-property-6.
+	* testsuite/gas/i386/property-6.d: New file.
+	* testsuite/gas/i386/property-6.s: Updated.
+	* testsuite/gas/i386/x86-64-property-6.d: Likewise.
+
+2020-07-10  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* testsuite/gas/i386/property-5.d: Correct test name.
+
+2020-07-10  Lili Cui  <lili.cui@intel.com>
+
+	* NEWS: Mention support for Intel AMX instructions.
+	* config/tc-i386.c (i386_error): Add invalid_sib_address.
+	(cpu_arch): Add .amx_int8, .amx_bf16 and .amx_tile.
+	(cpu_noarch): Add noamx_int8, noamx_bf16 and noamx_tile.
+	(match_simd_size): Add tmmword check.
+	(operand_type_match): Add tmmword.
+	(type_names): Add rTMM.
+	(i386_error): Add invalid_tmm_register_set.
+	(check_VecOperands): Handle invalid_sib_address and
+	invalid_tmm_register_set.
+	(match_template): Handle invalid_sib_address.
+	(build_modrm_byte): Handle non-vector SIB and zmmword.
+	(i386_index_check): Disallow RegIP for non-vector SIB.
+	(check_register): Handle zmmword.
+	* doc/c-i386.texi: Document amx_int8, amx_bf16 and amx_tile.
+	* testsuite/gas/i386/i386.exp: Add AMX new tests.
+	* testsuite/gas/i386/intel-regs.d: Add tmm.
+	* testsuite/gas/i386/intel-regs.s: Add tmm.
+	* testsuite/gas/i386/x86-64-amx-intel.d: New.
+	* testsuite/gas/i386/x86-64-amx-inval.l: New.
+	* testsuite/gas/i386/x86-64-amx-inval.s: New.
+	* testsuite/gas/i386/x86-64-amx.d: New.
+	* testsuite/gas/i386/x86-64-amx.s: New.
+	* testsuite/gas/i386/x86-64-amx-bad.d: New.
+	* testsuite/gas/i386/x86-64-amx-bad.s: New.
+
+2020-07-10  Tom de Vries  <tdevries@suse.de>
+
+	* testsuite/gas/elf/dwarf2-11.d: Update expected output from
+	readelf's line table decoding.
+	* testsuite/gas/elf/dwarf2-12.d: Likewise.
+	* testsuite/gas/elf/dwarf2-13.d: Likewise.
+	* testsuite/gas/elf/dwarf2-14.d: Likewise.
+	* testsuite/gas/elf/dwarf2-15.d: Likewise.
+	* testsuite/gas/elf/dwarf2-16.d: Likewise.
+	* testsuite/gas/elf/dwarf2-17.d: Likewise.
+	* testsuite/gas/elf/dwarf2-18.d: Likewise.
+	* testsuite/gas/elf/dwarf2-19.d: Likewise.
+	* testsuite/gas/elf/dwarf2-5.d: Likewise.
+	* testsuite/gas/elf/dwarf2-6.d: Likewise.
+	* testsuite/gas/elf/dwarf2-7.d: Likewise.
+
+2020-07-09  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/tc-i386.c (output_insn): Set YMM/ZMM features for
+	VEX/EVEX vector instructions.
+	* testsuite/gas/i386/property-4.d: New file.
+	* testsuite/gas/i386/property-4.s: Likewise.
+	* testsuite/gas/i386/property-5.d: Likewise.
+	* testsuite/gas/i386/property-5.s: Likewise.
+	* testsuite/gas/i386/x86-64-property-4.d: Likewise.
+	* testsuite/gas/i386/x86-64-property-5.d: Likewise.
+
 2020-07-09  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* NEWS: Mention --enable-x86-used-note.

@@ -37,7 +37,9 @@ proc at_least_gcc_version { major minor } {
     if { $CC == "" } {
 	return 0
     }
-    set state [remote_exec host $CC --version]
+    # Filter out -Wl, options.
+    regsub -all -- "-Wl,\[^ ^\t\]+" $CC "" cc_cmd
+    set state [remote_exec host $cc_cmd --version]
     if { [lindex $state 0] != 0 } {
 	return 0;
     }
@@ -693,6 +695,11 @@ proc run_ld_link_exec_tests { ldtests args } {
 	    continue
 	}
 
+	# Add -fno-lto.  LTO should be tested explicitly by $cflags.
+	if {[check_lto_available]} {
+	    set cflags "-fno-lto $cflags"
+	}
+
 	foreach target $args {
 	    if [match_target $target] {
 		setup_xfail "*-*-*"
@@ -850,6 +857,11 @@ proc run_cc_link_tests { ldtests } {
 	if { ![check_compiler_available] } {
 	    unsupported $testname
 	    continue
+	}
+
+	# Add -fno-lto.  LTO should be tested explicitly by $cflags.
+	if {[check_lto_available]} {
+	    set cflags "-fno-lto $cflags"
 	}
 
 	#verbose -log "testname  is $testname"
@@ -1209,7 +1221,9 @@ proc check_gcc_plugin_enabled { } {
     if { $CC == ""} {
 	return 0
     }
-    set state [remote_exec host $CC -v]
+    # Filter out -Wl, options.
+    regsub -all -- "-Wl,\[^ ^\t\]+" $CC "" cc_cmd
+    set state [remote_exec host $cc_cmd -v]
     if { [lindex $state 0] != 0 } {
 	return 0;
     }
@@ -1568,4 +1582,60 @@ proc check_gnu2_tls_available { } {
 	file delete $src1 $src2
     }
     return $gnu2_tls_available_saved
+}
+
+# Compile a C source file, with the specified additional_flags.
+proc compile_one_cc { src output additional_flags } {
+    global CC
+    global CFLAGS
+
+    set flags ""
+    if [board_info [target_info name] exists cflags] {
+	append flags " [board_info [target_info name] cflags]"
+    }
+    if [board_info [target_info name] exists ldflags] {
+	append flags " [board_info [target_info name] ldflags]"
+    }
+
+    if [is_remote host] {
+	set src [remote_download host $src]
+    }
+    return [run_host_cmd_yesno "$CC" "$flags $CFLAGS $additional_flags $src -o $output"]
+}
+
+# Returns true if the target compiler supports -gt
+proc check_ctf_available { } {
+    global ctf_available_saved
+
+    if {![info exists ctf_available_saved]} {
+	if { ![check_compiler_available] } {
+	    set ctf_available_saved 0
+	} else {
+	    set basename "tmpdir/ctf_available[pid]"
+	    set src ${basename}.c
+	    set output ${basename}.o
+	    set f [open $src "w"]
+	    puts $f "int main() { return 0; }"
+	    close $f
+	    set ctf_available_saved [compile_one_cc $src $output "-gt -c"]
+	    remote_file host delete $src
+	    remote_file host delete $output
+	    file delete $src
+	}
+    }
+    return $ctf_available_saved
+}
+
+proc skip_ctf_tests { } {
+    global enable_libctf
+
+    if {$enable_libctf eq "no"} {
+	return 1
+    }
+
+    if [check_ctf_available] {
+	return 0
+    }
+
+    return 1
 }

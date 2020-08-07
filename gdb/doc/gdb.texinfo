@@ -557,6 +557,10 @@ Alessandro Forin and Per Bothner.  More recent ports have been the work
 of Jeremy Bennett, Franck Jullien, Stefan Wallentowitz and
 Stafford Horne.
 
+Weimin Pan, David Faust and Jose E. Marchesi contributed support for
+the Linux kernel BPF virtual architecture.  This work was sponsored by
+Oracle.
+
 @node Sample Session
 @chapter A Sample @value{GDBN} Session
 
@@ -3016,6 +3020,8 @@ by @value{GDBN} and the executable file used to start the process.  If
 @samp{ask}, the default, display a warning and ask the user whether to
 load the process executable file; if @samp{warn}, just display a
 warning; if @samp{off}, don't attempt to detect a mismatch.
+If the user confirms loading the process executable file, then its symbols
+will be loaded as well.
 
 @cindex show exec-file-mismatch
 @item show exec-file-mismatch
@@ -3691,7 +3697,7 @@ is, using:
 @end smallexample
 
 The @code{tfaas} command accepts the same options as the @code{frame
-apply} command.  @xref{frame apply}.
+apply} command.  @xref{Frame Apply,,frame apply}.
 
 @kindex thread name
 @cindex name a thread
@@ -8449,7 +8455,6 @@ tfaas i lo -q -t lock_something_t
 
 @node Frame Apply
 @section Applying a Command to Several Frames.
-@anchor{frame apply}
 @kindex frame apply
 @cindex apply command to several frames
 @table @code
@@ -8581,7 +8586,7 @@ is, using:
 @end smallexample
 
 The @code{faas} command accepts the same options as the @code{frame
-apply} command.  @xref{frame apply}.
+apply} command.  @xref{Frame Apply,,frame apply}.
 
 Note that the command @code{tfaas @var{command}} applies @var{command}
 on all frames of all threads.  See @xref{Threads,,Threads}.
@@ -18315,6 +18320,34 @@ using the Ravenscar Profile.
 
 @end table
 
+@cindex Ravenscar thread
+When Ravenscar task-switching is enabled, Ravenscar tasks are
+announced by @value{GDBN} as if they were threads:
+
+@smallexample
+(gdb) continue
+[New Ravenscar Thread 0x2b8f0]
+@end smallexample
+
+Both Ravenscar tasks and the underlying CPU threads will show up in
+the output of @code{info threads}:
+
+@smallexample
+(gdb) info threads
+  Id   Target Id                  Frame
+  1    Thread 1 (CPU#0 [running]) simple () at simple.adb:10
+  2    Thread 2 (CPU#1 [running]) 0x0000000000003d34 in __gnat_initialize_cpu_devices ()
+  3    Thread 3 (CPU#2 [running]) 0x0000000000003d28 in __gnat_initialize_cpu_devices ()
+  4    Thread 4 (CPU#3 [halted ]) 0x000000000000c6ec in system.task_primitives.operations.idle ()
+* 5    Ravenscar Thread 0x2b8f0   simple () at simple.adb:10
+  6    Ravenscar Thread 0x2f150   0x000000000000c6ec in system.task_primitives.operations.idle ()
+@end smallexample
+
+One known limitation of the Ravenscar support in @value{GDBN} is that
+it isn't currently possible to single-step through the runtime
+initialization sequence.  If you need to debug this code, you should
+use @code{set ravenscar task-switching off}.
+
 @node Ada Settings
 @subsubsection Ada Settings
 @cindex Ada settings
@@ -24380,6 +24413,7 @@ acceptable commands.
 @menu
 * ARC::                         Synopsys ARC
 * ARM::                         ARM
+* BPF::                         eBPF
 * M68K::                        Motorola M68K
 * MicroBlaze::			Xilinx MicroBlaze
 * MIPS Embedded::               MIPS Embedded
@@ -24511,6 +24545,22 @@ The default value is @code{all}.
 @item redboot
 @item all
 @end table
+@end table
+@end table
+
+@node BPF
+@subsection BPF
+
+@table @code
+@item target sim @r{[}@var{simargs}@r{]} @dots{}
+The @value{GDBN} BPF simulator accepts the following optional arguments.
+
+@table @code
+@item --skb-data-offset=@var{offset}
+Tell the simulator the offset, measured in bytes, of the
+@code{skb_data} field in the kernel @code{struct sk_buff} structure.
+This offset is used by some BPF specific-purpose load/store
+instructions.  Defaults to 0.
 @end table
 @end table
 
@@ -38531,6 +38581,14 @@ library.  This exercises all @code{libthread_db} functionality used by
 @code{libthread_db} uses.  Note that parts of the test may be skipped
 on some platforms when debugging core files.
 
+@kindex maint print core-file-backed-mappings
+@cindex memory address space mappings
+@item maint print core-file-backed-mappings
+Print the file-backed mappings which were loaded from a core file note.
+This output represents state internal to @value{GDBN} and should be
+similar to the mappings displayed by the @code{info proc mappings}
+command.
+
 @kindex maint print dummy-frames
 @item maint print dummy-frames
 Prints the contents of @value{GDBN}'s internal dummy-frame stack.
@@ -39133,12 +39191,15 @@ For any @var{command} not supported by the stub, an empty response
 protocol.  A newer @value{GDBN} can tell if a packet is supported based
 on that response.
 
-At a minimum, a stub is required to support the @samp{g} and @samp{G}
+At a minimum, a stub is required to support the @samp{?} command to
+tell @value{GDBN} the reason for halting, @samp{g} and @samp{G}
 commands for register access, and the @samp{m} and @samp{M} commands
 for memory access.  Stubs that only control single-threaded targets
-can implement run control with the @samp{c} (continue), and @samp{s}
-(step) commands.  Stubs that support multi-threading targets should
-support the @samp{vCont} command.  All other commands are optional.
+can implement run control with the @samp{c} (continue) command, and if
+the target architecture supports hardware-assisted single-stepping,
+the @samp{s} (step) command.  Stubs that support multi-threading
+targets should support the @samp{vCont} command.  All other commands
+are optional.
 
 @node Packets
 @section Packets

@@ -204,7 +204,7 @@ struct simple_pid_list
   int status;
   struct simple_pid_list *next;
 };
-struct simple_pid_list *stopped_pids;
+static struct simple_pid_list *stopped_pids;
 
 /* Whether target_thread_events is in effect.  */
 static int report_thread_events;
@@ -4174,7 +4174,7 @@ linux_nat_target::can_async_p ()
 bool
 linux_nat_target::supports_non_stop ()
 {
-  return 1;
+  return true;
 }
 
 /* to_always_non_stop_p implementation.  */
@@ -4182,27 +4182,22 @@ linux_nat_target::supports_non_stop ()
 bool
 linux_nat_target::always_non_stop_p ()
 {
-  return 1;
+  return true;
 }
-
-/* True if we want to support multi-process.  To be removed when GDB
-   supports multi-exec.  */
-
-int linux_multi_process = 1;
 
 bool
 linux_nat_target::supports_multi_process ()
 {
-  return linux_multi_process;
+  return true;
 }
 
 bool
 linux_nat_target::supports_disable_randomization ()
 {
 #ifdef HAVE_PERSONALITY
-  return 1;
+  return true;
 #else
-  return 0;
+  return false;
 #endif
 }
 

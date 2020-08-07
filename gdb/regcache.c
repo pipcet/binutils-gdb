@@ -29,7 +29,7 @@
 #include "reggroups.h"
 #include "observable.h"
 #include "regset.h"
-#include <forward_list>
+#include <unordered_map>
 
 /*
  * DATA STRUCTURE
@@ -313,31 +313,48 @@ reg_buffer::assert_regnum (int regnum) const
     gdb_assert (regnum < gdbarch_num_regs (arch ()));
 }
 
-/* Global structure containing the current regcache.  */
+/* Type to map a ptid to a list of regcaches (one thread may have multiple
+   regcaches, associated to different gdbarches).  */
+
+using ptid_regcache_map
+  = std::unordered_multimap<ptid_t, regcache_up, hash_ptid>;
+
+/* Type to map a target to a ptid_regcache_map, holding the regcaches for the
+   threads defined by that target.  */
+
+using target_ptid_regcache_map
+  = std::unordered_map<process_stratum_target *, ptid_regcache_map>;
+
+/* Global structure containing the existing regcaches.  */
 
 /* NOTE: this is a write-through cache.  There is no "dirty" bit for
    recording if the register values have been changed (eg. by the
    user).  Therefore all registers must be written back to the
    target when appropriate.  */
-std::forward_list<regcache *> regcache::current_regcache;
+static target_ptid_regcache_map regcaches;
 
 struct regcache *
 get_thread_arch_aspace_regcache (process_stratum_target *target,
-				 ptid_t ptid, struct gdbarch *gdbarch,
+				 ptid_t ptid, gdbarch *arch,
 				 struct address_space *aspace)
 {
   gdb_assert (target != nullptr);
 
-  for (const auto &regcache : regcache::current_regcache)
-    if (regcache->target () == target
-	&& regcache->ptid () == ptid
-	&& regcache->arch () == gdbarch)
-      return regcache;
+  /* Find the ptid -> regcache map for this target.  */
+  auto &ptid_regc_map = regcaches[target];
 
-  regcache *new_regcache = new regcache (target, gdbarch, aspace);
+  /* Check first if a regcache for this arch already exists.  */
+  auto range = ptid_regc_map.equal_range (ptid);
+  for (auto it = range.first; it != range.second; ++it)
+    {
+      if (it->second->arch () == arch)
+	return it->second.get ();
+    }
 
-  regcache::current_regcache.push_front (new_regcache);
+  /* It does not exist, create it.  */
+  regcache *new_regcache = new regcache (target, arch, aspace);
   new_regcache->set_ptid (ptid);
+  ptid_regc_map.insert (std::make_pair (ptid, new_regcache));
 
   return new_regcache;
 }
@@ -412,15 +429,27 @@ regcache_observer_target_changed (struct target_ops *target)
   registers_changed ();
 }
 
-/* Update global variables old ptids to hold NEW_PTID if they were
-   holding OLD_PTID.  */
-void
-regcache::regcache_thread_ptid_changed (ptid_t old_ptid, ptid_t new_ptid)
+/* Update regcaches related to OLD_PTID to now use NEW_PTID.  */
+static void
+regcache_thread_ptid_changed (process_stratum_target *target,
+			      ptid_t old_ptid, ptid_t new_ptid)
 {
-  for (auto &regcache : regcache::current_regcache)
+  auto ptid_regc_map_it = regcaches.find (target);
+
+  if (ptid_regc_map_it == regcaches.end ())
+    return;
+
+  auto &ptid_regc_map = ptid_regc_map_it->second;
+  auto range = ptid_regc_map.equal_range (old_ptid);
+  for (auto it = range.first; it != range.second;)
     {
-      if (regcache->ptid () == old_ptid)
-	regcache->set_ptid (new_ptid);
+      regcache_up rc = std::move (it->second);
+      rc->set_ptid (new_ptid);
+
+      /* Remove old before inserting new, to avoid rehashing,
+	 which would invalidate iterators.  */
+      it = ptid_regc_map.erase (it);
+      ptid_regc_map.insert (std::make_pair (new_ptid, std::move (rc)));
     }
 }
 
@@ -438,20 +467,31 @@ regcache::regcache_thread_ptid_changed (ptid_t old_ptid, ptid_t new_ptid)
 void
 registers_changed_ptid (process_stratum_target *target, ptid_t ptid)
 {
-  for (auto oit = regcache::current_regcache.before_begin (),
-	 it = std::next (oit);
-       it != regcache::current_regcache.end ();
-       )
+  if (target == nullptr)
     {
-      struct regcache *regcache = *it;
-      if ((target == nullptr || regcache->target () == target)
-	  && regcache->ptid ().matches (ptid))
+      /* Since there can be ptid clashes between targets, it's not valid to
+	 pass a ptid without saying to which target it belongs.  */
+      gdb_assert (ptid == minus_one_ptid);
+
+      /* Delete all the regcaches of all targets.  */
+      regcaches.clear ();
+    }
+  else if (ptid != minus_one_ptid)
+    {
+      /* Non-NULL target and non-minus_one_ptid, delete all regcaches belonging
+	to this (TARGET, PTID).  */
+      auto ptid_regc_map_it = regcaches.find (target);
+      if (ptid_regc_map_it != regcaches.end ())
 	{
-	  delete regcache;
-	  it = regcache::current_regcache.erase_after (oit);
+	  auto &ptid_regc_map = ptid_regc_map_it->second;
+	  ptid_regc_map.erase (ptid);
 	}
-      else
-	oit = it++;
+    }
+  else
+    {
+       /* Non-NULL target and minus_one_ptid, delete all regcaches
+	  associated to this target.  */
+      regcaches.erase (target);
     }
 
   if ((target == nullptr || current_thread_target == target)
@@ -1433,19 +1473,18 @@ register_dump::dump (ui_file *file)
 
 namespace selftests {
 
-class regcache_access : public regcache
+static size_t
+regcaches_size ()
 {
-public:
+  size_t size = 0;
+  for (auto it = regcaches.begin (); it != regcaches.end (); ++it)
+    {
+      auto &ptid_regc_map = it->second;
+      size += ptid_regc_map.size ();
+    }
 
-  /* Return the number of elements in current_regcache.  */
-
-  static size_t
-  current_regcache_size ()
-  {
-    return std::distance (regcache::current_regcache.begin (),
-			  regcache::current_regcache.end ());
-  }
-};
+  return size;
+}
 
 /* Wrapper around get_thread_arch_aspace_regcache that does some self checks.  */
 
@@ -1463,10 +1502,10 @@ test_get_thread_arch_aspace_regcache (process_stratum_target *target,
 }
 
 static void
-current_regcache_test (void)
+regcaches_test ()
 {
   /* It is empty at the start.  */
-  SELF_CHECK (regcache_access::current_regcache_size () == 0);
+  SELF_CHECK (regcaches_size () == 0);
 
   ptid_t ptid1 (1), ptid2 (2), ptid3 (3);
 
@@ -1474,57 +1513,56 @@ current_regcache_test (void)
   test_target_ops test_target2;
 
   /* Get regcache from (target1,ptid1), a new regcache is added to
-     current_regcache.  */
+     REGCACHES.  */
   test_get_thread_arch_aspace_regcache (&test_target1, ptid1,
 					target_gdbarch (),
 					NULL);
-  SELF_CHECK (regcache_access::current_regcache_size () == 1);
+  SELF_CHECK (regcaches_size () == 1);
 
   /* Get regcache from (target1,ptid2), a new regcache is added to
-     current_regcache.  */
+     REGCACHES.  */
   test_get_thread_arch_aspace_regcache (&test_target1, ptid2,
 					target_gdbarch (),
 					NULL);
-  SELF_CHECK (regcache_access::current_regcache_size () == 2);
+  SELF_CHECK (regcaches_size () == 2);
 
   /* Get regcache from (target1,ptid3), a new regcache is added to
-     current_regcache.  */
+     REGCACHES.  */
   test_get_thread_arch_aspace_regcache (&test_target1, ptid3,
 					target_gdbarch (),
 					NULL);
-  SELF_CHECK (regcache_access::current_regcache_size () == 3);
+  SELF_CHECK (regcaches_size () == 3);
 
   /* Get regcache from (target1,ptid2) again, nothing is added to
-     current_regcache.  */
+     REGCACHES.  */
   test_get_thread_arch_aspace_regcache (&test_target1, ptid2,
 					target_gdbarch (),
 					NULL);
-  SELF_CHECK (regcache_access::current_regcache_size () == 3);
+  SELF_CHECK (regcaches_size () == 3);
 
   /* Get regcache from (target2,ptid2), a new regcache is added to
-     current_regcache, since this time we're using a differen
-     target.  */
+     REGCACHES, since this time we're using a different target.  */
   test_get_thread_arch_aspace_regcache (&test_target2, ptid2,
 					target_gdbarch (),
 					NULL);
-  SELF_CHECK (regcache_access::current_regcache_size () == 4);
+  SELF_CHECK (regcaches_size () == 4);
 
   /* Mark that (target1,ptid2) changed.  The regcache of (target1,
-     ptid2) should be removed from current_regcache.  */
+     ptid2) should be removed from REGCACHES.  */
   registers_changed_ptid (&test_target1, ptid2);
-  SELF_CHECK (regcache_access::current_regcache_size () == 3);
+  SELF_CHECK (regcaches_size () == 3);
 
   /* Get the regcache from (target2,ptid2) again, confirming the
      registers_changed_ptid call above did not delete it.  */
   test_get_thread_arch_aspace_regcache (&test_target2, ptid2,
 					target_gdbarch (),
 					NULL);
-  SELF_CHECK (regcache_access::current_regcache_size () == 3);
+  SELF_CHECK (regcaches_size () == 3);
 
   /* Confirm that marking all regcaches of all targets as changed
-     clears current_regcache.  */
+     clears REGCACHES.  */
   registers_changed_ptid (nullptr, minus_one_ptid);
-  SELF_CHECK (regcache_access::current_regcache_size () == 0);
+  SELF_CHECK (regcaches_size () == 0);
 }
 
 class target_ops_no_register : public test_target_ops
@@ -1828,6 +1866,73 @@ cooked_write_test (struct gdbarch *gdbarch)
     }
 }
 
+/* Verify that when two threads with the same ptid exist (from two different
+   targets) and one of them changes ptid, we only update the appropriate
+   regcaches.  */
+
+static void
+regcache_thread_ptid_changed ()
+{
+  /* This test relies on the global regcache list to initially be empty.  */
+  registers_changed ();
+
+  /* Any arch will do.  */
+  gdbarch *arch = current_inferior ()->gdbarch;
+
+  /* Prepare two targets with one thread each, with the same ptid.  */
+  scoped_mock_context<test_target_ops> target1 (arch);
+  scoped_mock_context<test_target_ops> target2 (arch);
+  target2.mock_inferior.next = &target1.mock_inferior;
+
+  ptid_t old_ptid (111, 222);
+  ptid_t new_ptid (111, 333);
+
+  target1.mock_inferior.pid = old_ptid.pid ();
+  target1.mock_thread.ptid = old_ptid;
+  target2.mock_inferior.pid = old_ptid.pid ();
+  target2.mock_thread.ptid = old_ptid;
+
+  gdb_assert (regcaches.empty ());
+
+  /* Populate the regcaches container.  */
+  get_thread_arch_aspace_regcache (&target1.mock_target, old_ptid, arch,
+				   nullptr);
+  get_thread_arch_aspace_regcache (&target2.mock_target, old_ptid, arch,
+				   nullptr);
+
+  /* Return the count of regcaches for (TARGET, PTID) in REGCACHES.  */
+  auto regcache_count = [] (process_stratum_target *target, ptid_t ptid)
+    -> int
+    {
+      auto ptid_regc_map_it = regcaches.find (target);
+      if (ptid_regc_map_it != regcaches.end ())
+	{
+	  auto &ptid_regc_map = ptid_regc_map_it->second;
+	  auto range = ptid_regc_map.equal_range (ptid);
+	  return std::distance (range.first, range.second);
+	}
+      return 0;
+    };
+
+  gdb_assert (regcaches.size () == 2);
+  gdb_assert (regcache_count (&target1.mock_target, old_ptid) == 1);
+  gdb_assert (regcache_count (&target1.mock_target, new_ptid) == 0);
+  gdb_assert (regcache_count (&target2.mock_target, old_ptid) == 1);
+  gdb_assert (regcache_count (&target2.mock_target, new_ptid) == 0);
+
+  thread_change_ptid (&target1.mock_target, old_ptid, new_ptid);
+
+  gdb_assert (regcaches.size () == 2);
+  gdb_assert (regcache_count (&target1.mock_target, old_ptid) == 0);
+  gdb_assert (regcache_count (&target1.mock_target, new_ptid) == 1);
+  gdb_assert (regcache_count (&target2.mock_target, old_ptid) == 1);
+  gdb_assert (regcache_count (&target2.mock_target, new_ptid) == 0);
+
+  /* Leave the regcache list empty.  */
+  registers_changed ();
+  gdb_assert (regcaches.empty ());
+}
+
 } // namespace selftests
 #endif /* GDB_SELF_TEST */
 
@@ -1839,18 +1944,19 @@ _initialize_regcache ()
     = gdbarch_data_register_post_init (init_regcache_descr);
 
   gdb::observers::target_changed.attach (regcache_observer_target_changed);
-  gdb::observers::thread_ptid_changed.attach
-    (regcache::regcache_thread_ptid_changed);
+  gdb::observers::thread_ptid_changed.attach (regcache_thread_ptid_changed);
 
   add_com ("flushregs", class_maintenance, reg_flush_command,
 	   _("Force gdb to flush its register cache (maintainer command)."));
 
 #if GDB_SELF_TEST
-  selftests::register_test ("current_regcache", selftests::current_regcache_test);
+  selftests::register_test ("regcaches", selftests::regcaches_test);
 
   selftests::register_test_foreach_arch ("regcache::cooked_read_test",
 					 selftests::cooked_read_test);
   selftests::register_test_foreach_arch ("regcache::cooked_write_test",
 					 selftests::cooked_write_test);
+  selftests::register_test ("regcache_thread_ptid_changed",
+			    selftests::regcache_thread_ptid_changed);
 #endif
 }

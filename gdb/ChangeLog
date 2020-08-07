@@ -1,3 +1,1100 @@
+2020-08-07  Tom Tromey  <tromey@adacore.com>
+
+	* ravenscar-thread.c
+	(ravenscar_thread_target::set_base_thread_from_ravenscar_task):
+	New method.
+	(ravenscar_thread_target::wait): Check
+	runtime_initialized.
+	(ravenscar_thread_target::prepare_to_store)
+	(ravenscar_thread_target::stopped_by_sw_breakpoint)
+	(ravenscar_thread_target::stopped_by_hw_breakpoint)
+	(ravenscar_thread_target::stopped_by_watchpoint)
+	(ravenscar_thread_target::stopped_data_address)
+	(ravenscar_thread_target::core_of_thread): Use
+	scoped_restore_current_thread and
+	set_base_thread_from_ravenscar_task.
+
+2020-08-07  Tom Tromey  <tromey@adacore.com>
+
+	* ravenscar-thread.c (update_thread_list): Set inferior_ptid.
+
+2020-08-07  Tom Tromey  <tromey@adacore.com>
+
+	* ravenscar-thread.c (ravenscar_thread_target::wait): Call
+	update_inferior_ptid before update_thread_list.
+	(temporarily_change_regcache_ptid): New class.
+	(ravenscar_thread_target::fetch_registers)
+	(ravenscar_thread_target::store_registers)
+	(ravenscar_thread_target::prepare_to_store): Use base thread when
+	forwarding operation.
+
+2020-08-07  Tom Tromey  <tromey@adacore.com>
+
+	* ravenscar-thread.c (ravenscar_thread_target::resume): Handle
+	"is_pid" case.
+
+2020-08-07  Tom Tromey  <tromey@adacore.com>
+
+	* ravenscar-thread.c (xfer_partial, enable_btrace, add_thread):
+	New methods.
+	(ravenscar_thread_target::get_thread_base_cpu): Check m_cpu_map
+	first.
+	(ravenscar_thread_target::add_thread): Rename from
+	ravenscar_add_thread.
+	(ravenscar_thread_target::update_thread_list): Use a lambda.
+	(ravenscar_thread_target::xfer_partial): New method.
+
+2020-08-07  Tom Tromey  <tromey@adacore.com>
+
+	* ada-lang.h (ada_task_list_iterator_ftype): Now a
+	gdb::function_view.
+	(iterate_over_live_ada_tasks): Change type of argument.
+	* ada-tasks.c (iterate_over_live_ada_tasks): Change type
+	of argument.
+
+2020-08-07  Tom Tromey  <tromey@adacore.com>
+
+	* ravenscar-thread.c (ravenscar_thread_target) <extra_thread_info>:
+	Remove.
+	(ravenscar_thread_target::extra_thread_info): Remove.
+	(ravenscar_thread_target::pid_to_str): Mention Ravenscar in result;
+	defer to target beneath for non-Ravenscar threads.
+
+2020-08-07  Tom Tromey  <tromey@adacore.com>
+
+	* ravenscar-thread.c (ravenscar_thread_target) <get_base_cpu,
+	get_base_thread_from_ravenscar_task>: Now methods.
+	<m_cpu_map>: New member.
+	(ravenscar_thread_target::get_thread_base_cpu): Rename from
+	ravenscar_get_thread_base_cpu.  Check m_cpu_map.
+	(ravenscar_thread_target::task_is_currently_active): Update.
+	(ravenscar_thread_target::get_base_thread_from_ravenscar_task):
+	Now a method.
+	(ravenscar_thread_target::add_active_thread): Put initial thread
+	into the m_cpu_map.
+
+2020-08-07  Tom Tromey  <tromey@adacore.com>
+
+	* ravenscar-thread.c (ravenscar_thread_target::wait): Return
+	event_ptid.
+
+2020-08-07  Tom Tromey  <tromey@adacore.com>
+
+	* ravenscar-thread.c (ravenscar_thread_target::wait): Check
+	runtime_initialized.
+
+2020-08-07  Tom Tromey  <tromey@adacore.com>
+
+	* ravenscar-thread.c (ravenscar_thread_target): Don't call
+	add_active_thread.
+	(ravenscar_thread_target::add_active_thread): Now public.
+	(ravenscar_inferior_created): Call add_active_thread after pushing
+	the target.
+
+2020-08-07  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* regcache.c (ptid_regcache_map): New type.
+	(target_ptid_regcache_map): New type.
+	(regcaches): Change type to target_ptid_regcache_map.
+	(get_thread_arch_aspace_regcache): Update to regcaches' new
+	type.
+	(regcache_thread_ptid_changed): Likewise.
+	(registers_changed_ptid): Likewise.
+	(regcaches_size): Likewise.
+	(regcaches_test): Update.
+	(regcache_thread_ptid_changed): Update.
+	* regcache.h (regcache_up): New type.
+	* gdbsupport/ptid.h (hash_ptid): New struct.
+
+2020-08-07  Simon Marchi  <simon.marchi@efficios.com>
+
+	* observable.h (thread_ptid_changed): Add parameter
+	`process_stratum_target *`.
+	* infrun.c (infrun_thread_ptid_changed): Add parameter
+	`process_stratum_target *` and use it.
+	(selftests): New namespace.
+	(infrun_thread_ptid_changed): New function.
+	(_initialize_infrun): Register selftest.
+	* regcache.c (regcache_thread_ptid_changed): Add parameter
+	`process_stratum_target *` and use it.
+	(regcache_thread_ptid_changed): New function.
+	(_initialize_regcache): Register selftest.
+	* thread.c (thread_change_ptid): Pass target to
+	thread_ptid_changed observable.
+
+2020-08-06  Caroline Tice <cmtice@google.com>
+
+	* dwarf2/read.c (struct dwo_file): Update comment on 'sections' field.
+	(struct dwp_sections): Update field comments.  Add loclists and
+	rnglists fields.
+	(struct virtual_v2_dwo_sections): Rename struct to
+	'virtual_v2_or_v5_dwo_sections'; update comments at top of struct; add
+	size & offset fields for loclists and rnglists.
+	(struct dwp_hash_table): Add a 'v5' struct field to the union section.
+	(create_debug_type_hash_table): Add 'DW_UT_split_type' to the check for
+	skipping dummy type units.
+	(create_dwp_hash_table): Update the large comment above the function to
+	discuss Version 5 DWP files as well, with references.  Update all the
+	version checks in the function to check for version 5 as well.  Add new
+	section at the end to create dwp hash table for version 5.
+	(create_dwp_v2_section): Rename function to
+	'create_dwp_v2_or_v5_section'.  Update function comment appropriately.
+	Add V5 to error message text.
+	(create_dwo_unit_in_dwp_v2): Change calls to create_dwp_v2_section
+	into calls to create_dwp_v2_or_v5_section.
+	(create_dwo_unit_in_dwp_v5): New function.
+	(lookup_dwo_unit_in_dwp): Update conditional statement to explicitly
+	check for version2; add else clause to handle version 5.
+	(open_and_init_dwo_file): Add code to check dwarf version & only call
+	create_debug_types_hash_table (with sections.types) if version is not 5;
+	else call create_debug_type_hash_table, with sections.info.
+	(dwarf2_locate_v2_dwp_sections): Update function comment to mention
+	version 5.
+	(dwarf2_locate_v5_dwp_sections): New function.
+	(open_and_init_dwp_file): Add else-if clause for version 5 to call
+	bfd_map_over_sections with dwarf2_locate_v5_dwp_sections.
+
+2020-08-06  Simon Marchi  <simon.marchi@efficios.com>
+
+	* regcache.h (class regcache): Remove friend
+	registers_changed_ptid.
+	<regcache_thread_ptid_changed>: Remove.
+	<regcaches>: Remove.
+	* regcache.c (regcache::regcaches): Rename to...
+	(regcaches): ... this.  Make static.
+	(get_thread_arch_aspace_regcache): Update.
+	(regcache::regcache_thread_ptid_changed): Rename to...
+	(regcache_thread_ptid_changed): ... this.  Update.
+	(class regcache_access): Remove.
+	(regcaches_test): Update.
+	(_initialize_regcache): Update.
+	* sparc64-tdep.c, dwarf2/index-write.c, record-btrace.c: Include
+	<forward_list>.
+
+2020-08-06  Simon Marchi  <simon.marchi@efficios.com>
+
+	* regcache.h (class regcache) <current_regcache>: Rename to...
+	<regcaches>: ... this.  Move doc here.
+	* regcache.c (regcache::current_regcache) Rename to...
+	(regcache::regcaches): ... this.  Move doc to header.
+	(get_thread_arch_aspace_regcache): Update.
+	(regcache::regcache_thread_ptid_changed): Update.
+	(registers_changed_ptid): Update.
+	(class regcache_access) <current_regcache_size>: Rename to...
+	<regcaches_size>: ... this.
+	(current_regcache_test): Rename to...
+	(regcaches_test): ... this.
+	(_initialize_regcache): Update.
+
+2020-08-06  Victor Collod  <vcollod@nvidia.com>
+
+	* amd64-tdep.c (amd64_analyze_prologue): Fix incorrect comment.
+
+2020-08-05  Kevin Buettner  <kevinb@redhat.com>
+
+	* corelow.c (core_target::build_file_mappings): Don't output
+	null pathname in warning.
+
+2020-08-05  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* gdb.dwarf2/clztest.exp, gdb.dwarf2/dw2-common-block.exp,
+	gdb.dwarf2/dw2-dup-frame.exp, gdb.dwarf2/dw2-reg-undefined.exp,
+	gdb.dwarf2/dw2-single-line-discriminators.exp,
+	dw2-undefined-ret-addr.exp: Pass nopie to compilation options.
+
+2020-08-05  Tom Tromey  <tromey@adacore.com>
+
+	PR rust/26197:
+	* dwarf2/read.c (alloc_rust_variant): Handle univariant case.
+	(quirk_rust_enum): Call alloc_rust_variant for univariant case.
+	Fix off-by-one and type size errors in ordinary case.
+
+2020-08-05  Tom de Vries  <tdevries@suse.de>
+
+	* gdbtypes.c (type_not_allocated, type_not_associated): Use
+	"prop->const_val () == 0" instead of "prop->const_val () != 0".
+
+2020-08-04  Simon Marchi  <simon.marchi@efficios.com>
+
+	* frame.h (frame_id_p): Return bool.
+	(frame_id_artificial_p): Return bool.
+	(frame_id_eq): Return bool.
+	(has_stack_frames): Return bool.
+	(get_selected_frame): Fix typo in comment.
+	(get_frame_pc_if_available): Return bool.
+	(get_frame_address_in_block_if_available): Return bool.
+	(get_frame_func_if_available): Return bool.
+	(read_frame_register_unsigned): Return bool.
+	(get_frame_register_bytes): Return bool.
+	(safe_frame_unwind_memory): Return bool.
+	(deprecated_frame_register_read): Return bool.
+	(frame_unwinder_is): Return bool.
+	* frame.c (struct frame_info) <prev_arch::p>: Change type to
+	bool.
+	<this_id::p>: Likewise.
+	<prev_p>: Likewise.
+	(frame_stash_add): Return bool.
+	(get_frame_id): Use bool.
+	(frame_id_build_special) Use bool.
+	(frame_id_build_unavailable_stack): Use bool.
+	(frame_id_build): Use bool.
+	(frame_id_p): Return bool, use true/false instead of 1/0.
+	(frame_id_artificial_p): Likewise.
+	(frame_id_eq): Likewise.
+	(frame_id_inner): Likewise.
+	(get_frame_func_if_available): Likewise.
+	(read_frame_register_unsigned): Likewise.
+	(deprecated_frame_register_read): Likewise.
+	(get_frame_register_bytes): Likewise.
+	(has_stack_frames): Likewise.
+	(inside_main_func): Likewise.
+	(inside_entry_func): Likewise.
+	(get_frame_pc_if_available): Likewise.
+	(get_frame_address_in_block_if_available): Likewise.
+	(frame_unwinder_is): Likewise.
+	(safe_frame_unwind_memory): Likewise.
+	(frame_unwind_arch): Likewise.
+
+2020-08-04  Simon Marchi  <simon.marchi@efficios.com>
+
+	* frame.c (frame_info) <prev_func> <p>: Rename to status, change
+	type to cached_copy_status.
+	(fprintf_frame): Adjust.
+	(get_frame_func_if_available): Adjust.
+	(frame_cleanup_after_sniffer): Adjust.
+
+2020-08-04  Mark Wielaard  <mark@klomp.org>
+
+	* MAINTAINERS (Write After Approval): Update email address.
+
+2020-08-04  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* gdbtypes.h (TYPE_DYN_PROP_ADDR): Remove, replace uses with
+	dynamic_prop::const_val.
+
+2020-08-04  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* gdbtypes.h (TYPE_DYN_PROP_KIND): Remove, replace uses with
+	dynamic_prop::kind.
+
+2020-08-04  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* gdbtypes.h (TYPE_DYN_PROP_BATON): Remove.
+
+2020-08-04  Jose E. Marchesi  <jose.marchesi@oracle.com>
+
+	* configure.tgt: Set gdb_sim for bpf-*-* targets.
+
+2020-08-04  Weimin Pan <weimin.pan@oracle.com>
+	    Jose E. Marchesi  <jose.marchesi@oracle.com>
+
+	* configure.tgt: Add entry for bpf-*-*.
+	* Makefile.in (ALL_TARGET_OBS): Add bpf-tdep.o
+	(ALLDEPFILES): Add bpf-tdep.c.
+	* bpf-tdep.c: New file.
+	* MAINTAINERS: Add bpf target and maintainer.
+	* NEWS: Mention the support for the new target.
+
+2020-08-04  Tom de Vries  <tdevries@suse.de>
+
+	PR symtab/23270
+	* dwarf2/read.c (find_partial_die): Change internal error into Dwarf
+	Error.
+
+2020-08-03  John Baldwin  <jhb@FreeBSD.org>
+
+	* syscalls/freebsd.xml: Regenerate.
+
+2020-08-03  John Baldwin  <jhb@FreeBSD.org>
+
+	* syscalls/update-freebsd.sh: Fix usage and year range.
+
+2020-08-03  Tom de Vries  <tdevries@suse.de>
+
+	PR symtab/26333
+	* dwarf2/read.c (dwarf_decode_lines_1): Ignore
+	DW_LNE_lo_user/DW_LNE_hi_user range.
+
+2020-07-30  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	PR ada/26318
+	* ada-lang.c (ada_modulus): Return 0 if property is not of const
+	kind.
+
+2020-07-30  Tankut Baris Aktemur  <tankut.baris.aktemur@intel.com>
+
+	* breakpoint.c (set_breakpoint_condition): Do minor refactoring.
+
+2020-07-30  Tankut Baris Aktemur  <tankut.baris.aktemur@intel.com>
+
+	* breakpoint.c (set_breakpoint_condition): Update the condition
+	expressions after checking that the input condition string parses
+	successfully and does not contain junk at the end.
+
+2020-07-30  Tankut Baris Aktemur  <tankut.baris.aktemur@intel.com>
+
+	* breakpoint.c (set_breakpoint_condition): Update the
+	condition string after parsing the new condition successfully.
+
+2020-07-30  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* proc-api.c (_STRUCTURED_PROC): Don't define.
+	* proc-events.c: Likewise.
+	* proc-flags.c: Likewise.
+	* proc-why.c: Likewise.
+	* procfs.c: Likewise.
+
+	* Makefile.in (INTERNAL_CPPFLAGS): Add LARGEFILE_CPPFLAGS.
+	* configure, config.in: Regenerate.
+
+2020-07-30  Tom de Vries  <tdevries@suse.de>
+
+	PR build/26320
+	* ui-style.h (struct ui_file_style::color): Wrap m_value and
+	m_red/m_green/m_blue in a union.
+
+2020-07-29  Tom de Vries  <tdevries@suse.de>
+
+	PR tdep/26280
+	* s390-tdep.c (s390_displaced_step_fixup): Fix Wmaybe-uninitialized.
+
+2020-07-28  Tom Tromey  <tromey@adacore.com>
+
+	PR symtab/26270:
+	* symtab.h (find_pc_partial_function_sym): Declare.
+	* cli/cli-cmds.c (disassemble_command): Use
+	find_pc_partial_function_sym.  Check asm_demangle.
+	* blockframe.c (cache_pc_function_sym): New global.
+	(cache_pc_function_name): Remove.
+	(clear_pc_function_cache): Update.
+	(find_pc_partial_function_sym): New function, from
+	find_pc_partial_function.
+	(find_pc_partial_function): Rewrite using
+	find_pc_partial_function_sym.
+
+2020-07-28  Tom Tromey  <tromey@adacore.com>
+
+	* cli/cli-cmds.c (_initialize_cli_cmds): Rearrange "disassemble"
+	help.  Add usage.
+
+2020-07-28  Tom Tromey  <tromey@adacore.com>
+
+	* dwarf2/expr.c (dwarf_expr_context::execute_stack_op)
+	<DW_OP_GNU_variable_value>: Cast to address type.
+
+2020-07-28  Kamil Rytarowski  <n54@gmx.com>
+
+	* nbsd-nat.h (nbsd_nat_target::xfer_partial): New declaration.
+	* nbsd-nat.c (nbsd_nat_target::xfer_partial): New function.
+	* nbsd-tdep.c (nbsd_gdbarch_data_handle, struct nbsd_gdbarch_data)
+	(init_nbsd_gdbarch_data, get_nbsd_gdbarch_data)
+	(nbsd_get_siginfo_type): New.
+	(nbsd_init_abi): Install gdbarch "get_siginfo_type" method.
+	(_initialize_nbsd_tdep): New.
+
+2020-07-28  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR binutils/26301
+	* configure: Regenerated.
+
+2020-07-28  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR binutils/26301
+	* configure: Regenerated.
+
+2020-07-28  Andrew Burgess  <andrew.burgess@embecosm.com>
+
+	* python/py-frame.c: Remove 'user-regs.h' include.
+	(frapy_read_register): Rewrite to make use of
+	gdbpy_parse_register_id.
+	* python/py-registers.c (gdbpy_parse_register_id): New function,
+	moved here from python/py-unwind.c.  Updated the return type, and
+	also accepts register descriptor objects.
+	* python/py-unwind.c: Remove 'user-regs.h' include.
+	(pyuw_parse_register_id): Moved to python/py-registers.c.
+	(unwind_infopy_add_saved_register): Update to use
+	gdbpy_parse_register_id.
+	(pending_framepy_read_register): Likewise.
+	* python/python-internal.h (gdbpy_parse_register_id): Declare.
+
+2020-07-28  Andrew Burgess  <andrew.burgess@embecosm.com>
+
+	* python/py-registers.c: Add 'user-regs.h' include.
+	(register_descriptor_iter_find): New function.
+	(register_descriptor_iterator_object_methods): New static global
+	methods array.
+	(register_descriptor_iterator_object_type): Add pointer to methods
+	array.
+
+2020-07-27  John Baldwin  <jhb@FreeBSD.org>
+
+	* fbsd-nat.h: Include <osreldate.h>.  Define USE_SIGTRAP_SIGINFO
+	for all architectures on FreeBSD 11.3 and later.
+
+2020-07-27  Tom Tromey  <tromey@adacore.com>
+
+	* gcore.h (load_corefile): Don't declare.
+
+2020-07-27  Tom de Vries  <tdevries@suse.de>
+
+	* configure.ac: Fix sys/sockets.h -> sys/socket.h typo.
+	* config.in: Regenerate.
+	* configure: Regenerate.
+
+2020-07-26  Eli Zaretskii  <eliz@gnu.org>
+
+	* configure.ac (AC_CHECK_HEADERS): Check for sys/socket.h and
+	ws2tcpip.h.  When checking whether socklen_t type is defined, use
+	ws2tcpip.h if it is available and sys/socket.h isn't.
+	* configure: Regenerate.
+	* config.in: Regenerate.
+
+2020-07-25  Andrew Burgess  <andrew.burgess@embecosm.com>
+
+	PR fortran/23051
+	PR fortran/26139
+	* valops.c (value_ind): Pass address to
+	readjust_indirect_value_type.
+	* value.c (readjust_indirect_value_type): Make parameter
+	non-const, and add extra address parameter.  Resolve original type
+	before using it.
+	* value.h (readjust_indirect_value_type): Update function
+	signature and comment.
+
+2020-07-25  Tom de Vries  <tdevries@suse.de>
+
+	PR symtab/26243
+	* dwarf2/read.c (lnp_state_machine::record_line): Ignore zero line
+	entries.
+
+2020-07-24  Aaron Merey  <amerey@redhat.com>
+
+	* Makefile.in: Replace LIBDEBUGINFOD with DEBUGINFOD_LIBS.
+	* configure: Rebuild.
+
+2020-07-23  Kevin Buettner  <kevinb@redhat.com>
+
+	PR corefiles/26294
+	* corelow.c (_initialize_corelow): Add period to help text
+	for "maintenance print core-file-backed-mappings".
+
+2020-07-23  Pedro Alves  <pedro@palves.net>
+
+	* frame-unwind.c (frame_unwind_try_unwinder): On exception, don't
+	touch THIS_CACHE/THIS_FRAME if the frame cache was cleared
+	meanwhile.
+	* frame.c (frame_cache_generation, get_frame_cache_generation):
+	New.
+	(reinit_frame_cache): Increment FRAME_CACHE_GENERATION.
+	(get_prev_frame_if_no_cycle): On exception, don't touch
+	PREV_FRAME/THIS_FRAME if the frame cache was cleared meanwhile.
+	* frame.h (get_frame_cache_generation): Declare.
+
+2020-07-23  Tom de Vries  <tdevries@suse.de>
+
+	PR tui/26282
+	* tui/tui-winsource.h (struct tui_source_windows::tui_source_windows):
+	New default constructor.
+
+2020-07-23  Andrew Burgess  <andrew.burgess@embecosm.com>
+
+	* disasm.c (do_mixed_source_and_assembly_deprecated): Don't
+	exclude non-statement entries.
+
+2020-07-22  Kevin Buettner  <kevinb@redhat.com>
+
+	* NEWS (New commands): Mention new command
+	"maintenance print core-file-backed-mappings".
+
+2020-07-22  Kevin Buettner  <kevinb@redhat.com>
+
+	* corelow.c (gdbcmd.h): Include.
+	(core_target::info_proc_mappings): New method.
+	(get_current_core_target): New function.
+	(maintenance_print_core_file_backed_mappings): New function.
+	(_initialize_corelow): Add core-file-backed-mappings to
+	"maint print" commands.
+
+2020-07-22  Kevin Buettner  <kevinb@redhat.com>
+
+	* linux-tdep.c (dump_note_entry_p): New function.
+	(linux_dump_mapping_p_ftype): New typedef.
+	(linux_find_memory_regions_full): Add new parameter,
+	should_dump_mapping_p.
+	(linux_find_memory_regions): Adjust call to
+	linux_find_memory_regions_full.
+	(linux_make_mappings_core_file_notes): Use dump_note_entry_p in
+	call to linux_find_memory_regions_full.
+
+2020-07-22  Kevin Buettner  <kevinb@redhat.com>
+
+	* corelow.c (solist.h, unordered_map): Include.
+	(class core_target): Add field m_core_file_mappings and
+	method build_file_mappings.
+	(core_target::core_target): Call build_file_mappings.
+	(core_target::~core_target): Free memory associated with
+	m_core_file_mappings.
+	(core_target::build_file_mappings): New method.
+	(core_target::xfer_partial): Use m_core_file_mappings
+	for memory transfers.
+	* linux-tdep.c (linux_read_core_file_mappings): New
+	function.
+	(linux_core_info_proc_mappings): Rewrite to use
+	linux_read_core_file_mappings.
+	(linux_init_abi): Register linux_read_core_file_mappings.
+
+2020-07-22  Kevin Buettner  <kevinb@redhat.com>
+
+	* arch-utils.c (default_read_core_file_mappings): New function.
+	* arch-utils.c (default_read_core_file_mappings): Declare.
+	* gdbarch.sh (read_core_file_mappings): New gdbarch method.
+	* gdbarch.h, gdbarch.c: Regenerate.
+
+2020-07-22  Kevin Buettner  <kevinb@redhat.com>
+
+	PR corefiles/25631
+	* corelow.c (core_target:xfer_partial):  Revise
+	TARGET_OBJECT_MEMORY case to consider non-SEC_HAS_CONTENTS
+	case after first checking the stratum beneath the core
+	target.
+	(has_all_memory): Return true.
+	* target.c (raw_memory_xfer_partial): Revise comment
+	regarding use of has_all_memory.
+
+2020-07-22  Kevin Buettner  <kevinb@redhat.com>
+
+	* exec.h (section_table_xfer_memory): Revise declaration,
+	replacing section name parameter with an optional callback
+	predicate.
+	* exec.c (section_table_xfer_memory): Likewise.
+	* bfd-target.c, exec.c, target.c, corelow.c: Adjust all callers
+	of section_table_xfer_memory.
+
+2020-07-22  Tom Tromey  <tromey@adacore.com>
+
+	* mi/mi-cmd-stack.c (list_args_or_locals): Use
+	lookup_symbol_search_name.
+
+2020-07-22  Andrew Burgess  <andrew.burgess@embecosm.com>
+
+	* python/py-registers.c (gdbpy_register_object_data_init): Remove
+	redundant local variable.
+	(gdbpy_get_register_descriptor): Extract descriptor vector as a
+	reference, not pointer, update code accordingly.
+
+2020-07-22  Simon Marchi  <simon.marchi@polymtl.ca>
+	    Tankut Baris Aktemur  <tankut.baris.aktemur@intel.com>
+
+	* objfiles.h (struct objfile) <skip_jit_symbol_lookup>: New field.
+	* jit.c (jit_breakpoint_re_set_internal): Use the
+	`skip_jit_symbol_lookup` field.
+
+2020-07-22  Simon Marchi  <simon.marchi@polymtl.ca>
+	    Tankut Baris Aktemur  <tankut.baris.aktemur@intel.com>
+
+	* jit.c (jit_read_descriptor): Define the descriptor address once,
+	use twice.
+	(jit_breakpoint_deleted): Move the declaration of the loop variable
+	`iter` into the loop header.
+	(jit_breakpoint_re_set_internal): Move the declaration of the local
+	variable `objf_data` to the first point of definition.
+	(jit_event_handler): Move the declaration of local variables
+	`code_entry`, `entry_addr`, and `objf` to their first point of use.
+	Rename `objf` to `jited`.
+
+2020-07-22  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* jit.h (struct jiter_objfile_data) <jiter_objfile_data, objfile>:
+	Remove.
+	* jit.c (get_jiter_objfile_data): Update.
+
+2020-07-22  Tankut Baris Aktemur  <tankut.baris.aktemur@intel.com>
+	    Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* jit.c (struct jit_program_space_data): Remove.
+	(jit_program_space_key): Remove.
+	(jiter_objfile_data::~jiter_objfile_data): Remove program space
+	stuff.
+	(get_jit_program_space_data): Remove.
+	(jit_breakpoint_deleted): Iterate on all of the program space's
+	objfiles.
+	(jit_inferior_init): Likewise.
+	(jit_breakpoint_re_set_internal): Likewise.  Also change return
+	type to void.
+	(jit_breakpoint_re_set): Pass current_program_space to
+	jit_breakpoint_re_set_internal.
+
+2020-07-22  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* jit.h (struct jiter_objfile_data) <cached_code_address,
+	jit_breakpoint>: Move to here from ...
+	* jit.c (jit_program_space_data): ... here.
+	(jiter_objfile_data::~jiter_objfile_data): Update.
+	(jit_breakpoint_deleted): Update.
+	(jit_breakpoint_re_set_internal): Update.
+
+2020-07-22  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* jit.c (jiter_objfile_data::~jiter_objfile_data): Remove some
+	checks.
+	(jit_read_descriptor): Remove NULL check.
+	(jit_event_handler): Add an assertion.
+
+2020-07-22  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* jit.h (struct jit_objfile_data):  Split into...
+	(struct jiter_objfile_data): ... this ...
+	(struct jited_objfile_data): ... and this.
+	* objfiles.h (struct objfile) <jit_data>: Remove.
+	<jiter_data, jited_data>: New fields.
+	* jit.c (jit_objfile_data::~jit_objfile_data): Rename to ...
+	(jiter_objfile_data::~jiter_objfile_data): ... this.
+	(get_jit_objfile_data): Rename to ...
+	(get_jiter_objfile_data): ... this.
+	(add_objfile_entry): Update.
+	(jit_read_descriptor): Use get_jiter_objfile_data.
+	(jit_find_objf_with_entry_addr): Use objfile's jited_data field.
+	(jit_breakpoint_re_set_internal): Use get_jiter_objfile_data.
+	(jit_inferior_exit_hook): Use objfile's jited_data field.
+
+2020-07-22  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* jit.h: Forward-declare `struct minimal_symbol`.
+	(struct jit_objfile_data): Migrate to here from jit.c; also add a
+	constructor, destructor, and an objfile* field.
+	* jit.c (jit_objfile_data): Remove.
+	(struct jit_objfile_data): Migrate from here to jit.h.
+	(jit_objfile_data::~jit_objfile_data): New destructor
+	implementation with code moved from free_objfile_data.
+	(free_objfile_data): Delete.
+	(get_jit_objfile_data): Update to use the jit_data field of objfile.
+	(jit_find_objf_with_entry_addr): Ditto.
+	(jit_inferior_exit_hook): Ditto.
+	(_initialize_jit): Remove the call to
+	register_objfile_data_with_cleanup.
+	* objfiles.h (struct objfile) <jit_data>: New field.
+
+2020-07-22  Tankut Baris Aktemur  <tankut.baris.aktemur@intel.com>
+
+	* jit.h: Forward-declare `struct objfile`.
+	(jit_event_handler): Add a second parameter, the JITer objfile.
+	* jit.c (jit_read_descriptor): Change the signature to take the
+	JITer objfile as an argument instead of the jit_program_space_data.
+	(jit_inferior_init): Update the call to jit_read_descriptor.
+	(jit_event_handler): Use the new JITer objfile argument when calling
+	jit_read_descriptor.
+	* breakpoint.c (handle_jit_event): Update the call to
+	jit_event_handler to pass the JITer objfile.
+
+2020-07-21  John Baldwin  <jhb@FreeBSD.org>
+
+	* gdbarch.c: Regenerate.
+	* gdbarch.h: Regenerate.
+	* gdbarch.sh (handle_segmentation_fault): Remove method.
+	* infrun.c (handle_segmentation_fault): Remove.
+	(print_signal_received_reason): Remove call to
+	handle_segmentation_fault.
+
+2020-07-21  John Baldwin  <jhb@FreeBSD.org>
+
+	* sparc64-linux-tdep.c (sparc64_linux_handle_segmentation_fault):
+	Rename to sparc64_linux_report_signal_info and add siggnal
+	argument.
+	(sparc64_linux_init_abi): Use sparc64_linux_report_signal_info
+	instead of sparc64_linux_handle_segmentation_fault.
+
+2020-07-21  John Baldwin  <jhb@FreeBSD.org>
+
+	* amd64-linux-tdep.c (amd64_linux_init_abi_common): Use
+	i386_linux_report_signal_info instead of
+	i386_linux_handle_segmentation_fault.
+	* i386-linux-tdep.c (i386_linux_handle_segmentation_fault): Rename
+	to i386_linux_report_signal_info and add siggnal argument.
+	(i386_linux_init_abi): Use i386_linux_report_signal_info instead
+	of i386_linux_handle_segmentation_fault.
+	* i386-linux-tdep.h (i386_linux_handle_segmentation_fault): Rename
+	to i386_linux_report_signal_info and add siggnal argument.
+
+2020-07-21  John Baldwin  <jhb@FreeBSD.org>
+
+	* corelow.c (core_target_open): Invoke gdbarch report_signal_info
+	hook if present.
+
+2020-07-21  John Baldwin  <jhb@FreeBSD.org>
+
+	* gdbarch.c: Regenerate.
+	* gdbarch.h: Regenerate.
+	* gdbarch.sh (report_signal_info): New method.
+	* infrun.c (print_signal_received_reason): Invoke gdbarch
+	report_signal_info hook if present.
+
+2020-07-21  Andrew Burgess  <andrew.burgess@embecosm.com>
+
+	* python/py-registers.c : Add 'unordered_map' include.
+	(gdbpy_new_reggroup): Renamed to...
+	(gdbpy_get_reggroup): ...this.  Update to only create register
+	group descriptors when needed.
+	(gdbpy_reggroup_iter_next): Update.
+
+2020-07-21  Andrew Burgess  <andrew.burgess@embecosm.com>
+
+	* python/py-registers.c (gdbpy_register_object_data): New static
+	global.
+	(gdbpy_register_object_data_init): New function.
+	(gdbpy_new_register_descriptor): Renamed to...
+	(gdbpy_get_register_descriptor): ...this, and update to reuse
+	existing register descriptors where possible.
+	(gdbpy_register_descriptor_iter_next): Update.
+	(gdbpy_initialize_registers): Register new gdbarch data.
+
+2020-07-21  Simon Marchi  <simon.marchi@efficios.com>
+
+	* linux-nat.c (stopped_pids): Make static.
+
+2020-07-21  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	PR ada/26235
+	* gdbtypes.c (ada_discrete_type_low_bound,
+	ada_discrete_type_high_bound): Handle undefined bounds.
+
+2020-07-21  Kamil Rytarowski  <n54@gmx.com>
+
+	* nbsd-nat.h (nbsd_nat_target::supports_multi_process): New
+	declaration.
+	* nbsd-nat.c (nbsd_nat_target::supports_multi_process): New
+	function.
+
+2020-07-20  John Baldwin  <jhb@FreeBSD.org>
+
+	* fbsd-tdep.c (fbsd_skip_solib_resolver): New function.
+	(fbsd_init_abi): Install gdbarch "skip_solib_resolver" method.
+	* fbsd-tdep.h (fbsd_skip_solib_resolver): New prototype.
+	* mips-fbsd-tdep.c (mips_fbsd_skip_solib_resolver): New function.
+	(mips_fbsd_init_abi): Install gdbarch "skip_solib_resolver"
+	method.
+
+2020-07-20 Ludovic Courtès  <ludo@gnu.org>
+
+	* guile/scm-math.c (vlscm_integer_fits_p): Use 'uintmax_t'
+	and 'intmax_t' instead of 'scm_t_uintmax' and 'scm_t_intmax',
+	which are deprecated in Guile 3.0.
+	* configure.ac (try_guile_versions): Add "guile-3.0".
+	* configure (try_guile_versions): Regenerate.
+	* NEWS: Update entry.
+
+2020-07-20  Ludovic Courtès  <ludo@gnu.org>
+	    Doug Evans  <dje@google.com>
+
+	PR gdb/21104
+	* guile/scm-ports.c (USING_GUILE_BEFORE_2_2): New macro.
+	(ioscm_memory_port)[read_buf_size, write_buf_size]: Wrap in #if
+	USING_GUILE_BEFORE_2_2.
+	(stdio_port_desc, memory_port_desc) [!USING_GUILE_BEFORE_2_2]:
+	Change type to 'scm_t_port_type *'.
+	(natural_buffer_size) [!USING_GUILE_BEFORE_2_2]: New variable.
+	(ioscm_open_port) [USING_GUILE_BEFORE_2_2]: Add 'stream'
+	parameter and honor it.  Update callers.
+	(ioscm_open_port) [!USING_GUILE_BEFORE_2_2]: New function.
+	(ioscm_read_from_port, ioscm_write) [!USING_GUILE_BEFORE_2_2]: New
+	functions.
+	(ioscm_fill_input, ioscm_input_waiting, ioscm_flush): Wrap in #if
+	USING_GUILE_BEFORE_2_2.
+	(ioscm_init_gdb_stdio_port) [!USING_GUILE_BEFORE_2_2]: Use
+	'ioscm_read_from_port'.  Call 'scm_set_port_read_wait_fd'.
+	(ioscm_init_stdio_buffers) [!USING_GUILE_BEFORE_2_2]: New function.
+	(gdbscm_stdio_port_p) [!USING_GUILE_BEFORE_2_2]: Use 'SCM_PORTP'
+	and 'SCM_PORT_TYPE'.
+	(gdbscm_memory_port_end_input, gdbscm_memory_port_seek)
+	(ioscm_reinit_memory_port): Wrap in #if USING_GUILE_BEFORE_2_2.
+	(gdbscm_memory_port_read, gdbscm_memory_port_write)
+	(gdbscm_memory_port_seek, gdbscm_memory_port_close)
+	[!USING_GUILE_BEFORE_2_2]: New functions.
+	(gdbscm_memory_port_print): Remove use of 'SCM_PTOB_NAME'.
+	(ioscm_init_memory_port_type) [!USING_GUILE_BEFORE_2_2]: Use
+	'gdbscm_memory_port_read'.
+	Wrap 'scm_set_port_end_input', 'scm_set_port_flush', and
+	'scm_set_port_free' calls in #if USING_GUILE_BEFORE_2_2.
+	(gdbscm_get_natural_buffer_sizes) [!USING_GUILE_BEFORE_2_2]: New
+	function.
+	(ioscm_init_memory_port): Remove.
+	(ioscm_init_memory_port_stream): New function
+	(ioscm_init_memory_port_buffers) [USING_GUILE_BEFORE_2_2]: New
+	function.
+	(gdbscm_memory_port_read_buffer_size) [!USING_GUILE_BEFORE_2_2]:
+	Return scm_from_uint (0).
+	(gdbscm_set_memory_port_read_buffer_size_x)
+	[!USING_GUILE_BEFORE_2_2]: Call 'scm_setvbuf'.
+	(gdbscm_memory_port_write_buffer_size) [!USING_GUILE_BEFORE_2_2]:
+	Return scm_from_uint (0).
+	(gdbscm_set_memory_port_write_buffer_size_x)
+	[!USING_GUILE_BEFORE_2_2]: Call 'scm_setvbuf'.
+	* configure.ac (try_guile_versions): Add "guile-2.2".
+	* configure: Regenerate.
+	* NEWS: Add entry.
+
+2020-07-18  Tom Tromey  <tom@tromey.com>
+
+	* linux-nat.c (linux_multi_process): Remove.
+	(linux_nat_target::supports_multi_process): Return true.
+
+2020-07-17  Andrew Burgess  <andrew.burgess@embecosm.com>
+
+	* arch/riscv.c (riscv_tdesc_cache): Change map type.
+	(riscv_lookup_target_description): Return pointer out of
+	unique_ptr.
+	* target-descriptions.c (allocate_target_description): Add
+	comment.
+	(target_desc_deleter::operator()): Likewise.
+	* target-descriptions.h (struct target_desc_deleter): Moved to
+	gdbsupport/tdesc.h.
+	(target_desc_up): Likewise.
+
+2020-07-17  Tom Tromey  <tromey@adacore.com>
+
+	* linux-nat.c (linux_nat_target::supports_non_stop)
+	(linux_nat_target::always_non_stop_p): Use "true".
+	(linux_nat_target::supports_disable_randomization): Use "true" and
+	"false".
+
+2020-07-16  Caroline Tice  <cmtice@google.com>
+
+	* dwarf2/read.c (RNGLIST_HEADER_SIZE32) New constant definition.
+	(RNGLIST_HEADER_SIZE64): New constant definition.
+	(struct dwop_section_names): Add rnglists_dwo.
+	(dwop_section_names): Add .debug_rnglists.dwo, .zdebug_rnglists.dwo.
+	(struct loclist_header): Rename to 'loclists_rnglists_header'.
+	(struct dwo_sections): Add rnglists field.
+	(read_attribut_reprocess): Add tag parameter.
+	(dwarf2_ranges_read): Add tag parameter & remove forward function decl.
+	(cu_debug_rnglists_section): New function (decl & definition).
+	(dwarf2_locate_dwo_sections): Add code to read rnglists_dwo section.
+	(dwarf2_rnglists_process): Add a dwarf_tag parameter, for the kind of
+	die whose range is being checked; get rnglist section from
+	cu_debug_rnglists_section, to get from either objfile or dwo file as
+	appropriate.  Add cases for DW_RLE_base_addressx,
+	DW_RLE_startx_length, DW_RLE_startx_endx.  Also, update to only add
+	the base address to DW_RLE_offset_pairs (not to all ranges), moving
+	test inside if-condition and updating complaint message.
+	(dwarf2_ranges_process): Add dwarf tag parameter and pass it to
+	dwarf2_rnglists_process.
+	(dwarf2_ranges_read): Add dwarf tag parameter and pass it to
+	dwarf2_ranges_process.
+	(dwarf2_get_pc_bounds): Check for DW_FORM_rnglistx when setting
+	need_ranges_base and update comment appropriately.  Also pass die tag
+	to dwarf2_ranges_read.
+	(dwarf2_record_block_ranges): Check for DW_FORM_rnglistx when setting
+	need_ranges_base and update comment appropriately.  Also pass die tag
+	to dwarf2_ranges_process.
+	(read_full_die_1): Add code to read DW_AT_rnglists_base and assign to
+	cu->ranges_base.  Also pass die tag to read_attribute_reprocess.
+	(partial_die_info::read): Check for DW_FORM_rnglistx when setting
+	need_ranges_base and update comment appropriately.  Also pass die tag
+	to read_attribute_reprocess and dwarf2_ranges_read.
+	(read_loclist_header): Rename function to read_loclists_rnglists_header,
+	and update function comment appropriately.
+	(read_loclist_index): Call read_loclists_rnglists_header instead of
+	read_loclist_header.
+	(read_rnglist_index): New function.
+	(read_attribute_reprocess):  Add tag parameter. Add code for
+	DW_FORM_rnglistx, passing tag to read_rnglist_index.
+	(read_attribute_value): Mark DW_FORM_rnglistx with need_reprocess.
+
+2020-07-15  Andrew Burgess  <andrew.burgess@embecosm.com>
+
+	* f-typeprint.c (f_type_print_base): Allow for dynamic types not
+	being resolved.
+
+2020-07-14  Andrew Burgess  <andrew.burgess@embecosm.com>
+
+	* arch-utils.c (show_architecture): Update formatting of messages.
+
+2020-07-12  Simon Marchi  <simon.marchi@efficios.com>
+
+	* gdbtypes.h (struct type) <bounds>: Handle array and string
+	types.
+	* ada-lang.c (assign_aggregate): Use type::bounds on
+	array/string type.
+	* c-typeprint.c (c_type_print_varspec_suffix): Likewise.
+	* c-varobj.c (c_number_of_children): Likewise.
+	(c_describe_child): Likewise.
+	* eval.c (evaluate_subexp_for_sizeof): Likewise.
+	* f-typeprint.c (f_type_print_varspec_suffix): Likewise.
+	(f_type_print_base): Likewise.
+	* f-valprint.c (f77_array_offset_tbl): Likewise.
+	(f77_get_upperbound): Likewise.
+	(f77_print_array_1): Likewise.
+	* guile/scm-type.c (gdbscm_type_range): Likewise.
+	* m2-typeprint.c (m2_array): Likewise.
+	(m2_is_long_set_of_type): Likewise.
+	* m2-valprint.c (get_long_set_bounds): Likewise.
+	* p-typeprint.c (pascal_type_print_varspec_prefix): Likewise.
+	* python/py-type.c (typy_range): Likewise.
+	* rust-lang.c (rust_internal_print_type): Likewise.
+	* type-stack.c (type_stack::follow_types): Likewise.
+	* valarith.c (value_subscripted_rvalue): Likewise.
+	* valops.c (value_cast): Likewise.
+
+2020-07-12  Simon Marchi  <simon.marchi@efficios.com>
+
+	* gdbtypes.c (TYPE_ARRAY_BIT_STRIDE): Remove.  Update all
+	callers to use the equivalent accessor methods.
+
+2020-07-12  Simon Marchi  <simon.marchi@efficios.com>
+
+	* gdbtypes.h (struct range_bounds) <bit_stride>: New method.
+	(struct type) <bit_stride>: New method.
+	(TYPE_BIT_STRIDE): Remove.
+	* gdbtypes.c (update_static_array_size): Use type::bit_stride.
+
+2020-07-12  Simon Marchi  <simon.marchi@efficios.com>
+
+	* gdbtypes.h (TYPE_ARRAY_LOWER_BOUND_VALUE,
+	TYPE_ARRAY_UPPER_BOUND_VALUE): Remove.  Update all
+	callers to use the equivalent accessor methods instead.
+
+2020-07-12  Simon Marchi  <simon.marchi@efficios.com>
+
+	* gdbtypes.h (TYPE_ARRAY_UPPER_BOUND_IS_UNDEFINED,
+	TYPE_ARRAY_LOWER_BOUND_IS_UNDEFINED): Remove.  Update all
+	callers to use the equivalent accessor methods instead.
+
+2020-07-12  Simon Marchi  <simon.marchi@efficios.com>
+
+	* gdbtypes.h (TYPE_LOW_BOUND_KIND,
+	TYPE_HIGH_BOUND_KIND): Remove.  Update all callers
+	to use dynamic_prop::kind.
+
+2020-07-12  Simon Marchi  <simon.marchi@efficios.com>
+
+	* gdbtypes.h (TYPE_LOW_BOUND_UNDEFINED,
+	TYPE_HIGH_BOUND_UNDEFINED): Remove.  Update all callers
+	to get the bound property's kind and check against
+	PROP_UNDEFINED.
+
+2020-07-12  Simon Marchi  <simon.marchi@efficios.com>
+
+	* gdbtypes.h (TYPE_LOW_BOUND, TYPE_HIGH_BOUND): Remove.  Update
+	all callers to use type::range_bounds followed by
+	dynamic_prop::{low,high}.
+
+2020-07-12  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* gdbtypes.h (struct dynamic_prop) <kind, set_undefined,
+	const_val, set_const_val, baton, set_locexpr, set_loclist,
+	set_addr_offset, variant_parts, set_variant_parts,
+	original_type, set_original_type>: New methods.
+	<kind>: Rename to...
+	<m_kind>: ... this.  Update all users to use the new methods
+	instead.
+	<data>: Rename to...
+	<m_data>: ... this.  Update all users to use the new methods
+	instead.
+
+2020-07-12  Simon Marchi  <simon.marchi@efficios.com>
+
+	* gdbtypes.c (get_discrete_bounds): Return failure if
+	the range type's bounds are not both defined and constant
+	values.
+	(get_array_bounds): Update comment.  Remove undefined bound check.
+
+2020-07-12  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* gdbtypes.h (TYPE_RANGE_DATA): Remove.  Update callers to use
+	the type::bounds method directly.
+
+2020-07-12  Simon Marchi  <simon.marchi@efficios.com>
+
+	* gdbtypes.h (struct type) <bounds, set_bounds>: New methods.
+	(TYPE_RANGE_DATA): Use type::bounds.  Change all uses that
+	are used to set the range type's bounds to use set_bounds.
+
+2020-07-11  Philippe Waroquiers  <philippe.waroquiers@skynet.be>
+
+	* exec.c (_initialize_exec): Update exec-file-mismatch help.
+
+2020-07-10  Pedro Alves  <pedro@palves.net>
+
+	* gdbthread.h (inferior_ref): Define.
+	(scoped_restore_current_thread) <m_thread>: Now a thread_info_ref.
+	(scoped_restore_current_thread) <m_inf>: Now an inferior_ref.
+	* thread.c
+	(scoped_restore_current_thread::restore):
+	Adjust to gdb::ref_ptr.
+	(scoped_restore_current_thread::~scoped_restore_current_thread):
+	Remove manual decref handling.
+	(scoped_restore_current_thread::scoped_restore_current_thread):
+	Adjust to use
+	inferior_ref::new_reference/thread_info_ref::new_reference.
+	Incref the thread before calling get_frame_id instead of after.
+	Let TARGET_CLOSE_ERROR propagate.
+
+2020-07-10  Pedro Alves  <pedro@palves.net>
+
+	* frame-tailcall.c (dwarf2_tailcall_sniffer_first): Only swallow
+	NO_ENTRY_VALUE_ERROR / MEMORY_ERROR / OPTIMIZED_OUT_ERROR /
+	NOT_AVAILABLE_ERROR.
+	* value.c (value_optimized_out): Only swallow MEMORY_ERROR /
+	OPTIMIZED_OUT_ERROR / NOT_AVAILABLE_ERROR.
+
+2020-07-10  Simon Marchi  <simon.marchi@polymtl.ca>
+	    Pedro Alves  <pedro@palves.net>
+
+	PR gdb/26199
+	* infrun.c (threads_are_resumed_pending_p): Delete.
+	(do_target_wait): Remove threads_are_executing and
+	threads_are_resumed_pending_p checks from the inferior_matches
+	lambda.  Update comments.
+
+2020-07-10  Pedro Alves  <pedro@palves.net>
+
+	PR gdb/26199
+	* infrun.c (handle_no_resumed): Transfer terminal to inferior with
+	executing threads.
+
+2020-07-10  Pedro Alves  <pedro@palves.net>
+
+	PR gdb/26199
+	* infrun.c (handle_no_resumed): Handle multiple targets.
+
+2020-07-10  Pedro Alves  <pedro@palves.net>
+
+	PR gdb/26199
+	* infrun.c (prepare_to_wait): Check target_can_async_p instead of
+	target_is_async_p.
+
+2020-07-10  Pedro Alves  <pedro@palves.net>
+
+	PR gdb/26199
+	* target.c (target_pass_ctrlc): Look at the inferior's non-exited
+	threads, not all threads.
+
+2020-07-10  Pedro Alves  <pedro@palves.net>
+
+	PR gdb/26199
+	* remote.c (remote_target::open_1): Pass remote target pointer as
+	data to create_async_event_handler.
+	(remote_async_inferior_event_handler): Mark async event handler
+	before returning if the remote target still has either pending
+	events or unacknowledged notifications.
+
+2020-07-10  John Baldwin  <jhb@FreeBSD.org>
+
+	* fbsd-nat.h (fbsd_nat_target::supports_multi_process): New
+	declaration.
+	* fbsd-nat.c (fbsd_nat_target::supports_multi_process): New
+	function.
+
+2020-07-09  John Baldwin  <jhb@FreeBSD.org>
+
+	* inf-ptrace.c (inf_ptrace_target::wait): Don't compare against
+	inferior_ptid.
+
+2020-07-09  John Baldwin  <jhb@FreeBSD.org>
+
+	* fbsd-tdep.c (fbsd_print_auxv_entry): Handle AT_FREEBSD_ARGC,
+	AT_FREEBSD_ARGV, AT_FREEBSD_ENVC, AT_FREEBSD_ENVV,
+	AT_FREEBSD_PS_STRINGS.
+
 2020-07-08  Hannes Domani  <ssbssa@yahoo.de>
 
 	* auto-load.c (auto_load_objfile_script_1): Convert drive part

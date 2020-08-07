@@ -1,3 +1,185 @@
+2020-08-05  Alan Modra  <amodra@gmail.com>
+
+	PR 26337
+	* objdump.c (load_specific_debug_section): Revert last change.
+
+2020-08-05  Alan Modra  <amodra@gmail.com>
+
+	PR 26337
+	* objdump.c (load_specific_debug_section): Don't malloc space for
+	section contents, use bfd_malloc_and_get_section.
+
+2020-07-30  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* Makefile.am (AM_CPPFLAGS): Add LARGEFILE_CPPFLAGS.
+	* Makefile.in, doc/Makefile.in: Regenerate.
+	* configure: Regenerate.
+
+2020-07-30  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* testsuite/binutils-all/i386/compressed-1a.d: Pass --gdwarf-3
+	to assembler.
+	* testsuite/binutils-all/i386/compressed-1b.d: Likewise.
+	* testsuite/binutils-all/i386/compressed-1c.d: Likewise.
+	* testsuite/binutils-all/x86-64/compressed-1a.d: Likewise.
+	* testsuite/binutils-all/x86-64/compressed-1b.d: Likewise.
+	* testsuite/binutils-all/x86-64/compressed-1c.d: Likewise.
+
+2020-07-29  Maciej W. Rozycki  <macro@linux-mips.org>
+
+	* testsuite/binutils-all/mips/global-local-symtab-sort-o32.d:
+	New test.
+	* testsuite/binutils-all/mips/global-local-symtab-sort-o32t.d:
+	New test.
+	* testsuite/binutils-all/mips/global-local-symtab-sort-n32.d:
+	New test.
+	* testsuite/binutils-all/mips/global-local-symtab-sort-n32t.d:
+	New test.
+	* testsuite/binutils-all/mips/global-local-symtab-sort-n64.d:
+	New test.
+	* testsuite/binutils-all/mips/global-local-symtab-sort-n64t.d:
+	New test.
+	* testsuite/binutils-all/mips/global-local-symtab-final-o32.d:
+	New test.
+	* testsuite/binutils-all/mips/global-local-symtab-final-n32.d:
+	New test.
+	* testsuite/binutils-all/mips/global-local-symtab-final-n64.d:
+	New test.
+	* testsuite/binutils-all/mips/mips.exp: Run the new tests.
+
+2020-07-29  Maciej W. Rozycki  <macro@linux-mips.org>
+
+	* testsuite/binutils-all/mips/global-local-symtab-o32.d: New
+	test.
+	* testsuite/binutils-all/mips/global-local-symtab-o32t.d: New
+	test.
+	* testsuite/binutils-all/mips/global-local-symtab-n32.d: New
+	test.
+	* testsuite/binutils-all/mips/global-local-symtab-n32t.d: New
+	test.
+	* testsuite/binutils-all/mips/global-local-symtab-n64.d: New
+	test.
+	* testsuite/binutils-all/mips/mips.exp: Run the new tests.
+
+2020-07-28  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR binutils/26301
+	* configure: Regenerated.
+
+2020-07-28  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR binutils/26301
+	* configure: Regenerated.
+
+2020-07-27  Alan Modra  <amodra@gmail.com>
+
+	* objdump.c (dump_section): Don't return without calling
+	process_section_p.
+
+2020-07-27  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* doc/binutils.texi: Replace preceeded with preceded.
+
+2020-07-26  Maciej W. Rozycki  <macro@linux-mips.org>
+
+	* testsuite/binutils-all/mips/mips.exp (run_dump_test_abi)
+	(run_dump_test_o32, run_dump_test_n32, run_dump_test_n64): New
+	procedures.
+	(has_newabi): Remove variable.
+	(has_abi, abi_asflags, abi_ldflags): New associative array
+	variables.
+	(irixemul): New variable.
+	Replace `run_dump_test' calls where applicable throughout with
+	`run_dump_test_o32', `run_dump_test_n32' and `run_dump_test_n64'
+	as appropriate.  Use `noarch' for tests that require their own
+	architecture setting.
+	* testsuite/binutils-all/mips/mips-ase-1.d: Remove GAS flags.
+	* testsuite/binutils-all/mips/mips-ase-2.d: Likewise.
+	* testsuite/binutils-all/mips/mips-ase-3.d: Likewise.
+	* testsuite/binutils-all/mips/mips-note-2-n32.d: Likewise.
+	* testsuite/binutils-all/mips/mips-note-2-n64.d: Likewise.
+	* testsuite/binutils-all/mips/mips-note-2.d: Likewise.
+	* testsuite/binutils-all/mips/mips-note-2r-n32.d: Likewise.
+	* testsuite/binutils-all/mips/mips-note-2r-n64.d: Likewise.
+	* testsuite/binutils-all/mips/mips-note-2r.d: Likewise.
+	* testsuite/binutils-all/mips/mips-reginfo-n32.d: Likewise.
+	* testsuite/binutils-all/mips/mips-reginfo.d: Likewise.
+	* testsuite/binutils-all/mips/mips16-extend-noinsn.d: Likewise.
+	* testsuite/binutils-all/mips/mips16-pcrel.d: Likewise.
+	* testsuite/binutils-all/mips/mips16-alias.d: Remove `-32' from
+	GAS flags.
+	* testsuite/binutils-all/mips/mips16-extend-insn.d: Likewise.
+	* testsuite/binutils-all/mips/mips16-noalias.d: Likewise.
+	* testsuite/binutils-all/mips/mips16-undecoded.d: Likewise.
+	* testsuite/binutils-all/mips/mips16e2-extend-insn.d: Likewise.
+	* testsuite/binutils-all/mips/mips16e2-undecoded.d: Likewise.
+	* testsuite/binutils-all/mips/mixed-micromips.d: Likewise.
+	* testsuite/binutils-all/mips/mixed-mips16.d: Likewise.
+
+2020-07-24  Aaron Merey  <amerey@redhat.com>
+
+	* Makefile.am: Replace LIBDEBUGINFOD with DEBUGINFOD_LIBS.
+	* Makefile.in: Rebuild.
+	* configure: Rebuild.
+	* doc/Makefile.in: Rebuild.
+
+2020-07-24  Nick Clifton  <nickc@redhat.com>
+
+	* README-how-to-make-a-release: Various small updates whilst
+	creating the 2.35 release.
+
+2020-07-22  Nick Alcock  <nick.alcock@oracle.com>
+
+	* testsuite/lib/binutils-common.exp (run_dump_test): Add 'cc'
+	option.
+
+2020-07-22  Nick Alcock  <nick.alcock@oracle.com>
+
+	* objdump.c (dump_ctf_archive_member): Remove linefeeds.
+	(dump_ctf): Likewise.
+
+2020-07-22  Nick Alcock  <nick.alcock@oracle.com>
+
+	* objdump.c (ctf_archive_member): Print CTF errors and warnings.
+	* readelf.c (dump_ctf_archive_member): Likewise.
+
+2020-07-22  Nick Clifton  <nickc@redhat.com>
+
+	* readelf.c (parse_args): Silence potential warnings about a
+	memory resource leak when allocating space for ctf option values.
+	(dump_section_as_ctf): Fix typo checking dump_ctf_strtab_name
+	variable.
+
+2020-07-21  Nick Clifton  <nickc@redhat.com>
+
+	* po/sv.po: Updated Swedish translation.
+
+2020-07-14  Claudiu Zissulescu  <claziss@gmail.com>
+
+	* testsuite/binutils-all/arc/double_regs.s: New test.
+	* testsuite/binutils-all/arc/objdump.exp: Add the above test.
+
+2020-07-13  Nick Clifton  <nickc@redhat.com>
+
+	* po/fr.po: Updated French translation.
+
+2020-07-13  Alan Modra  <amodra@gmail.com>
+
+	* testsuite/lib/binutils-common.exp (is_pecoff_format): Accept
+	optional machine-os arg.
+
+2020-07-11  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* readelf.c (decode_x86_feature_2): Handle
+	GNU_PROPERTY_X86_FEATURE_2_TMM.
+
+2020-07-10  Tom de Vries  <tdevries@suse.de>
+
+	* dwarf.c (display_debug_lines_decoded): Don't emit meaningless
+	information in the end_sequence row.
+	* testsuite/binutils-all/dw5.W: Update.
+	* testsuite/binutils-all/objdump.WL: Update.
+
 2020-07-09  Alan Modra  <amodra@gmail.com>
 
 	* dlltool.c: Remove powerpc PE support and comments.

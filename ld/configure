@@ -678,6 +678,7 @@ WARN_WRITE_STRINGS
 NO_WERROR
 WARN_CFLAGS_FOR_BUILD
 WARN_CFLAGS
+enable_libctf
 ENABLE_LIBCTF_FALSE
 ENABLE_LIBCTF_TRUE
 installed_linker
@@ -685,6 +686,7 @@ install_as_default
 TARGET_SYSTEM_ROOT_DEFINE
 TARGET_SYSTEM_ROOT
 use_sysroot
+LARGEFILE_CPPFLAGS
 CXXCPP
 OTOOL64
 OTOOL
@@ -12037,7 +12039,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 12040 "configure"
+#line 12042 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -12143,7 +12145,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 12146 "configure"
+#line 12148 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -15509,15 +15511,56 @@ fi
 
 
 case "${host}" in
-  sparc-*-solaris*|i[3-7]86-*-solaris*)
-    # On native 32bit sparc and ia32 solaris, large-file and procfs support
-    # are mutually exclusive; and without procfs support, the bfd/ elf module
-    # cannot provide certain routines such as elfcore_write_prpsinfo
-    # or elfcore_write_prstatus.  So unless the user explicitly requested
-    # large-file support through the --enable-largefile switch, disable
-    # large-file support in favor of procfs support.
-    test "${target}" = "${host}" -a "x$plugins" = xno \
-      && : ${enable_largefile="no"}
+  sparc-*-solaris*|i?86-*-solaris*)
+    # On native 32-bit Solaris/SPARC and x86, large-file and procfs support
+    # were mutually exclusive until Solaris 11.3.  Without procfs support,
+    # the bfd/ elf module cannot provide certain routines such as
+    # elfcore_write_prpsinfo or elfcore_write_prstatus.  So unless the user
+    # explicitly requested large-file support through the
+    # --enable-largefile switch, disable large-file support in favor of
+    # procfs support.
+    #
+    # Check if <sys/procfs.h> is incompatible with large-file support.
+    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#define _FILE_OFFSET_BITS 64
+#define _STRUCTURED_PROC 1
+#include <sys/procfs.h>
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  acx_cv_procfs_lfs=yes
+else
+  acx_cv_procfs_lfs=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+    #
+    # Forcefully disable large-file support only if necessary, gdb is in
+    # tree and enabled.
+    if test "${target}" = "${host}" -a "$acx_cv_procfs_lfs" = no \
+         -a -d $srcdir/../gdb -a "$enable_gdb" != no; then
+      : ${enable_largefile="no"}
+      if test "$plugins" = yes; then
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: WARNING:
+plugin support disabled; require large-file support which is incompatible with GDB." >&5
+$as_echo "$as_me: WARNING:
+plugin support disabled; require large-file support which is incompatible with GDB." >&2;}
+	plugins=no
+      fi
+    fi
+    #
+    # Explicitly undef _FILE_OFFSET_BITS if enable_largefile=no for the
+    # benefit of g++ 9+ which predefines it on Solaris.
+    if test "$enable_largefile" = no; then
+      LARGEFILE_CPPFLAGS="-U_FILE_OFFSET_BITS"
+
+    fi
     ;;
 esac
 
@@ -15955,6 +15998,7 @@ else
   ENABLE_LIBCTF_TRUE='#'
   ENABLE_LIBCTF_FALSE=
 fi
+
 
 
 
@@ -17372,15 +17416,25 @@ $as_echo "#define USE_BINARY_FOPEN 1" >>confdefs.h
  ;;
 esac
 
-ac_fn_c_check_decl "$LINENO" "strstr" "ac_cv_have_decl_strstr" "$ac_includes_default"
-if test "x$ac_cv_have_decl_strstr" = xyes; then :
+ac_fn_c_check_decl "$LINENO" "asprintf" "ac_cv_have_decl_asprintf" "$ac_includes_default"
+if test "x$ac_cv_have_decl_asprintf" = xyes; then :
   ac_have_decl=1
 else
   ac_have_decl=0
 fi
 
 cat >>confdefs.h <<_ACEOF
-#define HAVE_DECL_STRSTR $ac_have_decl
+#define HAVE_DECL_ASPRINTF $ac_have_decl
+_ACEOF
+ac_fn_c_check_decl "$LINENO" "environ" "ac_cv_have_decl_environ" "$ac_includes_default"
+if test "x$ac_cv_have_decl_environ" = xyes; then :
+  ac_have_decl=1
+else
+  ac_have_decl=0
+fi
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_DECL_ENVIRON $ac_have_decl
 _ACEOF
 ac_fn_c_check_decl "$LINENO" "free" "ac_cv_have_decl_free" "$ac_includes_default"
 if test "x$ac_cv_have_decl_free" = xyes; then :
@@ -17392,16 +17446,6 @@ fi
 cat >>confdefs.h <<_ACEOF
 #define HAVE_DECL_FREE $ac_have_decl
 _ACEOF
-ac_fn_c_check_decl "$LINENO" "sbrk" "ac_cv_have_decl_sbrk" "$ac_includes_default"
-if test "x$ac_cv_have_decl_sbrk" = xyes; then :
-  ac_have_decl=1
-else
-  ac_have_decl=0
-fi
-
-cat >>confdefs.h <<_ACEOF
-#define HAVE_DECL_SBRK $ac_have_decl
-_ACEOF
 ac_fn_c_check_decl "$LINENO" "getenv" "ac_cv_have_decl_getenv" "$ac_includes_default"
 if test "x$ac_cv_have_decl_getenv" = xyes; then :
   ac_have_decl=1
@@ -17412,15 +17456,25 @@ fi
 cat >>confdefs.h <<_ACEOF
 #define HAVE_DECL_GETENV $ac_have_decl
 _ACEOF
-ac_fn_c_check_decl "$LINENO" "environ" "ac_cv_have_decl_environ" "$ac_includes_default"
-if test "x$ac_cv_have_decl_environ" = xyes; then :
+ac_fn_c_check_decl "$LINENO" "sbrk" "ac_cv_have_decl_sbrk" "$ac_includes_default"
+if test "x$ac_cv_have_decl_sbrk" = xyes; then :
   ac_have_decl=1
 else
   ac_have_decl=0
 fi
 
 cat >>confdefs.h <<_ACEOF
-#define HAVE_DECL_ENVIRON $ac_have_decl
+#define HAVE_DECL_SBRK $ac_have_decl
+_ACEOF
+ac_fn_c_check_decl "$LINENO" "strstr" "ac_cv_have_decl_strstr" "$ac_includes_default"
+if test "x$ac_cv_have_decl_strstr" = xyes; then :
+  ac_have_decl=1
+else
+  ac_have_decl=0
+fi
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_DECL_STRSTR $ac_have_decl
 _ACEOF
 
 

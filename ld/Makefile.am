@@ -139,7 +139,7 @@ TEXI2DVI = texi2dvi -I $(srcdir) -I $(BFDDIR)/doc -I ../bfd/doc \
 		    -I $(top_srcdir)/../libiberty
 
 AM_CPPFLAGS = -I. -I$(srcdir) -I../bfd -I$(BFDDIR) -I$(INCDIR) @zlibinc@ \
-	@INCINTL@ $(HDEFINES) $(CFLAGS) \
+	@INCINTL@ $(HDEFINES) $(CFLAGS) @LARGEFILE_CPPFLAGS@ \
 	-DLOCALEDIR="\"$(datadir)/locale\""
 
 BFDLIB = ../bfd/libbfd.la
@@ -979,6 +979,9 @@ check-DEJAGNU: site.exp
 development.exp: $(BFDDIR)/development.sh
 	$(EGREP) "[development|experimental]=" $(BFDDIR)/development.sh  \
 	  | $(AWK) -F= '{ print "set " $$1 " " $$2 }' > $@
+
+enablings.exp:
+	echo "set enable_libctf ${enable_libctf}" >> $@
 #
 #
 # Build a dummy plugin using libtool.
@@ -1025,7 +1028,7 @@ MAINTAINERCLEANFILES = configdoc.texi ld.1
 CONFIG_STATUS_DEPENDENCIES = $(srcdir)/configure.host $(srcdir)/configure.tgt \
 	$(BFDDIR)/development.sh
 
-EXTRA_DEJAGNU_SITE_CONFIG = development.exp
+EXTRA_DEJAGNU_SITE_CONFIG = development.exp enablings.exp
 
 MOSTLYCLEANFILES = $(STAGESTUFF) ld1$(EXEEXT) ld2$(EXEEXT) ld3$(EXEEXT) \
 	ldemul-list.h crtbegin.@OBJEXT@ crtend.@OBJEXT@ ld.log ld.sum
@@ -1072,7 +1075,7 @@ diststuff: info $(EXTRA_DIST)
 # ld.1 to support parallel build.
 info-recursive: ld.1
 
-DISTCLEANFILES = site.exp development.exp site.bak stringify.sed
+DISTCLEANFILES = site.exp development.exp enablings.exp site.bak stringify.sed
 distclean-local:
 	rm -rf ldscripts
 

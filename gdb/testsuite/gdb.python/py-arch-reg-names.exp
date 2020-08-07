@@ -85,3 +85,37 @@ for { set i 0 } { $i < [llength $regs] } { incr i } {
     }
 }
 gdb_assert { $found_non_match == 0 } "all registers match"
+
+# Check that we get the same register descriptors from two different
+# iterators.
+gdb_py_test_silent_cmd \
+    "python iter1 = arch.registers ()" \
+    "get first all register iterator" 0
+gdb_py_test_silent_cmd \
+    "python iter2 = arch.registers ()" \
+    "get second all register iterator" 0
+gdb_py_test_silent_cmd \
+    [multi_line_input \
+	 "python" \
+	 "for r1, r2 in zip(iter1, iter2):" \
+	 "  if (r1.name != r2.name):"\
+	 "    raise gdb.GdbError (\"miss-matched names\")" \
+	 "  if (r1 != r2):" \
+	 "    raise gdb.GdbError (\"miss-matched objects\")" \
+	 "\004" ] \
+    "check names and objects match" 1
+
+# Ensure that the '.find' method on the iterator returns the same
+# Python object as we got from the iterator's list of descriptors.
+gdb_py_test_silent_cmd \
+    [multi_line \
+	 "python" \
+	 "def check_regs (arch, regs):" \
+	 "   for r in (regs):" \
+	 "     if (arch.registers ().find (r.name) != r):" \
+	 "       raise gdb.GdbError (\"object miss-match\")" \
+	 "end" ] \
+    "build check_obj function" 0
+gdb_py_test_silent_cmd \
+    "python check_regs (arch, arch.registers (\"general\"))" \
+    "ensure find gets expected descriptors" 1

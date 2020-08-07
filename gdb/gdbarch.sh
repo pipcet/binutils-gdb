@@ -414,11 +414,10 @@ M;int;ax_pseudo_register_collect;struct agent_expr *ax, int reg;ax, reg
 # Return -1 if something goes wrong, 0 otherwise.
 M;int;ax_pseudo_register_push_stack;struct agent_expr *ax, int reg;ax, reg
 
-# Some targets/architectures can do extra processing/display of
-# segmentation faults.  E.g., Intel MPX boundary faults.
-# Call the architecture dependent function to handle the fault.
+# Some architectures can display additional information for specific
+# signals.
 # UIOUT is the output stream where the handler will place information.
-M;void;handle_segmentation_fault;struct ui_out *uiout;uiout
+M;void;report_signal_info;struct ui_out *uiout, enum gdb_signal siggnal;uiout, siggnal
 
 # GDB's standard (or well known) register numbers.  These can map onto
 # a real register or a pseudo (computed) register or not be defined at
@@ -1176,6 +1175,9 @@ m;ULONGEST;type_align;struct type *type;type;;default_type_align;;0
 
 # Return a string containing any flags for the given PC in the given FRAME.
 f;std::string;get_pc_address_flags;frame_info *frame, CORE_ADDR pc;frame, pc;;default_get_pc_address_flags;;0
+
+# Read core file mappings
+m;void;read_core_file_mappings;struct bfd *cbfd,gdb::function_view<void (ULONGEST count)> pre_loop_cb,gdb::function_view<void (int num, ULONGEST start, ULONGEST end, ULONGEST file_ofs, const char *filename, const void *other)> loop_cb;cbfd, pre_loop_cb, loop_cb;;default_read_core_file_mappings;;0
 
 EOF
 }

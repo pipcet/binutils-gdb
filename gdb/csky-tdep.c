@@ -1,6 +1,6 @@
 /* Target-dependent code for the CSKY architecture, for GDB.
 
-   Copyright (C) 2010-2020 Free Software Foundation, Inc.
+   Copyright (C) 2010-2021 Free Software Foundation, Inc.
 
    Contributed by C-SKY Microsystems and Mentor Graphics.
 
@@ -162,7 +162,7 @@ csky_write_pc (regcache *regcache, CORE_ADDR val)
 
 /* C-Sky ABI register names.  */
 
-static const char *csky_register_names[] =
+static const char * const csky_register_names[] =
 {
   /* General registers 0 - 31.  */
   "r0",  "r1",  "r2",  "r3",  "r4",  "r5",  "r6",  "r7",
@@ -266,7 +266,7 @@ csky_vector_type (struct gdbarch *gdbarch)
   append_composite_type_field (t, "u8",
 			       init_vector_type (bt->builtin_int8, 16));
 
-  TYPE_VECTOR (t) = 1;
+  t->set_is_vector (true);
   t->set_name ("builtin_type_vec128i");
 
   return t;
@@ -502,7 +502,7 @@ struct csky_unwind_cache
   int framereg;
 
   /* Saved register offsets.  */
-  struct trad_frame_saved_reg *saved_regs;
+  trad_frame_saved_reg *saved_regs;
 };
 
 /* Do prologue analysis, returning the PC of the first instruction
@@ -1459,17 +1459,17 @@ csky_analyze_prologue (struct gdbarch *gdbarch,
 	{
 	  if (register_offsets[rn] >= 0)
 	    {
-	      this_cache->saved_regs[rn].addr
-		= this_cache->prev_sp - register_offsets[rn];
+	      this_cache->saved_regs[rn].set_addr (this_cache->prev_sp
+						   - register_offsets[rn]);
 	      if (csky_debug)
 		{
 		  CORE_ADDR rn_value = read_memory_unsigned_integer (
-		    this_cache->saved_regs[rn].addr, 4, byte_order);
+		    this_cache->saved_regs[rn].addr (), 4, byte_order);
 		  fprintf_unfiltered (gdb_stdlog, "Saved register %s "
 				      "stored at 0x%08lx, value=0x%08lx\n",
 				      csky_register_names[rn],
 				      (unsigned long)
-					this_cache->saved_regs[rn].addr,
+					this_cache->saved_regs[rn].addr (),
 				      (unsigned long) rn_value);
 		}
 	    }

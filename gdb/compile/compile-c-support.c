@@ -1,6 +1,6 @@
 /* C/C++ language support for compilation.
 
-   Copyright (C) 2014-2020 Free Software Foundation, Inc.
+   Copyright (C) 2014-2021 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -256,7 +256,7 @@ generate_register_struct (struct ui_file *stream, struct gdbarch *gdbarch,
 
 		  if (mode != NULL)
 		    {
-		      if (TYPE_UNSIGNED (regtype))
+		      if (regtype->is_unsigned ())
 			fputs_unfiltered ("unsigned ", stream);
 		      fprintf_unfiltered (stream,
 					  "int %s"

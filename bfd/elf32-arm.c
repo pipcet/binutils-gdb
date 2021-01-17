@@ -1,5 +1,5 @@
 /* 32-bit ELF support for ARM
-   Copyright (C) 1998-2020 Free Software Foundation, Inc.
+   Copyright (C) 1998-2021 Free Software Foundation, Inc.
 
    This file is part of BFD, the Binary File Descriptor library.
 
@@ -1391,7 +1391,7 @@ static reloc_howto_type elf32_arm_howto_table_1[] =
 	 0,			/* bitsize */
 	 FALSE,			/* pc_relative */
 	 0,			/* bitpos */
-	 complain_overflow_bitfield,/* complain_on_overflow */
+	 complain_overflow_dont,/* complain_on_overflow */
 	 bfd_elf_generic_reloc,	/* special_function */
 	 "R_ARM_TLS_DESCSEQ",	/* name */
 	 FALSE,			/* partial_inplace */
@@ -1683,7 +1683,7 @@ static reloc_howto_type elf32_arm_howto_table_1[] =
 	 0,			/* bitsize */
 	 FALSE,			/* pc_relative */
 	 0,			/* bitpos */
-	 complain_overflow_bitfield,/* complain_on_overflow */
+	 complain_overflow_dont,/* complain_on_overflow */
 	 bfd_elf_generic_reloc,	/* special_function */
 	 "R_ARM_THM_TLS_DESCSEQ",/* name */
 	 FALSE,			/* partial_inplace */
@@ -3255,9 +3255,10 @@ struct elf32_arm_link_hash_entry
     (info)))
 
 /* Get the ARM elf linker hash table from a link_info structure.  */
-#define elf32_arm_hash_table(info) \
-  (elf_hash_table_id ((struct elf_link_hash_table *) ((info)->hash)) \
-  == ARM_ELF_DATA ? ((struct elf32_arm_link_hash_table *) ((info)->hash)) : NULL)
+#define elf32_arm_hash_table(p) \
+  ((is_elf_hash_table ((p)->hash)					\
+    && elf_hash_table_id (elf_hash_table (p)) == ARM_ELF_DATA)		\
+   ? (struct elf32_arm_link_hash_table *) (p)->hash : NULL)
 
 #define arm_stub_hash_lookup(table, string, create, copy) \
   ((struct elf32_arm_stub_hash_entry *) \
@@ -3592,27 +3593,40 @@ elf32_arm_allocate_local_sym_info (bfd *abfd)
 
       num_syms = elf_tdata (abfd)->symtab_hdr.sh_info;
       size = num_syms * (sizeof (bfd_signed_vma)
-			 + sizeof (struct arm_local_iplt_info *)
 			 + sizeof (bfd_vma)
-			 + sizeof (char)
-			 + sizeof (struct fdpic_local));
+			 + sizeof (struct arm_local_iplt_info *)
+			 + sizeof (struct fdpic_local)
+			 + sizeof (char));
       data = bfd_zalloc (abfd, size);
       if (data == NULL)
 	return FALSE;
 
-      elf32_arm_local_fdpic_cnts (abfd) = (struct fdpic_local *) data;
-      data += num_syms * sizeof (struct fdpic_local);
-
+      /* It is important that these all be allocated in descending
+	 order of required alignment, so that arrays allocated later
+	 will be sufficiently aligned.  */
       elf_local_got_refcounts (abfd) = (bfd_signed_vma *) data;
       data += num_syms * sizeof (bfd_signed_vma);
-
-      elf32_arm_local_iplt (abfd) = (struct arm_local_iplt_info **) data;
-      data += num_syms * sizeof (struct arm_local_iplt_info *);
 
       elf32_arm_local_tlsdesc_gotent (abfd) = (bfd_vma *) data;
       data += num_syms * sizeof (bfd_vma);
 
+      elf32_arm_local_iplt (abfd) = (struct arm_local_iplt_info **) data;
+      data += num_syms * sizeof (struct arm_local_iplt_info *);
+
+      elf32_arm_local_fdpic_cnts (abfd) = (struct fdpic_local *) data;
+      data += num_syms * sizeof (struct fdpic_local);
+
       elf32_arm_local_got_tls_type (abfd) = data;
+#if GCC_VERSION >= 3000
+      BFD_ASSERT (__alignof__ (*elf32_arm_local_tlsdesc_gotent (abfd))
+		  <= __alignof__ (*elf_local_got_refcounts (abfd)));
+      BFD_ASSERT (__alignof__ (*elf32_arm_local_iplt (abfd))
+		  <= __alignof__ (*elf32_arm_local_tlsdesc_gotent (abfd)));
+      BFD_ASSERT (__alignof__ (*elf32_arm_local_fdpic_cnts (abfd))
+		  <= __alignof__ (*elf32_arm_local_iplt (abfd)));
+      BFD_ASSERT (__alignof__ (*elf32_arm_local_got_tls_type (abfd))
+		  <= __alignof__ (*elf32_arm_local_fdpic_cnts (abfd)));
+#endif
     }
   return TRUE;
 }
@@ -10233,7 +10247,7 @@ calculate_group_reloc_mask (bfd_vma value, int n, bfd_vma *final_residual)
 	  /* Determine the most significant bit in the residual and
 	     align the resulting value to a 2-bit boundary.  */
 	  for (msb = 30; msb >= 0; msb -= 2)
-	    if (residual & (3 << msb))
+	    if (residual & (3u << msb))
 	      break;
 
 	  /* The desired shift is now (msb - 6), or zero, whichever
@@ -10347,16 +10361,22 @@ elf32_arm_final_link_relocate (reloc_howto_type *	    howto,
 
   if (globals->use_rel)
     {
-      addend = bfd_get_32 (input_bfd, hit_data) & howto->src_mask;
+      bfd_vma sign;
 
-      if (addend & ((howto->src_mask + 1) >> 1))
+      switch (howto->size)
 	{
-	  signed_addend = -1;
-	  signed_addend &= ~ howto->src_mask;
-	  signed_addend |= addend;
+	case 0: addend = bfd_get_8 (input_bfd, hit_data); break;
+	case 1: addend = bfd_get_16 (input_bfd, hit_data); break;
+	case 2: addend = bfd_get_32 (input_bfd, hit_data); break;
+	default: addend = 0; break;
 	}
-      else
-	signed_addend = addend;
+      /* Note: the addend and signed_addend calculated here are
+	 incorrect for any split field.  */
+      addend &= howto->src_mask;
+      sign = howto->src_mask & ~(howto->src_mask >> 1);
+      signed_addend = (addend ^ sign) - sign;
+      signed_addend = (bfd_vma) signed_addend << howto->rightshift;
+      addend <<= howto->rightshift;
     }
   else
     addend = signed_addend = rel->r_addend;
@@ -10588,7 +10608,9 @@ elf32_arm_final_link_relocate (reloc_howto_type *	    howto,
 		    osec = sym_sec->output_section;
 		  else
 		    osec = input_section->output_section;
-		  symbol = elf_section_data (osec)->dynindx;
+		  symbol = 0;
+		  if (osec && elf_section_data (osec))
+		    symbol = elf_section_data (osec)->dynindx;
 		  if (symbol == 0)
 		    {
 		      struct elf_link_hash_table *htab = elf_hash_table (info);
@@ -10751,11 +10773,7 @@ elf32_arm_final_link_relocate (reloc_howto_type *	    howto,
 	  value -= (input_section->output_section->vma
 		    + input_section->output_offset);
 	  value -= rel->r_offset;
-	  if (globals->use_rel)
-	    value += (signed_addend << howto->size);
-	  else
-	    /* RELA addends do not have to be adjusted by howto->size.  */
-	    value += signed_addend;
+	  value += signed_addend;
 
 	  signed_addend = value;
 	  signed_addend >>= howto->rightshift;
@@ -10859,9 +10877,6 @@ elf32_arm_final_link_relocate (reloc_howto_type *	    howto,
       return bfd_reloc_ok;
 
     case R_ARM_ABS8:
-      /* PR 16202: Refectch the addend using the correct size.  */
-      if (globals->use_rel)
-	addend = bfd_get_8 (input_bfd, hit_data);
       value += addend;
 
       /* There is no way to tell whether the user intended to use a signed or
@@ -10874,9 +10889,6 @@ elf32_arm_final_link_relocate (reloc_howto_type *	    howto,
       return bfd_reloc_ok;
 
     case R_ARM_ABS16:
-      /* PR 16202: Refectch the addend using the correct size.  */
-      if (globals->use_rel)
-	addend = bfd_get_16 (input_bfd, hit_data);
       value += addend;
 
       /* See comment for R_ARM_ABS8.  */
@@ -11355,25 +11367,12 @@ elf32_arm_final_link_relocate (reloc_howto_type *	    howto,
 
 	/* CZB cannot jump backward.  */
 	if (r_type == R_ARM_THM_JUMP6)
-	  reloc_signed_min = 0;
-
-	if (globals->use_rel)
 	  {
-	    /* Need to refetch addend.  */
-	    addend = bfd_get_16 (input_bfd, hit_data) & howto->src_mask;
-	    if (addend & ((howto->src_mask + 1) >> 1))
-	      {
-		signed_addend = -1;
-		signed_addend &= ~ howto->src_mask;
-		signed_addend |= addend;
-	      }
-	    else
-	      signed_addend = addend;
-	    /* The value in the insn has been right shifted.  We need to
-	       undo this, so that we can perform the address calculation
-	       in terms of bytes.  */
-	    signed_addend <<= howto->rightshift;
+	    reloc_signed_min = 0;
+	    if (globals->use_rel)
+	      signed_addend = ((addend & 0x200) >> 3) | ((addend & 0xf8) >> 2);
 	  }
+
 	relocation = value + signed_addend;
 
 	relocation -= (input_section->output_section->vma
@@ -15063,7 +15062,7 @@ elf32_arm_print_private_bfd_data (bfd *abfd, void * ptr)
   /* Ignore init flag - it may not be set, despite the flags field
      containing valid data.  */
 
-  fprintf (file, _("private flags = %lx:"), elf_elfheader (abfd)->e_flags);
+  fprintf (file, _("private flags = 0x%lx:"), elf_elfheader (abfd)->e_flags);
 
   switch (EF_ARM_EABI_VERSION (flags))
     {
@@ -15184,7 +15183,7 @@ elf32_arm_print_private_bfd_data (bfd *abfd, void * ptr)
   flags &= ~ (EF_ARM_RELEXEC | EF_ARM_PIC);
 
   if (flags)
-    fprintf (file, _("<Unrecognised flag bits set>"));
+    fprintf (file, _(" <Unrecognised flag bits set>"));
 
   fputc ('\n', file);
 

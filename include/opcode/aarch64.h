@@ -1,6 +1,6 @@
 /* AArch64 assembler/disassembler support.
 
-   Copyright (C) 2009-2020 Free Software Foundation, Inc.
+   Copyright (C) 2009-2021 Free Software Foundation, Inc.
    Contributed by ARM Ltd.
 
    This file is part of GNU Binutils.
@@ -40,6 +40,7 @@ typedef uint32_t aarch64_insn;
 #define AARCH64_FEATURE_V8	     (1ULL << 0) /* All processors.  */
 #define AARCH64_FEATURE_V8_6	     (1ULL << 1) /* ARMv8.6 processors.  */
 #define AARCH64_FEATURE_BFLOAT16     (1ULL << 2) /* Bfloat16 insns.  */
+#define AARCH64_FEATURE_V8_A	     (1ULL << 3) /* Armv8-A processors.  */
 #define AARCH64_FEATURE_SVE2	     (1ULL << 4) /* SVE2 instructions.  */
 #define AARCH64_FEATURE_V8_2	     (1ULL << 5) /* ARMv8.2 processors.  */
 #define AARCH64_FEATURE_V8_3	     (1ULL << 6) /* ARMv8.3 processors.  */
@@ -48,6 +49,10 @@ typedef uint32_t aarch64_insn;
 #define AARCH64_FEATURE_SVE2_SM4     (1ULL << 9)
 #define AARCH64_FEATURE_SVE2_SHA3    (1ULL << 10)
 #define AARCH64_FEATURE_V8_4	     (1ULL << 11) /* ARMv8.4 processors.  */
+#define AARCH64_FEATURE_V8_R	     (1ULL << 12) /* Armv8-R processors.  */
+#define AARCH64_FEATURE_V8_7	     (1ULL << 13) /* Armv8.7 processors.  */
+#define AARCH64_FEATURE_LS64	     (1ULL << 15) /* Atomic 64-byte load/store.  */
+#define AARCH64_FEATURE_PAC	     (1ULL << 16) /* v8.3 Pointer Authentication.  */
 #define AARCH64_FEATURE_FP	     (1ULL << 17) /* FP instructions.  */
 #define AARCH64_FEATURE_SIMD	     (1ULL << 18) /* SIMD instructions.  */
 #define AARCH64_FEATURE_CRC	     (1ULL << 19) /* CRC instructions.  */
@@ -69,7 +74,7 @@ typedef uint32_t aarch64_insn;
 #define AARCH64_FEATURE_AES	     (1ULL << 35) /* AES instructions.  */
 #define AARCH64_FEATURE_F16_FML      (1ULL << 36) /* v8.2 FP16FML ins.  */
 #define AARCH64_FEATURE_V8_5	     (1ULL << 37) /* ARMv8.5 processors.  */
-#define AARCH64_FEATURE_FLAGMANIP    (1ULL << 38) /* Flag Manipulation insns.  */
+#define AARCH64_FEATURE_FLAGMANIP    (1ULL << 38) /* v8.5 Flag Manipulation version 2.  */
 #define AARCH64_FEATURE_FRINTTS      (1ULL << 39) /* FRINT[32,64][Z,X] insns.  */
 #define AARCH64_FEATURE_SB	     (1ULL << 40) /* SB instruction.  */
 #define AARCH64_FEATURE_PREDRES      (1ULL << 41) /* Execution and Data Prediction Restriction instructions.  */
@@ -84,13 +89,16 @@ typedef uint32_t aarch64_insn;
 #define AARCH64_FEATURE_I8MM	     (1ULL << 52) /* Matrix Multiply instructions.  */
 #define AARCH64_FEATURE_F32MM	     (1ULL << 53)
 #define AARCH64_FEATURE_F64MM	     (1ULL << 54)
+#define AARCH64_FEATURE_FLAGM	     (1ULL << 55) /* v8.4 Flag Manipulation.  */
 
 /* Crypto instructions are the combination of AES and SHA2.  */
 #define AARCH64_FEATURE_CRYPTO	(AARCH64_FEATURE_SHA2 | AARCH64_FEATURE_AES)
 
 /* Architectures are the sum of the base and extensions.  */
 #define AARCH64_ARCH_V8		AARCH64_FEATURE (AARCH64_FEATURE_V8, \
-						 AARCH64_FEATURE_FP  \
+						 AARCH64_FEATURE_V8_A \
+						 | AARCH64_FEATURE_FP  \
+						 | AARCH64_FEATURE_RAS \
 						 | AARCH64_FEATURE_SIMD)
 #define AARCH64_ARCH_V8_1	AARCH64_FEATURE (AARCH64_ARCH_V8, \
 						 AARCH64_FEATURE_CRC	\
@@ -100,15 +108,16 @@ typedef uint32_t aarch64_insn;
 						 | AARCH64_FEATURE_LOR	\
 						 | AARCH64_FEATURE_RDMA)
 #define AARCH64_ARCH_V8_2	AARCH64_FEATURE (AARCH64_ARCH_V8_1,	\
-						 AARCH64_FEATURE_V8_2	\
-						 | AARCH64_FEATURE_RAS)
+						 AARCH64_FEATURE_V8_2)
 #define AARCH64_ARCH_V8_3	AARCH64_FEATURE (AARCH64_ARCH_V8_2,	\
 						 AARCH64_FEATURE_V8_3	\
+						 | AARCH64_FEATURE_PAC	\
 						 | AARCH64_FEATURE_RCPC	\
 						 | AARCH64_FEATURE_COMPNUM)
 #define AARCH64_ARCH_V8_4	AARCH64_FEATURE (AARCH64_ARCH_V8_3,	\
 						 AARCH64_FEATURE_V8_4   \
 						 | AARCH64_FEATURE_DOTPROD \
+						 | AARCH64_FEATURE_FLAGM \
 						 | AARCH64_FEATURE_F16_FML)
 #define AARCH64_ARCH_V8_5	AARCH64_FEATURE (AARCH64_ARCH_V8_4,	\
 						 AARCH64_FEATURE_V8_5   \
@@ -125,6 +134,12 @@ typedef uint32_t aarch64_insn;
 						 AARCH64_FEATURE_V8_6   \
 						 | AARCH64_FEATURE_BFLOAT16 \
 						 | AARCH64_FEATURE_I8MM)
+#define AARCH64_ARCH_V8_7	AARCH64_FEATURE (AARCH64_ARCH_V8_6,	\
+						 AARCH64_FEATURE_V8_7	\
+						 | AARCH64_FEATURE_LS64)
+#define AARCH64_ARCH_V8_R	(AARCH64_FEATURE (AARCH64_ARCH_V8_4,	\
+						 AARCH64_FEATURE_V8_R)	\
+			      & ~(AARCH64_FEATURE_V8_A | AARCH64_FEATURE_LOR))
 
 #define AARCH64_ARCH_NONE	AARCH64_FEATURE (0, 0)
 #define AARCH64_ANY		AARCH64_FEATURE (-1, 0)	/* Any basic core.  */
@@ -187,6 +202,7 @@ enum aarch64_opnd
   AARCH64_OPND_Rm,	/* Integer register as source.  */
   AARCH64_OPND_Rt,	/* Integer register used in ld/st instructions.  */
   AARCH64_OPND_Rt2,	/* Integer register used in ld/st pair instructions.  */
+  AARCH64_OPND_Rt_LS64,	/* Integer register used in LS64 instructions.  */
   AARCH64_OPND_Rt_SP,	/* Integer Rt or SP used in STG instructions.  */
   AARCH64_OPND_Rs,	/* Integer register used in ld/st exclusive.  */
   AARCH64_OPND_Ra,	/* Integer register used in ddp_3src instructions.  */
@@ -308,6 +324,7 @@ enum aarch64_opnd
   AARCH64_OPND_SYSREG_TLBI,	/* System register <tlbi_op> operand.  */
   AARCH64_OPND_SYSREG_SR,	/* System register RCTX operand.  */
   AARCH64_OPND_BARRIER,		/* Barrier operand.  */
+  AARCH64_OPND_BARRIER_DSB_NXS,	/* Barrier operand for DSB nXS variant.  */
   AARCH64_OPND_BARRIER_ISB,	/* Barrier operand for ISB.  */
   AARCH64_OPND_PRFOP,		/* Prefetch operation.  */
   AARCH64_OPND_BARRIER_PSB,	/* Barrier operand for PSB.  */
@@ -940,8 +957,11 @@ struct aarch64_name_value_pair
 
 extern const struct aarch64_name_value_pair aarch64_operand_modifiers [];
 extern const struct aarch64_name_value_pair aarch64_barrier_options [16];
+extern const struct aarch64_name_value_pair aarch64_barrier_dsb_nxs_options [4];
 extern const struct aarch64_name_value_pair aarch64_prfops [32];
 extern const struct aarch64_name_value_pair aarch64_hint_options [];
+
+#define AARCH64_MAX_SYSREG_NAME_LEN 32
 
 typedef struct
 {
@@ -956,9 +976,7 @@ typedef struct
 
 extern const aarch64_sys_reg aarch64_sys_regs [];
 extern const aarch64_sys_reg aarch64_pstatefields [];
-extern bfd_boolean aarch64_sys_reg_deprecated_p (const aarch64_sys_reg *);
-extern bfd_boolean aarch64_sys_reg_supported_p (const aarch64_feature_set,
-						const aarch64_sys_reg *);
+extern bfd_boolean aarch64_sys_reg_deprecated_p (const uint32_t);
 extern bfd_boolean aarch64_pstatefield_supported_p (const aarch64_feature_set,
 						    const aarch64_sys_reg *);
 
@@ -972,7 +990,8 @@ typedef struct
 extern bfd_boolean aarch64_sys_ins_reg_has_xt (const aarch64_sys_ins_reg *);
 extern bfd_boolean
 aarch64_sys_ins_reg_supported_p (const aarch64_feature_set,
-				 const aarch64_sys_ins_reg *);
+				 const char *reg_name, aarch64_insn,
+                                 uint32_t, aarch64_feature_set);
 
 extern const aarch64_sys_ins_reg aarch64_sys_regs_ic [];
 extern const aarch64_sys_ins_reg aarch64_sys_regs_dc [];
@@ -1234,7 +1253,7 @@ struct aarch64_instr_sequence
 {
   /* The instruction that caused this sequence to be opened.  */
   aarch64_inst *instr;
-  /* The number of instructions the above instruction allows to be kept in the
+  /* The number of instructions the above instruction allows one to be kept in the
      sequence before an automatic close is done.  */
   int num_insns;
   /* The instructions currently added to the sequence.  */
@@ -1264,7 +1283,8 @@ aarch64_get_opcode (enum aarch64_op);
 extern void
 aarch64_print_operand (char *, size_t, bfd_vma, const aarch64_opcode *,
 		       const aarch64_opnd_info *, int, int *, bfd_vma *,
-		       char **);
+		       char **,
+		       aarch64_feature_set features);
 
 /* Miscellaneous interface.  */
 

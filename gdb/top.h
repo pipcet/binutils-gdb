@@ -1,6 +1,6 @@
 /* Top level stuff for GDB, the GNU debugger.
 
-   Copyright (C) 1986-2020 Free Software Foundation, Inc.
+   Copyright (C) 1986-2021 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -272,10 +272,6 @@ extern void set_prompt (const char *s);
    otherwise.  */
 
 extern int gdb_in_secondary_prompt_p (struct ui *ui);
-
-/* From random places.  */
-extern int readnow_symbol_files;
-extern int readnever_symbol_files;
 
 /* Perform _initialize initialization.  */
 extern void gdb_init (char *);

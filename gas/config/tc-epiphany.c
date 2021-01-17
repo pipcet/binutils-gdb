@@ -1,5 +1,5 @@
 /* tc-epiphany.c -- Assembler for the Adapteva EPIPHANY
-   Copyright (C) 2009-2020 Free Software Foundation, Inc.
+   Copyright (C) 2009-2021 Free Software Foundation, Inc.
    Contributed by Embecosm on behalf of Adapteva, Inc.
 
    This file is part of GAS, the GNU Assembler.
@@ -550,7 +550,7 @@ md_assemble (char *str)
 
   if (push && regmask)
     {
-      char buff[20];
+      char buff[32];
       int i,p ATTRIBUTE_UNUSED;
 
       epiphany_assemble ("mov r15,4");
@@ -570,7 +570,7 @@ md_assemble (char *str)
     }
   else if (pop && regmask)
     {
-      char buff[20];
+      char buff[32];
       int i,p;
 
       epiphany_assemble ("mov r15,4");

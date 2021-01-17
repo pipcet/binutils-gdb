@@ -1,5 +1,5 @@
 /* TILEPro-specific support for 32-bit ELF.
-   Copyright (C) 2011-2020 Free Software Foundation, Inc.
+   Copyright (C) 2011-2021 Free Software Foundation, Inc.
 
    This file is part of BFD, the Binary File Descriptor library.
 
@@ -729,9 +729,9 @@ tilepro_elf_mkobject (bfd *abfd)
 
 /* Get the Tilepro ELF linker hash table from a link_info structure.  */
 #define tilepro_elf_hash_table(p) \
-  (elf_hash_table_id ((struct elf_link_hash_table *) ((p)->hash)) \
-  == TILEPRO_ELF_DATA \
-  ? ((struct elf_link_hash_table *) ((p)->hash)) : NULL)
+  ((is_elf_hash_table ((p)->hash)					\
+    && elf_hash_table_id (elf_hash_table (p)) == TILEPRO_ELF_DATA)	\
+   ? (struct elf_link_hash_table *) (p)->hash : NULL)
 
 static reloc_howto_type *
 tilepro_reloc_type_lookup (bfd * abfd ATTRIBUTE_UNUSED,

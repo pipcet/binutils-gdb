@@ -1,5 +1,5 @@
 /* BFD support for AArch64.
-   Copyright (C) 2009-2020 Free Software Foundation, Inc.
+   Copyright (C) 2009-2021 Free Software Foundation, Inc.
    Contributed by ARM Ltd.
 
    This file is part of BFD, the Binary File Descriptor library.
@@ -107,8 +107,12 @@ scan (const struct bfd_arch_info *info, const char *string)
     "aarch64", PRINT, 4, DEFAULT, compatible, scan,		\
       bfd_arch_default_fill, NEXT, 0 }
 
+static const bfd_arch_info_type bfd_aarch64_arch_v8_r =
+  N (bfd_mach_aarch64_8R, "aarch64:armv8-r", 64, FALSE, NULL);
+
 static const bfd_arch_info_type bfd_aarch64_arch_ilp32 =
-  N (bfd_mach_aarch64_ilp32, "aarch64:ilp32", 32, FALSE, NULL);
+  N (bfd_mach_aarch64_ilp32, "aarch64:ilp32", 32, FALSE,
+     &bfd_aarch64_arch_v8_r);
 
 const bfd_arch_info_type bfd_aarch64_arch =
   N (0, "aarch64", 64, TRUE, &bfd_aarch64_arch_ilp32);

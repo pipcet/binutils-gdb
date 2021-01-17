@@ -1,5 +1,5 @@
 /* BFD support for handling relocation entries.
-   Copyright (C) 1990-2020 Free Software Foundation, Inc.
+   Copyright (C) 1990-2021 Free Software Foundation, Inc.
    Written by Cygnus Support.
 
    This file is part of BFD, the Binary File Descriptor library.
@@ -51,6 +51,7 @@ SECTION
 #include "bfdlink.h"
 #include "libbfd.h"
 #include "bfdver.h"
+#include "coff/internal.h"
 /*
 DOCDD
 INODE
@@ -433,8 +434,9 @@ DESCRIPTION
 .
 */
 
-/* N_ONES produces N one bits, without overflowing machine arithmetic.  */
-#define N_ONES(n) (((((bfd_vma) 1 << ((n) - 1)) - 1) << 1) | 1)
+/* N_ONES produces N one bits, without undefined behaviour for N
+   between zero and the number of bits in a bfd_vma.  */
+#define N_ONES(n) ((n) == 0 ? 0 : ((bfd_vma) 1 << ((n) - 1) << 1) - 1)
 
 /*
 FUNCTION
@@ -466,6 +468,9 @@ bfd_check_overflow (enum complain_overflow how,
 {
   bfd_vma fieldmask, addrmask, signmask, ss, a;
   bfd_reloc_status_type flag = bfd_reloc_ok;
+
+  if (bitsize == 0)
+    return flag;
 
   /* Note: BITSIZE should always be <= ADDRSIZE, but in case it's not,
      we'll be permissive: extra bits in the field mask will
@@ -893,6 +898,30 @@ space consuming.  For each target:
 	    {
 	      reloc_entry->addend = relocation;
 	    }
+	}
+    }
+  else if (abfd->xvec->flavour == bfd_target_coff_flavour
+	   && (input_section->output_section->owner->xvec->flavour
+	       == bfd_target_elf_flavour)
+	   && strcmp (abfd->xvec->name, "pe-x86-64") == 0
+	   && strcmp (input_section->output_section->owner->xvec->name,
+		      "elf64-x86-64") == 0)
+    {
+      /* NB: bfd_perform_relocation isn't called to generate PE binary.
+	 _bfd_relocate_contents is called instead.  When linking PE
+	 object files to generate ELF output, _bfd_relocate_contents
+	 isn't called and bfd_perform_relocation is used.  We need to
+	 adjust relocation here.  */
+      relocation -= reloc_entry->addend;
+      if (howto->type >= R_AMD64_PCRLONG_1
+	  && howto->type <= R_AMD64_PCRLONG_5)
+	relocation -= (bfd_vma)(howto->type - R_AMD64_PCRLONG);
+      else if (howto->type == R_AMD64_DIR64
+	       || howto->type == R_AMD64_DIR32)
+	{
+	  bfd_vma val = read_reloc (abfd, (bfd_byte *) data + octets,
+				    howto);
+	  relocation -= val & howto->src_mask;
 	}
     }
 
@@ -6358,6 +6387,11 @@ ENUMX
   BFD_RELOC_MSP430_PREL31
 ENUMX
   BFD_RELOC_MSP430_SYM_DIFF
+ENUMX
+  BFD_RELOC_MSP430_SET_ULEB128
+ENUMX
+  BFD_RELOC_MSP430_SUB_ULEB128
+
 ENUMDOC
   msp430 specific relocation codes
 

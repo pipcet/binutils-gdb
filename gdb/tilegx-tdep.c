@@ -1,6 +1,6 @@
 /* Target-dependent code for the Tilera TILE-Gx processor.
 
-   Copyright (C) 2012-2020 Free Software Foundation, Inc.
+   Copyright (C) 2012-2021 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -50,7 +50,7 @@ struct tilegx_frame_cache
   CORE_ADDR start_pc;
 
   /* Table of saved registers.  */
-  struct trad_frame_saved_reg *saved_regs;
+  trad_frame_saved_reg *saved_regs;
 };
 
 /* Register state values used by analyze_prologue.  */
@@ -464,8 +464,8 @@ tilegx_analyze_prologue (struct gdbarch* gdbarch,
 		     saved_address.  The value of realreg is not
 		     meaningful in this case but it must be >= 0.
 		     See trad-frame.h.  */
-		  cache->saved_regs[saved_register].realreg = saved_register;
-		  cache->saved_regs[saved_register].addr = saved_address;
+		  cache->saved_regs[saved_register].set_realreg (saved_register);
+		  cache->saved_regs[saved_register].set_addr (saved_address);
 		} 
 	      else if (cache
 		       && (operands[0] == TILEGX_SP_REGNUM) 
@@ -488,12 +488,12 @@ tilegx_analyze_prologue (struct gdbarch* gdbarch,
 		  /* Fix up the sign-extension.  */
 		  if (opcode->mnemonic == TILEGX_OPC_ADDI)
 		    op2_as_short = op2_as_char;
-		  prev_sp_value = (cache->saved_regs[hopefully_sp].addr
+		  prev_sp_value = (cache->saved_regs[hopefully_sp].addr ()
 				   - op2_as_short);
 
 		  new_reverse_frame[i].state = REVERSE_STATE_VALUE;
 		  new_reverse_frame[i].value
-		    = cache->saved_regs[hopefully_sp].addr;
+		    = cache->saved_regs[hopefully_sp].addr ();
 		  trad_frame_set_value (cache->saved_regs,
 					hopefully_sp, prev_sp_value);
 		}
@@ -717,17 +717,16 @@ tilegx_analyze_prologue (struct gdbarch* gdbarch,
 	    {
 	      unsigned saved_register = (unsigned) reverse_frame[i].value;
 
-	      cache->saved_regs[saved_register].realreg = i;
-	      cache->saved_regs[saved_register].addr = (LONGEST) -1;
+	      cache->saved_regs[saved_register].set_realreg (i);
+	      cache->saved_regs[saved_register].set_addr ((LONGEST) -1);
 	    }
 	}
     }
 
   if (lr_saved_on_stack_p)
     {
-      cache->saved_regs[TILEGX_LR_REGNUM].realreg = TILEGX_LR_REGNUM;
-      cache->saved_regs[TILEGX_LR_REGNUM].addr =
-	cache->saved_regs[TILEGX_SP_REGNUM].addr;
+      cache->saved_regs[TILEGX_LR_REGNUM].set_realreg (TILEGX_LR_REGNUM);
+      cache->saved_regs[TILEGX_LR_REGNUM].set_addr (cache->saved_regs[TILEGX_SP_REGNUM].addr ());
     }
 
   return prolog_end;
@@ -746,10 +745,10 @@ tilegx_skip_prologue (struct gdbarch *gdbarch, CORE_ADDR start_pc)
   if (find_pc_partial_function (start_pc, NULL, &func_start, NULL))
     {
       CORE_ADDR post_prologue_pc
-        = skip_prologue_using_sal (gdbarch, func_start);
+	= skip_prologue_using_sal (gdbarch, func_start);
 
       if (post_prologue_pc != 0)
-        return std::max (start_pc, post_prologue_pc);
+	return std::max (start_pc, post_prologue_pc);
     }
 
   /* Don't straddle a section boundary.  */
@@ -834,7 +833,7 @@ tilegx_write_pc (struct regcache *regcache, CORE_ADDR pc)
      within GDB.  In all other cases the system call will not be
      restarted.  */
   regcache_cooked_write_unsigned (regcache, TILEGX_FAULTNUM_REGNUM,
-                                  INT_SWINT_1_SIGRETURN);
+				  INT_SWINT_1_SIGRETURN);
 }
 
 /* 64-bit pattern for a { bpt ; nop } bundle.  */
@@ -938,7 +937,7 @@ tilegx_cannot_reference_register (struct gdbarch *gdbarch, int regno)
   if (regno >= 0 && regno < TILEGX_NUM_EASY_REGS)
     return 0;
   else if (regno == TILEGX_PC_REGNUM
-           || regno == TILEGX_FAULTNUM_REGNUM)
+	   || regno == TILEGX_FAULTNUM_REGNUM)
     return 0;
   else
     return 1;

@@ -1,5 +1,5 @@
 /* Plugin support for BFD.
-   Copyright (C) 2009-2020 Free Software Foundation, Inc.
+   Copyright (C) 2009-2021 Free Software Foundation, Inc.
 
    This file is part of BFD, the Binary File Descriptor library.
 
@@ -640,6 +640,8 @@ bfd_plugin_canonicalize_symtab (bfd *abfd,
 	  if (current_plugin->has_symbol_type)
 	    switch (syms[i].symbol_type)
 	      {
+	      default:
+		/* FIXME: Should we issue an error here ?  */
 	      case LDST_UNKNOWN:
 		/* What is the best fake section for LDST_UNKNOWN?  */
 	      case LDST_FUNCTION:
@@ -717,6 +719,7 @@ const bfd_target plugin_vec =
   '/',				/* ar_pad_char.  */
   15,				/* ar_max_namelen.  */
   255,				/* match priority.  */
+  TARGET_KEEP_UNUSED_SECTION_SYMBOLS, /* keep unused section symbols.  */
 
   bfd_getl64, bfd_getl_signed_64, bfd_putl64,
   bfd_getl32, bfd_getl_signed_32, bfd_putl32,

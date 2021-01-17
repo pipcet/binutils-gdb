@@ -1,5 +1,5 @@
 /* COFF specific linker code.
-   Copyright (C) 1994-2020 Free Software Foundation, Inc.
+   Copyright (C) 1994-2021 Free Software Foundation, Inc.
    Written by Ian Lance Taylor, Cygnus Support.
 
    This file is part of BFD, the Binary File Descriptor library.
@@ -206,6 +206,10 @@ coff_link_check_archive_element (bfd *abfd,
 {
   *pneeded = FALSE;
 
+  /* PR 22369 - Skip non COFF objects in the archive.  */
+  if (! bfd_family_coff (abfd))
+    return TRUE;
+
   /* We are only interested in symbols that are currently undefined.
      If a symbol is currently known to be common, COFF linkers do not
      bring in an object file which defines it.  */
@@ -216,10 +220,6 @@ coff_link_check_archive_element (bfd *abfd,
      of the symbols defined by that element might have been
      made undefined due to being in a discarded section.  */
   if (((struct coff_link_hash_entry *) h)->indx == -3)
-    return TRUE;
-
-  /* PR 22369 - Skip non COFF objects in the archive.  */
-  if (! bfd_family_coff (abfd))
     return TRUE;
 
   /* Include this element?  */
@@ -3053,9 +3053,15 @@ _bfd_coff_generic_relocate_section (bfd *output_bfd,
 	    }
 
 	  else if (! bfd_link_relocatable (info))
-	    (*info->callbacks->undefined_symbol)
-	      (info, h->root.root.string, input_bfd, input_section,
-	       rel->r_vaddr - input_section->vma, TRUE);
+	    {
+	      (*info->callbacks->undefined_symbol)
+		(info, h->root.root.string, input_bfd, input_section,
+		 rel->r_vaddr - input_section->vma, TRUE);
+	      /* Stop the linker from issueing errors about truncated relocs
+		 referencing this undefined symbol by giving it an address
+		 that should be in range.  */
+	      val = input_section->output_section->vma;
+	    }
 	}
 
       /* If the input section defining the symbol has been discarded

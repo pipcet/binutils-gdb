@@ -1,6 +1,6 @@
 /* tc-msp430.c -- Assembler code for the Texas Instruments MSP430
 
-  Copyright (C) 2002-2020 Free Software Foundation, Inc.
+  Copyright (C) 2002-2021 Free Software Foundation, Inc.
   Contributed by Dmitry Diky <diwil@mail.ru>
 
   This file is part of GAS, the GNU Assembler.
@@ -194,7 +194,7 @@ const char FLT_CHARS[] = "dD";
 /* Handle  long expressions.  */
 extern LITTLENUM_TYPE generic_bignum[];
 
-static struct hash_control *msp430_hash;
+static htab_t msp430_hash;
 
 /* Relaxations.  */
 #define STATE_UNCOND_BRANCH	1	/* jump */
@@ -689,6 +689,9 @@ static bfd_boolean do_unknown_interrupt_nops = TRUE;
 static bfd_boolean upper_data_region_in_use = FALSE;
 /* The default is to use the lower region only.  */
 static bfd_boolean lower_data_region_only = TRUE;
+
+/* Deprecated option, silently ignore it for compatibility with GCC <= 10.  */
+#define OPTION_MOVE_DATA 'd'
 
 enum
 {
@@ -1465,6 +1468,10 @@ md_parse_option (int c, const char * arg)
       do_unknown_interrupt_nops = FALSE;
       return 1;
 
+    case OPTION_MOVE_DATA:
+      /* Silently ignored.  */
+      return 1;
+
     case OPTION_DATA_REGION:
       if (strcmp (arg, "upper") == 0
 	  || strcmp (arg, "either") == 0)
@@ -1750,6 +1757,7 @@ struct option md_longopts[] =
   {"my", no_argument, NULL, OPTION_WARN_INTR_NOPS},
   {"mu", no_argument, NULL, OPTION_UNKNOWN_INTR_NOPS},
   {"mU", no_argument, NULL, OPTION_NO_UNKNOWN_INTR_NOPS},
+  {"md", no_argument, NULL, OPTION_MOVE_DATA},
   {"mdata-region", required_argument, NULL, OPTION_DATA_REGION},
   {NULL, no_argument, NULL, 0}
 };
@@ -1825,10 +1833,10 @@ void
 md_begin (void)
 {
   struct msp430_opcode_s * opcode;
-  msp430_hash = hash_new ();
+  msp430_hash = str_htab_create ();
 
   for (opcode = msp430_opcodes; opcode->name; opcode++)
-    hash_insert (msp430_hash, opcode->name, (char *) opcode);
+    str_hash_insert (msp430_hash, opcode->name, opcode, 0);
 
   bfd_set_arch_mach (stdoutput, TARGET_ARCH,
 		     target_is_430x () ? bfd_mach_msp430x : bfd_mach_msp11);
@@ -2862,7 +2870,7 @@ msp430_operands (struct msp430_opcode_s * opcode, char * line)
       char real_name[32];
 
       sprintf (real_name, "%sa", old_name);
-      opcode = hash_find (msp430_hash, real_name);
+      opcode = str_hash_find (msp430_hash, real_name);
       if (opcode == NULL)
 	{
 	  as_bad (_("instruction %s.a does not exist"), old_name);
@@ -4346,7 +4354,7 @@ md_assemble (char * str)
       return;
     }
 
-  opcode = (struct msp430_opcode_s *) hash_find (msp430_hash, cmd);
+  opcode = (struct msp430_opcode_s *) str_hash_find (msp430_hash, cmd);
 
   if (opcode == NULL)
     {
@@ -5048,8 +5056,56 @@ msp430_fix_adjustable (struct fix *fixp ATTRIBUTE_UNUSED)
   return FALSE;
 }
 
-/* Set the contents of the .MSP430.attributes and .GNU.attributes sections.  */
+/* Scan uleb128 subtraction expressions and insert fixups for them.
+   e.g., .uleb128 .L1 - .L0
+   Because relaxation may change the value of the subtraction, we
+   must resolve them at link-time.  */
 
+static void
+msp430_insert_uleb128_fixes (bfd *abfd ATTRIBUTE_UNUSED,
+			    asection *sec, void *xxx ATTRIBUTE_UNUSED)
+{
+  segment_info_type *seginfo = seg_info (sec);
+  struct frag *fragP;
+
+  subseg_set (sec, 0);
+
+  for (fragP = seginfo->frchainP->frch_root;
+       fragP; fragP = fragP->fr_next)
+    {
+      expressionS *exp, *exp_dup;
+
+      if (fragP->fr_type != rs_leb128  || fragP->fr_symbol == NULL)
+	continue;
+
+      exp = symbol_get_value_expression (fragP->fr_symbol);
+
+      if (exp->X_op != O_subtract)
+	continue;
+
+      /* FIXME: Skip for .sleb128.  */
+      if (fragP->fr_subtype != 0)
+	continue;
+
+      exp_dup = xmemdup (exp, sizeof (*exp), sizeof (*exp));
+      exp_dup->X_op = O_symbol;
+      exp_dup->X_op_symbol = NULL;
+
+      /* Emit the SUB relocation first, since the SET relocation will write out
+	 the final value.  */
+      exp_dup->X_add_symbol = exp->X_op_symbol;
+      fix_new_exp (fragP, fragP->fr_fix, 0,
+		   exp_dup, 0, BFD_RELOC_MSP430_SUB_ULEB128);
+
+      exp_dup->X_add_symbol = exp->X_add_symbol;
+      /* Insert relocations to resolve the subtraction at link-time.  */
+      fix_new_exp (fragP, fragP->fr_fix, 0,
+		   exp_dup, 0, BFD_RELOC_MSP430_SET_ULEB128);
+
+    }
+}
+
+/* Called after all assembly has been done.  */
 void
 msp430_md_end (void)
 {
@@ -5064,6 +5120,10 @@ msp430_md_end (void)
       else if (warn_interrupt_nops)
 	as_warn (_(WARN_NOP_AT_EOF));
     }
+
+  /* Insert relocations for uleb128 directives, so the values can be recomputed
+     at link time.  */
+  bfd_map_over_sections (stdoutput, msp430_insert_uleb128_fixes, NULL);
 
   /* We have already emitted an error if any of the following attributes
      disagree with the attributes in the input assembly file.  See

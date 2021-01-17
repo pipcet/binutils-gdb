@@ -1,6 +1,6 @@
 /* Definitions for a frame unwinder, for GDB, the GNU debugger.
 
-   Copyright (C) 2003-2020 Free Software Foundation, Inc.
+   Copyright (C) 2003-2021 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -133,6 +133,9 @@ typedef void (frame_this_id_ftype) (struct frame_info *this_frame,
    may be a lazy reference to memory, a lazy reference to the value of
    a register in THIS frame, or a non-lvalue.
 
+   If the previous frame's register was not saved by THIS_FRAME and is
+   therefore undefined, return a wholly optimized-out not_lval value.
+
    THIS_PROLOGUE_CACHE can be used to share any prolog analysis data
    with the other unwind methods.  Memory for that cache should be
    allocated using FRAME_OBSTACK_ZALLOC().  */
@@ -223,7 +226,7 @@ struct value *frame_unwind_got_constant (struct frame_info *frame, int regnum,
    inside BUF.  */
 
 struct value *frame_unwind_got_bytes (struct frame_info *frame, int regnum,
-                                      gdb_byte *buf);
+				      const gdb_byte *buf);
 
 /* Return a value which indicates that FRAME's saved version of REGNUM
    has a known constant (computed) value of ADDR.  Convert the

@@ -1,5 +1,5 @@
 /* 32-bit ELF support for Nios II.
-   Copyright (C) 2012-2020 Free Software Foundation, Inc.
+   Copyright (C) 2012-2021 Free Software Foundation, Inc.
    Contributed by Nigel Gray (ngray@altera.com).
    Contributed by Mentor Graphics, Inc.
 
@@ -5972,7 +5972,7 @@ nios2_elf_add_symbol_hook (bfd *abfd,
       htab = elf32_nios2_hash_table (info);
       if (htab->sbss == NULL)
 	{
-	  flagword flags = SEC_IS_COMMON | SEC_LINKER_CREATED;
+	  flagword flags = SEC_IS_COMMON | SEC_SMALL_DATA | SEC_LINKER_CREATED;
 
 	  if (htab->root.dynobj == NULL)
 	    htab->root.dynobj = abfd;

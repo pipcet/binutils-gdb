@@ -1,5 +1,5 @@
 /* Meta support for 32-bit ELF
-   Copyright (C) 2013-2020 Free Software Foundation, Inc.
+   Copyright (C) 2013-2021 Free Software Foundation, Inc.
    Contributed by Imagination Technologies Ltd.
 
    This file is part of BFD, the Binary File Descriptor library.
@@ -906,8 +906,9 @@ metag_reloc_name_lookup (bfd *abfd ATTRIBUTE_UNUSED,
 
 /* Various hash macros and functions.  */
 #define metag_link_hash_table(p) \
-  (elf_hash_table_id ((struct elf_link_hash_table *) ((p)->hash)) \
-  == METAG_ELF_DATA ? ((struct elf_metag_link_hash_table *) ((p)->hash)) : NULL)
+  ((is_elf_hash_table ((p)->hash)					\
+    && elf_hash_table_id (elf_hash_table (p)) == METAG_ELF_DATA)	\
+   ? (struct elf_metag_link_hash_table *) (p)->hash : NULL)
 
 #define metag_elf_hash_entry(ent) \
   ((struct elf_metag_link_hash_entry *)(ent))

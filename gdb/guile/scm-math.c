@@ -1,6 +1,6 @@
 /* GDB/Scheme support for math operations on values.
 
-   Copyright (C) 2008-2020 Free Software Foundation, Inc.
+   Copyright (C) 2008-2021 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -439,7 +439,7 @@ vlscm_rich_compare (int op, SCM x, SCM y, const char *func_name)
       int result;
       switch (op)
 	{
-        case BINOP_LESS:
+	case BINOP_LESS:
 	  result = value_less (v1, v2);
 	  break;
 	case BINOP_LEQ:
@@ -451,7 +451,7 @@ vlscm_rich_compare (int op, SCM x, SCM y, const char *func_name)
 	  break;
 	case BINOP_NOTEQUAL:
 	  gdb_assert_not_reached ("not-equal not implemented");
-        case BINOP_GTR:
+	case BINOP_GTR:
 	  result = value_less (v2, v1);
 	  break;
 	case BINOP_GEQ:
@@ -527,7 +527,7 @@ vlscm_convert_typed_number (const char *func_name, int obj_arg_pos, SCM obj,
   if (is_integral_type (type)
       || type->code () == TYPE_CODE_PTR)
     {
-      if (TYPE_UNSIGNED (type))
+      if (type->is_unsigned ())
 	{
 	  ULONGEST max;
 
@@ -573,7 +573,7 @@ vlscm_convert_typed_number (const char *func_name, int obj_arg_pos, SCM obj,
 static int
 vlscm_integer_fits_p (SCM obj, struct type *type)
 {
-  if (TYPE_UNSIGNED (type))
+  if (type->is_unsigned ())
     {
       ULONGEST max;
 

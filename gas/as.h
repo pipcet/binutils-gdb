@@ -1,5 +1,5 @@
 /* as.h - global header file
-   Copyright (C) 1987-2020 Free Software Foundation, Inc.
+   Copyright (C) 1987-2021 Free Software Foundation, Inc.
 
    This file is part of GAS, the GNU Assembler.
 
@@ -565,6 +565,7 @@ int generic_force_reloc (struct fix *);
 
 #include "write.h"
 #include "frags.h"
+#include "hashtab.h"
 #include "hash.h"
 #include "read.h"
 #include "symbols.h"

@@ -1,5 +1,5 @@
 /* subsegs.c - subsegments -
-   Copyright (C) 1987-2020 Free Software Foundation, Inc.
+   Copyright (C) 1987-2021 Free Software Foundation, Inc.
 
    This file is part of GAS, the GNU Assembler.
 
@@ -88,6 +88,10 @@ subseg_set_rest (segT seg, subsegT subseg)
   subseg_change (seg, (int) subseg);
 
   seginfo = seg_info (seg);
+
+  /* Should the section symbol be kept?  */
+  if (bfd_keep_unused_section_symbols (stdoutput))
+    seg->symbol->flags |= BSF_SECTION_SYM_USED;
 
   /* Attempt to find or make a frchain for that subsection.
      We keep the list sorted by subsection number.  */
@@ -222,7 +226,7 @@ section_symbol (segT sec)
   if (! EMIT_SECTION_SYMBOLS || symbol_table_frozen)
     {
       /* Here we know it won't be going into the symbol table.  */
-      s = symbol_create (sec->symbol->name, sec, 0, &zero_address_frag);
+      s = symbol_create (sec->symbol->name, sec, &zero_address_frag, 0);
     }
   else
     {
@@ -233,7 +237,7 @@ section_symbol (segT sec)
       if (s == NULL
 	  || ((seg = S_GET_SEGMENT (s)) != sec
 	      && seg != undefined_section))
-	s = symbol_new (sec->symbol->name, sec, 0, &zero_address_frag);
+	s = symbol_new (sec->symbol->name, sec, &zero_address_frag, 0);
       else if (seg == undefined_section)
 	{
 	  S_SET_SEGMENT (s, sec);

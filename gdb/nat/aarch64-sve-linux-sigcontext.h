@@ -1,4 +1,4 @@
-/* Copyright (C) 2018-2020 Free Software Foundation, Inc.
+/* Copyright (C) 2018-2021 Free Software Foundation, Inc.
    Contributed by Arm Ltd.
 
    This file is part of GDB.
@@ -166,7 +166,7 @@ struct user_sve_header {
 
 /* Offset from the start of struct user_sve_header to the register data */
 #define SVE_PT_REGS_OFFSET					\
-	((sizeof(struct sve_context) + (SVE_VQ_BYTES - 1))	\
+	((sizeof(struct user_sve_header) + (SVE_VQ_BYTES - 1))	\
 		/ SVE_VQ_BYTES * SVE_VQ_BYTES)
 
 /*

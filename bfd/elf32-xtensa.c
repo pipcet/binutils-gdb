@@ -1,5 +1,5 @@
 /* Xtensa-specific support for 32-bit ELF.
-   Copyright (C) 2003-2020 Free Software Foundation, Inc.
+   Copyright (C) 2003-2021 Free Software Foundation, Inc.
 
    This file is part of BFD, the Binary File Descriptor library.
 
@@ -705,8 +705,9 @@ struct elf_xtensa_link_hash_table
 /* Get the Xtensa ELF linker hash table from a link_info structure.  */
 
 #define elf_xtensa_hash_table(p) \
-  (elf_hash_table_id ((struct elf_link_hash_table *) ((p)->hash)) \
-  == XTENSA_ELF_DATA ? ((struct elf_xtensa_link_hash_table *) ((p)->hash)) : NULL)
+  ((is_elf_hash_table ((p)->hash)					\
+    && elf_hash_table_id (elf_hash_table (p)) == XTENSA_ELF_DATA)	\
+   ? (struct elf_xtensa_link_hash_table *) (p)->hash : NULL)
 
 /* Create an entry in an Xtensa ELF linker hash table.  */
 
@@ -3116,6 +3117,9 @@ elf_xtensa_combine_prop_entries (bfd *output_bfd,
   int n, m, num;
 
   section_size = sxtlit->size;
+  if (section_size == 0)
+    return 0;
+
   BFD_ASSERT (section_size % 8 == 0);
   num = section_size / 8;
 
@@ -4337,7 +4341,7 @@ struct string_pair
   const char *narrow;
 };
 
-struct string_pair narrowable[] =
+const struct string_pair narrowable[] =
 {
   { "add", "add.n" },
   { "addi", "addi.n" },
@@ -4350,7 +4354,7 @@ struct string_pair narrowable[] =
   { "or", "mov.n" } /* special case only when op1 == op2 */
 };
 
-struct string_pair widenable[] =
+const struct string_pair widenable[] =
 {
   { "add", "add.n" },
   { "addi", "addi.n" },
@@ -6010,13 +6014,16 @@ find_removed_literal (removed_literal_list *removed_list, bfd_vma addr)
   if (removed_list->map == NULL)
     map_removed_literal (removed_list);
 
-  p = bsearch (&addr, removed_list->map, removed_list->n_map,
-	       sizeof (*removed_list->map), removed_literal_compare);
-  if (p)
+  if (removed_list->map != NULL)
     {
-      while (p != removed_list->map && (p - 1)->addr == addr)
-	--p;
-      r = p->literal;
+      p = bsearch (&addr, removed_list->map, removed_list->n_map,
+		   sizeof (*removed_list->map), removed_literal_compare);
+      if (p)
+	{
+	  while (p != removed_list->map && (p - 1)->addr == addr)
+	    --p;
+	  r = p->literal;
+	}
     }
   return r;
 }

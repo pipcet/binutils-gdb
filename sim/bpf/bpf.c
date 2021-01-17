@@ -1,5 +1,5 @@
 /* eBPF simulator support code
-   Copyright (C) 2020 Free Software Foundation, Inc.
+   Copyright (C) 2020-2021 Free Software Foundation, Inc.
 
    This file is part of GDB, the GNU debugger.
 
@@ -27,6 +27,7 @@
 #include "decode.h"
 
 #include "defs-le.h"  /* For SCACHE */
+#include "bpf-helpers.h"
 
 /* It is not possible to include both defs-le.h and defs-be.h due to
    duplicated definitions, so we need a bunch of forward declarations

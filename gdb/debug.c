@@ -1,6 +1,6 @@
 /* Debug printing functions.
 
-   Copyright (C) 2014-2020 Free Software Foundation, Inc.
+   Copyright (C) 2014-2021 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -18,6 +18,12 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 #include "defs.h"
+
+#include "gdbsupport/common-debug.h"
+
+/* See gdbsupport/common-debug.h.  */
+
+int debug_print_depth = 0;
 
 /* See gdbsupport/common-debug.h.  */
 

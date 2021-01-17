@@ -1,5 +1,5 @@
 # Expect script for various MSP430 ELF tests.
-#   Copyright (C) 2002-2020 Free Software Foundation, Inc.
+#   Copyright (C) 2002-2021 Free Software Foundation, Inc.
 #
 # This file is part of the GNU Binutils.
 #
@@ -162,6 +162,22 @@ set msp430warntests {
         "-T msp430-no-lower.ld --data-region=lower" "" "" {warn-no-lower.s}
         {{ld warn-no-lower-data.r}} "warn-no-lower-data"}
 }
+
+set msp430arraytests {
+    { "Warn when __preinit_array_start is not word aligned" "-T preinitarray-warn.ld" "" ""
+        {initarray.s} {{ld preinitarray-warn.r}} "preinitarray-warn"}
+    { "Warn when __init_array_start is not word aligned" "-T initarray-warn.ld" "" ""
+        {initarray.s} {{ld initarray-warn.r}} "initarray-warn"}
+    { "Warn when __fini_array_start is not word aligned" "-T finiarray-warn.ld" "" ""
+        {initarray.s} {{ld finiarray-warn.r}} "finiarray-warn"}
+    { "Don't warn when __{preinit,init,fini}_array_start are word aligned" "-T initarray-nowarn.ld" "" ""
+        {initarray.s} {{ld initarray-nowarn.r}} "initarray-nowarn"}
+}
+
+run_ld_link_tests $msp430arraytests
+
+run_dump_test uleb128_430
+run_dump_test uleb128_430x
 
 # Don't run further tests when msp430 ISA is selected
 if {[string match "*-mcpu=msp430 *" [board_info [target_info name] multilib_flags]]

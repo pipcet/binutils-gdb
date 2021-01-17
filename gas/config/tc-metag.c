@@ -1,5 +1,5 @@
 /* tc-metag.c -- Assembler for the Imagination Technologies Meta.
-   Copyright (C) 2013-2020 Free Software Foundation, Inc.
+   Copyright (C) 2013-2021 Free Software Foundation, Inc.
    Contributed by Imagination Technologies Ltd.
 
    This file is part of GAS, the GNU Assembler.
@@ -7030,7 +7030,7 @@ tc_gen_reloc (asection *seg ATTRIBUTE_UNUSED, fixS *fixp)
 static unsigned int
 md_chars_to_number (char *val, int n)
 {
-  int retval;
+  unsigned int retval;
   unsigned char * where = (unsigned char *) val;
 
   for (retval = 0; n--;)

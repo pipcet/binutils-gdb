@@ -1,5 +1,5 @@
 /* tc-pdp11.c - pdp11-specific -
-   Copyright (C) 2001-2020 Free Software Foundation, Inc.
+   Copyright (C) 2001-2021 Free Software Foundation, Inc.
 
    This file is part of GAS, the GNU Assembler.
 
@@ -82,7 +82,7 @@ const pseudo_typeS md_pseudo_table[] =
   { 0, 0, 0 },
 };
 
-static struct hash_control *insn_hash = NULL;
+static htab_t insn_hash = NULL;
 
 static int
 set_option (const char *arg)
@@ -188,14 +188,12 @@ md_begin (void)
 
   init_defaults ();
 
-  insn_hash = hash_new ();
-  if (insn_hash == NULL)
-    as_fatal (_("Virtual memory exhausted"));
+  insn_hash = str_htab_create ();
 
   for (i = 0; i < pdp11_num_opcodes; i++)
-    hash_insert (insn_hash, pdp11_opcodes[i].name, (void *) (pdp11_opcodes + i));
+    str_hash_insert (insn_hash, pdp11_opcodes[i].name, pdp11_opcodes + i, 0);
   for (i = 0; i < pdp11_num_aliases; i++)
-    hash_insert (insn_hash, pdp11_aliases[i].name, (void *) (pdp11_aliases + i));
+    str_hash_insert (insn_hash, pdp11_aliases[i].name, pdp11_aliases + i, 0);
 }
 
 void
@@ -222,6 +220,7 @@ md_number_to_chars (char con[], valueT value, int nbytes)
       con[2] =  value        & 0xff;
       con[3] = (value >>  8) & 0xff;
       break;
+#ifdef BFD64
     case 8:
       con[0] = (value >> 48) & 0xff;
       con[1] = (value >> 56) & 0xff;
@@ -232,6 +231,7 @@ md_number_to_chars (char con[], valueT value, int nbytes)
       con[6] =  value        & 0xff;
       con[7] = (value >>  8) & 0xff;
       break;
+#endif
     default:
       BAD_CASE (nbytes);
     }
@@ -713,7 +713,7 @@ md_assemble (char *instruction_string)
 
   c = *p;
   *p = '\0';
-  op = (struct pdp11_opcode *)hash_find (insn_hash, str);
+  op = (struct pdp11_opcode *)str_hash_find (insn_hash, str);
   *p = c;
   if (op == 0)
     {

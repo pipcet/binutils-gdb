@@ -1,5 +1,5 @@
 /* run front end support for arm
-   Copyright (C) 1995-2020 Free Software Foundation, Inc.
+   Copyright (C) 1995-2021 Free Software Foundation, Inc.
 
    This file is part of ARM SIM.
 
@@ -23,6 +23,7 @@
 #include "config.h"
 #include <stdio.h>
 #include <stdarg.h>
+#include <stdlib.h>
 #include <string.h>
 #include <bfd.h>
 #include <signal.h>
@@ -240,6 +241,14 @@ sim_create_inferior (SIM_DESC sd ATTRIBUTE_UNUSED,
 	 32bit mode.  */
       ARMul_SelectProcessor (state, ARM_v5_Prop | ARM_v5e_Prop | ARM_v6_Prop);
       break;
+
+#if 1
+    case bfd_mach_arm_6T2:
+    case bfd_mach_arm_7:
+    case bfd_mach_arm_7EM:
+      ARMul_SelectProcessor (state, ARM_v5_Prop | ARM_v5e_Prop | ARM_v6_Prop);
+      break;
+#endif
 
     case bfd_mach_arm_XScale:
       ARMul_SelectProcessor (state, ARM_v5_Prop | ARM_v5e_Prop | ARM_XScale_Prop | ARM_v6_Prop);
@@ -672,7 +681,10 @@ sim_target_parse_command_line (int argc, char ** argv)
 	{
 	  /* Remove this option from the argv array.  */
 	  for (arg = i; arg < argc; arg ++)
-	    argv[arg] = argv[arg + 1];
+	    {
+	      free (argv[arg]);
+	      argv[arg] = argv[arg + 1];
+	    }
 	  argc --;
 	  i --;
 	  trace_funcs = 1;
@@ -683,7 +695,10 @@ sim_target_parse_command_line (int argc, char ** argv)
 	{
 	  /* Remove this option from the argv array.  */
 	  for (arg = i; arg < argc; arg ++)
-	    argv[arg] = argv[arg + 1];
+	    {
+	      free (argv[arg]);
+	      argv[arg] = argv[arg + 1];
+	    }
 	  argc --;
 	  i --;
 	  disas = 1;
@@ -697,7 +712,10 @@ sim_target_parse_command_line (int argc, char ** argv)
 	{
 	  /* Remove this option from the argv array.  */
 	  for (arg = i; arg < argc; arg ++)
-	    argv[arg] = argv[arg + 1];
+	    {
+	      free (argv[arg]);
+	      argv[arg] = argv[arg + 1];
+	    }
 	  argc --;
 
 	  ptr = argv[i];
@@ -733,7 +751,10 @@ sim_target_parse_command_line (int argc, char ** argv)
 
       /* Remove this option from the argv array.  */
       for (arg = i; arg < argc; arg ++)
-	argv[arg] = argv[arg + 1];
+	{
+	  free (argv[arg]);
+	  argv[arg] = argv[arg + 1];
+	}
       argc --;
       i --;
     }
@@ -774,6 +795,7 @@ sim_open (SIM_OPEN_KIND kind,
 	  char * const *argv)
 {
   int i;
+  char **argv_copy;
   SIM_DESC sd = sim_state_alloc (kind, cb);
   SIM_ASSERT (STATE_MAGIC (sd) == SIM_MAGIC_NUMBER);
 
@@ -836,21 +858,24 @@ sim_open (SIM_OPEN_KIND kind,
 
   sim_callback = cb;
 
-  sim_target_parse_arg_array (argv);
+  /* Copy over the argv contents so we can modify them.  */
+  argv_copy = dupargv (argv);
 
-  if (argv[1] != NULL)
+  sim_target_parse_arg_array (argv_copy);
+
+  if (argv_copy[1] != NULL)
     {
       int i;
 
       /* Scan for memory-size switches.  */
-      for (i = 0; (argv[i] != NULL) && (argv[i][0] != 0); i++)
-	if (argv[i][0] == '-' && argv[i][1] == 'm')
+      for (i = 0; (argv_copy[i] != NULL) && (argv_copy[i][0] != 0); i++)
+	if (argv_copy[i][0] == '-' && argv_copy[i][1] == 'm')
 	  {
-	    if (argv[i][2] != '\0')
-	      mem_size = atoi (&argv[i][2]);
-	    else if (argv[i + 1] != NULL)
+	    if (argv_copy[i][2] != '\0')
+	      mem_size = atoi (&argv_copy[i][2]);
+	    else if (argv_copy[i + 1] != NULL)
 	      {
-		mem_size = atoi (argv[i + 1]);
+		mem_size = atoi (argv_copy[i + 1]);
 		i++;
 	      }
 	    else
@@ -861,6 +886,8 @@ sim_open (SIM_OPEN_KIND kind,
 	      }
 	  }
     }
+
+  freeargv (argv_copy);
 
   return sd;
 }

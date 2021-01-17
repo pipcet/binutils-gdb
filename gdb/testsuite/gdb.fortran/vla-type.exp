@@ -1,4 +1,4 @@
-# Copyright 2016-2020 Free Software Foundation, Inc.
+# Copyright 2016-2021 Free Software Foundation, Inc.
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,6 +16,8 @@
 standard_testfile ".f90"
 load_lib "fortran.exp"
 
+if {[skip_fortran_tests]} { return -1 }
+
 if { [prepare_for_testing "failed to prepare" ${testfile} ${srcfile} \
      {debug f90 quiet}] } {
     return -1
@@ -31,8 +33,12 @@ set int [fortran_int4]
 
 # Check if not allocated VLA in type does not break
 # the debugger when accessing it.
-gdb_breakpoint [gdb_get_line_number "before-allocated"]
-gdb_continue_to_breakpoint "before-allocated"
+# break main for Flang compiler already breaks here
+if ![test_compiler_info "clang-*"] {
+    gdb_breakpoint [gdb_get_line_number "before-allocated"]
+    gdb_continue_to_breakpoint "before-allocated"
+}
+
 gdb_test "print twov" " = \\\( ivla1 = <not allocated>, ivla2 = <not allocated> \\\)" \
   "print twov before allocated"
 gdb_test "print twov%ivla1" " = <not allocated>" \
@@ -60,9 +66,9 @@ gdb_test "ptype twov" \
                      "\\s+$int, allocatable :: ivla1\\\(5,12,99\\\)" \
                      "\\s+$int, allocatable :: ivla2\\\(9,12\\\)" \
                      "End Type two" ]
-gdb_test "print twov" " = \\\( ivla1 = \\\(\\\( \\\( 1, 1, 1, 1, 1\\\)\
- \\\( 1, 1, 321, 1, 1\\\)\
- \\\( 1, 1, 1, 1, 1\\\) .*"
+gdb_test "print twov" " = \\\( ivla1 = \\\(\\\(\\\(1, 1, 1, 1, 1\\\)\
+ \\\(1, 1, 321, 1, 1\\\)\
+ \\\(1, 1, 1, 1, 1\\\) .*"
 
 # Check type with attribute at beginn of type
 gdb_breakpoint [gdb_get_line_number "threev-filled"]

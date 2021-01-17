@@ -1,5 +1,5 @@
 /* ELF executable support for BFD.
-   Copyright (C) 1991-2020 Free Software Foundation, Inc.
+   Copyright (C) 1991-2021 Free Software Foundation, Inc.
 
    Written by Fred Fish @ Cygnus Support, from information published
    in "UNIX System V Release 4, Programmers Guide: ANSI C and
@@ -321,11 +321,14 @@ elf_swap_shdr_in (bfd *abfd,
     {
       ufile_ptr filesize = bfd_get_file_size (abfd);
 
-      if (filesize != 0 && dst->sh_size > filesize)
-	_bfd_error_handler
-	  (_("warning: %pB has a corrupt section with a size (%"
-	     BFD_VMA_FMT "x) larger than the file size"),
-	   abfd, dst->sh_size);
+      if (filesize != 0
+	  && ((ufile_ptr) dst->sh_offset > filesize
+	      || dst->sh_size > filesize - dst->sh_offset))
+	{
+	  abfd->read_only = 1;
+	  _bfd_error_handler (_("warning: %pB has a section "
+				"extending past end of file"), abfd);
+	}
     }
   dst->sh_link = H_GET_32 (abfd, src->sh_link);
   dst->sh_info = H_GET_32 (abfd, src->sh_info);
@@ -568,7 +571,7 @@ elf_object_p (bfd *abfd)
 
   /* If this is a relocatable file and there is no section header
      table, then we're hosed.  */
-  if (i_ehdrp->e_shoff == 0 && i_ehdrp->e_type == ET_REL)
+  if (i_ehdrp->e_shoff < sizeof (x_ehdr) && i_ehdrp->e_type == ET_REL)
     goto got_wrong_format_error;
 
   /* As a simple sanity check, verify that what BFD thinks is the
@@ -578,7 +581,7 @@ elf_object_p (bfd *abfd)
     goto got_wrong_format_error;
 
   /* Further sanity check.  */
-  if (i_ehdrp->e_shoff == 0 && i_ehdrp->e_shnum != 0)
+  if (i_ehdrp->e_shoff < sizeof (x_ehdr) && i_ehdrp->e_shnum != 0)
     goto got_wrong_format_error;
 
   ebd = get_elf_backend_data (abfd);
@@ -615,7 +618,7 @@ elf_object_p (bfd *abfd)
       && ebd->elf_osabi != ELFOSABI_NONE)
     goto got_wrong_format_error;
 
-  if (i_ehdrp->e_shoff != 0)
+  if (i_ehdrp->e_shoff >= sizeof (x_ehdr))
     {
       file_ptr where = (file_ptr) i_ehdrp->e_shoff;
 
@@ -701,6 +704,9 @@ elf_object_p (bfd *abfd)
       elf_elfsections (abfd) = (Elf_Internal_Shdr **) bfd_alloc (abfd, amt);
       if (!elf_elfsections (abfd))
 	goto got_no_match;
+      elf_tdata (abfd)->being_created = bfd_zalloc (abfd, num_sec);
+      if (!elf_tdata (abfd)->being_created)
+	goto got_no_match;
 
       memcpy (i_shdrp, &i_shdr, sizeof (*i_shdrp));
       for (shdrp = i_shdrp, shindex = 0; shindex < num_sec; shindex++)
@@ -764,6 +770,7 @@ elf_object_p (bfd *abfd)
 	     So we are kind, and reset the string index value to 0
 	     so that at least some processing can be done.  */
 	  i_ehdrp->e_shstrndx = SHN_UNDEF;
+	  abfd->read_only = 1;
 	  _bfd_error_handler
 	    (_("warning: %pB has a corrupt string table index - ignoring"),
 	     abfd);
@@ -804,10 +811,18 @@ elf_object_p (bfd *abfd)
 	  if (bfd_bread (&x_phdr, sizeof x_phdr, abfd) != sizeof x_phdr)
 	    goto got_no_match;
 	  elf_swap_phdr_in (abfd, &x_phdr, i_phdr);
+	  /* Too much code in BFD relies on alignment being a power of
+	     two, as required by the ELF spec.  */
+	  if (i_phdr->p_align != (i_phdr->p_align & -i_phdr->p_align))
+	    {
+	      abfd->read_only = 1;
+	      _bfd_error_handler (_("warning: %pB has a program header "
+				    "with invalid alignment"), abfd);
+	    }
 	}
     }
 
-  if (i_ehdrp->e_shstrndx != 0 && i_ehdrp->e_shoff != 0)
+  if (i_ehdrp->e_shstrndx != 0 && i_ehdrp->e_shoff >= sizeof (x_ehdr))
     {
       unsigned int num_sec;
 
@@ -987,7 +1002,8 @@ elf_write_relocs (bfd *abfd, asection *sec, void *data)
       (*swap_out) (abfd, &src_rela, dst_rela);
     }
 
-  if (!bed->write_secondary_relocs (abfd, sec))
+  if (elf_section_data (sec)->has_secondary_relocs
+      && !bed->write_secondary_relocs (abfd, sec))
     {
       *failedp = TRUE;
       return;
@@ -1331,7 +1347,13 @@ elf_slurp_symbol_table (bfd *abfd, asymbol **symptrs, bfd_boolean dynamic)
 	  switch (ELF_ST_TYPE (isym->st_info))
 	    {
 	    case STT_SECTION:
-	      sym->symbol.flags |= BSF_SECTION_SYM | BSF_DEBUGGING;
+	      /* Mark the input section symbol as used since it may be
+	         used for relocation and section group.
+		 NB: BSF_SECTION_SYM_USED is ignored by linker and may
+		 be cleared by objcopy for non-relocatable inputs.  */
+	      sym->symbol.flags |= (BSF_SECTION_SYM
+				    | BSF_DEBUGGING
+				    | BSF_SECTION_SYM_USED);
 	      break;
 	    case STT_FILE:
 	      sym->symbol.flags |= BSF_FILE | BSF_DEBUGGING;
@@ -1590,7 +1612,7 @@ elf_slurp_reloc_table (bfd *abfd,
 					      symbols, dynamic))
     return FALSE;
 
-  if (!bed->slurp_secondary_relocs (abfd, asect, symbols))
+  if (!bed->slurp_secondary_relocs (abfd, asect, symbols, dynamic))
     return FALSE;
 
   asect->relocation = relents;

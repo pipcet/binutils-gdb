@@ -1,7 +1,7 @@
 /* Target-dependent code for PowerPC systems using the SVR4 ABI
    for GDB, the GNU debugger.
 
-   Copyright (C) 2000-2020 Free Software Foundation, Inc.
+   Copyright (C) 2000-2021 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -92,10 +92,10 @@ ppc_sysv_abi_push_dummy_call (struct gdbarch *gdbarch, struct value *function,
     {
       int argno;
       /* Next available floating point register for float and double
-         arguments.  */
+	 arguments.  */
       int freg = 1;
       /* Next available general register for non-float, non-vector
-         arguments.  */
+	 arguments.  */
       int greg = 3;
       /* Next available vector register for vector arguments.  */
       int vreg = 2;
@@ -105,9 +105,9 @@ ppc_sysv_abi_push_dummy_call (struct gdbarch *gdbarch, struct value *function,
       int structoffset = argoffset + argspace;
 
       /* If the function is returning a `struct', then the first word
-         (which will be passed in r3) is used for struct return
-         address.  In that case we should advance one word and start
-         from r4 register to copy parameters.  */
+	 (which will be passed in r3) is used for struct return
+	 address.  In that case we should advance one word and start
+	 from r4 register to copy parameters.  */
       if (return_method == return_method_struct)
 	{
 	  if (write_pass)
@@ -128,14 +128,14 @@ ppc_sysv_abi_push_dummy_call (struct gdbarch *gdbarch, struct value *function,
 	      && !tdep->soft_float)
 	    {
 	      /* Floating point value converted to "double" then
-	         passed in an FP register, when the registers run out,
-	         8 byte aligned stack is used.  */
+		 passed in an FP register, when the registers run out,
+		 8 byte aligned stack is used.  */
 	      if (freg <= 8)
 		{
 		  if (write_pass)
 		    {
 		      /* Always store the floating point value using
-		         the register's floating-point format.  */
+			 the register's floating-point format.  */
 		      gdb_byte regval[PPC_MAX_REGISTER_SIZE];
 		      struct type *regtype
 			= register_type (gdbarch, tdep->ppc_fp0_regnum + freg);
@@ -197,11 +197,11 @@ ppc_sysv_abi_push_dummy_call (struct gdbarch *gdbarch, struct value *function,
 			   && tdep->soft_float)))
 	    {
 	      /* "long long" or soft-float "double" or "_Decimal64"
-	         passed in an odd/even register pair with the low
-	         addressed word in the odd register and the high
-	         addressed word in the even register, or when the
-	         registers run out an 8 byte aligned stack
-	         location.  */
+		 passed in an odd/even register pair with the low
+		 addressed word in the odd register and the high
+		 addressed word in the even register, or when the
+		 registers run out an 8 byte aligned stack
+		 location.  */
 	      if (greg > 9)
 		{
 		  /* Just in case GREG was 10.  */
@@ -264,7 +264,7 @@ ppc_sysv_abi_push_dummy_call (struct gdbarch *gdbarch, struct value *function,
 		   && !tdep->soft_float)
 	    {
 	      /* 32-bit and 64-bit decimal floats go in f1 .. f8.  They can
-	         end up in memory.  */
+		 end up in memory.  */
 
 	      if (freg <= 8)
 		{
@@ -328,14 +328,14 @@ ppc_sysv_abi_push_dummy_call (struct gdbarch *gdbarch, struct value *function,
 		}
 
 	      /* If a 128-bit decimal float goes to the stack because only f7
-	         and f8 are free (thus there's no even/odd register pair
+		 and f8 are free (thus there's no even/odd register pair
 		 available), these registers should be marked as occupied.
 		 Hence we increase freg even when writing to memory.  */
 	      freg += 2;
 	    }
 	  else if (len < 16
 		   && type->code () == TYPE_CODE_ARRAY
-		   && TYPE_VECTOR (type)
+		   && type->is_vector ()
 		   && opencl_abi)
 	    {
 	      /* OpenCL vectors shorter than 16 bytes are passed as if
@@ -422,7 +422,7 @@ ppc_sysv_abi_push_dummy_call (struct gdbarch *gdbarch, struct value *function,
 	    }
 	  else if (len >= 16
 		   && type->code () == TYPE_CODE_ARRAY
-		   && TYPE_VECTOR (type)
+		   && type->is_vector ()
 		   && opencl_abi)
 	    {
 	      /* OpenCL vectors 16 bytes or longer are passed as if
@@ -451,11 +451,11 @@ ppc_sysv_abi_push_dummy_call (struct gdbarch *gdbarch, struct value *function,
 	    }
 	  else if (len == 16
 		   && type->code () == TYPE_CODE_ARRAY
-		   && TYPE_VECTOR (type)
+		   && type->is_vector ()
 		   && tdep->vector_abi == POWERPC_VEC_ALTIVEC)
 	    {
 	      /* Vector parameter passed in an Altivec register, or
-	         when that runs out, 16 byte aligned stack location.  */
+		 when that runs out, 16 byte aligned stack location.  */
 	      if (vreg <= 13)
 		{
 		  if (write_pass)
@@ -472,16 +472,16 @@ ppc_sysv_abi_push_dummy_call (struct gdbarch *gdbarch, struct value *function,
 	    }
 	  else if (len == 8
 		   && type->code () == TYPE_CODE_ARRAY
-		   && TYPE_VECTOR (type)
+		   && type->is_vector ()
 		   && tdep->vector_abi == POWERPC_VEC_SPE)
 	    {
 	      /* Vector parameter passed in an e500 register, or when
-	         that runs out, 8 byte aligned stack location.  Note
-	         that since e500 vector and general purpose registers
-	         both map onto the same underlying register set, a
-	         "greg" and not a "vreg" is consumed here.  A cooked
-	         write stores the value in the correct locations
-	         within the raw register cache.  */
+		 that runs out, 8 byte aligned stack location.  Note
+		 that since e500 vector and general purpose registers
+		 both map onto the same underlying register set, a
+		 "greg" and not a "vreg" is consumed here.  A cooked
+		 write stores the value in the correct locations
+		 within the raw register cache.  */
 	      if (greg <= 10)
 		{
 		  if (write_pass)
@@ -499,7 +499,7 @@ ppc_sysv_abi_push_dummy_call (struct gdbarch *gdbarch, struct value *function,
 	  else
 	    {
 	      /* Reduce the parameter down to something that fits in a
-	         "word".  */
+		 "word".  */
 	      gdb_byte word[PPC_MAX_REGISTER_SIZE];
 	      memset (word, 0, PPC_MAX_REGISTER_SIZE);
 	      if (len > tdep->wordsize
@@ -509,7 +509,7 @@ ppc_sysv_abi_push_dummy_call (struct gdbarch *gdbarch, struct value *function,
 		  /* Structs and large values are put in an
 		     aligned stack slot ...  */
 		  if (type->code () == TYPE_CODE_ARRAY
-		      && TYPE_VECTOR (type)
+		      && type->is_vector ()
 		      && len >= 16)
 		    structoffset = align_up (structoffset, 16);
 		  else
@@ -531,7 +531,7 @@ ppc_sysv_abi_push_dummy_call (struct gdbarch *gdbarch, struct value *function,
 		/* Always goes in the low address.  */
 		memcpy (word, val, len);
 	      /* Store that "word" in a register, or on the stack.
-	         The words have "4" byte alignment.  */
+		 The words have "4" byte alignment.  */
 	      if (greg <= 10)
 		{
 		  if (write_pass)
@@ -691,7 +691,7 @@ do_ppc_sysv_return_value (struct gdbarch *gdbarch, struct type *func_type,
 	     the required type.  */
 	  gdb_byte regval[PPC_MAX_REGISTER_SIZE];
 	  struct type *regtype = register_type (gdbarch,
-                                                tdep->ppc_fp0_regnum + 1);
+						tdep->ppc_fp0_regnum + 1);
 	  regcache->cooked_read (tdep->ppc_fp0_regnum + 1, regval);
 	  target_float_convert (regval, regtype, readbuf, type);
 	}
@@ -804,7 +804,7 @@ do_ppc_sysv_return_value (struct gdbarch *gdbarch, struct type *func_type,
   /* OpenCL vectors < 16 bytes are returned as distinct
      scalars in f1..f2 or r3..r10.  */
   if (type->code () == TYPE_CODE_ARRAY
-      && TYPE_VECTOR (type)
+      && type->is_vector ()
       && TYPE_LENGTH (type) < 16
       && opencl_abi)
     {
@@ -858,7 +858,7 @@ do_ppc_sysv_return_value (struct gdbarch *gdbarch, struct type *func_type,
     }
   /* OpenCL vectors >= 16 bytes are returned in v2..v9.  */
   if (type->code () == TYPE_CODE_ARRAY
-      && TYPE_VECTOR (type)
+      && type->is_vector ()
       && TYPE_LENGTH (type) >= 16
       && opencl_abi)
     {
@@ -880,7 +880,7 @@ do_ppc_sysv_return_value (struct gdbarch *gdbarch, struct type *func_type,
     }
   if (TYPE_LENGTH (type) == 16
       && type->code () == TYPE_CODE_ARRAY
-      && TYPE_VECTOR (type)
+      && type->is_vector ()
       && tdep->vector_abi == POWERPC_VEC_ALTIVEC)
     {
       if (readbuf)
@@ -897,7 +897,7 @@ do_ppc_sysv_return_value (struct gdbarch *gdbarch, struct type *func_type,
     }
   if (TYPE_LENGTH (type) == 16
       && type->code () == TYPE_CODE_ARRAY
-      && TYPE_VECTOR (type)
+      && type->is_vector ()
       && tdep->vector_abi == POWERPC_VEC_GENERIC)
     {
       /* GCC -maltivec -mabi=no-altivec returns vectors in r3/r4/r5/r6.
@@ -921,7 +921,7 @@ do_ppc_sysv_return_value (struct gdbarch *gdbarch, struct type *func_type,
     }
   if (TYPE_LENGTH (type) == 8
       && type->code () == TYPE_CODE_ARRAY
-      && TYPE_VECTOR (type)
+      && type->is_vector ()
       && tdep->vector_abi == POWERPC_VEC_SPE)
     {
       /* The e500 ABI places return values for the 64-bit DSP types
@@ -1101,7 +1101,7 @@ ppc64_aggregate_candidate (struct type *type,
       break;
 
     case TYPE_CODE_ARRAY:
-      if (TYPE_VECTOR (type))
+      if (type->is_vector ())
 	{
 	  if (!*field_type)
 	    *field_type = type;
@@ -1186,7 +1186,7 @@ ppc64_elfv2_abi_homogeneous_aggregate (struct type *type,
      complex types can be elements of homogeneous aggregates.  */
   if (type->code () == TYPE_CODE_STRUCT
       || type->code () == TYPE_CODE_UNION
-      || (type->code () == TYPE_CODE_ARRAY && !TYPE_VECTOR (type)))
+      || (type->code () == TYPE_CODE_ARRAY && !type->is_vector ()))
     {
       struct type *field_type = NULL;
       LONGEST field_count = ppc64_aggregate_candidate (type, &field_type);
@@ -1428,7 +1428,7 @@ ppc64_sysv_abi_push_param (struct gdbarch *gdbarch,
       ppc64_sysv_abi_push_val (gdbarch, val, TYPE_LENGTH (type), 0, argpos);
       ppc64_sysv_abi_push_freg (gdbarch, type, val, argpos);
     }
-  else if (type->code () == TYPE_CODE_ARRAY && TYPE_VECTOR (type)
+  else if (type->code () == TYPE_CODE_ARRAY && type->is_vector ()
 	   && tdep->vector_abi == POWERPC_VEC_ALTIVEC
 	   && TYPE_LENGTH (type) == 16)
     {
@@ -1436,7 +1436,7 @@ ppc64_sysv_abi_push_param (struct gdbarch *gdbarch,
       ppc64_sysv_abi_push_val (gdbarch, val, TYPE_LENGTH (type), 16, argpos);
       ppc64_sysv_abi_push_vreg (gdbarch, val, argpos);
     }
-  else if (type->code () == TYPE_CODE_ARRAY && TYPE_VECTOR (type)
+  else if (type->code () == TYPE_CODE_ARRAY && type->is_vector ()
 	   && TYPE_LENGTH (type) >= 16)
     {
       /* Non-Altivec vectors are passed by reference.  */
@@ -1520,7 +1520,7 @@ ppc64_sysv_abi_push_param (struct gdbarch *gdbarch,
 		    || eltype->code () == TYPE_CODE_DECFLOAT)
 		  ppc64_sysv_abi_push_freg (gdbarch, eltype, elval, argpos);
 		else if (eltype->code () == TYPE_CODE_ARRAY
-			 && TYPE_VECTOR (eltype)
+			 && eltype->is_vector ()
 			 && tdep->vector_abi == POWERPC_VEC_ALTIVEC
 			 && TYPE_LENGTH (eltype) == 16)
 		  ppc64_sysv_abi_push_vreg (gdbarch, elval, argpos);
@@ -1622,10 +1622,10 @@ ppc64_sysv_abi_push_dummy_call (struct gdbarch *gdbarch,
 	}
 
       /* If the function is returning a `struct', then there is an
-         extra hidden parameter (which will be passed in r3)
-         containing the address of that struct..  In that case we
-         should advance one word and start from r4 register to copy
-         parameters.  This also consumes one on-stack parameter slot.  */
+	 extra hidden parameter (which will be passed in r3)
+	 containing the address of that struct..  In that case we
+	 should advance one word and start from r4 register to copy
+	 parameters.  This also consumes one on-stack parameter slot.  */
       if (return_method == return_method_struct)
 	ppc64_sysv_abi_push_integer (gdbarch, struct_addr, &argpos);
 
@@ -1644,7 +1644,7 @@ ppc64_sysv_abi_push_dummy_call (struct gdbarch *gdbarch,
 	      ppc64_sysv_abi_push_param (gdbarch, eltype,
 				 	 val + TYPE_LENGTH (eltype), &argpos);
 	    }
-	  else if (type->code () == TYPE_CODE_ARRAY && TYPE_VECTOR (type)
+	  else if (type->code () == TYPE_CODE_ARRAY && type->is_vector ()
 		   && opencl_abi)
 	    {
 	      /* OpenCL vectors shorter than 16 bytes are passed as if
@@ -1856,7 +1856,7 @@ ppc64_sysv_abi_return_value_base (struct gdbarch *gdbarch, struct type *valtype,
 
   /* AltiVec vectors are returned in VRs starting at v2.  */
   if (TYPE_LENGTH (valtype) == 16
-      && valtype->code () == TYPE_CODE_ARRAY && TYPE_VECTOR (valtype)
+      && valtype->code () == TYPE_CODE_ARRAY && valtype->is_vector ()
       && tdep->vector_abi == POWERPC_VEC_ALTIVEC)
     {
       int regnum = tdep->ppc_vr0_regnum + 2 + index;
@@ -1870,7 +1870,7 @@ ppc64_sysv_abi_return_value_base (struct gdbarch *gdbarch, struct type *valtype,
 
   /* Short vectors are returned in GPRs starting at r3.  */
   if (TYPE_LENGTH (valtype) <= 8
-      && valtype->code () == TYPE_CODE_ARRAY && TYPE_VECTOR (valtype))
+      && valtype->code () == TYPE_CODE_ARRAY && valtype->is_vector ())
     {
       int regnum = tdep->ppc_gp0_regnum + 3 + index;
       int offset = 0;
@@ -1938,7 +1938,7 @@ ppc64_sysv_abi_return_value (struct gdbarch *gdbarch, struct value *function,
   /* OpenCL vectors shorter than 16 bytes are returned as if
      a series of independent scalars; OpenCL vectors 16 bytes
      or longer are returned as if a series of AltiVec vectors.  */
-  if (valtype->code () == TYPE_CODE_ARRAY && TYPE_VECTOR (valtype)
+  if (valtype->code () == TYPE_CODE_ARRAY && valtype->is_vector ()
       && opencl_abi)
     {
       if (TYPE_LENGTH (valtype) < 16)
@@ -1975,7 +1975,7 @@ ppc64_sysv_abi_return_value (struct gdbarch *gdbarch, struct value *function,
 
   /* Small character arrays are returned, right justified, in r3.  */
   if (valtype->code () == TYPE_CODE_ARRAY
-      && !TYPE_VECTOR (valtype)
+      && !valtype->is_vector ()
       && TYPE_LENGTH (valtype) <= 8
       && TYPE_TARGET_TYPE (valtype)->code () == TYPE_CODE_INT
       && TYPE_LENGTH (TYPE_TARGET_TYPE (valtype)) == 1)
@@ -1999,7 +1999,7 @@ ppc64_sysv_abi_return_value (struct gdbarch *gdbarch, struct value *function,
       && (eltype->code () == TYPE_CODE_FLT
 	  || eltype->code () == TYPE_CODE_DECFLOAT
 	  || (eltype->code () == TYPE_CODE_ARRAY
-	      && TYPE_VECTOR (eltype)
+	      && eltype->is_vector ()
 	      && tdep->vector_abi == POWERPC_VEC_ALTIVEC
 	      && TYPE_LENGTH (eltype) == 16)))
     {
@@ -2025,7 +2025,7 @@ ppc64_sysv_abi_return_value (struct gdbarch *gdbarch, struct value *function,
       && (valtype->code () == TYPE_CODE_STRUCT
 	  || valtype->code () == TYPE_CODE_UNION
 	  || (valtype->code () == TYPE_CODE_ARRAY
-	      && !TYPE_VECTOR (valtype))))
+	      && !valtype->is_vector ())))
     {
       int n_regs = ((TYPE_LENGTH (valtype) + tdep->wordsize - 1)
 		    / tdep->wordsize);

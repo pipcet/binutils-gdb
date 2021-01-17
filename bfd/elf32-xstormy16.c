@@ -1,5 +1,5 @@
 /* Xstormy16-specific support for 32-bit ELF.
-   Copyright (C) 2000-2020 Free Software Foundation, Inc.
+   Copyright (C) 2000-2021 Free Software Foundation, Inc.
 
    This file is part of BFD, the Binary File Descriptor library.
 
@@ -588,7 +588,8 @@ xstormy16_elf_relax_section (bfd *dynobj,
   /* Assume nothing changes.  */
   *again = FALSE;
 
-  if (bfd_link_relocatable (info))
+  if (bfd_link_relocatable (info)
+      || !is_elf_hash_table (info->hash))
     return TRUE;
 
   /* We only relax the .plt section at the moment.  */

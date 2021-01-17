@@ -1,6 +1,6 @@
 // powerpc.cc -- powerpc target support for gold.
 
-// Copyright (C) 2008-2020 Free Software Foundation, Inc.
+// Copyright (C) 2008-2021 Free Software Foundation, Inc.
 // Written by David S. Miller <davem@davemloft.net>
 //        and David Edelsohn <edelsohn@gnu.org>
 
@@ -647,9 +647,9 @@ class Target_powerpc : public Sized_target<size, big_endian>
       glink_(NULL), rela_dyn_(NULL), copy_relocs_(),
       tlsld_got_offset_(-1U),
       stub_tables_(), branch_lookup_table_(), branch_info_(), tocsave_loc_(),
-      power10_stubs_(false), plt_thread_safe_(false), plt_localentry0_(false),
+      power10_relocs_(false), plt_thread_safe_(false), plt_localentry0_(false),
       plt_localentry0_init_(false), has_localentry0_(false),
-      has_tls_get_addr_opt_(false),
+      has_tls_get_addr_opt_(false), no_tprel_opt_(false),
       relax_failed_(false), relax_fail_count_(0),
       stub_group_size_(0), savres_section_(0),
       tls_get_addr_(NULL), tls_get_addr_opt_(NULL),
@@ -756,10 +756,10 @@ class Target_powerpc : public Sized_target<size, big_endian>
   }
 
   // Accessor
-  const Tocsave_loc
+  const Tocsave_loc*
   tocsave_loc() const
   {
-    return this->tocsave_loc_;
+    return &this->tocsave_loc_;
   }
 
   void
@@ -1078,16 +1078,18 @@ class Target_powerpc : public Sized_target<size, big_endian>
     sym->set_dynsym_index(-1U);
   }
 
+  void
+  set_power10_relocs()
+  {
+      this->power10_relocs_ = true;
+  }
+
   bool
   power10_stubs() const
-  { return this->power10_stubs_; }
-
-  void
-  set_power10_stubs()
   {
-    if (parameters->options().power10_stubs_enum()
-	!= General_options::POWER10_STUBS_NO)
-      this->power10_stubs_ = true;
+    return (this->power10_relocs_
+	    && (parameters->options().power10_stubs_enum()
+		!= General_options::POWER10_STUBS_NO));
   }
 
   bool
@@ -1104,6 +1106,10 @@ class Target_powerpc : public Sized_target<size, big_endian>
   bool
   plt_localentry0() const
   { return this->plt_localentry0_; }
+
+  bool
+  has_localentry0() const
+  { return this->has_localentry0_; }
 
   void
   set_has_localentry0()
@@ -1144,6 +1150,14 @@ class Target_powerpc : public Sized_target<size, big_endian>
       }
     return false;
   }
+
+  bool
+  tprel_opt() const
+  { return !this->no_tprel_opt_ && parameters->options().tls_optimize(); }
+
+  void
+  set_no_tprel_opt()
+  { this->no_tprel_opt_ = true; }
 
   // Remember any symbols seen with non-zero localentry, even those
   // not providing a definition
@@ -1696,12 +1710,13 @@ class Target_powerpc : public Sized_target<size, big_endian>
   Branches branch_info_;
   Tocsave_loc tocsave_loc_;
 
-  bool power10_stubs_;
+  bool power10_relocs_;
   bool plt_thread_safe_;
   bool plt_localentry0_;
   bool plt_localentry0_init_;
   bool has_localentry0_;
   bool has_tls_get_addr_opt_;
+  bool no_tprel_opt_;
 
   bool relax_failed_;
   int relax_fail_count_;
@@ -1866,6 +1881,19 @@ is_plt16_reloc(unsigned int r_type)
 	  || r_type == elfcpp::R_POWERPC_PLT16_HI
 	  || r_type == elfcpp::R_POWERPC_PLT16_HA
 	  || (size == 64 && r_type == elfcpp::R_PPC64_PLT16_LO_DS));
+}
+
+// GOT_TYPE_STANDARD (ie. not TLS) GOT relocs
+inline bool
+is_got_reloc(unsigned int r_type)
+{
+  return (r_type == elfcpp::R_POWERPC_GOT16
+	  || r_type == elfcpp::R_POWERPC_GOT16_LO
+	  || r_type == elfcpp::R_POWERPC_GOT16_HI
+	  || r_type == elfcpp::R_POWERPC_GOT16_HA
+	  || r_type == elfcpp::R_PPC64_GOT16_DS
+	  || r_type == elfcpp::R_PPC64_GOT16_LO_DS
+	  || r_type == elfcpp::R_PPC64_GOT_PCREL34);
 }
 
 // If INSN is an opcode that may be used with an @tls operand, return
@@ -2738,8 +2766,6 @@ Powerpc_relobj<size, big_endian>::do_relocate_sections(
 	    if (this->local_has_plt_offset(i))
 	      {
 		Address value = this->local_symbol_value(i, 0);
-		if (size == 64)
-		  value += ppc64_local_entry_offset(i);
 		size_t off = this->local_plt_offset(i);
 		elfcpp::Swap<size, big_endian>::writeval(oview + off, value);
 		modified = true;
@@ -3510,6 +3536,7 @@ Target_powerpc<size, big_endian>::Branch_info::make_stub(
       from += (this->object_->output_section(this->shndx_)->address()
 	       + this->offset_);
       Address to;
+      unsigned int other = 0;
       if (gsym != NULL)
 	{
 	  switch (gsym->source())
@@ -3538,7 +3565,7 @@ Target_powerpc<size, big_endian>::Branch_info::make_stub(
 	  if (status != Symbol_table::CFVS_OK)
 	    return true;
 	  if (size == 64)
-	    to += this->object_->ppc64_local_entry_offset(gsym);
+	    other = gsym->nonvis() >> 3;
 	}
       else
 	{
@@ -3556,7 +3583,7 @@ Target_powerpc<size, big_endian>::Branch_info::make_stub(
 	    return true;
 	  to = symval.value(this->object_, 0);
 	  if (size == 64)
-	    to += this->object_->ppc64_local_entry_offset(this->r_sym_);
+	    other = this->object_->st_other(this->r_sym_) >> 5;
 	}
       if (!(size == 32 && this->r_type_ == elfcpp::R_PPC_PLTREL24))
 	to += this->addend_;
@@ -3569,7 +3596,11 @@ Target_powerpc<size, big_endian>::Branch_info::make_stub(
 					 &to, &dest_shndx))
 	    return true;
 	}
-      Address delta = to - from;
+      unsigned int local_ent = 0;
+      if (size == 64
+	  && this->r_type_ != elfcpp::R_PPC64_REL24_NOTOC)
+	local_ent = elfcpp::ppc64_decode_local_entry(other);
+      Address delta = to + local_ent - from;
       if (delta + max_branch_offset >= 2 * max_branch_offset
 	  || (size == 64
 	      && this->r_type_ == elfcpp::R_PPC64_REL24_NOTOC
@@ -3591,7 +3622,7 @@ Target_powerpc<size, big_endian>::Branch_info::make_stub(
 			   && gsym->output_data() == target->savres_section());
 	  ok = stub_table->add_long_branch_entry(this->object_,
 						 this->r_type_,
-						 from, to, save_res);
+						 from, to, other, save_res);
 	}
     }
   if (!ok)
@@ -4180,6 +4211,7 @@ static const uint32_t cmpwi_11_0	= 0x2c0b0000;
 static const uint32_t cror_15_15_15	= 0x4def7b82;
 static const uint32_t cror_31_31_31	= 0x4ffffb82;
 static const uint32_t ld_0_1		= 0xe8010000;
+static const uint32_t ld_0_11		= 0xe80b0000;
 static const uint32_t ld_0_12		= 0xe80c0000;
 static const uint32_t ld_2_1		= 0xe8410000;
 static const uint32_t ld_2_2		= 0xe8420000;
@@ -4562,9 +4594,9 @@ static const unsigned char glink_eh_frame_fde_64v1[] =
   0, 0, 0, 0,				// Replaced with offset to .glink.
   0, 0, 0, 0,				// Replaced with size of .glink.
   0,					// Augmentation size.
-  elfcpp::DW_CFA_advance_loc + 1,
+  elfcpp::DW_CFA_advance_loc + 2,
   elfcpp::DW_CFA_register, 65, 12,
-  elfcpp::DW_CFA_advance_loc + 5,
+  elfcpp::DW_CFA_advance_loc + 4,
   elfcpp::DW_CFA_restore_extended, 65
 };
 
@@ -4574,9 +4606,20 @@ static const unsigned char glink_eh_frame_fde_64v2[] =
   0, 0, 0, 0,				// Replaced with offset to .glink.
   0, 0, 0, 0,				// Replaced with size of .glink.
   0,					// Augmentation size.
-  elfcpp::DW_CFA_advance_loc + 1,
+  elfcpp::DW_CFA_advance_loc + 2,
   elfcpp::DW_CFA_register, 65, 0,
-  elfcpp::DW_CFA_advance_loc + 7,
+  elfcpp::DW_CFA_advance_loc + 2,
+  elfcpp::DW_CFA_restore_extended, 65
+};
+
+static const unsigned char glink_eh_frame_fde_64v2_localentry0[] =
+{
+  0, 0, 0, 0,				// Replaced with offset to .glink.
+  0, 0, 0, 0,				// Replaced with size of .glink.
+  0,					// Augmentation size.
+  elfcpp::DW_CFA_advance_loc + 3,
+  elfcpp::DW_CFA_register, 65, 0,
+  elfcpp::DW_CFA_advance_loc + 2,
   elfcpp::DW_CFA_restore_extended, 65
 };
 
@@ -4647,7 +4690,7 @@ class Stub_table : public Output_relaxed_input_section
   {
     Branch_stub_ent(unsigned int off, bool notoc, bool save_res)
       : off_(off), iter_(0), notoc_(notoc), toc_(0), save_res_(save_res),
-	tocoff_(0)
+	other_(0), tocoff_(0)
     { }
 
     unsigned int off_;
@@ -4655,6 +4698,7 @@ class Stub_table : public Output_relaxed_input_section
     unsigned int notoc_ : 1;
     unsigned int toc_ : 1;
     unsigned int save_res_ : 1;
+    unsigned int other_ : 3;
     unsigned int tocoff_ : 8;
   };
   typedef typename elfcpp::Elf_types<size>::Elf_Addr Address;
@@ -4721,7 +4765,7 @@ class Stub_table : public Output_relaxed_input_section
   // Add a long branch stub.
   bool
   add_long_branch_entry(const Powerpc_relobj<size, big_endian>*,
-			unsigned int, Address, Address, bool);
+			unsigned int, Address, Address, unsigned int, bool);
 
   const Branch_stub_ent*
   find_long_branch_entry(const Powerpc_relobj<size, big_endian>*,
@@ -5241,6 +5285,7 @@ Stub_table<size, big_endian>::add_long_branch_entry(
     unsigned int r_type,
     Address from,
     Address to,
+    unsigned int other,
     bool save_res)
 {
   Branch_stub_key key(object, to);
@@ -5260,6 +5305,8 @@ Stub_table<size, big_endian>::add_long_branch_entry(
 	this->need_resize_ = true;
       p.first->second.toc_ = true;
     }
+  if (size == 64 && p.first->second.other_ == 0)
+    p.first->second.other_ = other;
   gold_assert(save_res == p.first->second.save_res_);
   if (p.second || (this->resizing_ && !p.first->second.iter_))
     {
@@ -5515,7 +5562,8 @@ class Output_data_glink : public Output_section_data
   {
     if (size == 64)
       return (8
-	      + (this->targ_->abiversion() < 2 ? 11 * 4 : 14 * 4));
+	      + (this->targ_->abiversion() < 2 ? 11 * 4
+		 : this->targ_->has_localentry0() ? 14 * 4 : 13 * 4));
     return 16 * 4;
   }
 
@@ -5558,6 +5606,12 @@ Output_data_glink<size, big_endian>::add_eh_frame(Layout* layout)
 				     sizeof (Eh_cie<64>::eh_frame_cie),
 				     glink_eh_frame_fde_64v1,
 				     sizeof (glink_eh_frame_fde_64v1));
+      else if (this->targ_->has_localentry0())
+	layout->add_eh_frame_for_plt(this,
+				     Eh_cie<64>::eh_frame_cie,
+				     sizeof (Eh_cie<64>::eh_frame_cie),
+				     glink_eh_frame_fde_64v2_localentry0,
+				     sizeof (glink_eh_frame_fde_64v2));
       else
 	layout->add_eh_frame_for_plt(this,
 				     Eh_cie<64>::eh_frame_cie,
@@ -6150,6 +6204,7 @@ Stub_table<size, big_endian>::branch_stub_size(
 	}
     }
 
+  off += elfcpp::ppc64_decode_local_entry(p->second.other_);
   if (off + (1 << 25) < 2 << 25)
     return bytes + 4;
   if (!this->targ_->power10_stubs()
@@ -6329,6 +6384,7 @@ Stub_table<size, big_endian>::do_write(Output_file* of)
 		}
 	      if (bs->second.toc_)
 		{
+		  delta += elfcpp::ppc64_decode_local_entry(bs->second.other_);
 		  if (delta + (1 << 25) >= 2 << 25)
 		    {
 		      Address brlt_addr
@@ -6362,6 +6418,8 @@ Stub_table<size, big_endian>::do_write(Output_file* of)
 	    }
 	  else
 	    {
+	      if (!bs->second.notoc_)
+		delta += elfcpp::ppc64_decode_local_entry(bs->second.other_);
 	      if (bs->second.notoc_ || delta + (1 << 25) >= 2 << 25)
 		{
 		  unsigned char* startp = p;
@@ -6592,6 +6650,8 @@ Stub_table<size, big_endian>::do_write(Output_file* of)
 	  p = oview + off;
 	  Address loc = this->stub_address() + off;
 	  Address delta = bs->first.dest_ - loc;
+	  if (!bs->second.notoc_)
+	    delta += elfcpp::ppc64_decode_local_entry(bs->second.other_);
 	  if (bs->second.notoc_)
 	    {
 	      unsigned char* startp = p;
@@ -6788,15 +6848,25 @@ Output_data_glink<size, big_endian>::do_write(Output_file* of)
 	    }
 	  else
 	    {
+	      if (this->targ_->has_localentry0())
+		{
+		  write_insn<big_endian>(p, std_2_1 + 24),	p += 4;
+		}
 	      write_insn<big_endian>(p, mflr_0),		p += 4;
 	      write_insn<big_endian>(p, bcl_20_31),		p += 4;
 	      write_insn<big_endian>(p, mflr_11),		p += 4;
-	      write_insn<big_endian>(p, std_2_1 + 24),		p += 4;
-	      write_insn<big_endian>(p, ld_2_11 + l(-16)),	p += 4;
 	      write_insn<big_endian>(p, mtlr_0),		p += 4;
+	      if (this->targ_->has_localentry0())
+		{
+		  write_insn<big_endian>(p, ld_0_11 + l(-20)),	p += 4;
+		}
+	      else
+		{
+		  write_insn<big_endian>(p, ld_0_11 + l(-16)),	p += 4;
+		}
 	      write_insn<big_endian>(p, sub_12_12_11),		p += 4;
-	      write_insn<big_endian>(p, add_11_2_11),		p += 4;
-	      write_insn<big_endian>(p, addi_0_12 + l(-48)),	p += 4;
+	      write_insn<big_endian>(p, add_11_0_11),		p += 4;
+	      write_insn<big_endian>(p, addi_0_12 + l(-44)),	p += 4;
 	      write_insn<big_endian>(p, ld_12_11 + 0),		p += 4;
 	      write_insn<big_endian>(p, srdi_0_0_2),		p += 4;
 	      write_insn<big_endian>(p, mtctr_12),		p += 4;
@@ -8365,10 +8435,6 @@ Target_powerpc<size, big_endian>::Scan::local(
 
   switch (r_type)
     {
-    case elfcpp::R_POWERPC_TPREL16:
-    case elfcpp::R_POWERPC_TPREL16_LO:
-    case elfcpp::R_POWERPC_TPREL16_HI:
-    case elfcpp::R_POWERPC_TPREL16_HA:
     case elfcpp::R_PPC64_TPREL16_DS:
     case elfcpp::R_PPC64_TPREL16_LO_DS:
     case elfcpp::R_PPC64_TPREL16_HIGH:
@@ -8378,7 +8444,50 @@ Target_powerpc<size, big_endian>::Scan::local(
     case elfcpp::R_PPC64_TPREL16_HIGHEST:
     case elfcpp::R_PPC64_TPREL16_HIGHESTA:
     case elfcpp::R_PPC64_TPREL34:
+      if (size != 64)
+	break;
+      // Fall through.
+    case elfcpp::R_POWERPC_TPREL16:
+    case elfcpp::R_POWERPC_TPREL16_LO:
+    case elfcpp::R_POWERPC_TPREL16_HI:
+    case elfcpp::R_POWERPC_TPREL16_HA:
       layout->set_has_static_tls();
+      break;
+    default:
+      break;
+    }
+
+  switch (r_type)
+    {
+    case elfcpp::R_POWERPC_TPREL16_HA:
+      if (target->tprel_opt())
+	{
+	  section_size_type slen;
+	  const unsigned char* view = NULL;
+	  view = ppc_object->section_contents(data_shndx, &slen, false);
+	  section_size_type off
+	    = convert_to_section_size_type(reloc.get_r_offset()) & -4;
+	  if (off < slen)
+	    {
+	      uint32_t insn = elfcpp::Swap<32, big_endian>::readval(view + off);
+	      if ((insn & ((0x3fu << 26) | 0x1f << 16))
+		  != ((15u << 26) | ((size == 32 ? 2 : 13) << 16)))
+		target->set_no_tprel_opt();
+	    }
+	}
+      break;
+
+    case elfcpp::R_PPC64_TPREL16_HIGH:
+    case elfcpp::R_PPC64_TPREL16_HIGHA:
+    case elfcpp::R_PPC64_TPREL16_HIGHER:
+    case elfcpp::R_PPC64_TPREL16_HIGHERA:
+    case elfcpp::R_PPC64_TPREL16_HIGHEST:
+    case elfcpp::R_PPC64_TPREL16_HIGHESTA:
+      if (size != 64)
+	break;
+      // Fall through.
+    case elfcpp::R_POWERPC_TPREL16_HI:
+      target->set_no_tprel_opt();
       break;
     default:
       break;
@@ -8402,7 +8511,7 @@ Target_powerpc<size, big_endian>::Scan::local(
     case elfcpp::R_PPC64_GOT_TLSLD_PCREL34:
     case elfcpp::R_PPC64_GOT_DTPREL_PCREL34:
     case elfcpp::R_PPC64_GOT_TPREL_PCREL34:
-      target->set_power10_stubs();
+      target->set_power10_relocs();
       break;
     default:
       break;
@@ -9123,10 +9232,6 @@ Target_powerpc<size, big_endian>::Scan::global(
 
   switch (r_type)
     {
-    case elfcpp::R_POWERPC_TPREL16:
-    case elfcpp::R_POWERPC_TPREL16_LO:
-    case elfcpp::R_POWERPC_TPREL16_HI:
-    case elfcpp::R_POWERPC_TPREL16_HA:
     case elfcpp::R_PPC64_TPREL16_DS:
     case elfcpp::R_PPC64_TPREL16_LO_DS:
     case elfcpp::R_PPC64_TPREL16_HIGH:
@@ -9136,7 +9241,50 @@ Target_powerpc<size, big_endian>::Scan::global(
     case elfcpp::R_PPC64_TPREL16_HIGHEST:
     case elfcpp::R_PPC64_TPREL16_HIGHESTA:
     case elfcpp::R_PPC64_TPREL34:
+      if (size != 64)
+	break;
+      // Fall through.
+    case elfcpp::R_POWERPC_TPREL16:
+    case elfcpp::R_POWERPC_TPREL16_LO:
+    case elfcpp::R_POWERPC_TPREL16_HI:
+    case elfcpp::R_POWERPC_TPREL16_HA:
       layout->set_has_static_tls();
+      break;
+    default:
+      break;
+    }
+
+  switch (r_type)
+    {
+    case elfcpp::R_POWERPC_TPREL16_HA:
+      if (target->tprel_opt())
+	{
+	  section_size_type slen;
+	  const unsigned char* view = NULL;
+	  view = ppc_object->section_contents(data_shndx, &slen, false);
+	  section_size_type off
+	    = convert_to_section_size_type(reloc.get_r_offset()) & -4;
+	  if (off < slen)
+	    {
+	      uint32_t insn = elfcpp::Swap<32, big_endian>::readval(view + off);
+	      if ((insn & ((0x3fu << 26) | 0x1f << 16))
+		  != ((15u << 26) | ((size == 32 ? 2 : 13) << 16)))
+		target->set_no_tprel_opt();
+	    }
+	}
+      break;
+
+    case elfcpp::R_PPC64_TPREL16_HIGH:
+    case elfcpp::R_PPC64_TPREL16_HIGHA:
+    case elfcpp::R_PPC64_TPREL16_HIGHER:
+    case elfcpp::R_PPC64_TPREL16_HIGHERA:
+    case elfcpp::R_PPC64_TPREL16_HIGHEST:
+    case elfcpp::R_PPC64_TPREL16_HIGHESTA:
+      if (size != 64)
+	break;
+      // Fall through.
+    case elfcpp::R_POWERPC_TPREL16_HI:
+      target->set_no_tprel_opt();
       break;
     default:
       break;
@@ -9160,7 +9308,7 @@ Target_powerpc<size, big_endian>::Scan::global(
     case elfcpp::R_PPC64_GOT_TLSLD_PCREL34:
     case elfcpp::R_PPC64_GOT_DTPREL_PCREL34:
     case elfcpp::R_PPC64_GOT_TPREL_PCREL34:
-      target->set_power10_stubs();
+      target->set_power10_relocs();
       break;
     default:
       break;
@@ -9502,6 +9650,13 @@ Target_powerpc<size, big_endian>::scan_relocs(
     needs_special_offset_handling,
     local_symbol_count,
     plocal_symbols);
+
+  if (this->plt_localentry0_ && this->power10_relocs_)
+    {
+      gold_warning(_("--plt-localentry is incompatible with "
+		     "power10 pc-relative code"));
+      this->plt_localentry0_ = false;
+    }
 }
 
 // Functor class for processing the global symbol table.
@@ -10251,6 +10406,7 @@ Target_powerpc<size, big_endian>::Relocate::relocate(
        ? gsym->use_plt_offset(Scan::get_reference_flags(r_type, target))
        : object->local_has_plt_offset(r_sym));
   if (has_plt_offset
+      && !is_got_reloc(r_type)
       && !is_plt16_reloc<size>(r_type)
       && r_type != elfcpp::R_PPC64_PLT_PCREL34
       && r_type != elfcpp::R_PPC64_PLT_PCREL34_NOTOC
@@ -10313,21 +10469,24 @@ Target_powerpc<size, big_endian>::Relocate::relocate(
 		    value += ent->tocoff_;
 		  if (size == 64
 		      && ent->r2save_
-		      && r_type == elfcpp::R_PPC64_REL24_NOTOC)
+		      && !(gsym != NULL
+			   && target->is_tls_get_addr_opt(gsym)))
 		    {
-		      if (!(target->power10_stubs()
-			    && target->power10_stubs_auto()))
-			value += 4;
-		    }
-		  else if (size == 64
-			   && ent->r2save_
-			   && relnum < reloc_count - 1)
-		    {
-		      Reltype next_rela(preloc + reloc_size);
-		      if (elfcpp::elf_r_type<size>(next_rela.get_r_info())
-			  == elfcpp::R_PPC64_TOCSAVE
-			  && next_rela.get_r_offset() == rela.get_r_offset() + 4)
-			value += 4;
+		      if (r_type == elfcpp::R_PPC64_REL24_NOTOC)
+			{
+			  if (!(target->power10_stubs()
+				&& target->power10_stubs_auto()))
+			    value += 4;
+			}
+		      else if (relnum < reloc_count - 1)
+			{
+			  Reltype next_rela(preloc + reloc_size);
+			  if (elfcpp::elf_r_type<size>(next_rela.get_r_info())
+			      == elfcpp::R_PPC64_TOCSAVE
+			      && (next_rela.get_r_offset()
+				  == rela.get_r_offset() + 4))
+			    value += 4;
+			}
 		    }
 		  localentry0 = ent->localentry0_;
 		  has_stub_value = true;
@@ -10390,13 +10549,7 @@ Target_powerpc<size, big_endian>::Relocate::relocate(
       elfcpp::Swap<32, big_endian>::writeval(iview + 1, pnop & 0xffffffff);
       r_type = elfcpp::R_POWERPC_NONE;
     }
-  else if (r_type == elfcpp::R_POWERPC_GOT16
-	   || r_type == elfcpp::R_POWERPC_GOT16_LO
-	   || r_type == elfcpp::R_POWERPC_GOT16_HI
-	   || r_type == elfcpp::R_POWERPC_GOT16_HA
-	   || r_type == elfcpp::R_PPC64_GOT16_DS
-	   || r_type == elfcpp::R_PPC64_GOT16_LO_DS
-	   || r_type == elfcpp::R_PPC64_GOT_PCREL34)
+  else if (is_got_reloc(r_type))
     {
       if (gsym != NULL)
 	{
@@ -10898,14 +11051,15 @@ Target_powerpc<size, big_endian>::Relocate::relocate(
 		|| r_type == elfcpp::R_POWERPC_PLT16_HA)))
 	addend = rela.get_r_addend();
       value = psymval->value(object, addend);
+      unsigned int local_ent = 0;
       if (size == 64 && is_branch_reloc<size>(r_type))
 	{
 	  if (target->abiversion() >= 2)
 	    {
 	      if (gsym != NULL)
-		value += object->ppc64_local_entry_offset(gsym);
+		local_ent = object->ppc64_local_entry_offset(gsym);
 	      else
-		value += object->ppc64_local_entry_offset(r_sym);
+		local_ent = object->ppc64_local_entry_offset(r_sym);
 	    }
 	  else
 	    {
@@ -10914,9 +11068,9 @@ Target_powerpc<size, big_endian>::Relocate::relocate(
 					&value, &dest_shndx);
 	    }
 	}
-      Address max_branch_offset = max_branch_delta<size>(r_type);
-      if (max_branch_offset != 0
-	  && (value - address + max_branch_offset >= 2 * max_branch_offset
+      Address max_branch = max_branch_delta<size>(r_type);
+      if (max_branch != 0
+	  && (value + local_ent - address + max_branch >= 2 * max_branch
 	      || (size == 64
 		  && r_type == elfcpp::R_PPC64_REL24_NOTOC
 		  && (gsym != NULL
@@ -10947,6 +11101,8 @@ Target_powerpc<size, big_endian>::Relocate::relocate(
 		}
 	    }
 	}
+      if (!has_stub_value)
+	value += local_ent;
     }
 
   switch (r_type)
@@ -11124,10 +11280,9 @@ Target_powerpc<size, big_endian>::Relocate::relocate(
       break;
     }
 
-  if (size == 64
-      && (gsym
-	  ? relative_value_is_known(gsym)
-	  : relative_value_is_known(psymval)))
+  if (gsym
+      ? relative_value_is_known(gsym)
+      : relative_value_is_known(psymval))
     {
       Insn* iview;
       Insn* iview2;
@@ -11152,7 +11307,7 @@ Target_powerpc<size, big_endian>::Relocate::relocate(
 	case elfcpp::R_POWERPC_GOT_DTPREL16_HA:
 	case elfcpp::R_POWERPC_GOT16_HA:
 	case elfcpp::R_PPC64_TOC16_HA:
-	  if (parameters->options().toc_optimize())
+	  if (size == 64 && parameters->options().toc_optimize())
 	    {
 	      iview = reinterpret_cast<Insn*>(view - d_offset);
 	      insn = elfcpp::Swap<32, big_endian>::readval(iview);
@@ -11184,7 +11339,7 @@ Target_powerpc<size, big_endian>::Relocate::relocate(
 	case elfcpp::R_PPC64_GOT16_LO_DS:
 	case elfcpp::R_PPC64_TOC16_LO:
 	case elfcpp::R_PPC64_TOC16_LO_DS:
-	  if (parameters->options().toc_optimize())
+	  if (size == 64 && parameters->options().toc_optimize())
 	    {
 	      iview = reinterpret_cast<Insn*>(view - d_offset);
 	      insn = elfcpp::Swap<32, big_endian>::readval(iview);
@@ -11223,7 +11378,7 @@ Target_powerpc<size, big_endian>::Relocate::relocate(
 	  break;
 
 	case elfcpp::R_PPC64_GOT_PCREL34:
-	  if (parameters->options().toc_optimize())
+	  if (size == 64 && parameters->options().toc_optimize())
 	    {
 	      iview = reinterpret_cast<Insn*>(view);
 	      pinsn = elfcpp::Swap<32, big_endian>::readval(iview);
@@ -11249,63 +11404,57 @@ Target_powerpc<size, big_endian>::Relocate::relocate(
 	  break;
 
 	case elfcpp::R_PPC64_PCREL34:
-	  {
-	    iview = reinterpret_cast<Insn*>(view);
-	    pinsn = elfcpp::Swap<32, big_endian>::readval(iview);
-	    pinsn <<= 32;
-	    pinsn |= elfcpp::Swap<32, big_endian>::readval(iview + 1);
-	    if ((pinsn & ((-1ULL << 50) | (63ULL << 26)))
-		!= ((1ULL << 58) | (2ULL << 56) | (1ULL << 52)
-		    | (14ULL << 26) /* paddi */))
-	      break;
+	  if (size == 64)
+	    {
+	      iview = reinterpret_cast<Insn*>(view);
+	      pinsn = elfcpp::Swap<32, big_endian>::readval(iview);
+	      pinsn <<= 32;
+	      pinsn |= elfcpp::Swap<32, big_endian>::readval(iview + 1);
+	      if ((pinsn & ((-1ULL << 50) | (63ULL << 26)))
+		  != ((1ULL << 58) | (2ULL << 56) | (1ULL << 52)
+		      | (14ULL << 26) /* paddi */))
+		break;
 
-	  pcrelopt:
-	    const int reloc_size = elfcpp::Elf_sizes<size>::rela_size;
-	    elfcpp::Shdr<size, big_endian> shdr(relinfo->reloc_shdr);
-	    size_t reloc_count = shdr.get_sh_size() / reloc_size;
-	    if (relnum >= reloc_count - 1)
-	      break;
+	    pcrelopt:
+	      const int reloc_size = elfcpp::Elf_sizes<size>::rela_size;
+	      elfcpp::Shdr<size, big_endian> shdr(relinfo->reloc_shdr);
+	      size_t reloc_count = shdr.get_sh_size() / reloc_size;
+	      if (relnum >= reloc_count - 1)
+		break;
 
-	    Reltype next_rela(preloc + reloc_size);
-	    if ((elfcpp::elf_r_type<size>(next_rela.get_r_info())
-		 != elfcpp::R_PPC64_PCREL_OPT)
-		|| next_rela.get_r_offset() != rela.get_r_offset())
-	      break;
+	      Reltype next_rela(preloc + reloc_size);
+	      if ((elfcpp::elf_r_type<size>(next_rela.get_r_info())
+		   != elfcpp::R_PPC64_PCREL_OPT)
+		  || next_rela.get_r_offset() != rela.get_r_offset())
+		break;
 
-	    Address off = next_rela.get_r_addend();
-	    if (off == 0)
-	      off = 8; // zero means next insn.
-	    if (off + rela.get_r_offset() + 4 > view_size)
-	      break;
+	      Address off = next_rela.get_r_addend();
+	      if (off == 0)
+		off = 8; // zero means next insn.
+	      if (off + rela.get_r_offset() + 4 > view_size)
+		break;
 
-	    iview2 = reinterpret_cast<Insn*>(view + off);
-	    pinsn2 = elfcpp::Swap<32, big_endian>::readval(iview2);
-	    pinsn2 <<= 32;
-	    if ((pinsn2 & (63ULL << 58)) == 1ULL << 58)
-	      break;
-	    if (xlate_pcrel_opt(&pinsn, &pinsn2))
-	      {
-		elfcpp::Swap<32, big_endian>::writeval(iview, pinsn >> 32);
-		elfcpp::Swap<32, big_endian>::writeval(iview + 1,
-						       pinsn & 0xffffffff);
-		elfcpp::Swap<32, big_endian>::writeval(iview2, pinsn2 >> 32);
-	      }
-	  }
+	      iview2 = reinterpret_cast<Insn*>(view + off);
+	      pinsn2 = elfcpp::Swap<32, big_endian>::readval(iview2);
+	      pinsn2 <<= 32;
+	      if ((pinsn2 & (63ULL << 58)) == 1ULL << 58)
+		break;
+	      if (xlate_pcrel_opt(&pinsn, &pinsn2))
+		{
+		  elfcpp::Swap<32, big_endian>::writeval(iview, pinsn >> 32);
+		  elfcpp::Swap<32, big_endian>::writeval(iview + 1,
+							 pinsn & 0xffffffff);
+		  elfcpp::Swap<32, big_endian>::writeval(iview2, pinsn2 >> 32);
+		}
+	    }
 	  break;
 
 	case elfcpp::R_POWERPC_TPREL16_HA:
-	  if (parameters->options().tls_optimize() && value + 0x8000 < 0x10000)
+	  if (target->tprel_opt() && value + 0x8000 < 0x10000)
 	    {
 	      Insn* iview = reinterpret_cast<Insn*>(view - d_offset);
-	      Insn insn = elfcpp::Swap<32, big_endian>::readval(iview);
-	      if ((insn & ((0x3f << 26) | 0x1f << 16))
-		  != ((15u << 26) | ((size == 32 ? 2 : 13) << 16)))
-		;
-	      else
-		{
-		  elfcpp::Swap<32, big_endian>::writeval(iview, nop);
-		  return true;
-		}
+	      elfcpp::Swap<32, big_endian>::writeval(iview, nop);
+	      return true;
 	    }
 	  break;
 
@@ -11315,7 +11464,7 @@ Target_powerpc<size, big_endian>::Relocate::relocate(
 	    break;
 	  // Fall through.
 	case elfcpp::R_POWERPC_TPREL16_LO:
-	  if (parameters->options().tls_optimize() && value + 0x8000 < 0x10000)
+	  if (target->tprel_opt() && value + 0x8000 < 0x10000)
 	    {
 	      Insn* iview = reinterpret_cast<Insn*>(view - d_offset);
 	      Insn insn = elfcpp::Swap<32, big_endian>::readval(iview);
@@ -11326,29 +11475,12 @@ Target_powerpc<size, big_endian>::Relocate::relocate(
 	  break;
 
 	case elfcpp::R_PPC64_ENTRY:
-	  value = (target->got_section()->output_section()->address()
-		   + object->toc_base_offset());
-	  if (value + 0x80008000 <= 0xffffffff
-	      && !parameters->options().output_is_position_independent())
+	  if (size == 64)
 	    {
-	      Insn* iview = reinterpret_cast<Insn*>(view);
-	      Insn insn1 = elfcpp::Swap<32, big_endian>::readval(iview);
-	      Insn insn2 = elfcpp::Swap<32, big_endian>::readval(iview + 1);
-
-	      if ((insn1 & ~0xfffc) == ld_2_12
-		  && insn2 == add_2_2_12)
-		{
-		  insn1 = lis_2 + ha(value);
-		  elfcpp::Swap<32, big_endian>::writeval(iview, insn1);
-		  insn2 = addi_2_2 + l(value);
-		  elfcpp::Swap<32, big_endian>::writeval(iview + 1, insn2);
-		  return true;
-		}
-	    }
-	  else
-	    {
-	      value -= address;
-	      if (value + 0x80008000 <= 0xffffffff)
+	      value = (target->got_section()->output_section()->address()
+		       + object->toc_base_offset());
+	      if (value + 0x80008000 <= 0xffffffff
+		  && !parameters->options().output_is_position_independent())
 		{
 		  Insn* iview = reinterpret_cast<Insn*>(view);
 		  Insn insn1 = elfcpp::Swap<32, big_endian>::readval(iview);
@@ -11357,11 +11489,31 @@ Target_powerpc<size, big_endian>::Relocate::relocate(
 		  if ((insn1 & ~0xfffc) == ld_2_12
 		      && insn2 == add_2_2_12)
 		    {
-		      insn1 = addis_2_12 + ha(value);
+		      insn1 = lis_2 + ha(value);
 		      elfcpp::Swap<32, big_endian>::writeval(iview, insn1);
 		      insn2 = addi_2_2 + l(value);
 		      elfcpp::Swap<32, big_endian>::writeval(iview + 1, insn2);
 		      return true;
+		    }
+		}
+	      else
+		{
+		  value -= address;
+		  if (value + 0x80008000 <= 0xffffffff)
+		    {
+		      Insn* iview = reinterpret_cast<Insn*>(view);
+		      Insn insn1 = elfcpp::Swap<32, big_endian>::readval(iview);
+		      Insn insn2 = elfcpp::Swap<32, big_endian>::readval(iview + 1);
+
+		      if ((insn1 & ~0xfffc) == ld_2_12
+			  && insn2 == add_2_2_12)
+			{
+			  insn1 = addis_2_12 + ha(value);
+			  elfcpp::Swap<32, big_endian>::writeval(iview, insn1);
+			  insn2 = addi_2_2 + l(value);
+			  elfcpp::Swap<32, big_endian>::writeval(iview + 1, insn2);
+			  return true;
+			}
 		    }
 		}
 	    }
@@ -11375,7 +11527,8 @@ Target_powerpc<size, big_endian>::Relocate::relocate(
 	  //		lis 2,.TOC.@ha
 	  //		addi 2,2,.TOC.@l
 	  // if .TOC. is in range.  */
-	  if (value + address - 4 + 0x80008000 <= 0xffffffff
+	  if (size == 64
+	      && value + address - 4 + 0x80008000 <= 0xffffffff
 	      && relnum + 1 > 1
 	      && preloc != NULL
 	      && target->abiversion() >= 2
@@ -11793,8 +11946,8 @@ Target_powerpc<size, big_endian>::Relocate::relocate(
 	  loc.object = relinfo->object;
 	  loc.shndx = relinfo->data_shndx;
 	  loc.offset = rela.get_r_offset();
-	  Tocsave_loc::const_iterator p = target->tocsave_loc().find(loc);
-	  if (p != target->tocsave_loc().end())
+	  const Tocsave_loc *tocsave = target->tocsave_loc();
+	  if (tocsave->find(loc) != tocsave->end())
 	    {
 	      // If we've generated plt calls using this tocsave, then
 	      // the nop needs to be changed to save r2.

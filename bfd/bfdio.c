@@ -1,6 +1,6 @@
 /* Low-level I/O routines for BFDs.
 
-   Copyright (C) 1990-2020 Free Software Foundation, Inc.
+   Copyright (C) 1990-2021 Free Software Foundation, Inc.
 
    Written by Cygnus Support.
 
@@ -116,13 +116,32 @@ _bfd_real_fopen (const char *filename, const char *modes)
     }
 
 #elif defined (_WIN32)
-  size_t filelen = strlen (filename) + 1;
+  size_t filelen;
+
+  /* PR 25713: Handle extra long path names.
+     For relative paths, convert them to absolute, in case that version is too long.  */
+  if (! IS_ABSOLUTE_PATH (filename) && (strstr (filename, ".o") != NULL))
+    {
+      char cwd[1024];
+
+      getcwd (cwd, sizeof (cwd));
+      filelen = strlen (cwd) + 1;
+      strncat (cwd, "\\", sizeof (cwd) - filelen);
+      ++ filelen;
+      strncat (cwd, filename, sizeof (cwd) - filelen);
+
+      filename = cwd;
+    }
+
+  filelen = strlen (filename) + 1;
 
   if (filelen > MAX_PATH - 1)
     {
       FILE * file;
-      char * fullpath = (char *) malloc (filelen + 8);
+      char * fullpath;
       int    i;
+
+      fullpath = (char *) malloc (filelen + 8);
 
       /* Add a Microsoft recommended prefix that
 	 will allow the extra-long path to work.  */
@@ -493,13 +512,17 @@ bfd_get_file_size (bfd *abfd)
       && !bfd_is_thin_archive (abfd->my_archive))
     {
       struct areltdata *adata = (struct areltdata *) abfd->arelt_data;
-      archive_size = adata->parsed_size;
-      /* If the archive is compressed we can't compare against file size.  */
-      if (adata->arch_header != NULL
-	  && memcmp (((struct ar_hdr *) adata->arch_header)->ar_fmag,
-		     "Z\012", 2) == 0)
-	return archive_size;
-      abfd = abfd->my_archive;
+      if (adata != NULL)
+	{
+	  archive_size = adata->parsed_size;
+	  /* If the archive is compressed we can't compare against
+	     file size.  */
+	  if (adata->arch_header != NULL
+	      && memcmp (((struct ar_hdr *) adata->arch_header)->ar_fmag,
+			 "Z\012", 2) == 0)
+	    return archive_size;
+	  abfd = abfd->my_archive;
+	}
     }
 
   file_size = bfd_get_size (abfd);

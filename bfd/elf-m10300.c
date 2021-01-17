@@ -1,5 +1,5 @@
 /* Matsushita 10300 specific support for 32-bit ELF
-   Copyright (C) 1996-2020 Free Software Foundation, Inc.
+   Copyright (C) 1996-2021 Free Software Foundation, Inc.
 
    This file is part of BFD, the Binary File Descriptor library.
 
@@ -128,8 +128,9 @@ struct elf_mn10300_obj_tdata
 /* Get the MN10300 ELF linker hash table from a link_info structure.  */
 
 #define elf32_mn10300_hash_table(p) \
-  (elf_hash_table_id ((struct elf_link_hash_table *) ((p)->hash)) \
-  == MN10300_ELF_DATA ? ((struct elf32_mn10300_link_hash_table *) ((p)->hash)) : NULL)
+  ((is_elf_hash_table ((p)->hash)					\
+    && elf_hash_table_id (elf_hash_table (p)) == MN10300_ELF_DATA)	\
+   ? (struct elf32_mn10300_link_hash_table *) (p)->hash : NULL)
 
 #define elf32_mn10300_link_hash_traverse(table, func, info)		\
   (elf_link_hash_traverse						\
@@ -2417,17 +2418,19 @@ mn10300_elf_relax_delete_bytes (bfd *abfd,
 	 are deleting.  */
       for (; irel < irelend; irel++)
 	{
-	  int alignment = 1 << irel->r_addend;
-
 	  if (ELF32_R_TYPE (irel->r_info) == (int) R_MN10300_ALIGN
 	      && irel->r_offset > addr
-	      && irel->r_offset < toaddr
-	      && (count < alignment
-		  || alignment % count != 0))
+	      && irel->r_offset < toaddr)
 	    {
-	      irelalign = irel;
-	      toaddr = irel->r_offset;
-	      break;
+	      int alignment = 1 << irel->r_addend;
+
+	      if (count < alignment
+		  || alignment % count != 0)
+		{
+		  irelalign = irel;
+		  toaddr = irel->r_offset;
+		  break;
+		}
 	    }
 	}
     }
@@ -3931,7 +3934,7 @@ mn10300_elf_relax_section (bfd *abfd,
 	  /* See if the value will fit in 24 bits.
 	     We allow any 16bit match here.  We prune those we can't
 	     handle below.  */
-	  if ((long) value < 0x7fffff && (long) value > -0x800000)
+	  if (value + 0x800000 < 0x1000000 && irel->r_offset >= 3)
 	    {
 	      unsigned char code;
 
@@ -4002,7 +4005,7 @@ mn10300_elf_relax_section (bfd *abfd,
 	  /* See if the value will fit in 16 bits.
 	     We allow any 16bit match here.  We prune those we can't
 	     handle below.  */
-	  if ((long) value < 0x7fff && (long) value > -0x8000)
+	  if (value + 0x8000 < 0x10000 && irel->r_offset >= 2)
 	    {
 	      unsigned char code;
 

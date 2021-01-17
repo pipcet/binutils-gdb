@@ -1,4 +1,4 @@
-# Copyright 2019-2020 Free Software Foundation, Inc.
+# Copyright 2019-2021 Free Software Foundation, Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,6 +18,8 @@
 
 standard_testfile "pointers.f90"
 load_lib fortran.exp
+
+if {[skip_fortran_tests]} { return -1 }
 
 if { [prepare_for_testing ${testfile}.exp ${testfile} ${srcfile} \
     {debug f90 quiet}] } {

@@ -1,5 +1,5 @@
 /* Alpha specific support for 64-bit ELF
-   Copyright (C) 1996-2020 Free Software Foundation, Inc.
+   Copyright (C) 1996-2021 Free Software Foundation, Inc.
    Contributed by Richard Henderson <rth@tamu.edu>.
 
    This file is part of BFD, the Binary File Descriptor library.
@@ -52,11 +52,11 @@
 
 /* Instruction data for plt generation and relaxation.  */
 
-#define OP_LDA		0x08
-#define OP_LDAH		0x09
-#define OP_LDQ		0x29
-#define OP_BR		0x30
-#define OP_BSR		0x34
+#define OP_LDA		0x08U
+#define OP_LDAH		0x09U
+#define OP_LDQ		0x29U
+#define OP_BR		0x30U
+#define OP_BSR		0x34U
 
 #define INSN_LDA	(OP_LDA << 26)
 #define INSN_LDAH	(OP_LDAH << 26)
@@ -73,11 +73,11 @@
 #define INSN_JMP	0x68000000
 #define INSN_JSR_MASK	0xfc00c000
 
-#define INSN_A(I,A)		(I | (A << 21))
-#define INSN_AB(I,A,B)		(I | (A << 21) | (B << 16))
-#define INSN_ABC(I,A,B,C)	(I | (A << 21) | (B << 16) | C)
-#define INSN_ABO(I,A,B,O)	(I | (A << 21) | (B << 16) | ((O) & 0xffff))
-#define INSN_AD(I,A,D)		(I | (A << 21) | (((D) >> 2) & 0x1fffff))
+#define INSN_A(I,A)		(I | ((unsigned) A << 21))
+#define INSN_AB(I,A,B)		(INSN_A (I, A) | (B << 16))
+#define INSN_ABC(I,A,B,C)	(INSN_A (I, A) | (B << 16) | C)
+#define INSN_ABO(I,A,B,O)	(INSN_A (I, A) | (B << 16) | ((O) & 0xffff))
+#define INSN_AD(I,A,D)		(INSN_A (I, A) | (((D) >> 2) & 0x1fffff))
 
 /* PLT/GOT Stuff */
 
@@ -216,8 +216,9 @@ struct alpha_elf_link_hash_table
 /* Get the Alpha ELF linker hash table from a link_info structure.  */
 
 #define alpha_elf_hash_table(p) \
-  (elf_hash_table_id ((struct elf_link_hash_table *) ((p)->hash)) \
-  == ALPHA_ELF_DATA ? ((struct alpha_elf_link_hash_table *) ((p)->hash)) : NULL)
+  ((is_elf_hash_table ((p)->hash)					\
+    && elf_hash_table_id (elf_hash_table (p)) == ALPHA_ELF_DATA)	\
+   ? (struct alpha_elf_link_hash_table *) (p)->hash : NULL)
 
 /* Get the object's symbols as our own entry type.  */
 
@@ -1240,6 +1241,7 @@ elf64_alpha_add_symbol_hook (bfd *abfd, struct bfd_link_info *info,
 	  scomm = bfd_make_section_with_flags (abfd, ".scommon",
 					       (SEC_ALLOC
 						| SEC_IS_COMMON
+						| SEC_SMALL_DATA
 						| SEC_LINKER_CREATED));
 	  if (scomm == NULL)
 	    return FALSE;
@@ -2091,13 +2093,13 @@ elf64_alpha_adjust_dynamic_symbol (struct bfd_link_info *info,
 
 static void
 elf64_alpha_merge_symbol_attribute (struct elf_link_hash_entry *h,
-				    const Elf_Internal_Sym *isym,
+				    unsigned int st_other,
 				    bfd_boolean definition,
 				    bfd_boolean dynamic)
 {
   if (!dynamic && definition)
     h->other = ((h->other & ELF_ST_VISIBILITY (-1))
-		| (isym->st_other & ~ELF_ST_VISIBILITY (-1)));
+		| (st_other & ~ELF_ST_VISIBILITY (-1)));
 }
 
 /* Symbol versioning can create new symbols, and make our old symbols
@@ -2993,7 +2995,8 @@ elf64_alpha_relax_got_load (struct alpha_relax_info *info, bfd_vma symval,
     }
 
   /* Can't relax dynamic symbols.  */
-  if (alpha_elf_dynamic_symbol_p (&info->h->root, info->link_info))
+  if (info->h != NULL
+      && alpha_elf_dynamic_symbol_p (&info->h->root, info->link_info))
     return TRUE;
 
   /* Can't use local-exec relocations in shared libraries.  */
@@ -3461,7 +3464,8 @@ elf64_alpha_relax_tls_get_addr (struct alpha_relax_info *info, bfd_vma symval,
   bfd_boolean dynamic, use_gottprel;
   unsigned long new_symndx;
 
-  dynamic = alpha_elf_dynamic_symbol_p (&info->h->root, info->link_info);
+  dynamic = (info->h != NULL
+	     && alpha_elf_dynamic_symbol_p (&info->h->root, info->link_info));
 
   /* If a TLS symbol is accessed using IE at least once, there is no point
      to use dynamic model for it.  */

@@ -1,6 +1,6 @@
 /* Inline frame unwinder for GDB.
 
-   Copyright (C) 2008-2020 Free Software Foundation, Inc.
+   Copyright (C) 2008-2021 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -161,7 +161,8 @@ inline_frame_this_id (struct frame_info *this_frame,
      real frame's this_id method.  So we must call
      get_prev_frame_always.  Because we are inlined into some
      function, there must be previous frames, so this is safe - as
-     long as we're careful not to create any cycles.  */
+     long as we're careful not to create any cycles.  See related
+     comments in get_prev_frame_always_1.  */
   *this_id = get_frame_id (get_prev_frame_always (this_frame));
 
   /* We need a valid frame ID, so we need to be based on a valid
@@ -170,10 +171,6 @@ inline_frame_this_id (struct frame_info *this_frame,
      of null_frame_id (between "no/any frame" and "the outermost
      frame").  This will take work.  */
   gdb_assert (frame_id_p (*this_id));
-
-  /* For now, require we don't match outer_frame_id either (see
-     comment above).  */
-  gdb_assert (!frame_id_eq (*this_id, outer_frame_id));
 
   /* Future work NOTE: Alexandre Oliva applied a patch to GCC 4.3
      which generates DW_AT_entry_pc for inlined functions when
@@ -303,7 +300,8 @@ block_starting_point_at (CORE_ADDR pc, const struct block *block)
 }
 
 /* Loop over the stop chain and determine if execution stopped in an
-   inlined frame because of a user breakpoint set at FRAME_BLOCK.  */
+   inlined frame because of a breakpoint with a user-specified location
+   set at FRAME_BLOCK.  */
 
 static bool
 stopped_by_user_bp_inline_frame (const block *frame_block, bpstat stop_chain)
@@ -312,9 +310,10 @@ stopped_by_user_bp_inline_frame (const block *frame_block, bpstat stop_chain)
     {
       struct breakpoint *bpt = s->breakpoint_at;
 
-      if (bpt != NULL && user_breakpoint_p (bpt))
+      if (bpt != NULL
+	  && (user_breakpoint_p (bpt) || bpt->type == bp_until))
 	{
-	  bp_location *loc = s->bp_location_at;
+	  bp_location *loc = s->bp_location_at.get ();
 	  enum bp_loc_type t = loc->loc_type;
 
 	  if (t == bp_loc_software_breakpoint

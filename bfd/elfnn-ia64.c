@@ -1,5 +1,5 @@
 /* IA-64 support for 64-bit ELF
-   Copyright (C) 1998-2020 Free Software Foundation, Inc.
+   Copyright (C) 1998-2021 Free Software Foundation, Inc.
    Contributed by David Mosberger-Tang <davidm@hpl.hp.com>
 
    This file is part of BFD, the Binary File Descriptor library.
@@ -166,8 +166,9 @@ struct elfNN_ia64_allocate_data
 };
 
 #define elfNN_ia64_hash_table(p) \
-  (elf_hash_table_id ((struct elf_link_hash_table *) ((p)->hash)) \
-  == IA64_ELF_DATA ? ((struct elfNN_ia64_link_hash_table *) ((p)->hash)) : NULL)
+  ((is_elf_hash_table ((p)->hash)					\
+    && elf_hash_table_id (elf_hash_table (p)) == IA64_ELF_DATA)		\
+   ? (struct elfNN_ia64_link_hash_table *) (p)->hash : NULL)
 
 static struct elfNN_ia64_dyn_sym_info * get_dyn_sym_info
   (struct elfNN_ia64_link_hash_table *ia64_info,
@@ -1064,6 +1065,7 @@ elfNN_ia64_add_symbol_hook (bfd *abfd,
 	  scomm = bfd_make_section_with_flags (abfd, ".scommon",
 					       (SEC_ALLOC
 						| SEC_IS_COMMON
+						| SEC_SMALL_DATA
 						| SEC_LINKER_CREATED));
 	  if (scomm == NULL)
 	    return FALSE;
@@ -1865,18 +1867,16 @@ get_dyn_sym_info (struct elfNN_ia64_link_hash_table *ia64_info,
 	      key.addend = addend;
 	      dyn_i = bsearch (&key, info, sorted_count,
 			       sizeof (*info), addend_compare);
-
 	      if (dyn_i)
-		{
-		  return dyn_i;
-		}
+		return dyn_i;
 	    }
 
-	  /* Do a quick check for the last inserted entry.  */
-	  dyn_i = info + count - 1;
-	  if (dyn_i->addend == addend)
+	  if (count != 0)
 	    {
-	      return dyn_i;
+	      /* Do a quick check for the last inserted entry.  */
+	      dyn_i = info + count - 1;
+	      if (dyn_i->addend == addend)
+		return dyn_i;
 	    }
 	}
 
@@ -1930,19 +1930,23 @@ get_dyn_sym_info (struct elfNN_ia64_link_hash_table *ia64_info,
       if (size != count)
 	{
 	  amt = count * sizeof (*info);
-	  info = bfd_malloc (amt);
-	  if (info != NULL)
-	    {
-	      memcpy (info, *info_p, amt);
-	      free (*info_p);
-	      *size_p = count;
-	      *info_p = info;
-	    }
+	  info = bfd_realloc (info, amt);
+	  *size_p = count;
+	  if (info == NULL && count != 0)
+	    /* realloc should never fail since we are reducing size here,
+	       but if it does use the old array.  */
+	    info = *info_p;
+	  else
+	    *info_p = info;
 	}
 
-      key.addend = addend;
-      dyn_i = bsearch (&key, info, count,
-		       sizeof (*info), addend_compare);
+      if (count == 0)
+	dyn_i = NULL;
+      else
+	{
+	  key.addend = addend;
+	  dyn_i = bsearch (&key, info, count, sizeof (*info), addend_compare);
+	}
     }
 
   return dyn_i;

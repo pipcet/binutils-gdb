@@ -1,4 +1,4 @@
-#   Copyright (C) 1994-2020 Free Software Foundation, Inc.
+#   Copyright (C) 1994-2021 Free Software Foundation, Inc.
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -82,6 +82,7 @@ proc objcopy_test {testname srcfile type asflags ldflags} {
     set got [binutils_run $OBJCOPY "$OBJCOPYFLAGS $xflags $t_tempfile $t_copyfile"]
 
     if ![string equal "" $got] then {
+	send_log "$got\n"
 	fail "objcopy $type ($testname)"
     } else {
 	send_log "cmp $t_tempfile $t_copyfile\n"
@@ -170,7 +171,11 @@ if { [file exists $tempfile] } {
     set reversed ${tempfile}-reversed
     set sect_names [get_standard_section_names]
     if { $sect_names != "" } {
-	set got [binutils_run $OBJCOPY "$OBJCOPYFLAGS -j [lindex $sect_names 1] --reverse-bytes=4 $tempfile $reversed"]
+	if { [istarget hppa*-*-hpux*] } {
+	    set got [binutils_run $OBJCOPY "$OBJCOPYFLAGS -j \$PRIVATE\$ -j [lindex $sect_names 1] --reverse-bytes=4 $tempfile $reversed"]
+	} else {
+	    set got [binutils_run $OBJCOPY "$OBJCOPYFLAGS -j [lindex $sect_names 1] --reverse-bytes=4 $tempfile $reversed"]
+	}
     } else {
 	set got [binutils_run $OBJCOPY "$OBJCOPYFLAGS -j .data --reverse-bytes=4 $tempfile $reversed"]
     }
@@ -191,10 +196,6 @@ if { [file exists $tempfile] } {
 	set found_rev [regexp -lineanchor $want $revdata -> revdata]
 
 	if {$found_orig == 0 || $found_rev == 0} then {
-	    # som doesn't have a .data section
-	    setup_xfail "hppa*-*-hpux*"
-	    clear_xfail "hppa*64*-*-hpux*"
-
 	    fail "objcopy --reverse-bytes"
 	} else {
 	    scan $origdata "%2x%2x%2x%2x" b1 b2 b3 b4
@@ -1359,7 +1360,12 @@ if { [istarget pdp11-*-*] } {
     set src "pr25662.s"
 }
 
+set ldflags "-T$srcdir/$subdir/pr25662.ld"
+if { [istarget *-*-cygwin] || [istarget *-*-mingw*] } {
+   append ldflags " --disable-reloc-section"
+}
+
 #xcoff doesn't support arbitrary sections
 if { ![is_xcoff_format] } {
-    objcopy_test "pr25662" $src executable "" "-T$srcdir/$subdir/pr25662.ld"
+    objcopy_test "pr25662" $src executable "" $ldflags
 }

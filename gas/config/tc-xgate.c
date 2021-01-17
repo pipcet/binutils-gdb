@@ -1,5 +1,5 @@
 /* tc-xgate.c -- Assembler code for Freescale XGATE
-   Copyright (C) 2010-2020 Free Software Foundation, Inc.
+   Copyright (C) 2010-2021 Free Software Foundation, Inc.
    Contributed by Sean Keys <skeys@ipdatasys.com>
 
    This file is part of GAS, the GNU Assembler.
@@ -113,7 +113,7 @@ static void xgate_scan_operands (struct xgate_opcode *opcode, s_operand []);
 static unsigned int xgate_parse_operand (struct xgate_opcode *, int *, int,
 					 char **, s_operand);
 
-static struct hash_control *xgate_hash;
+static htab_t xgate_hash;
 
 /* Previous opcode.  */
 static unsigned int prev = 0;
@@ -324,7 +324,7 @@ md_begin (void)
   op_handles = XNEWVEC (struct xgate_opcode_handle, number_of_op_handles);
 
   /* Insert unique opcode names into hash table, aliasing duplicates.  */
-  xgate_hash = hash_new ();
+  xgate_hash = str_htab_create ();
 
   prev_op_name = "";
   for (xgate_opcode_ptr = xgate_op_table, i = 0, j = 0; i < xgate_num_opcodes;
@@ -342,8 +342,7 @@ md_begin (void)
 	    j++;
 	  op_handles[j].name = xgate_opcode_ptr->name;
 	  op_handles[j].opc0[0] = xgate_opcode_ptr;
-	  hash_insert (xgate_hash, (char *) op_handles[j].name,
-		       (char *) &(op_handles[j]));
+	  str_hash_insert (xgate_hash, op_handles[j].name, &op_handles[j], 0);
 	}
       op_handles[j].number_of_modes = handle_enum;
       prev_op_name = op_handles[j].name;
@@ -492,11 +491,10 @@ md_assemble (char *input_line)
   if (!op_name[0])
     as_bad (_("opcode missing or not found on input line"));
 
-  if (!(opcode_handle = (struct xgate_opcode_handle *) hash_find (xgate_hash,
-								  op_name)))
-    {
-      as_bad (_("opcode %s not found in opcode hash table"), op_name);
-    }
+  opcode_handle = (struct xgate_opcode_handle *) str_hash_find (xgate_hash,
+								op_name);
+  if (!opcode_handle)
+    as_bad (_("opcode %s not found in opcode hash table"), op_name);
   else
     {
       /* Parse operands so we can find the proper opcode bin.  */
@@ -543,8 +541,10 @@ md_assemble (char *input_line)
 	      input_line = macro_inline; /* Rewind.  */
 	      p = extract_word (p, op_name, 10);
 
-	      if (!(opcode_handle = (struct xgate_opcode_handle *)
-		    hash_find (xgate_hash, op_name)))
+	      opcode_handle
+		= (struct xgate_opcode_handle *) str_hash_find (xgate_hash,
+								op_name);
+	      if (!opcode_handle)
 		{
 		  as_bad (_(": processing macro, real opcode handle"
 			    " not found in hash"));
@@ -1007,7 +1007,7 @@ xgate_frob_symbol (symbolS *sym)
   elf_symbol_type *elfsym;
 
   bfdsym = symbol_get_bfdsym (sym);
-  elfsym = elf_symbol_from (bfd_asymbol_bfd (bfdsym), bfdsym);
+  elfsym = elf_symbol_from (bfdsym);
 
   gas_assert (elfsym);
 

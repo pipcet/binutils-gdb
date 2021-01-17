@@ -1,6 +1,6 @@
 /* Motorola m68k target-dependent support for GNU/Linux.
 
-   Copyright (C) 1996-2020 Free Software Foundation, Inc.
+   Copyright (C) 1996-2021 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -211,7 +211,7 @@ struct m68k_linux_sigtramp_info
 static int target_is_uclinux;
 
 static void
-m68k_linux_inferior_created (struct target_ops *objfile, int from_tty)
+m68k_linux_inferior_created (inferior *inf)
 {
   /* Record that we will need to re-evaluate whether we are running on a
      uClinux or normal GNU/Linux target (see m68k_linux_get_sigtramp_info).  */
@@ -385,7 +385,7 @@ m68k_linux_init_abi (struct gdbarch_info info, struct gdbarch *gdbarch)
 {
   struct gdbarch_tdep *tdep = gdbarch_tdep (gdbarch);
 
-  linux_init_abi (info, gdbarch);
+  linux_init_abi (info, gdbarch, 0);
 
   tdep->jb_pc = M68K_LINUX_JB_PC;
   tdep->jb_elt_size = M68K_LINUX_JB_ELEMENT_SIZE;
@@ -420,7 +420,7 @@ m68k_linux_init_abi (struct gdbarch_info info, struct gdbarch *gdbarch)
 
   /* Enable TLS support.  */
   set_gdbarch_fetch_tls_load_module_address (gdbarch,
-                                             svr4_fetch_objfile_link_map);
+					     svr4_fetch_objfile_link_map);
 }
 
 void _initialize_m68k_linux_tdep ();

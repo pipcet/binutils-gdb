@@ -1,5 +1,5 @@
 /* Select disassembly routine for specified architecture.
-   Copyright (C) 1994-2020 Free Software Foundation, Inc.
+   Copyright (C) 1994-2021 Free Software Foundation, Inc.
 
    This file is part of the GNU opcodes library.
 
@@ -117,7 +117,7 @@
 # ifdef ARCH_m32c
 enum epbf_isa_attr
 {
- ISA_EBPFLE, ISA_EBPFBE, ISA_EBPFMAX
+  ISA_EBPFLE, ISA_EBPFBE, ISA_XBPFLE, ISA_XBPFBE, ISA_EBPFMAX
 };
 # else
 #  include "bpf-desc.h"
@@ -409,7 +409,7 @@ disassembler (enum bfd_architecture a,
 #endif
 #ifdef ARCH_riscv
     case bfd_arch_riscv:
-      disassemble = print_insn_riscv;
+      disassemble = riscv_get_disassembler (abfd);
       break;
 #endif
 #ifdef ARCH_rl78
@@ -675,11 +675,19 @@ disassemble_init_for_target (struct disassemble_info * info)
       info->endian_code = BFD_ENDIAN_LITTLE;
       if (!info->private_data)
 	{
-	  info->private_data = cgen_bitset_create (ISA_EBPFMAX);
+	  info->private_data = cgen_bitset_create (ISA_MAX);
 	  if (info->endian == BFD_ENDIAN_BIG)
-	    cgen_bitset_set (info->private_data, ISA_EBPFBE);
+	    {
+	      cgen_bitset_set (info->private_data, ISA_EBPFBE);
+	      if (info->mach == bfd_mach_xbpf)
+		cgen_bitset_set (info->private_data, ISA_XBPFBE);
+	    }
 	  else
-	    cgen_bitset_set (info->private_data, ISA_EBPFLE);
+	    {
+	      cgen_bitset_set (info->private_data, ISA_EBPFLE);
+	      if (info->mach == bfd_mach_xbpf)
+		cgen_bitset_set (info->private_data, ISA_XBPFLE);
+	    }
 	}
       break;
 #endif

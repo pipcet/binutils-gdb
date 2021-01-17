@@ -1,5 +1,5 @@
 /* Renesas / SuperH SH specific support for 32-bit ELF
-   Copyright (C) 1996-2020 Free Software Foundation, Inc.
+   Copyright (C) 1996-2021 Free Software Foundation, Inc.
    Contributed by Ian Lance Taylor, Cygnus Support.
 
    This file is part of BFD, the Binary File Descriptor library.
@@ -2192,8 +2192,9 @@ struct elf_sh_link_hash_table
 /* Get the sh ELF linker hash table from a link_info structure.  */
 
 #define sh_elf_hash_table(p) \
-  (elf_hash_table_id ((struct elf_link_hash_table *) ((p)->hash)) \
-  == SH_ELF_DATA ? ((struct elf_sh_link_hash_table *) ((p)->hash)) : NULL)
+  ((is_elf_hash_table ((p)->hash)					\
+    && elf_hash_table_id (elf_hash_table (p)) == SH_ELF_DATA)		\
+   ? (struct elf_sh_link_hash_table *) (p)->hash : NULL)
 
 /* Create an entry in an sh ELF linker hash table.  */
 

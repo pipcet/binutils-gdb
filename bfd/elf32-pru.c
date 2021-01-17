@@ -1,5 +1,5 @@
 /* 32-bit ELF support for TI PRU.
-   Copyright (C) 2014-2020 Free Software Foundation, Inc.
+   Copyright (C) 2014-2021 Free Software Foundation, Inc.
    Contributed by Dimitar Dimitrov <dimitar@dinux.eu>
    Based on elf32-nios2.c
 
@@ -539,7 +539,7 @@ pru_elf32_do_ldi32_relocate (bfd *abfd, reloc_howto_type *howto,
 			     bfd_byte *data, bfd_vma offset,
 			     bfd_vma symbol_value, bfd_vma addend)
 {
-  bfd_signed_vma relocation;
+  bfd_vma relocation;
   bfd_size_type octets = offset * OCTETS_PER_BYTE (abfd, input_section);
   bfd_byte *location;
   unsigned long in1, in2;

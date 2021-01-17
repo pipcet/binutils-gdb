@@ -1,5 +1,5 @@
 /* OpenCL language support for GDB, the GNU debugger.
-   Copyright (C) 2010-2020 Free Software Foundation, Inc.
+   Copyright (C) 2010-2021 Free Software Foundation, Inc.
 
    Contributed by Ken Werner <ken.werner@de.ibm.com>.
 
@@ -28,49 +28,6 @@
 #include "c-lang.h"
 #include "gdbarch.h"
 
-/* This macro generates enum values from a given type.  */
-
-#define OCL_P_TYPE(TYPE)\
-  opencl_primitive_type_##TYPE,\
-  opencl_primitive_type_##TYPE##2,\
-  opencl_primitive_type_##TYPE##3,\
-  opencl_primitive_type_##TYPE##4,\
-  opencl_primitive_type_##TYPE##8,\
-  opencl_primitive_type_##TYPE##16
-
-enum opencl_primitive_types {
-  OCL_P_TYPE (char),
-  OCL_P_TYPE (uchar),
-  OCL_P_TYPE (short),
-  OCL_P_TYPE (ushort),
-  OCL_P_TYPE (int),
-  OCL_P_TYPE (uint),
-  OCL_P_TYPE (long),
-  OCL_P_TYPE (ulong),
-  OCL_P_TYPE (half),
-  OCL_P_TYPE (float),
-  OCL_P_TYPE (double),
-  opencl_primitive_type_bool,
-  opencl_primitive_type_unsigned_char,
-  opencl_primitive_type_unsigned_short,
-  opencl_primitive_type_unsigned_int,
-  opencl_primitive_type_unsigned_long,
-  opencl_primitive_type_size_t,
-  opencl_primitive_type_ptrdiff_t,
-  opencl_primitive_type_intptr_t,
-  opencl_primitive_type_uintptr_t,
-  opencl_primitive_type_void,
-  nr_opencl_primitive_types
-};
-
-static struct gdbarch_data *opencl_type_data;
-
-static struct type **
-builtin_opencl_type (struct gdbarch *gdbarch)
-{
-  return (struct type **) gdbarch_data (gdbarch, opencl_type_data);
-}
-
 /* Returns the corresponding OpenCL vector type from the given type code,
    the length of the element type, the unsigned flag and the amount of
    elements (N).  */
@@ -80,10 +37,7 @@ lookup_opencl_vector_type (struct gdbarch *gdbarch, enum type_code code,
 			   unsigned int el_length, unsigned int flag_unsigned,
 			   int n)
 {
-  int i;
   unsigned int length;
-  struct type *type = NULL;
-  struct type **types = builtin_opencl_type (gdbarch);
 
   /* Check if n describes a valid OpenCL vector size (2, 3, 4, 8, 16).  */
   if (n != 2 && n != 3 && n != 4 && n != 8 && n != 16)
@@ -92,24 +46,20 @@ lookup_opencl_vector_type (struct gdbarch *gdbarch, enum type_code code,
   /* Triple vectors have the size of a quad vector.  */
   length = (n == 3) ?  el_length * 4 : el_length * n;
 
-  for (i = 0; i < nr_opencl_primitive_types; i++)
-    {
-      LONGEST lowb, highb;
+  auto filter = [&] (struct type *type)
+  {
+    LONGEST lowb, highb;
 
-      if (types[i]->code () == TYPE_CODE_ARRAY && TYPE_VECTOR (types[i])
-	  && get_array_bounds (types[i], &lowb, &highb)
-	  && TYPE_TARGET_TYPE (types[i])->code () == code
-	  && TYPE_UNSIGNED (TYPE_TARGET_TYPE (types[i])) == flag_unsigned
-	  && TYPE_LENGTH (TYPE_TARGET_TYPE (types[i])) == el_length
-	  && TYPE_LENGTH (types[i]) == length
-	  && highb - lowb + 1 == n)
-	{
-	  type = types[i];
-	  break;
-	}
-    }
-
-  return type;
+    return (type->code () == TYPE_CODE_ARRAY && type->is_vector ()
+	    && get_array_bounds (type, &lowb, &highb)
+	    && TYPE_TARGET_TYPE (type)->code () == code
+	    && TYPE_TARGET_TYPE (type)->is_unsigned () == flag_unsigned
+	    && TYPE_LENGTH (TYPE_TARGET_TYPE (type)) == el_length
+	    && TYPE_LENGTH (type) == length
+	    && highb - lowb + 1 == n);
+  };
+  const struct language_defn *lang = language_def (language_opencl);
+  return language_lookup_primitive_type (lang, gdbarch, filter);
 }
 
 /* Returns nonzero if the array ARR contains duplicates within
@@ -123,10 +73,10 @@ array_has_dups (int *arr, int n)
   for (i = 0; i < n; i++)
     {
       for (j = i + 1; j < n; j++)
-        {
-          if (arr[i] == arr[j])
-            return 1;
-        }
+	{
+	  if (arr[i] == arr[j])
+	    return 1;
+	}
     }
 
   return 0;
@@ -327,9 +277,9 @@ create_value (struct gdbarch *gdbarch, struct value *val, enum noside noside,
   if (n == 1)
     {
       if (noside == EVAL_AVOID_SIDE_EFFECTS)
-        ret = value_zero (elm_type, not_lval);
+	ret = value_zero (elm_type, not_lval);
       else
-        ret = value_subscript (val, indices[0]);
+	ret = value_subscript (val, indices[0]);
     }
   else
     {
@@ -338,7 +288,7 @@ create_value (struct gdbarch *gdbarch, struct value *val, enum noside noside,
       struct type *dst_type =
 	lookup_opencl_vector_type (gdbarch, elm_type->code (),
 				   TYPE_LENGTH (elm_type),
-				   TYPE_UNSIGNED (elm_type), n);
+				   elm_type->is_unsigned (), n);
 
       if (dst_type == NULL)
 	dst_type = init_vector_type (elm_type, n);
@@ -377,8 +327,8 @@ create_value (struct gdbarch *gdbarch, struct value *val, enum noside noside,
 /* OpenCL vector component access.  */
 
 static struct value *
-opencl_component_ref (struct expression *exp, struct value *val, char *comps,
-		      enum noside noside)
+opencl_component_ref (struct expression *exp, struct value *val,
+		      const char *comps, enum noside noside)
 {
   LONGEST lowb, highb;
   int src_len;
@@ -423,14 +373,14 @@ opencl_component_ref (struct expression *exp, struct value *val, char *comps,
       dst_len = (src_len == 3) ? 2 : src_len / 2;
 
       for (i = 0; i < dst_len; i++)
-        indices[i] = i*2+1;
+	indices[i] = i*2+1;
     }
   else if (strncasecmp (comps, "s", 1) == 0)
     {
 #define HEXCHAR_TO_INT(C) ((C >= '0' && C <= '9') ? \
-                           C-'0' : ((C >= 'A' && C <= 'F') ? \
-                           C-'A'+10 : ((C >= 'a' && C <= 'f') ? \
-                           C-'a'+10 : -1)))
+			   C-'0' : ((C >= 'A' && C <= 'F') ? \
+			   C-'A'+10 : ((C >= 'a' && C <= 'f') ? \
+			   C-'a'+10 : -1)))
 
       dst_len = strlen (comps);
       /* Skip the s/S-prefix.  */
@@ -497,7 +447,7 @@ opencl_logical_not (struct expression *exp, struct value *arg)
   struct type *rettype;
   struct value *ret;
 
-  if (type->code () == TYPE_CODE_ARRAY && TYPE_VECTOR (type))
+  if (type->code () == TYPE_CODE_ARRAY && type->is_vector ())
     {
       struct type *eltype = check_typedef (TYPE_TARGET_TYPE (type));
       LONGEST lowb, highb;
@@ -586,8 +536,8 @@ vector_relop (struct expression *exp, struct value *val1, struct value *val2,
   type1 = check_typedef (value_type (val1));
   type2 = check_typedef (value_type (val2));
 
-  t1_is_vec = (type1->code () == TYPE_CODE_ARRAY && TYPE_VECTOR (type1));
-  t2_is_vec = (type2->code () == TYPE_CODE_ARRAY && TYPE_VECTOR (type2));
+  t1_is_vec = (type1->code () == TYPE_CODE_ARRAY && type1->is_vector ());
+  t2_is_vec = (type2->code () == TYPE_CODE_ARRAY && type2->is_vector ());
 
   if (!t1_is_vec || !t2_is_vec)
     error (_("Vector operations are not supported on scalar types"));
@@ -602,7 +552,7 @@ vector_relop (struct expression *exp, struct value *val1, struct value *val2,
   /* Check whether the vector types are compatible.  */
   if (eltype1->code () != eltype2->code ()
       || TYPE_LENGTH (eltype1) != TYPE_LENGTH (eltype2)
-      || TYPE_UNSIGNED (eltype1) != TYPE_UNSIGNED (eltype2)
+      || eltype1->is_unsigned () != eltype2->is_unsigned ()
       || lowb1 != lowb2 || highb1 != highb2)
     error (_("Cannot perform operation on vectors with different types"));
 
@@ -658,7 +608,7 @@ opencl_value_cast (struct type *type, struct value *arg)
 		|| code2 == TYPE_CODE_DECFLOAT || code2 == TYPE_CODE_ENUM
 		|| code2 == TYPE_CODE_RANGE);
 
-      if (code1 == TYPE_CODE_ARRAY && TYPE_VECTOR (to_type) && scalar)
+      if (code1 == TYPE_CODE_ARRAY && to_type->is_vector () && scalar)
 	{
 	  struct type *eltype;
 
@@ -688,9 +638,9 @@ opencl_relop (struct expression *exp, struct value *arg1, struct value *arg2,
   struct type *type1 = check_typedef (value_type (arg1));
   struct type *type2 = check_typedef (value_type (arg2));
   int t1_is_vec = (type1->code () == TYPE_CODE_ARRAY
-		   && TYPE_VECTOR (type1));
+		   && type1->is_vector ());
   int t2_is_vec = (type2->code () == TYPE_CODE_ARRAY
-		   && TYPE_VECTOR (type2));
+		   && type2->is_vector ());
 
   if (!t1_is_vec && !t2_is_vec)
     {
@@ -739,7 +689,7 @@ evaluate_subexp_opencl (struct type *expect_type, struct expression *exp,
        scalar-to-vector widening.  */
     case BINOP_ASSIGN:
       (*pos)++;
-      arg1 = evaluate_subexp (NULL_TYPE, exp, pos, noside);
+      arg1 = evaluate_subexp (nullptr, exp, pos, noside);
       type1 = value_type (arg1);
       arg2 = evaluate_subexp (type1, exp, pos, noside);
 
@@ -784,7 +734,7 @@ evaluate_subexp_opencl (struct type *expect_type, struct expression *exp,
     case BINOP_GEQ:
     case BINOP_LEQ:
       (*pos)++;
-      arg1 = evaluate_subexp (NULL_TYPE, exp, pos, noside);
+      arg1 = evaluate_subexp (nullptr, exp, pos, noside);
       arg2 = evaluate_subexp (value_type (arg1), exp, pos, noside);
 
       if (noside == EVAL_SKIP)
@@ -796,7 +746,7 @@ evaluate_subexp_opencl (struct type *expect_type, struct expression *exp,
     /* Handle the logical unary operator not(!).  */
     case UNOP_LOGICAL_NOT:
       (*pos)++;
-      arg1 = evaluate_subexp (NULL_TYPE, exp, pos, noside);
+      arg1 = evaluate_subexp (nullptr, exp, pos, noside);
 
       if (noside == EVAL_SKIP)
 	return value_from_longest (builtin_type (exp->gdbarch)->
@@ -808,11 +758,11 @@ evaluate_subexp_opencl (struct type *expect_type, struct expression *exp,
     case BINOP_LOGICAL_AND:
     case BINOP_LOGICAL_OR:
       (*pos)++;
-      arg1 = evaluate_subexp (NULL_TYPE, exp, pos, noside);
+      arg1 = evaluate_subexp (nullptr, exp, pos, noside);
 
       if (noside == EVAL_SKIP)
 	{
-	  evaluate_subexp (NULL_TYPE, exp, pos, noside);
+	  evaluate_subexp (nullptr, exp, pos, noside);
 
 	  return value_from_longest (builtin_type (exp->gdbarch)->
 				     builtin_int, 1);
@@ -826,16 +776,15 @@ evaluate_subexp_opencl (struct type *expect_type, struct expression *exp,
 	     Therefore we evaluate it once using EVAL_AVOID_SIDE_EFFECTS.  */
 	  int oldpos = *pos;
 
-	  arg2 = evaluate_subexp (NULL_TYPE, exp, pos,
-				  EVAL_AVOID_SIDE_EFFECTS);
+	  arg2 = evaluate_subexp (nullptr, exp, pos, EVAL_AVOID_SIDE_EFFECTS);
 	  *pos = oldpos;
 	  type1 = check_typedef (value_type (arg1));
 	  type2 = check_typedef (value_type (arg2));
 
-	  if ((type1->code () == TYPE_CODE_ARRAY && TYPE_VECTOR (type1))
-	      || (type2->code () == TYPE_CODE_ARRAY && TYPE_VECTOR (type2)))
+	  if ((type1->code () == TYPE_CODE_ARRAY && type1->is_vector ())
+	      || (type2->code () == TYPE_CODE_ARRAY && type2->is_vector ()))
 	    {
-	      arg2 = evaluate_subexp (NULL_TYPE, exp, pos, noside);
+	      arg2 = evaluate_subexp (nullptr, exp, pos, noside);
 
 	      return opencl_relop (exp, arg1, arg2, op);
 	    }
@@ -850,8 +799,8 @@ evaluate_subexp_opencl (struct type *expect_type, struct expression *exp,
 	      if (op == BINOP_LOGICAL_OR)
 		tmp = !tmp;
 
-	      arg2 = evaluate_subexp (NULL_TYPE, exp, pos,
-				      tmp ? EVAL_SKIP : noside);
+	      arg2
+		= evaluate_subexp (nullptr, exp, pos, tmp ? EVAL_SKIP : noside);
 	      type1 = language_bool_type (exp->language_defn, exp->gdbarch);
 
 	      if (op == BINOP_LOGICAL_AND)
@@ -866,23 +815,23 @@ evaluate_subexp_opencl (struct type *expect_type, struct expression *exp,
     /* Handle the ternary selection operator.  */
     case TERNOP_COND:
       (*pos)++;
-      arg1 = evaluate_subexp (NULL_TYPE, exp, pos, noside);
+      arg1 = evaluate_subexp (nullptr, exp, pos, noside);
       type1 = check_typedef (value_type (arg1));
-      if (type1->code () == TYPE_CODE_ARRAY && TYPE_VECTOR (type1))
+      if (type1->code () == TYPE_CODE_ARRAY && type1->is_vector ())
 	{
 	  struct value *arg3, *tmp, *ret;
 	  struct type *eltype2, *type3, *eltype3;
 	  int t2_is_vec, t3_is_vec, i;
 	  LONGEST lowb1, lowb2, lowb3, highb1, highb2, highb3;
 
-	  arg2 = evaluate_subexp (NULL_TYPE, exp, pos, noside);
-	  arg3 = evaluate_subexp (NULL_TYPE, exp, pos, noside);
+	  arg2 = evaluate_subexp (nullptr, exp, pos, noside);
+	  arg3 = evaluate_subexp (nullptr, exp, pos, noside);
 	  type2 = check_typedef (value_type (arg2));
 	  type3 = check_typedef (value_type (arg3));
 	  t2_is_vec
-	    = type2->code () == TYPE_CODE_ARRAY && TYPE_VECTOR (type2);
+	    = type2->code () == TYPE_CODE_ARRAY && type2->is_vector ();
 	  t3_is_vec
-	    = type3->code () == TYPE_CODE_ARRAY && TYPE_VECTOR (type3);
+	    = type3->code () == TYPE_CODE_ARRAY && type3->is_vector ();
 
 	  /* Widen the scalar operand to a vector if necessary.  */
 	  if (t2_is_vec || !t3_is_vec)
@@ -913,7 +862,7 @@ Cannot perform conditional operation on incompatible types"));
 	  /* Throw an error if the types of arg2 or arg3 are incompatible.  */
 	  if (eltype2->code () != eltype3->code ()
 	      || TYPE_LENGTH (eltype2) != TYPE_LENGTH (eltype3)
-	      || TYPE_UNSIGNED (eltype2) != TYPE_UNSIGNED (eltype3)
+	      || eltype2->is_unsigned () != eltype3->is_unsigned ()
 	      || lowb2 != lowb3 || highb2 != highb3)
 	    error (_("\
 Cannot perform operation on vectors with different types"));
@@ -942,15 +891,15 @@ Cannot perform conditional operation on vectors with different sizes"));
 	  if (value_logical_not (arg1))
 	    {
 	      /* Skip the second operand.  */
-	      evaluate_subexp (NULL_TYPE, exp, pos, EVAL_SKIP);
+	      evaluate_subexp (nullptr, exp, pos, EVAL_SKIP);
 
-	      return evaluate_subexp (NULL_TYPE, exp, pos, noside);
+	      return evaluate_subexp (nullptr, exp, pos, noside);
 	    }
 	  else
 	    {
 	      /* Skip the third operand.  */
-	      arg2 = evaluate_subexp (NULL_TYPE, exp, pos, noside);
-	      evaluate_subexp (NULL_TYPE, exp, pos, EVAL_SKIP);
+	      arg2 = evaluate_subexp (nullptr, exp, pos, noside);
+	      evaluate_subexp (nullptr, exp, pos, EVAL_SKIP);
 
 	      return arg2;
 	    }
@@ -963,7 +912,7 @@ Cannot perform conditional operation on vectors with different sizes"));
 	int tem = longest_to_int (exp->elts[pc + 1].longconst);
 
 	(*pos) += 3 + BYTES_TO_EXP_ELEM (tem + 1);
-	arg1 = evaluate_subexp (NULL_TYPE, exp, pos, noside);
+	arg1 = evaluate_subexp (nullptr, exp, pos, noside);
 	type1 = check_typedef (value_type (arg1));
 
 	if (noside == EVAL_SKIP)
@@ -971,7 +920,7 @@ Cannot perform conditional operation on vectors with different sizes"));
 	    return value_from_longest (builtin_type (exp->gdbarch)->
 				       builtin_int, 1);
 	  }
-	else if (type1->code () == TYPE_CODE_ARRAY && TYPE_VECTOR (type1))
+	else if (type1->code () == TYPE_CODE_ARRAY && type1->is_vector ())
 	  {
 	    return opencl_component_ref (exp, arg1, &exp->elts[pc + 2].string,
 					 noside);
@@ -999,30 +948,8 @@ const struct exp_descriptor exp_descriptor_opencl =
   print_subexp_standard,
   operator_length_standard,
   operator_check_standard,
-  op_name_standard,
   dump_subexp_body_standard,
   evaluate_subexp_opencl
-};
-
-/* Constant data representing the OpenCL language.  */
-extern const struct language_data opencl_language_data =
-{
-  "opencl",			/* Language name */
-  "OpenCL C",
-  language_opencl,
-  range_check_off,
-  case_sensitive_on,
-  array_row_major,
-  macro_expansion_c,
-  NULL,
-  &exp_descriptor_opencl,
-  NULL,                         /* name_of_this */
-  false,			/* la_store_sym_names_in_linkage_form_p */
-  c_op_print_tab,		/* expression operators for printing */
-  1,				/* c-style arrays */
-  0,				/* String lower bound */
-  &default_varobj_ops,
-  "{...}"			/* la_struct_too_deep_ellipsis */
 };
 
 /* Class representing the OpenCL language.  */
@@ -1031,24 +958,94 @@ class opencl_language : public language_defn
 {
 public:
   opencl_language ()
-    : language_defn (language_opencl, opencl_language_data)
+    : language_defn (language_opencl)
   { /* Nothing.  */ }
+
+  /* See language.h.  */
+
+  const char *name () const override
+  { return "opencl"; }
+
+  /* See language.h.  */
+
+  const char *natural_name () const override
+  { return "OpenCL C"; }
 
   /* See language.h.  */
   void language_arch_info (struct gdbarch *gdbarch,
 			   struct language_arch_info *lai) const override
   {
-    struct type **types = builtin_opencl_type (gdbarch);
+    /* Helper function to allow shorter lines below.  */
+    auto add  = [&] (struct type * t) -> struct type *
+    {
+      lai->add_primitive_type (t);
+      return t;
+    };
 
-    /* Copy primitive types vector from gdbarch.  */
-    lai->primitive_type_vector = types;
+/* Helper macro to create strings.  */
+#define OCL_STRING(S) #S
+
+/* This macro allocates and assigns the type struct pointers
+   for the vector types.  */
+#define BUILD_OCL_VTYPES(TYPE, ELEMENT_TYPE)			\
+    do								\
+      {								\
+	struct type *tmp;					\
+	tmp = add (init_vector_type (ELEMENT_TYPE, 2));		\
+	tmp->set_name (OCL_STRING(TYPE ## 2));			\
+	tmp = add (init_vector_type (ELEMENT_TYPE, 3));		\
+	tmp->set_name (OCL_STRING(TYPE ## 3));			\
+	TYPE_LENGTH (tmp) = 4 * TYPE_LENGTH (ELEMENT_TYPE);	\
+	tmp = add (init_vector_type (ELEMENT_TYPE, 4));		\
+	tmp->set_name (OCL_STRING(TYPE ## 4));			\
+	tmp = add (init_vector_type (ELEMENT_TYPE, 8));		\
+	tmp->set_name (OCL_STRING(TYPE ## 8));			\
+	tmp = init_vector_type (ELEMENT_TYPE, 16);		\
+	tmp->set_name (OCL_STRING(TYPE ## 16));			\
+      }								\
+    while (false)
+
+    struct type *el_type, *char_type, *int_type;
+
+    char_type = el_type = add (arch_integer_type (gdbarch, 8, 0, "char"));
+    BUILD_OCL_VTYPES (char, el_type);
+    el_type = add (arch_integer_type (gdbarch, 8, 1, "uchar"));
+    BUILD_OCL_VTYPES (uchar, el_type);
+    el_type = add (arch_integer_type (gdbarch, 16, 0, "short"));
+    BUILD_OCL_VTYPES (short, el_type);
+    el_type = add (arch_integer_type (gdbarch, 16, 1, "ushort"));
+    BUILD_OCL_VTYPES (ushort, el_type);
+    int_type = el_type = add (arch_integer_type (gdbarch, 32, 0, "int"));
+    BUILD_OCL_VTYPES (int, el_type);
+    el_type = add (arch_integer_type (gdbarch, 32, 1, "uint"));
+    BUILD_OCL_VTYPES (uint, el_type);
+    el_type = add (arch_integer_type (gdbarch, 64, 0, "long"));
+    BUILD_OCL_VTYPES (long, el_type);
+    el_type = add (arch_integer_type (gdbarch, 64, 1, "ulong"));
+    BUILD_OCL_VTYPES (ulong, el_type);
+    el_type = add (arch_float_type (gdbarch, 16, "half", floatformats_ieee_half));
+    BUILD_OCL_VTYPES (half, el_type);
+    el_type = add (arch_float_type (gdbarch, 32, "float", floatformats_ieee_single));
+    BUILD_OCL_VTYPES (float, el_type);
+    el_type = add (arch_float_type (gdbarch, 64, "double", floatformats_ieee_double));
+    BUILD_OCL_VTYPES (double, el_type);
+
+    add (arch_boolean_type (gdbarch, 8, 1, "bool"));
+    add (arch_integer_type (gdbarch, 8, 1, "unsigned char"));
+    add (arch_integer_type (gdbarch, 16, 1, "unsigned short"));
+    add (arch_integer_type (gdbarch, 32, 1, "unsigned int"));
+    add (arch_integer_type (gdbarch, 64, 1, "unsigned long"));
+    add (arch_integer_type (gdbarch, gdbarch_ptr_bit (gdbarch), 1, "size_t"));
+    add (arch_integer_type (gdbarch, gdbarch_ptr_bit (gdbarch), 0, "ptrdiff_t"));
+    add (arch_integer_type (gdbarch, gdbarch_ptr_bit (gdbarch), 0, "intptr_t"));
+    add (arch_integer_type (gdbarch, gdbarch_ptr_bit (gdbarch), 1, "uintptr_t"));
+    add (arch_type (gdbarch, TYPE_CODE_VOID, TARGET_CHAR_BIT, "void"));
 
     /* Type of elements of strings.  */
-    lai->string_char_type = types [opencl_primitive_type_char];
+    lai->set_string_char_type (char_type);
 
     /* Specifies the return type of logical and relational operations.  */
-    lai->bool_type_symbol = "int";
-    lai->bool_type_default = types [opencl_primitive_type_int];
+    lai->set_bool_type (int_type, "int");
   }
 
   /* See language.h.  */
@@ -1063,109 +1060,30 @@ public:
     if (show > 0)
       {
 	type = check_typedef (type);
-	if (type->code () == TYPE_CODE_ARRAY && TYPE_VECTOR (type)
+	if (type->code () == TYPE_CODE_ARRAY && type->is_vector ()
 	    && type->name () != NULL)
 	  show = 0;
       }
 
     c_print_type (type, varstring, stream, show, level, flags);
   }
+
+  /* See language.h.  */
+
+  enum macro_expansion macro_expansion () const override
+  { return macro_expansion_c; }
+
+  /* See language.h.  */
+
+  const struct exp_descriptor *expression_ops () const override
+  { return &exp_descriptor_opencl; }
+
+  /* See language.h.  */
+
+  const struct op_print *opcode_print_table () const override
+  { return c_op_print_tab; }
 };
 
 /* Single instance of the OpenCL language class.  */
 
 static opencl_language opencl_language_defn;
-
-static void *
-build_opencl_types (struct gdbarch *gdbarch)
-{
-  struct type **types
-    = GDBARCH_OBSTACK_CALLOC (gdbarch, nr_opencl_primitive_types + 1,
-			      struct type *);
-
-/* Helper macro to create strings.  */
-#define OCL_STRING(S) #S
-/* This macro allocates and assigns the type struct pointers
-   for the vector types.  */
-#define BUILD_OCL_VTYPES(TYPE)\
-  types[opencl_primitive_type_##TYPE##2] \
-    = init_vector_type (types[opencl_primitive_type_##TYPE], 2); \
-  types[opencl_primitive_type_##TYPE##2]->set_name (OCL_STRING(TYPE ## 2)); \
-  types[opencl_primitive_type_##TYPE##3] \
-    = init_vector_type (types[opencl_primitive_type_##TYPE], 3); \
-  types[opencl_primitive_type_##TYPE##3]->set_name (OCL_STRING(TYPE ## 3)); \
-  TYPE_LENGTH (types[opencl_primitive_type_##TYPE##3]) \
-    = 4 * TYPE_LENGTH (types[opencl_primitive_type_##TYPE]); \
-  types[opencl_primitive_type_##TYPE##4] \
-    = init_vector_type (types[opencl_primitive_type_##TYPE], 4); \
-  types[opencl_primitive_type_##TYPE##4]->set_name (OCL_STRING(TYPE ## 4)); \
-  types[opencl_primitive_type_##TYPE##8] \
-    = init_vector_type (types[opencl_primitive_type_##TYPE], 8); \
-  types[opencl_primitive_type_##TYPE##8]->set_name (OCL_STRING(TYPE ## 8)); \
-  types[opencl_primitive_type_##TYPE##16] \
-    = init_vector_type (types[opencl_primitive_type_##TYPE], 16); \
-  types[opencl_primitive_type_##TYPE##16]->set_name (OCL_STRING(TYPE ## 16))
-
-  types[opencl_primitive_type_char]
-    = arch_integer_type (gdbarch, 8, 0, "char");
-  BUILD_OCL_VTYPES (char);
-  types[opencl_primitive_type_uchar]
-    = arch_integer_type (gdbarch, 8, 1, "uchar");
-  BUILD_OCL_VTYPES (uchar);
-  types[opencl_primitive_type_short]
-    = arch_integer_type (gdbarch, 16, 0, "short");
-  BUILD_OCL_VTYPES (short);
-  types[opencl_primitive_type_ushort]
-    = arch_integer_type (gdbarch, 16, 1, "ushort");
-  BUILD_OCL_VTYPES (ushort);
-  types[opencl_primitive_type_int]
-    = arch_integer_type (gdbarch, 32, 0, "int");
-  BUILD_OCL_VTYPES (int);
-  types[opencl_primitive_type_uint]
-    = arch_integer_type (gdbarch, 32, 1, "uint");
-  BUILD_OCL_VTYPES (uint);
-  types[opencl_primitive_type_long]
-    = arch_integer_type (gdbarch, 64, 0, "long");
-  BUILD_OCL_VTYPES (long);
-  types[opencl_primitive_type_ulong]
-    = arch_integer_type (gdbarch, 64, 1, "ulong");
-  BUILD_OCL_VTYPES (ulong);
-  types[opencl_primitive_type_half]
-    = arch_float_type (gdbarch, 16, "half", floatformats_ieee_half);
-  BUILD_OCL_VTYPES (half);
-  types[opencl_primitive_type_float]
-    = arch_float_type (gdbarch, 32, "float", floatformats_ieee_single);
-  BUILD_OCL_VTYPES (float);
-  types[opencl_primitive_type_double]
-    = arch_float_type (gdbarch, 64, "double", floatformats_ieee_double);
-  BUILD_OCL_VTYPES (double);
-  types[opencl_primitive_type_bool]
-    = arch_boolean_type (gdbarch, 8, 1, "bool");
-  types[opencl_primitive_type_unsigned_char]
-    = arch_integer_type (gdbarch, 8, 1, "unsigned char");
-  types[opencl_primitive_type_unsigned_short]
-    = arch_integer_type (gdbarch, 16, 1, "unsigned short");
-  types[opencl_primitive_type_unsigned_int]
-    = arch_integer_type (gdbarch, 32, 1, "unsigned int");
-  types[opencl_primitive_type_unsigned_long]
-    = arch_integer_type (gdbarch, 64, 1, "unsigned long");
-  types[opencl_primitive_type_size_t]
-    = arch_integer_type (gdbarch, gdbarch_ptr_bit (gdbarch), 1, "size_t");
-  types[opencl_primitive_type_ptrdiff_t]
-    = arch_integer_type (gdbarch, gdbarch_ptr_bit (gdbarch), 0, "ptrdiff_t");
-  types[opencl_primitive_type_intptr_t]
-    = arch_integer_type (gdbarch, gdbarch_ptr_bit (gdbarch), 0, "intptr_t");
-  types[opencl_primitive_type_uintptr_t]
-    = arch_integer_type (gdbarch, gdbarch_ptr_bit (gdbarch), 1, "uintptr_t");
-  types[opencl_primitive_type_void]
-    = arch_type (gdbarch, TYPE_CODE_VOID, TARGET_CHAR_BIT, "void");
-
-  return types;
-}
-
-void _initialize_opencl_language ();
-void
-_initialize_opencl_language ()
-{
-  opencl_type_data = gdbarch_data_register_post_init (build_opencl_types);
-}

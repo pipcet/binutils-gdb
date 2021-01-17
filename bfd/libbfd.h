@@ -6,7 +6,7 @@
 /* libbfd.h -- Declarations used by bfd library *implementation*.
    (This include file is not for users of the library.)
 
-   Copyright (C) 1990-2020 Free Software Foundation, Inc.
+   Copyright (C) 1990-2021 Free Software Foundation, Inc.
 
    Written by Cygnus Support.
 
@@ -830,11 +830,11 @@ extern FILE *_bfd_real_fopen
 
 /* List of supported target vectors, and the default vector (if
    bfd_default_vector[0] is NULL, there is no default).  */
-extern const bfd_target * const *bfd_target_vector ATTRIBUTE_HIDDEN;
+extern const bfd_target *const *const bfd_target_vector ATTRIBUTE_HIDDEN;
 extern const bfd_target *bfd_default_vector[] ATTRIBUTE_HIDDEN;
 
 /* List of associated target vectors.  */
-extern const bfd_target * const *bfd_associated_vector ATTRIBUTE_HIDDEN;
+extern const bfd_target *const *const bfd_associated_vector ATTRIBUTE_HIDDEN;
 
 /* Functions shared by the ECOFF and MIPS ELF backends, which have no
    other common header files.  */
@@ -901,6 +901,8 @@ extern bfd_signed_vma _bfd_read_signed_leb128
 extern bfd_vma _bfd_safe_read_leb128
   (bfd *, bfd_byte *, unsigned int *, bfd_boolean, const bfd_byte * const)
   ATTRIBUTE_HIDDEN;
+extern bfd_byte * _bfd_write_unsigned_leb128
+  (bfd_byte *, bfd_byte *, bfd_vma) ATTRIBUTE_HIDDEN;
 
 #if GCC_VERSION >= 7000
 #define _bfd_mul_overflow(a, b, res) __builtin_mul_overflow (a, b, res)
@@ -2802,6 +2804,8 @@ static const char *const bfd_reloc_code_real_names[] = { "@@uninitialized@@",
   "BFD_RELOC_MSP430_ABS_HI16",
   "BFD_RELOC_MSP430_PREL31",
   "BFD_RELOC_MSP430_SYM_DIFF",
+  "BFD_RELOC_MSP430_SET_ULEB128",
+  "BFD_RELOC_MSP430_SUB_ULEB128",
   "BFD_RELOC_NIOS2_S16",
   "BFD_RELOC_NIOS2_U16",
   "BFD_RELOC_NIOS2_CALL26",

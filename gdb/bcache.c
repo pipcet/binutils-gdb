@@ -2,7 +2,7 @@
    Written by Fred Fish <fnf@cygnus.com>
    Rewritten by Jim Blandy <jimb@cygnus.com>
 
-   Copyright (C) 1999-2020 Free Software Foundation, Inc.
+   Copyright (C) 1999-2021 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -113,7 +113,7 @@ bcache::expand_hash_table ()
 	  struct bstring **new_bucket;
 	  next = s->next;
 
-	  new_bucket = &new_buckets[(m_hash_function (&s->d.data, s->length)
+	  new_bucket = &new_buckets[(this->hash (&s->d.data, s->length)
 				     % new_num_buckets)];
 	  s->next = *new_bucket;
 	  *new_bucket = s;
@@ -140,15 +140,15 @@ bcache::expand_hash_table ()
    returning an old entry.  */
 
 const void *
-bcache::insert (const void *addr, int length, int *added)
+bcache::insert (const void *addr, int length, bool *added)
 {
   unsigned long full_hash;
   unsigned short half_hash;
   int hash_index;
   struct bstring *s;
 
-  if (added)
-    *added = 0;
+  if (added != nullptr)
+    *added = false;
 
   /* Lazily initialize the obstack.  This can save quite a bit of
      memory in some cases.  */
@@ -167,7 +167,7 @@ bcache::insert (const void *addr, int length, int *added)
   m_total_count++;
   m_total_size += length;
 
-  full_hash = m_hash_function (addr, length);
+  full_hash = this->hash (addr, length);
 
   half_hash = (full_hash >> 16);
   hash_index = full_hash % m_num_buckets;
@@ -180,7 +180,7 @@ bcache::insert (const void *addr, int length, int *added)
       if (s->half_hash == half_hash)
 	{
 	  if (s->length == length
-	      && m_compare_function (&s->d.data, addr, length))
+	      && this->compare (&s->d.data, addr, length))
 	    return &s->d.data;
 	  else
 	    m_half_hash_miss_count++;
@@ -203,21 +203,28 @@ bcache::insert (const void *addr, int length, int *added)
     m_unique_size += length;
     m_structure_size += BSTRING_SIZE (length);
 
-    if (added)
-      *added = 1;
+    if (added != nullptr)
+      *added = true;
 
     return &newobj->d.data;
   }
 }
 
 
-/* Compare the byte string at ADDR1 of lenght LENGHT to the
-   string at ADDR2.  Return 1 if they are equal.  */
+/* See bcache.h.  */
+
+unsigned long
+bcache::hash (const void *addr, int length)
+{
+  return fast_hash (addr, length, 0);
+}
+
+/* See bcache.h.  */
 
 int
-bcache::compare (const void *addr1, const void *addr2, int length)
+bcache::compare (const void *left, const void *right, int length)
 {
-  return memcmp (addr1, addr2, length) == 0;
+  return memcmp (left, right, length) == 0;
 }
 
 /* Free all the storage associated with BCACHE.  */

@@ -1,5 +1,5 @@
 /* TILE-Gx-specific support for ELF.
-   Copyright (C) 2011-2020 Free Software Foundation, Inc.
+   Copyright (C) 2011-2021 Free Software Foundation, Inc.
 
    This file is part of BFD, the Binary File Descriptor library.
 
@@ -840,8 +840,9 @@ struct tilegx_elf_link_hash_table
 
 /* Get the Tile ELF linker hash table from a link_info structure.  */
 #define tilegx_elf_hash_table(p) \
-  (elf_hash_table_id ((struct elf_link_hash_table *) ((p)->hash)) \
-  == TILEGX_ELF_DATA ? ((struct tilegx_elf_link_hash_table *) ((p)->hash)) : NULL)
+  ((is_elf_hash_table ((p)->hash)					\
+    && elf_hash_table_id (elf_hash_table (p)) == TILEGX_ELF_DATA)	\
+   ? (struct tilegx_elf_link_hash_table *) (p)->hash : NULL)
 
 #ifdef BFD64
 static bfd_vma

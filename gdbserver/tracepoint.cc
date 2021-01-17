@@ -1,5 +1,5 @@
 /* Tracepoint code for remote server for GDB.
-   Copyright (C) 2009-2020 Free Software Foundation, Inc.
+   Copyright (C) 2009-2021 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -863,7 +863,7 @@ EXTERN_C_POP
 
 static struct tracepoint *last_tracepoint;
 
-static const char *eval_result_names[] =
+static const char * const eval_result_names[] =
   {
     "terror:in the attic",  /* this should never be reported */
     "terror:empty expression",
@@ -3242,7 +3242,7 @@ cmd_qtstart (char *packet)
       /* Tell IPA about the correct tdesc.  */
       if (write_inferior_integer (ipa_sym_addrs.addr_ipa_tdesc_idx,
 				  target_get_ipa_tdesc_idx ()))
-        error ("Error setting ipa_tdesc_idx variable in lib");
+	error ("Error setting ipa_tdesc_idx variable in lib");
     }
 
   /* Start out empty.  */

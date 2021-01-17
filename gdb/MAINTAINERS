@@ -239,11 +239,16 @@ the native maintainer when resolving ABI issues.
 
 	aarch64		--target=aarch64-elf ,-Werror
 			Alan Hayward		alan.hayward@arm.com
+			Luis Machado		luis.machado@linaro.org
 
 	alpha		--target=alpha-elf ,-Werror
 
+	arc		--target=arc-elf
+			Shahab Vahedi		shahab@synopsys.com
+
 	arm		--target=arm-elf ,-Werror
 			Alan Hayward		alan.hayward@arm.com
+			Luis Machado		luis.machado@linaro.org
 
 	avr		--target=avr ,-Werror
 
@@ -289,8 +294,7 @@ the native maintainer when resolving ABI issues.
 	moxie		--target=moxie-elf ,-Werror
 			Anthony Green		green@moxielogic.com
 
-	ms1		--target=ms1-elf ,-Werror
-			Kevin Buettner		kevinb@redhat.com
+	ms1		Deleted
 
 	nios2		--target=nios2-elf ,-Werror
 			--target=nios2-linux-gnu ,-Werror
@@ -644,6 +648,7 @@ Stan Shebs					stanshebs@google.com
 Joel Sherrill					joel.sherrill@oarcorp.com
 Mark Shinwell					shinwell@codesourcery.com
 Craig Silverstein				csilvers@google.com
+Lancelot Six					lsix@lancelotsix.com
 Aidan Skinner					aidan@velvet.net
 Jiri Smid					smid@suse.cz
 Andrey Smirnov					andrew.smirnov@gmail.com
@@ -659,6 +664,7 @@ David Taylor					david.taylor@emc.com
 Ian Lance Taylor				ian@airs.com
 Walfred Tedeschi				walfred.tedeschi@intel.com
 Petr Tesarik					ptesarik@suse.cz
+Samuel Thibault					samuel.thibault@ens-lyon.org
 Gary Thomas					gthomas@redhat.com
 Jason Thorpe					thorpej@netbsd.org
 Caroline Tice					ctice@apple.com
@@ -681,6 +687,7 @@ Ulrich Weigand					uweigand@de.ibm.com
 Ken Werner					ken.werner@de.ibm.com
 Tim Wiederhake					tim.wiederhake@intel.com
 Mark Wielaard					mark@klomp.org
+Felix Willgerodt				felix.willgerodt@intel.com
 Nathan Williams					nathanw@wasabisystems.com
 Bob Wilson					bob.wilson@acm.org
 Jim Wilson					wilson@tuliptree.org
@@ -694,6 +701,7 @@ Wu Zhou						woodzltc@cn.ibm.com
 Yoshinori Sato					ysato@users.sourceforge.jp
 Hui Zhu						teawater@gmail.com
 Khoo Yit Phang					khooyp@cs.umd.edu
+Rogerio Alves					rcardoso@linux.ibm.com
 
 			Past Maintainers
 

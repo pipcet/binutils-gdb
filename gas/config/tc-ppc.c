@@ -1,5 +1,5 @@
 /* tc-ppc.c -- Assemble for the PowerPC or POWER (RS/6000)
-   Copyright (C) 1994-2020 Free Software Foundation, Inc.
+   Copyright (C) 1994-2021 Free Software Foundation, Inc.
    Written by Ian Lance Taylor, Cygnus Support.
 
    This file is part of GAS, the GNU Assembler.
@@ -966,10 +966,10 @@ ppc_optimize_expr (expressionS *left, operatorT op, expressionS *right)
 static unsigned int ppc_obj64 = BFD_DEFAULT_TARGET_SIZE == 64;
 
 /* Opcode hash table.  */
-static struct hash_control *ppc_hash;
+static htab_t ppc_hash;
 
 /* Macro hash table.  */
-static struct hash_control *ppc_macro_hash;
+static htab_t ppc_macro_hash;
 
 #ifdef OBJ_ELF
 /* What type of shared library support to use.  */
@@ -1601,12 +1601,12 @@ ppc_setup_opcodes (void)
   bfd_boolean bad_insn = FALSE;
 
   if (ppc_hash != NULL)
-    hash_die (ppc_hash);
+    htab_delete (ppc_hash);
   if (ppc_macro_hash != NULL)
-    hash_die (ppc_macro_hash);
+    htab_delete (ppc_macro_hash);
 
   /* Insert the opcodes into a hash table.  */
-  ppc_hash = hash_new ();
+  ppc_hash = str_htab_create ();
 
   if (ENABLE_CHECKING)
     {
@@ -1682,23 +1682,17 @@ ppc_setup_opcodes (void)
 	}
 
       if ((ppc_cpu & op->flags) != 0
-	  && !(ppc_cpu & op->deprecated))
+	  && !(ppc_cpu & op->deprecated)
+	  && str_hash_insert (ppc_hash, op->name, op, 0) != NULL)
 	{
-	  const char *retval;
-
-	  retval = hash_insert (ppc_hash, op->name, (void *) op);
-	  if (retval != NULL)
-	    {
-	      as_bad (_("duplicate instruction %s"),
-		      op->name);
-	      bad_insn = TRUE;
-	    }
+	  as_bad (_("duplicate %s"), op->name);
+	  bad_insn = TRUE;
 	}
     }
 
   if ((ppc_cpu & PPC_OPCODE_ANY) != 0)
     for (op = powerpc_opcodes; op < op_end; op++)
-      hash_insert (ppc_hash, op->name, (void *) op);
+      str_hash_insert (ppc_hash, op->name, op, 0);
 
   op_end = prefix_opcodes + prefix_num_opcodes;
   for (op = prefix_opcodes; op < op_end; op++)
@@ -1726,23 +1720,17 @@ ppc_setup_opcodes (void)
 	}
 
       if ((ppc_cpu & op->flags) != 0
-	  && !(ppc_cpu & op->deprecated))
+	  && !(ppc_cpu & op->deprecated)
+	  && str_hash_insert (ppc_hash, op->name, op, 0) != NULL)
 	{
-	  const char *retval;
-
-	  retval = hash_insert (ppc_hash, op->name, (void *) op);
-	  if (retval != NULL)
-	    {
-	      as_bad (_("duplicate instruction %s"),
-		      op->name);
-	      bad_insn = TRUE;
-	    }
+	  as_bad (_("duplicate %s"), op->name);
+	  bad_insn = TRUE;
 	}
     }
 
   if ((ppc_cpu & PPC_OPCODE_ANY) != 0)
     for (op = prefix_opcodes; op < op_end; op++)
-      hash_insert (ppc_hash, op->name, (void *) op);
+      str_hash_insert (ppc_hash, op->name, op, 0);
 
   op_end = vle_opcodes + vle_num_opcodes;
   for (op = vle_opcodes; op < op_end; op++)
@@ -1771,17 +1759,11 @@ ppc_setup_opcodes (void)
 	}
 
       if ((ppc_cpu & op->flags) != 0
-	  && !(ppc_cpu & op->deprecated))
+	  && !(ppc_cpu & op->deprecated)
+	  && str_hash_insert (ppc_hash, op->name, op, 0) != NULL)
 	{
-	  const char *retval;
-
-	  retval = hash_insert (ppc_hash, op->name, (void *) op);
-	  if (retval != NULL)
-	    {
-	      as_bad (_("duplicate instruction %s"),
-		      op->name);
-	      bad_insn = TRUE;
-	    }
+	  as_bad (_("duplicate %s"), op->name);
+	  bad_insn = TRUE;
 	}
     }
 
@@ -1815,42 +1797,31 @@ ppc_setup_opcodes (void)
 	      bad_insn |= insn_validate (op);
 	    }
 
-	  if ((ppc_cpu & op->flags) != 0 && !(ppc_cpu & op->deprecated))
+	  if ((ppc_cpu & op->flags) != 0
+	      && !(ppc_cpu & op->deprecated)
+	      && str_hash_insert (ppc_hash, op->name, op, 0) != NULL)
 	    {
-	      const char *retval;
-
-	      retval = hash_insert (ppc_hash, op->name, (void *) op);
-	      if (retval != NULL)
-		{
-		  as_bad (_("duplicate instruction %s"),
-			  op->name);
-		  bad_insn = TRUE;
-		}
+	      as_bad (_("duplicate %s"), op->name);
+	      bad_insn = TRUE;
 	    }
 	}
 
       for (op = spe2_opcodes; op < op_end; op++)
-	hash_insert (ppc_hash, op->name, (void *) op);
+	str_hash_insert (ppc_hash, op->name, op, 0);
     }
 
   /* Insert the macros into a hash table.  */
-  ppc_macro_hash = hash_new ();
+  ppc_macro_hash = str_htab_create ();
 
   macro_end = powerpc_macros + powerpc_num_macros;
   for (macro = powerpc_macros; macro < macro_end; macro++)
-    {
-      if ((macro->flags & ppc_cpu) != 0 || (ppc_cpu & PPC_OPCODE_ANY) != 0)
-	{
-	  const char *retval;
-
-	  retval = hash_insert (ppc_macro_hash, macro->name, (void *) macro);
-	  if (retval != (const char *) NULL)
-	    {
-	      as_bad (_("duplicate macro %s"), macro->name);
-	      bad_insn = TRUE;
-	    }
-	}
-    }
+    if (((macro->flags & ppc_cpu) != 0
+	 || (ppc_cpu & PPC_OPCODE_ANY) != 0)
+	&& str_hash_insert (ppc_macro_hash, macro->name, macro, 0) != NULL)
+      {
+	as_bad (_("duplicate %s"), macro->name);
+	bad_insn = TRUE;
+      }
 
   if (bad_insn)
     abort ();
@@ -2493,7 +2464,7 @@ ppc_elf_localentry (int ignore ATTRIBUTE_UNUSED)
       if (ok)
 	{
 	  bfdsym = symbol_get_bfdsym (sym);
-	  elfsym = elf_symbol_from (bfd_asymbol_bfd (bfdsym), bfdsym);
+	  elfsym = elf_symbol_from (bfdsym);
 	  gas_assert (elfsym);
 	  elfsym->internal_elf_sym.st_other &= ~STO_PPC64_LOCAL_MASK;
 	  elfsym->internal_elf_sym.st_other |= encoded;
@@ -3160,12 +3131,13 @@ md_assemble (char *str)
     *s++ = '\0';
 
   /* Look up the opcode in the hash table.  */
-  opcode = (const struct powerpc_opcode *) hash_find (ppc_hash, str);
+  opcode = (const struct powerpc_opcode *) str_hash_find (ppc_hash, str);
   if (opcode == (const struct powerpc_opcode *) NULL)
     {
       const struct powerpc_macro *macro;
 
-      macro = (const struct powerpc_macro *) hash_find (ppc_macro_hash, str);
+      macro = (const struct powerpc_macro *) str_hash_find (ppc_macro_hash,
+							    str);
       if (macro == (const struct powerpc_macro *) NULL)
 	as_bad (_("unrecognized opcode: `%s'"), str);
       else
@@ -3176,6 +3148,15 @@ md_assemble (char *str)
     }
 
   insn = opcode->opcode;
+  if (!target_big_endian
+      && ((insn & ~(1 << 26)) == 46u << 26
+	  || (insn & ~(0xc0 << 1)) == (31u << 26 | 533 << 1)))
+    {
+       /* lmw, stmw, lswi, lswx, stswi, stswx */
+      as_bad (_("`%s' invalid when little-endian"), str);
+      ppc_clear_labels ();
+      return;
+    }
 
   str = s;
   while (ISSPACE (*str))
@@ -3901,7 +3882,8 @@ md_assemble (char *str)
 
   /* The prefix part of an 8-byte instruction always occupies the lower
      addressed word in a doubleword, regardless of endianness.  */
-  if (!target_big_endian && insn_length == 8)
+  if (insn_length == 8
+      && (sizeof (insn) > sizeof (valueT) || !target_big_endian))
     {
       md_number_to_chars (f, PPC_GET_PREFIX (insn), 4);
       md_number_to_chars (f + 4, PPC_GET_SUFFIX (insn), 4);
@@ -4942,8 +4924,9 @@ ppc_function (int ignore ATTRIBUTE_UNUSED)
 	    {
 	      /* The fifth argument is the function size.  */
 	      ++input_line_pointer;
-	      symbol_get_tc (ext_sym)->u.size = symbol_new
-                ("L0\001", absolute_section,(valueT) 0, &zero_address_frag);
+	      symbol_get_tc (ext_sym)->u.size
+		= symbol_new ("L0\001", absolute_section,
+			      &zero_address_frag, 0);
 	      pseudo_set (symbol_get_tc (ext_sym)->u.size);
 	    }
 	}
@@ -5917,7 +5900,7 @@ ppc_adjust_symtab (void)
 	continue;
 
       csect = symbol_create (".abs[XO]", absolute_section,
-			     S_GET_VALUE (sym), &zero_address_frag);
+			     &zero_address_frag, S_GET_VALUE (sym));
       symbol_get_bfdsym (csect)->value = S_GET_VALUE (sym);
       S_SET_STORAGE_CLASS (csect, C_HIDEXT);
       i = S_GET_NUMBER_AUXILIARY (csect);
@@ -6178,8 +6161,7 @@ ppc_force_relocation (fixS *fix)
       if (fix->fx_addsy)
 	{
 	  asymbol *bfdsym = symbol_get_bfdsym (fix->fx_addsy);
-	  elf_symbol_type *elfsym
-	    = elf_symbol_from (bfd_asymbol_bfd (bfdsym), bfdsym);
+	  elf_symbol_type *elfsym = elf_symbol_from (bfdsym);
 	  gas_assert (elfsym);
 	  if ((STO_PPC64_LOCAL_MASK & elfsym->internal_elf_sym.st_other) != 0)
 	    return 1;
@@ -6215,8 +6197,7 @@ ppc_fix_adjustable (fixS *fix)
       if (fix->fx_addsy)
 	{
 	  asymbol *bfdsym = symbol_get_bfdsym (fix->fx_addsy);
-	  elf_symbol_type *elfsym
-	    = elf_symbol_from (bfd_asymbol_bfd (bfdsym), bfdsym);
+	  elf_symbol_type *elfsym = elf_symbol_from (bfdsym);
 	  gas_assert (elfsym);
 	  if ((STO_PPC64_LOCAL_MASK & elfsym->internal_elf_sym.st_other) != 0)
 	    return 0;

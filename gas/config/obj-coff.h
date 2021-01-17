@@ -1,5 +1,5 @@
 /* coff object file format
-   Copyright (C) 1989-2020 Free Software Foundation, Inc.
+   Copyright (C) 1989-2021 Free Software Foundation, Inc.
 
    This file is part of GAS.
 
@@ -280,7 +280,7 @@ extern const pseudo_typeS coff_pseudo_table[];
    as in start/_start/__start in gcc/libgcc1-test.c.  */
 #define RESOLVE_SYMBOL_REDEFINITION(sym)		\
 (SF_GET_GET_SEGMENT (sym)				\
- ? (sym->sy_frag = frag_now,				\
+ ? (sym->frag = frag_now,				\
     S_SET_VALUE (sym, frag_now_fix ()),			\
     S_SET_SEGMENT (sym, now_seg),			\
     0)							\

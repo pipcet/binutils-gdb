@@ -1,5 +1,5 @@
 # Expect script for ld-shared tests
-#   Copyright (C) 1994-2020 Free Software Foundation, Inc.
+#   Copyright (C) 1994-2021 Free Software Foundation, Inc.
 #
 # This file is part of the GNU Binutils.
 #
@@ -64,6 +64,10 @@ if { ![istarget hppa*64*-*-hpux*] \
 set tmpdir tmpdir
 set SHCFLAG ""
 set shared_needs_pic "no"
+
+# Disable all sanitizers.
+set old_CFLAGS "$CFLAGS"
+append CFLAGS " $NOSANITIZE_CFLAGS"
 
 if { [istarget rs6000*-*-aix*] || [istarget powerpc*-*-aix*] } {
 
@@ -342,6 +346,8 @@ if ![ld_compile "$CC $CFLAGS $SHCFLAG $picflag" $srcdir/$subdir/main.c $tmpdir/m
 	unresolved "shared (PIC main)"
     }
 }
+
+set CFLAGS "$old_CFLAGS"
 
 if { [istarget rs6000*-*-aix*] || [istarget powerpc*-*-aix*] } {
     # Remove the temporary directory.

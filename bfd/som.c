@@ -1,5 +1,5 @@
 /* bfd back-end for HP PA-RISC SOM objects.
-   Copyright (C) 1990-2020 Free Software Foundation, Inc.
+   Copyright (C) 1990-2021 Free Software Foundation, Inc.
 
    Contributed by the Center for Software Science at the
    University of Utah.
@@ -37,7 +37,7 @@ static bfd_boolean som_mkobject (bfd *);
 static bfd_boolean som_is_space (asection *);
 static bfd_boolean som_is_subspace (asection *);
 static int compare_subspaces (const void *, const void *);
-static unsigned long som_compute_checksum (struct som_external_header *);
+static uint32_t som_compute_checksum (struct som_external_header *);
 static bfd_boolean som_build_and_write_symbol_table (bfd *);
 static unsigned int som_slurp_symbol_table (bfd *);
 
@@ -114,7 +114,7 @@ static unsigned int som_slurp_symbol_table (bfd *);
 
    Note one side effect of using a R_PREV_FIXUP is the relocation that
    is being repeated moves to the front of the queue.  */
-struct reloc_queue
+static struct reloc_queue
 {
   unsigned char *reloc;
   unsigned int size;
@@ -2804,6 +2804,9 @@ som_prep_for_fixups (bfd *abfd, asymbol **syms, unsigned long num_syms)
   asymbol **sorted_syms;
   size_t amt;
 
+  if (num_syms == 0)
+    return TRUE;
+
   /* Most SOM relocations involving a symbol have a length which is
      dependent on the index of the symbol.  So symbols which are
      used often in relocations should have a small index.  */
@@ -4281,14 +4284,15 @@ som_finish_writing (bfd *abfd)
 
 /* Compute and return the checksum for a SOM file header.  */
 
-static unsigned long
+static uint32_t
 som_compute_checksum (struct som_external_header *hdr)
 {
-  unsigned long checksum, count, i;
-  unsigned long *buffer = (unsigned long *) hdr;
+  size_t count, i;
+  uint32_t checksum;
+  uint32_t *buffer = (uint32_t *) hdr;
 
   checksum = 0;
-  count = sizeof (struct som_external_header) / 4;
+  count = sizeof (*hdr) / sizeof (*buffer);
   for (i = 0; i < count; i++)
     checksum ^= *(buffer + i);
 
@@ -5451,8 +5455,18 @@ som_bfd_copy_private_section_data (bfd *ibfd,
 
   /* Reparent if necessary.  */
   if (som_section_data (osection)->copy_data->container)
-    som_section_data (osection)->copy_data->container =
-      som_section_data (osection)->copy_data->container->output_section;
+    {
+      if (som_section_data (osection)->copy_data->container->output_section)
+	som_section_data (osection)->copy_data->container =
+	  som_section_data (osection)->copy_data->container->output_section;
+      else
+	{
+	  /* User has specified a subspace without its containing space.  */
+	  _bfd_error_handler (_("%pB[%pA]: no output section for space %pA"),
+	    obfd, osection, som_section_data (osection)->copy_data->container);
+	  return FALSE;
+	}
+    }
 
   return TRUE;
 }
@@ -6845,6 +6859,7 @@ const bfd_target hppa_som_vec =
   '/',				/* AR_pad_char.  */
   14,				/* AR_max_namelen.  */
   0,				/* match priority.  */
+  TARGET_KEEP_UNUSED_SECTION_SYMBOLS, /* keep unused section symbols.  */
   bfd_getb64, bfd_getb_signed_64, bfd_putb64,
   bfd_getb32, bfd_getb_signed_32, bfd_putb32,
   bfd_getb16, bfd_getb_signed_16, bfd_putb16,	/* Data.  */

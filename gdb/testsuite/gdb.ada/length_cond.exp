@@ -1,4 +1,4 @@
-# Copyright 2019-2020 Free Software Foundation, Inc.
+# Copyright 2019-2021 Free Software Foundation, Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,6 +17,8 @@
 # breakpoint condition that used an array attribute.
 
 load_lib "ada.exp"
+
+if { [skip_ada_tests] } { return -1 }
 
 standard_ada_testfile length_cond
 

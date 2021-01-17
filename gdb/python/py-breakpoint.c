@@ -1,6 +1,6 @@
 /* Python interface to breakpoints
 
-   Copyright (C) 2008-2020 Free Software Foundation, Inc.
+   Copyright (C) 2008-2021 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -461,7 +461,7 @@ bppy_set_condition (PyObject *self, PyObject *newvalue, void *closure)
 
   try
     {
-      set_breakpoint_condition (self_bp->bp, exp, 0);
+      set_breakpoint_condition (self_bp->bp, exp, 0, false);
     }
   catch (gdb_exception &ex)
     {
@@ -552,7 +552,7 @@ bppy_get_type (PyObject *self, void *closure)
 
   BPPY_REQUIRE_VALID (self_bp);
 
-  return PyInt_FromLong (self_bp->bp->type);
+  return gdb_py_object_from_longest (self_bp->bp->type).release ();
 }
 
 /* Python function to get the visibility of the breakpoint.  */
@@ -613,7 +613,7 @@ bppy_get_number (PyObject *self, void *closure)
 
   BPPY_REQUIRE_VALID (self_bp);
 
-  return PyInt_FromLong (self_bp->number);
+  return gdb_py_object_from_longest (self_bp->number).release ();
 }
 
 /* Python function to get the breakpoint's thread ID.  */
@@ -627,7 +627,7 @@ bppy_get_thread (PyObject *self, void *closure)
   if (self_bp->bp->thread == -1)
     Py_RETURN_NONE;
 
-  return PyInt_FromLong (self_bp->bp->thread);
+  return gdb_py_object_from_longest (self_bp->bp->thread).release ();
 }
 
 /* Python function to get the breakpoint's task ID (in Ada).  */
@@ -641,7 +641,7 @@ bppy_get_task (PyObject *self, void *closure)
   if (self_bp->bp->task == 0)
     Py_RETURN_NONE;
 
-  return PyInt_FromLong (self_bp->bp->task);
+  return gdb_py_object_from_longest (self_bp->bp->task).release ();
 }
 
 /* Python function to get the breakpoint's hit count.  */
@@ -652,7 +652,7 @@ bppy_get_hit_count (PyObject *self, void *closure)
 
   BPPY_REQUIRE_VALID (self_bp);
 
-  return PyInt_FromLong (self_bp->bp->hit_count);
+  return gdb_py_object_from_longest (self_bp->bp->hit_count).release ();
 }
 
 /* Python function to get the breakpoint's ignore count.  */
@@ -663,7 +663,7 @@ bppy_get_ignore_count (PyObject *self, void *closure)
 
   BPPY_REQUIRE_VALID (self_bp);
 
-  return PyInt_FromLong (self_bp->bp->ignore_count);
+  return gdb_py_object_from_longest (self_bp->bp->ignore_count).release ();
 }
 
 /* Internal function to validate the Python parameters/keywords

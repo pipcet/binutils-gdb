@@ -1,5 +1,5 @@
 /* Low level interface to ptrace, for the remote server for GDB.
-   Copyright (C) 1995-2020 Free Software Foundation, Inc.
+   Copyright (C) 1995-2021 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -497,7 +497,6 @@ linux_process_target::handle_extended_wait (lwp_info **orig_event_lwp,
 	  struct process_info *child_proc;
 	  struct lwp_info *child_lwp;
 	  struct thread_info *child_thr;
-	  struct target_desc *tdesc;
 
 	  ptid = ptid_t (new_pid, new_pid, 0);
 
@@ -553,9 +552,9 @@ linux_process_target::handle_extended_wait (lwp_info **orig_event_lwp,
 
 	  clone_all_breakpoints (child_thr, event_thr);
 
-	  tdesc = allocate_target_description ();
-	  copy_target_description (tdesc, parent_proc->tdesc);
-	  child_proc->tdesc = tdesc;
+	  target_desc_up tdesc = allocate_target_description ();
+	  copy_target_description (tdesc.get (), parent_proc->tdesc);
+	  child_proc->tdesc = tdesc.release ();
 
 	  /* Clone arch-specific process data.  */
 	  low_new_fork (parent_proc, child_proc);
@@ -2737,7 +2736,7 @@ select_event_lwp (struct lwp_info **orig_lp)
   if (event_thread == NULL)
     {
       /* No single-stepping LWP.  Select one at random, out of those
-         which have had events.  */
+	 which have had events.  */
 
       event_thread = find_thread_in_random ([&] (thread_info *thread)
 	{
@@ -2948,7 +2947,7 @@ linux_process_target::gdb_catch_this_syscall (lwp_info *event_child)
 
 ptid_t
 linux_process_target::wait_1 (ptid_t ptid, target_waitstatus *ourstatus,
-			      int target_options)
+			      target_wait_flags target_options)
 {
   client_state &cs = get_client_state ();
   int w;
@@ -3710,7 +3709,7 @@ async_file_mark (void)
 ptid_t
 linux_process_target::wait (ptid_t ptid,
 			    target_waitstatus *ourstatus,
-			    int target_options)
+			    target_wait_flags target_options)
 {
   ptid_t event_ptid;
 
@@ -6092,7 +6091,8 @@ linux_process_target::async (bool enable)
 
 	  /* Register the event loop handler.  */
 	  add_file_handler (linux_event_pipe[0],
-			    handle_target_event, NULL);
+			    handle_target_event, NULL,
+			    "linux-low");
 
 	  /* Always trigger a linux_wait.  */
 	  async_file_mark ();

@@ -1,5 +1,5 @@
 /* Assorted BFD support routines, only used internally.
-   Copyright (C) 1990-2020 Free Software Foundation, Inc.
+   Copyright (C) 1990-2021 Free Software Foundation, Inc.
    Written by Cygnus Support.
 
    This file is part of BFD, the Binary File Descriptor library.
@@ -1149,6 +1149,30 @@ _bfd_read_signed_leb128 (bfd *abfd ATTRIBUTE_UNUSED,
     result |= (((bfd_vma) -1) << shift);
   *bytes_read_ptr = num_read;
   return result;
+}
+
+/* Write VAL in uleb128 format to P.
+   END indicates the last byte of allocated space for the uleb128 value to fit
+   in.
+   Return a pointer to the byte following the last byte that was written, or
+   NULL if the uleb128 value does not fit in the allocated space between P and
+   END.  */
+bfd_byte *
+_bfd_write_unsigned_leb128 (bfd_byte *p, bfd_byte *end, bfd_vma val)
+{
+  bfd_byte c;
+  do
+    {
+      if (p > end)
+	return NULL;
+      c = val & 0x7f;
+      val >>= 7;
+      if (val)
+	c |= 0x80;
+      *(p++) = c;
+    }
+  while (val);
+  return p;
 }
 
 bfd_boolean

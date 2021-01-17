@@ -1,6 +1,6 @@
 /* GDB parameters implemented in Python
 
-   Copyright (C) 2008-2020 Free Software Foundation, Inc.
+   Copyright (C) 2008-2021 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -90,8 +90,6 @@ struct parmpy_object
      NULL-terminated.  */
   const char **enumeration;
 };
-
-typedef struct parmpy_object parmpy_object;
 
 extern PyTypeObject parmpy_object_type
     CPYCHECKER_TYPE_OBJECT_FOR_TYPEDEF ("parmpy_object");

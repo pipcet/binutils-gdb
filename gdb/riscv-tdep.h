@@ -1,7 +1,7 @@
 /* Target-dependent header for the RISC-V architecture, for GDB, the
    GNU Debugger.
 
-   Copyright (C) 2018-2020 Free Software Foundation, Inc.
+   Copyright (C) 2018-2021 Free Software Foundation, Inc.
 
    This file is part of GDB.
 
@@ -63,6 +63,8 @@ enum
   RISCV_DWARF_REGNUM_X31 = 31,
   RISCV_DWARF_REGNUM_F0 = 32,
   RISCV_DWARF_REGNUM_F31 = 63,
+  RISCV_DWARF_FIRST_CSR = 4096,
+  RISCV_DWARF_LAST_CSR = 8191,
 };
 
 /* RISC-V specific per-architecture information.  */
@@ -125,6 +127,11 @@ extern int riscv_abi_xlen (struct gdbarch *gdbarch);
    in integer registers) other possible return value are 4, 8, or 16 as
    with RISCV_ISA_FLEN.  */
 extern int riscv_abi_flen (struct gdbarch *gdbarch);
+
+/* Return true if GDBARCH is using the embedded x-regs abi, that is the
+   target only has 16 x-registers, which includes a reduced number of
+   argument registers.  */
+extern bool riscv_abi_embedded (struct gdbarch *gdbarch);
 
 /* Single step based on where the current instruction will take us.  */
 extern std::vector<CORE_ADDR> riscv_software_single_step

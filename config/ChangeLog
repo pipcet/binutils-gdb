@@ -1,3 +1,34 @@
+2021-01-12  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR binutils/26792
+	* jobserver.m4: New file.
+
+2021-01-11  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR ld/27173
+	* gcc-plugin.m4 (GCC_PLUGIN_OPTION): Check if AR works with
+	--plugin and rc before enabling --plugin.
+
+2021-01-09  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc-plugin.m4 (GCC_PLUGIN_OPTION): New.
+
+2021-01-09  Nick Clifton  <nickc@redhat.com>
+
+	* 2.36 release branch crated.
+
+2021-01-01  Nicolas Boulenguez  <nicolas@debian.org>
+
+	* override.m4: Correct comment grammar.
+
+2020-09-08  Alan Modra  <amodra@gmail.com>
+
+	Sync from gcc
+	2020-07-15  H.J. Lu  <hjl.tools@gmail.com>
+	PR bootstrap/96202
+	* cet.m4 (GCC_CET_HOST_FLAGS): Don't enable CET without CET
+	support in stage1 nor for build support.
+
 2020-07-30  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
 
 	* largefile.m4 (ACX_LARGEFILE) <sparc-*-solaris*|i?86-*-solaris*>:

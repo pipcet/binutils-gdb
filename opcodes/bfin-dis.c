@@ -1,5 +1,5 @@
 /* Disassemble ADI Blackfin Instructions.
-   Copyright (C) 2005-2020 Free Software Foundation, Inc.
+   Copyright (C) 2005-2021 Free Software Foundation, Inc.
 
    This file is part of libopcodes.
 
@@ -34,7 +34,7 @@
 typedef long TIword;
 
 #define SIGNBIT(bits)       (1ul << ((bits) - 1))
-#define MASKBITS(val, bits) ((val) & ((1ul << (bits)) - 1))
+#define MASKBITS(val, bits) ((val) & ((SIGNBIT (bits) << 1) - 1))
 #define SIGNEXTEND(v, n)    ((MASKBITS (v, n) ^ SIGNBIT (n)) - SIGNBIT (n))
 
 #include "disassemble.h"

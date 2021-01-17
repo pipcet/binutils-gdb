@@ -1,5 +1,5 @@
 /* Emulation of eBPF helpers.  Interface.
-   Copyright (C) 2020 Free Software Foundation, Inc.
+   Copyright (C) 2020-2021 Free Software Foundation, Inc.
 
    This file is part of GDB, the GNU debugger.
 
@@ -26,6 +26,6 @@ enum bpf_kernel_helper
 #undef DEF_HELPER
   };
 
-/* void bpf_trace_printk (const char *fmt); */
+void bpf_trace_printk (SIM_CPU *current_cpu);
 
 #endif /* ! BPF_HELPERS_H */

@@ -1,5 +1,5 @@
 /* Main simulator entry points specific to the eBPF.
-   Copyright (C) 2020 Free Software Foundation, Inc.
+   Copyright (C) 2020-2021 Free Software Foundation, Inc.
 
    This file is part of GDB, the GNU debugger.
 
@@ -15,6 +15,8 @@
 
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
+
+#include <stdlib.h>
 
 #include "sim-main.h"
 #include "sim-options.h"

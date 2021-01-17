@@ -1,4 +1,4 @@
-# Copyright 2020 Free Software Foundation, Inc.
+# Copyright 2020-2021 Free Software Foundation, Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,6 +16,8 @@
 load_lib "ada.exp"
 load_lib "gdb-python.exp"
 
+if { [skip_ada_tests] } { return -1 }
+
 standard_ada_testfile pkg
 
 load_lib mi-support.exp
@@ -31,16 +33,9 @@ foreach_with_prefix scenario {none all minimal} {
 	return -1
     }
 
-    gdb_exit
-    if [mi_gdb_start] {
-	continue
-    }
+    mi_clean_restart $binfile
 
-    mi_delete_breakpoints
-    mi_gdb_reinitialize_dir $srcdir/$subdir
-    mi_gdb_load ${binfile}
-
-    if ![mi_run_to_main] then {
+    if {[mi_runto_main] < 0} {
 	fail "cannot run to main, testcase aborted"
 	return 0
     }

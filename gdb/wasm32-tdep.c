@@ -534,7 +534,7 @@ wasm32_gdbarch_init (struct gdbarch_info info, struct gdbarch_list *arches)
       const struct tdesc_feature *feature = NULL;
       int valid_p;
 
-      tdesc_data = tdesc_data_alloc ();
+      //tdesc_data = tdesc_data_alloc ();
 
       valid_p = 1;
       for (i = 0; i < WASM32_SP_REGNUM; i++)
@@ -543,7 +543,7 @@ wasm32_gdbarch_init (struct gdbarch_info info, struct gdbarch_list *arches)
 
       if (!valid_p)
 	{
-	  tdesc_data_cleanup (tdesc_data);
+	  //tdesc_data_cleanup (tdesc_data);
 	  return NULL;
 	}
 

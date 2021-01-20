@@ -1,3 +1,114 @@
+2021-01-19  Lancelot SIX  <lsix@lancelotsix.com>
+
+	* top.h (switch_thru_all_uis): Use DISABLE_COPY_AND_ASSIGN.
+
+2021-01-19  Luis Machado  <luis.machado@linaro.org>
+
+	* trad-frame.h (trad_frame_saved_reg) <set_value_bytes>: Allocate
+	memory and save data.
+	(trad_frame_set_value, trad_frame_set_realreg, trad_frame_set_addr)
+	(trad_frame_set_unknown, trad_frame_set_value_bytes)
+	(trad_frame_value_p, trad_frame_addr_p, trad_frame_realreg_p)
+	(trad_frame_value_bytes_p): Remove.
+	(trad_frame_reset_saved_regs): Adjust documentation.
+	* trad-frame.c (trad_frame_alloc_saved_regs): Initialize via a
+	constructor and reset the state of the registers.
+	(trad_frame_value_p, trad_frame_addr_p, trad_frame_realreg_p)
+	(trad_frame_value_bytes_p, trad_frame_set_value)
+	(trad_frame_set_realreg, trad_frame_set_addr)
+	(trad_frame_set_unknown, trad_frame_set_value_bytes): Remove.
+	(trad_frame_set_reg_realreg): Update to call member function.
+	(trad_frame_set_reg_addr, trad_frame_set_reg_value_bytes): Likewise.
+	(trad_frame_get_prev_register): Likewise.
+
+	* aarch64-tdep.c (aarch64_analyze_prologue)
+	(aarch64_analyze_prologue_test, aarch64_make_prologue_cache_1)
+	(aarch64_prologue_prev_register): Update to use member functions.
+	* alpha-mdebug-tdep.c (alpha_mdebug_frame_unwind_cache): Likewise.
+	* alpha-tdep.c (alpha_heuristic_frame_unwind_cache): Likewise.
+	* arc-tdep.c (arc_print_frame_cache, arc_make_frame_cache): Likewise.
+	* arm-tdep.c (arm_make_prologue_cache, arm_exidx_fill_cache)
+	(arm_make_epilogue_frame_cache): Likewise.
+	* avr-tdep.c (avr_frame_unwind_cache)
+	(avr_frame_prev_register): Likewise.
+	* cris-tdep.c (cris_scan_prologue): Likewise.
+	* csky-tdep.c (csky_frame_unwind_cache): Likewise.
+	* frv-tdep.c (frv_analyze_prologue): Likewise.
+	* hppa-tdep.c (hppa_frame_cache, hppa_fallback_frame_cache): Likewise.
+	* lm32-tdep.c (lm32_frame_cache): Likewise.
+	* m32r-tdep.c (m32r_frame_unwind_cache): Likewise.
+	* m68hc11-tdep.c (m68hc11_frame_unwind_cache): Likewise.
+	* mips-tdep.c (set_reg_offset, mips_insn16_frame_cache)
+	(mips_micro_frame_cache, mips_insn32_frame_cache): Likewise.
+	(reset_saved_regs): Adjust to set realreg.
+	* riscv-tdep.c (riscv_scan_prologue, riscv_frame_cache): Adjust to
+	call member functions.
+	* rs6000-tdep.c (rs6000_frame_cache, rs6000_epilogue_frame_cache)
+	* s390-tdep.c (s390_prologue_frame_unwind_cache)
+	(s390_backchain_frame_unwind_cache): Likewise.
+	* score-tdep.c (score7_analyze_prologue)
+	(score3_analyze_prologue, score_make_prologue_cache): Likewise.
+	* sparc-netbsd-tdep.c (sparc32nbsd_sigcontext_saved_regs): Likewise.
+	* sparc-sol2-tdep.c (sparc32_sol2_sigtramp_frame_cache): Likewise.
+	* sparc64-netbsd-tdep.c (sparc64nbsd_sigcontext_saved_regs): Likewise.
+	* sparc64-sol2-tdep.c (sparc64_sol2_sigtramp_frame_cache): Likewise.
+	* tilegx-tdep.c (tilegx_analyze_prologue)
+	(tilegx_frame_cache): Likewise.
+	* v850-tdep.c (v850_frame_cache): Likewise.
+	* vax-tdep.c (vax_frame_cache): Likewise.
+
+2021-01-19  Luis Machado  <luis.machado@linaro.org>
+
+	* frame.h (get_frame_register_bytes): Pass a gdb::array_view instead
+	of buffer + length.
+	(put_frame_register_bytes): Likewise.
+	Adjust documentation.
+	(get_frame_memory): Pass a gdb::array_view instead of buffer + length.
+	(safe_frame_unwind_memory): Likewise.
+	* frame.c (get_frame_register_bytes, put_frame_register_bytes)
+	(get_frame_memory, safe_frame_unwind_memory): Adjust to use
+	gdb::array_view.
+	* amd64-fbsd-tdep.c (amd64fbsd_sigtramp_p): Likewise.
+	* amd64-linux-tdep.c (amd64_linux_sigtramp_start): Likewise.
+	* amd64-obsd-tdep.c (amd64obsd_sigtramp_p): Likewise.
+	* arc-linux-tdep.c (arc_linux_is_sigtramp): Likewise.
+	* cris-tdep.c (cris_sigtramp_start, cris_rt_sigtramp_start): Likewise.
+	* dwarf2/loc.c (rw_pieced_value): Likewise.
+	* hppa-tdep.c (hppa_frame_cache): Likewise.
+	* i386-fbsd-tdep.c (i386fbsd_sigtramp_p): Likewise.
+	* i386-gnu-tdep.c (i386_gnu_sigtramp_start): Likewise.
+	* i386-linux-tdep.c (i386_linux_sigtramp_start)
+	(i386_linux_rt_sigtramp_start): Likewise.
+	* i386-obsd-tdep.c (i386obsd_sigtramp_p): Likewise.
+	* i386-tdep.c (i386_register_to_value): Likewise.
+	* i387-tdep.c (i387_register_to_value): Likewise.
+	* ia64-tdep.c (ia64_register_to_value): Likewise.
+	* m32r-linux-tdep.c (m32r_linux_sigtramp_start)
+	(m32r_linux_rt_sigtramp_start): Likewise.
+	* m68k-linux-tdep.c (m68k_linux_pc_in_sigtramp): Likewise.
+	* m68k-tdep.c (m68k_register_to_value): Likewise.
+	* mips-tdep.c (mips_register_to_value)
+	(mips_value_to_register): Likewise.
+	* ppc-fbsd-tdep.c (ppcfbsd_sigtramp_frame_sniffer)
+	(ppcfbsd_sigtramp_frame_cache): Likewise.
+	* ppc-obsd-tdep.c (ppcobsd_sigtramp_frame_sniffer)
+	(ppcobsd_sigtramp_frame_cache): Likewise.
+	* rs6000-tdep.c (rs6000_in_function_epilogue_frame_p)
+	(rs6000_register_to_value): Likewise.
+	* tilegx-tdep.c (tilegx_analyze_prologue): Likewise.
+	* tramp-frame.c (tramp_frame_start): Likewise.
+	* valops.c (value_assign): Likewise.
+
+2021-01-19  Luis Machado  <luis.machado@linaro.org>
+
+	* aarch64-linux-tdep.c (aarch64_linux_restore_vreg): Pass in an
+	array_view.
+	* trad-frame.c (trad_frame_set_value_bytes): Use gdb::array_view
+	instead of buffer and size.
+	(trad_frame_set_reg_value_bytes): Likewise.
+	* trad-frame.h (trad_frame_set_reg_value_bytes): Likewise.
+	(trad_frame_set_value_bytes): Likewise.
+
 2021-01-18  Mike Frysinger  <vapier@gentoo.org>
 
 	* copyright.py (NOT_FSF_LIST): Delete sim/testsuite/sim/bfin/s21.s.

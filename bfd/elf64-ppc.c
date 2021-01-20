@@ -25,6 +25,9 @@
    http://www.linuxbase.org/spec/ELF/ppc64/PPC-elf64abi.txt, and
    http://www.linuxbase.org/spec/ELF/ppc64/spec/book1.html  */
 
+/* Don't generate unused section symbols.  */
+#define TARGET_KEEP_UNUSED_SECTION_SYMBOLS FALSE
+
 #include "sysdep.h"
 #include <stdarg.h>
 #include "bfd.h"
@@ -2299,7 +2302,8 @@ ppc64_elf_get_synthetic_symtab (bfd *abfd,
 	 sym->section directly.  With separate debug info files, the
 	 symbols will be extracted from the debug file while abfd passed
 	 to this function is the real binary.  */
-      if (strcmp (syms[i]->section->name, ".opd") == 0)
+      if ((syms[i]->flags & BSF_SECTION_SYM) != 0
+	  && strcmp (syms[i]->section->name, ".opd") == 0)
 	++i;
       codesecsym = i;
 

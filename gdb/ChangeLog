@@ -1,3 +1,221 @@
+2021-01-22  Andrew Burgess  <andrew.burgess@embecosm.com>
+
+	PR cli/25956
+	* NEWS: Mention new command.
+	* cli/cli-style.c: Add 'cli/cli-setshow.h' include.
+	(version_style): Define.
+	(cli_style_option::cli_style_option): Add intensity parameter, and
+	use as appropriate.
+	(_initialize_cli_style): Register version style set/show commands.
+	* cli/cli-style.h (cli_style_option): Add intensity parameter.
+	(version_style): Declare.
+	* top.c (print_gdb_version): Use version_stype, and styled_string
+	to print the GDB version string.
+
+2021-01-22  Andrew Burgess  <andrew.burgess@embecosm.com>
+
+	* utils.c (emit_style_escape): Only emit an escape sequence if the
+	requested style is different than the current applied style.
+	(fputs_maybe_filtered): Adjust the juggling of the wrap_style, and
+	current applied_style.
+	(fputs_styled): Remove is_default check.
+	(fputs_styled_unfiltered): Likewise.
+	(vfprintf_styled_no_gdbfmt): Likewise.
+
+2021-01-22  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* remote.h (remote_debug_printf): New.
+	(remote_debug_printf_nofunc): New.
+	(REMOTE_SCOPED_DEBUG_ENTER_EXIT): New.
+	* remote.c: Use above macros throughout file.
+
+2021-01-22  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* remote.h (remote_debug): Change to bool.
+	* remote.c (remote_debug): Change to bool.
+	(_initialize_remote): Adjust.
+
+2021-01-22  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* target.h (remote_debug): Move to...
+	* remote.h (remote_debug): ... here.
+	* top.c (remote_debug): Move to...
+	* remote.c (remote_debug): ... here.
+	* remote-sim.c: Include remote.h.
+
+2021-01-22  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* cli/cli-cmds.c (show_remote_debug): Remove.
+	(show_remote_timeout): Remove.
+	(_initialize_cli_cmds): Don't register commands.
+	* remote.c (show_remote_debug): Move here.
+	(show_remote_timeout): Move here.
+	(_initialize_remote): Register commands.
+
+2021-01-22  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* gdbtypes.h (TYPE_OBJFILE): Remove, change all users to use the
+	type::objfile method instead.
+
+2021-01-22  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* gdbtypes.h (TYPE_OBJFILE_OWNED): Remove, update all users to
+	use the type::is_objfile_owned method.
+
+2021-01-22  Simon Marchi  <simon.marchi@efficios.com>
+
+	* gdbtypes.h (TYPE_OBJFILE_OWNED): Adjust.
+	(TYPE_OWNER): Remove.
+	(TYPE_OBJFILE): Adjust.
+	(struct main_type) <flag_objfile_owned>: Rename to...
+	<m_flag_objfile_owned>: ... this.
+	<owner>: Rename to...
+	<m_owner>: ... this.
+	(struct type) <is_objfile_owned, set_owner, objfile, arch>: New
+	methods.
+	(TYPE_ALLOC): Adjust.
+	* gdbtypes.c (alloc_type): Adjust.
+	(alloc_type_arch): Adjust.
+	(alloc_type_copy): Adjust.
+	(get_type_arch): Adjust.
+	(smash_type): Adjust.
+	(lookup_array_range_type): Adjust.
+	(recursive_dump_type): Adjust.
+	(copy_type_recursive): Adjust.
+	* compile/compile-c-types.c (convert_func): Adjust.
+	(convert_type_basic): Adjust.
+	* compile/compile-cplus-types.c (compile_cplus_convert_func):
+	Adjust.
+	* language.c
+	(language_arch_info::type_and_symbol::alloc_type_symbol):
+	Adjust.
+
+2021-01-21  Luis Machado  <luis.machado@linaro.org>
+
+	* coffread.c (enter_linenos): Passing string to complaint.
+	* valops.c (value_assign): Make array view.
+
+2021-01-21  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* auto-load.h (debug_auto_load): Move here.
+	(auto_load_debug_printf): New.
+	* auto-load.c: Use auto_load_debug_printf.
+	(debug_auto_load): Move to header.
+	* linux-thread-db.c (try_thread_db_load): Use
+	auto_load_debug_printf.
+	* main.c (captured_main_1): Likewise.
+
+2021-01-21  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* f-valprint.c (f77_array_offset_tbl): Remove.
+
+2021-01-21  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* gdb_bfd.c (bfd_cache_debug_printf): New, use throughout file.
+
+2021-01-21  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* ser-tcp.c (wait_for_connect): Use interruptible_select instead
+	of gdb_select.
+
+2021-01-21  Hannes Domani  <ssbssa@yahoo.de>
+
+	PR python/19151
+	* python/py-breakpoint.c (bppy_get_location): Handle
+	bp_hardware_breakpoint.
+	(bppy_init): Likewise.
+	(gdbpy_breakpoint_created): Likewise.
+
+2021-01-21  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* arm-tdep.c (arm_debug_printf): Add and use throughout file.
+
+2021-01-20  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* gdb_bfd.c (debug_bfd_cache): Change type to bool.
+	(_initialize_gdb_bfd): Adjust.
+
+2021-01-20  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	PR gdb/26828
+	* dwarf2/read.c (maybe_queue_comp_unit): Add assertion.
+
+2021-01-20  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* dwarf2/read.c (follow_die_offset): Add logging.
+	(dwarf2_per_objfile::age_comp_units): Add logging.
+
+2021-01-20  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* aarch64-linux-tdep.c (aarch64_linux_record_tdep): Make static.
+	* aarch64-tdep.c (tdesc_aarch64_list, aarch64_prologue_unwind,
+	aarch64_stub_unwind, aarch64_normal_base, ): Make static.
+	* arm-linux-tdep.c (arm_prologue_unwind): Make static.
+	* arm-tdep.c (struct frame_unwind): Make static.
+	* auto-load.c (auto_load_safe_path_vec): Make static.
+	* csky-tdep.c (csky_stub_unwind): Make static.
+	* gdbarch.c (gdbarch_data_registry): Make static.
+	* gnu-v2-abi.c (gnu_v2_abi_ops): Make static.
+	* i386-netbsd-tdep.c (i386nbsd_mc_reg_offset): Make static.
+	* i386-tdep.c (i386_frame_setup_skip_insns,
+	i386_tramp_chain_in_reg_insns, i386_tramp_chain_on_stack_insns):
+	Make static.
+	* infrun.c (observer_mode): Make static.
+	* linux-nat.c (sigchld_action): Make static.
+	* linux-thread-db.c (thread_db_list): Make static.
+	* maint-test-options.c (maintenance_test_options_list):
+	* mep-tdep.c (mep_csr_registers): Make static.
+	* mi/mi-cmds.c (struct mi_cmd_stats): Remove struct type name.
+	(stats): Make static.
+	* nat/linux-osdata.c (struct osdata_type): Make static.
+	* ppc-netbsd-tdep.c (ppcnbsd_reg_offsets): Make static.
+	* progspace.c (last_program_space_num): Make static.
+	* python/py-param.c (struct parm_constant): Remove struct type
+	name.
+	(parm_constants): Make static.
+	* python/py-record-btrace.c (btpy_list_methods): Make static.
+	* python/py-record.c (recpy_gap_type): Make static.
+	* record.c (record_goto_cmdlist): Make static.
+	* regcache.c (regcache_descr_handle): Make static.
+	* registry.h (DEFINE_REGISTRY): Make definition static.
+	* symmisc.c (std_in, std_out, std_err): Make static.
+	* top.c (previous_saved_command_line): Make static.
+	* tracepoint.c (trace_user, trace_notes, trace_stop_notes): Make
+	static.
+	* unittests/command-def-selftests.c (nr_duplicates,
+	nr_invalid_prefixcmd, lists): Make static.
+	* unittests/observable-selftests.c (test_notification): Make
+	static.
+	* unittests/optional/assignment/1.cc (counter): Make static.
+	* unittests/optional/assignment/2.cc (counter): Make static.
+	* unittests/optional/assignment/3.cc (counter): Make static.
+	* unittests/optional/assignment/4.cc (counter): Make static.
+	* unittests/optional/assignment/5.cc (counter): Make static.
+	* unittests/optional/assignment/6.cc (counter): Make static.
+
+2021-01-20  Joel Sherrill  <joel@rtems.org>
+
+	PR gdb/27219
+	* remote.c (struct remote_thread_info) <resume_state>: Rename
+	to...
+	<get_resume_state>: ... this.
+	(remote_target::resume): Adjust.
+	(remote_target::commit_resume): Adjust.
+	(remote_target::select_thread_for_ambiguous_stop_reply): Adjust.
+
+2021-01-20  Sergio Durigan Junior  <sergiodj@sergiodj.net>
+	    Tom Tromey <tom@tromey.com>
+
+	* stap-probe.c (stap_parse_single_operand): Handle '!'
+	operator.
+	(stap_parse_argument_conditionally): Likewise.
+	Skip spaces after processing open-parenthesis sub-expression.
+	(stap_parse_argument_1): Skip spaces after call to
+	stap_parse_argument_conditionally.
+	Handle case when right-side expression is a parenthesized
+	sub-expression.
+	Skip spaces after call to stap_parse_argument_1.
+
 2021-01-19  Lancelot SIX  <lsix@lancelotsix.com>
 
 	* top.h (switch_thru_all_uis): Use DISABLE_COPY_AND_ASSIGN.

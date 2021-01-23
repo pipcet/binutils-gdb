@@ -209,7 +209,7 @@ struct thread_db_info
 
 /* List of known processes using thread_db, and the required
    bookkeeping.  */
-struct thread_db_info *thread_db_list;
+static thread_db_info *thread_db_list;
 
 static void thread_db_find_new_threads_1 (thread_info *stopped);
 static void thread_db_find_new_threads_2 (thread_info *stopped,
@@ -976,10 +976,11 @@ try_thread_db_load (const char *library, bool check_auto_load_safe)
 	  return false;
 	}
 
-      if (!file_is_auto_load_safe (library, _("auto-load: Loading libthread-db "
-					      "library \"%s\" from explicit "
-					      "directory.\n"),
-				   library))
+      auto_load_debug_printf
+	("Loading libthread-db library \"%s\" from explicit directory.",
+	 library);
+
+      if (!file_is_auto_load_safe (library))
 	return false;
     }
 

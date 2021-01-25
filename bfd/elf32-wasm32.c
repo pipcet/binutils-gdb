@@ -1034,7 +1034,7 @@ elf32_wasm32_check_relocs (bfd *abfd, struct bfd_link_info *info, asection *sec,
     {
       int r_type;
       struct elf_link_hash_entry *h;
-      struct elf32_wasm32_link_hash_entry *hh;
+      struct elf32_wasm32_link_hash_entry *hh = NULL;
       unsigned long r_symndx = ELF32_R_SYM (rel->r_info);
 
       r_type = ELF32_R_TYPE (rel->r_info);

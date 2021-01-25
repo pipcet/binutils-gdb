@@ -2043,7 +2043,7 @@ elf32_wasm32_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
       bfd_vma relocation;
       bfd_vma addend = (bfd_vma)0;
       bfd_reloc_status_type r;
-      struct elf32_wasm32_link_hash_entry *hh;
+      struct elf32_wasm32_link_hash_entry *hh = NULL;
 
       r_symndx = ELF32_R_SYM (rel->r_info);
 

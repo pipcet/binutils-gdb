@@ -297,6 +297,9 @@ print_insn_wasm32 (bfd_vma pc, struct disassemble_info *info)
 
   while (op->clas == wasm_escape)
     {
+      if (info->read_memory_func (pc + len, buffer + len, 1, info))
+	return -1;
+
       len++;
 
       for (op = wasm32_opcodes; op->name; op++)

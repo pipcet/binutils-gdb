@@ -13,8 +13,17 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# Check that an out-of-range DW_LNE_end_sequence is removed from the
-# line table.
+# Check whether stepping out of a function works, in case:
+# - the first insn after the call has an is-stmt=no entry
+# - the next insn has an is-stmt=yes entry, for the same line number
+#
+# This sort of thing can occur in optimized code, f.i. here a slightly more
+# elaborate case with another is-stmt=no entry (the one with line number 12)
+# inbetween:
+# INDEX  LINE   ADDRESS            IS-STMT
+# 12     13     0x00000000004003ed
+# 13     12     0x00000000004003f2
+# 14     13     0x00000000004003f4 Y
 
 load_lib dwarf.exp
 
@@ -33,12 +42,20 @@ if !$gcc_compiled {
     return 0
 }
 
-standard_testfile main.c -dw.S
+standard_testfile .c -dw.S
 
 set asm_file [standard_output_file $srcfile2]
 Dwarf::assemble $asm_file {
     declare_labels Llines
     global srcdir subdir srcfile
+
+    lassign [function_range main [list ${srcdir}/${subdir}/$srcfile]] \
+	main_start main_len
+    set main_end "$main_start + $main_len"
+
+    lassign [function_range main [list ${srcdir}/${subdir}/$srcfile]] \
+	bar_start bar_len
+    set bar_end "$bar_start + $bar_len"
 
     cu {} {
 	compile_unit {
@@ -50,6 +67,10 @@ Dwarf::assemble $asm_file {
 		{external 1 flag}
 		{MACRO_AT_func {main}}
 	    }
+	    subprogram {
+		{external 1 flag}
+		{MACRO_AT_func {bar}}
+	    }
 	}
     }
 
@@ -58,18 +79,28 @@ Dwarf::assemble $asm_file {
 	file_name "$srcfile" 1
 
 	program {
-	    {DW_LNE_set_address main_label}
-	    {line 1}
+	    {DW_LNE_set_address bar_label}
+	    {line 26}
 	    {DW_LNS_copy}
 
-	    {DW_LNS_advance_pc 1}
+	    {DW_LNE_set_address $bar_end}
 	    {DW_LNE_end_sequence}
 
-	    {DW_LNE_set_address 0}
-	    {line 2}
+	    {DW_LNE_set_address main_label}
+	    {line 32}
 	    {DW_LNS_copy}
 
-	    {DW_LNS_advance_pc 1}
+	    {DW_LNE_set_address main_label_2}
+	    {line 36}
+	    {DW_LNS_negate_stmt}
+	    {DW_LNS_copy}
+	    {DW_LNS_negate_stmt}
+
+	    {DW_LNE_set_address main_label_3}
+	    {line 36}
+	    {DW_LNS_copy}
+
+	    {DW_LNE_set_address $main_end}
 	    {DW_LNE_end_sequence}
 	}
     }
@@ -84,12 +115,12 @@ if ![runto_main] {
     return -1
 }
 
-set test "END with address 1 eliminated"
-gdb_test_multiple "maint info line-table $srcfile$" $test {
-    -re -wrap "END *0x0*1 *Y \r\n.*" {
-	fail $gdb_test_name
-    }
-    -re -wrap "END *$hex *Y " {
-	pass $gdb_test_name
-    }
-}
+# Step into bar.
+gdb_breakpoint "bar"
+gdb_continue_to_breakpoint "bar"
+
+# Step out of bar.
+gdb_test "step" [multi_line \
+		     "main \\(\\) at \[^\r\n\]*$srcfile:36" \
+		     "36\t\[^\r\n\]*"]
+

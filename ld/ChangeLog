@@ -1,3 +1,19 @@
+2021-01-26  Nick Alcock  <nick.alcock@oracle.com>
+
+	* ldlang.c (lang_merge_ctf): Set CTF_LINK_NO_FILTER_REPORTED_SYMS
+	when appropriate.
+
+2021-02-04  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR ld/19609
+	* testsuite/ld-x86-64/pr19609-2a.d: Updated.
+	* testsuite/ld-x86-64/pr19609-2b.d: Likewise.
+	* testsuite/ld-x86-64/pr19609-4a.d: Likewise.
+	* testsuite/ld-x86-64/pr19609-4c.d: Likewise.
+	* testsuite/ld-x86-64/pr19609-5d.d: Likewise.
+	* testsuite/ld-x86-64/pr19609-7a.d: Likewise.
+	* testsuite/ld-x86-64/pr19609-7c.d: Likewise.
+
 2021-02-04  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR ld/15146

@@ -771,7 +771,8 @@ public:
     gdb_assert (m_abbrev_table.empty ());
     const size_t name_count = m_name_to_value_set.size ();
     m_bucket_table.resize
-      (std::pow (2, std::ceil (std::log2 (name_count * 4 / 3))));
+      (std::pow (2, std::ceil (std::log (name_count * 4 / 3) /
+			       std::log (2.0))));
     m_hash_table.reserve (name_count);
     m_name_table_string_offs.reserve (name_count);
     m_name_table_entry_offs.reserve (name_count);

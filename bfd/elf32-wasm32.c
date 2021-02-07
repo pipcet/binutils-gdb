@@ -93,8 +93,8 @@ static reloc_howto_type elf32_wasm32_howto_table[] =
          elf32_wasm32_leb128_reloc,/* special_function */
          "R_WASM32_LEB128",	/* name */
          FALSE,			/* partial_inplace */
-         0xffffffffffffffff,	/* src_mask */
-         0xffffffffffffffff,	/* dst_mask */
+         -1UL,	/* src_mask */
+         -1UL,	/* dst_mask */
          FALSE),		/* pcrel_offset */
 
   /* LEB-128 GOT offset.  */
@@ -108,8 +108,8 @@ static reloc_howto_type elf32_wasm32_howto_table[] =
          elf32_wasm32_leb128_reloc,/* special_function */
          "R_WASM32_LEB128_GOT",	/* name */
          FALSE,			/* partial_inplace */
-         0xffffffffffffffff,	/* src_mask */
-         0xffffffffffffffff,	/* dst_mask */
+         -1UL,	/* src_mask */
+         -1UL,	/* dst_mask */
          FALSE),		/* pcrel_offset */
 
   /* LEB-128 PLT index.  As a special case, this is replaced with five
@@ -124,8 +124,8 @@ static reloc_howto_type elf32_wasm32_howto_table[] =
          elf32_wasm32_leb128_reloc,/* special_function */
          "R_WASM32_LEB128_PLT",	/* name */
          FALSE,			/* partial_inplace */
-         0xffffffffffffffff,	/* src_mask */
-         0xffffffffffffffff,	/* dst_mask */
+         -1UL,	/* src_mask */
+         -1UL,	/* dst_mask */
          FALSE),		/* pcrel_offset */
 
   /* PLT index.  */
@@ -139,8 +139,8 @@ static reloc_howto_type elf32_wasm32_howto_table[] =
          elf32_wasm32_leb128_reloc,/* special_function */
          "R_WASM32_PLT_INDEX",   /* name */
          FALSE,			/* partial_inplace */
-         0xffffffffffffffff,	/* src_mask */
-         0xffffffffffffffff,	/* dst_mask */
+         -1UL,	/* src_mask */
+         -1UL,	/* dst_mask */
          FALSE),		/* pcrel_offset */
 
   /* 32-bit absolute relocation for code.  */
@@ -184,8 +184,8 @@ static reloc_howto_type elf32_wasm32_howto_table[] =
          elf32_wasm32_leb128_reloc,/* special_function */
          "R_WASM32_LEB128_GOT_CODE",/* name */
          FALSE,			/* partial_inplace */
-         0xffffffffffffffff,	/* src_mask */
-         0xffffffffffffffff,	/* dst_mask */
+         -1UL,	/* src_mask */
+         -1UL,	/* dst_mask */
          FALSE),		/* pcrel_offset */
 
   /* Dummy relocation to pull in code.  */
@@ -275,8 +275,8 @@ static reloc_howto_type elf32_wasm32_howto_table[] =
          elf32_wasm32_leb128_reloc,/* special_function */
          "R_WASM32_LEB128_PLT0",/* name */
          FALSE,			/* partial_inplace */
-         0xffffffffffffffff,	/* src_mask */
-         0xffffffffffffffff,	/* dst_mask */
+         -1UL,	/* src_mask */
+         -1UL,	/* dst_mask */
          FALSE),		/* pcrel_offset */
 };
 
@@ -1891,11 +1891,6 @@ wasm32_relocate_contents (reloc_howto_type *howto,
 
       return flag;
     }
-
-  /* If the size is negative, negate RELOCATION.  This isn't very
-     general.  */
-  if (howto->size < 0)
-    relocation = -relocation;
 
   /* Get the value we are going to relocate.  */
   size = bfd_get_reloc_size (howto);

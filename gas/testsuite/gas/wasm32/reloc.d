@@ -10,7 +10,7 @@ Disassembly of section .text:
    0:	41 80 80 80 		i32.const 0
    4:	80 00 
 			1: R_WASM32_PLT_SIG	__sigchar_FiiiiiiiE
-			1: R_WASM32_LEB128_PLT	f
+			1: R_WASM32_LEB128_PLT0	f
    6:	41 80 80 80 		i32.const 0
    a:	80 00 
 			7: R_WASM32_LEB128_GOT	x

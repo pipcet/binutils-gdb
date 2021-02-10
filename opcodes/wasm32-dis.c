@@ -486,7 +486,7 @@ print_insn_wasm32 (bfd_vma pc, struct disassemble_info *info)
 	  return -1;
 	len += bytes_read;
 	prin (stream, " %u", local_index);
-	if (strcmp (op->name + 4, "local") == 0)
+	if (CONST_STRNEQ (op->name, "local"))
 	  {
 	    static const char *locals[] =
 	      {

@@ -51,7 +51,7 @@ proc is_elf_format {} {
 	 && ![istarget *-*-solaris2*]
 	 && ![istarget *-*-sysv4*]
 	 && ![istarget *-*-unixware*]
-	 && ![istarget *-*-wasm32*]
+	 && ![istarget wasm32-*-*]
 	 && ![istarget avr-*-*]
 	 && ![istarget hppa*64*-*-hpux*]
 	 && ![istarget ia64-*-hpux*] } {

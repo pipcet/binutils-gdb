@@ -73,6 +73,7 @@ ELFEDIT_PROG=elfedit
 SIZE_PROG=size
 NM_PROG=nm-new
 OBJDUMP_PROG=objdump
+DYNINFO_PROG=dyninfo
 
 # This is the demangler, as a standalone program.
 # Note: This one is used as the installed name too, unlike the above.
@@ -87,7 +88,7 @@ DLLWRAP_PROG=dllwrap
 
 SRCONV_PROG=srconv$(EXEEXT) sysdump$(EXEEXT) coffdump$(EXEEXT)
 
-bin_PROGRAMS = $(SIZE_PROG) $(OBJDUMP_PROG) $(AR_PROG) $(STRINGS_PROG) $(RANLIB_PROG) $(OBJCOPY_PROG) @BUILD_SRCONV@ @BUILD_DLLTOOL@ @BUILD_WINDRES@ @BUILD_WINDMC@ $(ADDR2LINE_PROG) $(READELF_PROG) $(ELFEDIT_PROG) @BUILD_DLLWRAP@
+bin_PROGRAMS = $(SIZE_PROG) $(DYNINFO_PROG) $(OBJDUMP_PROG) $(AR_PROG) $(STRINGS_PROG) $(RANLIB_PROG) $(OBJCOPY_PROG) @BUILD_SRCONV@ @BUILD_DLLTOOL@ @BUILD_WINDRES@ @BUILD_WINDMC@ $(ADDR2LINE_PROG) $(READELF_PROG) $(ELFEDIT_PROG) @BUILD_DLLWRAP@
 
 bin_SCRIPTS = @BUILD_INSTALL_MISC@
 EXTRA_SCRIPTS = embedspu
@@ -107,7 +108,7 @@ noinst_PROGRAMS = $(RENAMED_PROGS) $(TEST_PROGS) @BUILD_MISC@
 EXTRA_PROGRAMS = srconv sysdump coffdump $(DLLTOOL_PROG) $(WINDRES_PROG) $(WINDMC_PROG) $(DLLWRAP_PROG)
 
 # Stuff that goes in tooldir/ if appropriate.
-TOOL_PROGS = nm-new strip-new ar ranlib dlltool objdump objcopy readelf
+TOOL_PROGS = nm-new strip-new ar ranlib dlltool dyninfo objdump objcopy readelf
 
 BASEDIR = $(srcdir)/..
 BFDDIR = $(BASEDIR)/bfd
@@ -132,7 +133,7 @@ BUILT_SOURCES = $(GENERATED_HFILES)
 CFILES = \
 	addr2line.c ar.c arsup.c bin2c.c binemul.c bucomm.c \
 	coffdump.c coffgrok.c cxxfilt.c \
-	dwarf.c debug.c dlltool.c dllwrap.c \
+	dwarf.c debug.c dlltool.c dllwrap.c dyninfo.c \
 	elfcomm.c emul_aix.c emul_vanilla.c filemode.c \
 	is-ranlib.c is-strip.c maybe-ranlib.c maybe-strip.c \
 	nm.c not-ranlib.c not-strip.c \
@@ -261,6 +262,20 @@ elfedit_LDADD = $(LIBINTL) $(LIBIBERTY)
 strip_new_SOURCES = objcopy.c is-strip.c rename.c $(WRITE_DEBUG_SRCS) $(BULIBS)
 
 nm_new_SOURCES = nm.c $(BULIBS)
+
+dyninfo_SOURCES = dyninfo.c
+
+dyninfo.@OBJEXT@:dyninfo.c
+if am__fastdepCC
+	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $(DYNINFO_DEFS) $(srcdir)/dyninfo.c
+	mv -f $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+else
+if AMDEP
+	source='dyninfo.c' object='$@' libtool=no @AMDEPBACKSLASH@
+	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+endif
+	$(COMPILE) -c $(DYNINFO_DEFS) $(srcdir)/dyninfo.c
+endif
 
 objdump_SOURCES = objdump.c dwarf.c prdbg.c $(DEBUG_SRCS) $(BULIBS) $(ELFLIBS)
 EXTRA_objdump_SOURCES = od-xcoff.c

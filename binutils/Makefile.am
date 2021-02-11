@@ -263,7 +263,7 @@ strip_new_SOURCES = objcopy.c is-strip.c rename.c $(WRITE_DEBUG_SRCS) $(BULIBS)
 
 nm_new_SOURCES = nm.c $(BULIBS)
 
-dyninfo_SOURCES = dyninfo.c
+dyninfo_SOURCES = dyninfo.c $(BULIBS)
 
 dyninfo.@OBJEXT@:dyninfo.c
 if am__fastdepCC

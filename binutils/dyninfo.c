@@ -315,9 +315,6 @@ do_dynamic_symtab (bfd *abfd, FILE *f)
 
       if (current->howto && strcmp (current->howto->name, "R_WASM32_NONE") == 0)
 	continue;
-      if (strcmp (sym_name, "*ABS*") == 0
-	  && strcmp (section_name, "*ABS*") == 0)
-	continue;
       fprintf (f, "%s    {", init);
       fprintf (f, "\"addr\":%lld", (long long) current->address);
       if (current->howto)
@@ -327,10 +324,14 @@ do_dynamic_symtab (bfd *abfd, FILE *f)
 	  else
 	    fprintf (f, ",\"type\":%lld", (long long) current->howto->type);
 	}
-      if (sym_name)
-	fprintf (f, ",\"symbol\":\"%s\"", sym_name);
-      if (section_name)
-	fprintf (f, ",\"section\":\"%s\"", section_name);
+      if (strcmp (sym_name, "*ABS*") != 0
+	  || strcmp (section_name, "*ABS*") != 0)
+	{
+	  if (sym_name)
+	    fprintf (f, ",\"symbol\":\"%s\"", sym_name);
+	  if (section_name)
+	    fprintf (f, ",\"section\":\"%s\"", section_name);
+	}
       bfd_signed_vma addend = current->addend;
       fprintf (f, ",\"addend\":%lld", (long long) addend);
       fprintf (f, "}\n");

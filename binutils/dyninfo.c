@@ -337,8 +337,23 @@ do_dynamic_symtab (bfd *abfd, FILE *f)
       fprintf (f, "}\n");
       init = ",\n";
     }
-  fprintf (f, "\n  ]\n");
+  fprintf (f, "\n  ]");
 
+  struct bfd_link_needed_list *needed;
+  if (bfd_elf_get_bfd_needed_list (abfd, &needed)
+      && needed != NULL)
+    {
+      const char *init2 = "";
+      fprintf (f, ",\n  \"needed\":[\n");
+      for (struct bfd_link_needed_list *l = needed; l != NULL; l = l->next)
+	{
+	  fprintf (f, "%s    \"%s\"", init2, l->name);
+	  init2 = ",\n";
+	}
+      fprintf (f, "\n  ]");
+    }
+
+  fprintf (f, "\n");
   free (sy);
 }
 

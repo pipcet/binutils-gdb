@@ -48,8 +48,8 @@ usage (FILE *stream, int status)
   exit (status);
 }
 
-static void
-print_symbol (bfd *abfd, asymbol *sy, FILE *f)
+static bfd_boolean
+print_symbol (bfd *abfd, asymbol *sy, FILE *f, const char *init)
 {
   const char *name = sy->name;
   const char *section_name = NULL;
@@ -62,7 +62,10 @@ print_symbol (bfd *abfd, asymbol *sy, FILE *f)
   flagword type = sy->flags;
 
   if (type & BSF_LOCAL)
-    return;
+    return FALSE;
+
+  if (!(type & BSF_DYNAMIC))
+    return FALSE;
 
   bfd_vma size = ((elf_symbol_type *) sy)->internal_elf_sym.st_size;
   bfd_boolean hidden;
@@ -71,57 +74,18 @@ print_symbol (bfd *abfd, asymbol *sy, FILE *f)
   unsigned char st_other = ((elf_symbol_type *) sy)->internal_elf_sym.st_other;
 
   bfd_boolean first = TRUE;
-  fprintf (f, "    {");
   if (name)
     {
-      fprintf (f, "%s\"name\":\"%s\"",
-	       first ? "" : ",", name);
-      first = FALSE;
+      fprintf (f, "%s", init);
+      fprintf (f, "    \"%s\":{", name);
     }
+  else
+    return FALSE;
   if (section_name)
     {
       fprintf (f, "%s\"section\":\"%s\"",
 	       first ? "" : ",", section_name);
       first = FALSE;
-    }
-  {
-    fprintf (f, "%s\"value\":0x%08llx",
-	     first ? "" : ",", (long long) value);
-    first = FALSE;
-  }
-  {
-    fprintf (f, "%s\"size\":0x%08llx",
-	     first ? "" : ",", (long long) size);
-    first = FALSE;
-  }
-  if (version_string)
-    {
-      fprintf (f, "%s\"version\":\"%s\"",
-	       first ? "" : ",", version_string);
-      first = FALSE;
-    }
-  switch (st_other)
-    {
-    case STV_INTERNAL:
-      {
-	fprintf (f, "%s\"visibility\":\"internal\"", first ? "" : ",");
-	first = FALSE;
-	break;
-      }
-    case STV_HIDDEN:
-      {
-	fprintf (f, "%s\"visibility\":\"hidden\"", first ? "" : ",");
-	first = FALSE;
-	break;
-      }
-    case STV_PROTECTED:
-      {
-	fprintf (f, "%s\"visibility\":\"protected\"", first ? "" : ",");
-	first = FALSE;
-	break;
-      }
-    default:
-      ;
     }
   {
     bfd_boolean first2 = TRUE;
@@ -181,13 +145,53 @@ print_symbol (bfd *abfd, asymbol *sy, FILE *f)
     fprintf (f, "]");
     first = FALSE;
   }
+  {
+    fprintf (f, "%s\"value\":%lld",
+	     first ? "" : ",", (long long) value);
+    first = FALSE;
+  }
+  {
+    fprintf (f, "%s\"size\":%lld",
+	     first ? "" : ",", (long long) size);
+    first = FALSE;
+  }
+  if (version_string)
+    {
+      fprintf (f, "%s\"version\":\"%s\"",
+	       first ? "" : ",", version_string);
+      first = FALSE;
+    }
+  switch (st_other)
+    {
+    case STV_INTERNAL:
+      {
+	fprintf (f, "%s\"visibility\":\"internal\"", first ? "" : ",");
+	first = FALSE;
+	break;
+      }
+    case STV_HIDDEN:
+      {
+	fprintf (f, "%s\"visibility\":\"hidden\"", first ? "" : ",");
+	first = FALSE;
+	break;
+      }
+    case STV_PROTECTED:
+      {
+	fprintf (f, "%s\"visibility\":\"protected\"", first ? "" : ",");
+	first = FALSE;
+	break;
+      }
+    default:
+      ;
+    }
   fprintf (f, "}");
-  fprintf (f, "\n");
+  return TRUE;
 }
 
 static void
 print_symtab (asymbol **sy, long n, FILE *f)
 {
+  const char *init = "";
   for (long i = 0; i < n; i++)
     {
       asymbol *current = sy[i];
@@ -198,7 +202,8 @@ print_symtab (asymbol **sy, long n, FILE *f)
 		  i);
 	  continue;
 	}
-      print_symbol (cur_bfd, current, f);
+      if (print_symbol (cur_bfd, current, f, init))
+	init = ",\n";
     }
 }
 
@@ -230,6 +235,29 @@ do_symtab (bfd *abfd, FILE *f)
 
   free (sy);
 }
+static int
+symbol_compare (const void *a, const void *b, void *c)
+{
+  asymbol *sya = *(asymbol **) a;
+  asymbol *syb = *(asymbol **) b;
+  struct bfd *abfd = (struct bfd *) c;
+  (void) abfd;
+
+  return strcmp (sya->name, syb->name);
+}
+
+static int
+relent_compare (const void *a, const void *b, void *c)
+{
+  arelent *sya = *(arelent **) a;
+  arelent *syb = *(arelent **) b;
+  struct bfd *abfd = (struct bfd *) c;
+  (void) abfd;
+
+  int diff = sya->address - syb->address;
+
+  return diff;
+}
 
 static void
 do_dynamic_symtab (bfd *abfd, FILE *f)
@@ -251,13 +279,10 @@ do_dynamic_symtab (bfd *abfd, FILE *f)
   if (storage)
     sy = (asymbol **) xmalloc (storage);
 
-  long n = bfd_canonicalize_dynamic_symtab (abfd, sy);
-  if (n < 0)
+  long n_sym = bfd_canonicalize_dynamic_symtab (abfd, sy);
+  if (n_sym < 0)
     bfd_fatal (bfd_get_filename (abfd));
 
-  fprintf (f, "  \"dynamic_symtab\": [\n");
-  print_symtab (sy, n, f);
-  fprintf (f, "  ]");
 
   arelent **rel = NULL;
   storage = bfd_get_dynamic_reloc_upper_bound (abfd);
@@ -265,10 +290,18 @@ do_dynamic_symtab (bfd *abfd, FILE *f)
     bfd_fatal (bfd_get_filename (abfd));
 
   rel = xmalloc (storage);
-  n = bfd_canonicalize_dynamic_reloc (abfd, rel, sy);
+  long n = bfd_canonicalize_dynamic_reloc (abfd, rel, sy);
 
+  qsort_r (sy, n_sym, sizeof (sy[0]),
+	   symbol_compare, abfd);
+  fprintf (f, "  \"dynamic_symtab\": {\n");
+  print_symtab (sy, n_sym, f);
+  fprintf (f, "\n  }");
   if (n)
     fprintf (f, ",\n  \"dynamic_relocs\": [\n");
+  qsort_r (rel, n, sizeof (rel[0]),
+	   relent_compare, abfd);
+  const char *init = "";
   for (long i = 0; i < n; i++)
     {
       arelent *current = rel[i];
@@ -282,24 +315,28 @@ do_dynamic_symtab (bfd *abfd, FILE *f)
 
       if (current->howto && strcmp (current->howto->name, "R_WASM32_NONE") == 0)
 	continue;
-      fprintf (f, "    {");
-      fprintf (f, "\"addr\":0x%08llx", (long long) current->address);
+      if (strcmp (sym_name, "*ABS*") == 0
+	  && strcmp (section_name, "*ABS*") == 0)
+	continue;
+      fprintf (f, "%s    {", init);
+      fprintf (f, "\"addr\":%lld", (long long) current->address);
       if (current->howto)
 	{
 	  if (current->howto->name)
 	    fprintf (f, ",\"type\":\"%s\"", current->howto->name);
 	  else
-	    fprintf (f, ",\"type\":%08llx", (long long) current->howto->type);
+	    fprintf (f, ",\"type\":%lld", (long long) current->howto->type);
 	}
       if (sym_name)
 	fprintf (f, ",\"symbol\":\"%s\"", sym_name);
       if (section_name)
-	fprintf (f, ",\"section\":\"%s\"", sym_name);
+	fprintf (f, ",\"section\":\"%s\"", section_name);
       bfd_signed_vma addend = current->addend;
-      fprintf (f, ",\"addend\":0x%08llx", (long long) addend);
-      fprintf (f, "}%s\n", i + 1 == n ? "" : ",");
+      fprintf (f, ",\"addend\":%lld", (long long) addend);
+      fprintf (f, "}\n");
+      init = ",\n";
     }
-  fprintf (f, "  ]\n");
+  fprintf (f, "\n  ]\n");
 
   free (sy);
 }
@@ -307,9 +344,11 @@ do_dynamic_symtab (bfd *abfd, FILE *f)
 static void
 dyninfo (bfd *abfd, FILE *f)
 {
+  fprintf (f, "{\n");
   do_dynamic_symtab (abfd, f);
   if (FALSE)
     do_symtab (abfd, f);
+  fprintf (f, "}\n");
 }
 
 static void

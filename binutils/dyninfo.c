@@ -294,11 +294,11 @@ do_dynamic_symtab (bfd *abfd, FILE *f)
 
   qsort_r (sy, n_sym, sizeof (sy[0]),
 	   symbol_compare, abfd);
-  fprintf (f, "  \"dynamic_symtab\": {\n");
+  fprintf (f, "  \"dynamic_symbol\": {\n");
   print_symtab (sy, n_sym, f);
   fprintf (f, "\n  }");
   if (n)
-    fprintf (f, ",\n  \"dynamic_relocs\": [\n");
+    fprintf (f, ",\n  \"dynamic_reloc\": [\n");
   qsort_r (rel, n, sizeof (rel[0]),
 	   relent_compare, abfd);
   const char *init = "";

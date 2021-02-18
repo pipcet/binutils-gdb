@@ -29,8 +29,6 @@ target_canonical = @target@
 target_alias = @target_alias@
 program_transform_name = @program_transform_name@
 
-arch = @sim_arch@
-
 SHELL = /bin/sh
 SUBDIRS = @subdirs@
 RPATH_ENVVAR = @RPATH_ENVVAR@
